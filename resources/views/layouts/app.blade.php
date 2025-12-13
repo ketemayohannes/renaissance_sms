@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="csrf-token" content="{{ csrf_token() }}">
+
+        <title>{{ config('app.name', 'Laravel') }}</title>
+
+        <!-- Fonts -->
+        <link rel="preconnect" href="https://fonts.bunny.net">
+        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+
+        <!-- Scripts -->
+        @vite(['resources/css/app.css', 'resources/js/app.js'])
+    </head>
+    <body class="font-sans antialiased">
+        <div class="min-h-screen bg-gray-100">
+            @include('layouts.navigation')
+
+            <!-- Page Heading -->
+            @isset($header)
+                <header class="bg-white shadow">
+                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                        {{ $header }}
+                    </div>
+                </header>
+            @endisset
+
+            <!-- Page Content -->
+            <main>
+                {{ $slot }}
+            </main>
+        </div>
+
+        <!-- Confirmation Modal -->
+        <x-confirm-modal />
+
+        <!-- Confirmation Form Handler Script -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                // Handle all confirmation forms (supports both old 'delete-form' and new 'confirm-form' classes)
+                document.querySelectorAll('.delete-form, .confirm-form').forEach(form => {
+                    const handler = function(e) {
+                        e.preventDefault();
+                        
+                        // Get configuration from data attributes
+                        const message = this.dataset.confirmMessage || 'Are you sure you want to proceed?';
+                        const type = this.dataset.confirmType || 'danger'; // danger, success, warning, info
+                        const title = this.dataset.confirmTitle || null;
+                        const buttonText = this.dataset.confirmButton || null;
+                        
+                        // Dispatch event with configuration
+                        window.dispatchEvent(new CustomEvent('confirm-action', {
+                            detail: { 
+                                message, 
+                                type,
+                                title,
+                                buttonText,
+                                form: this 
+                            }
+                        }));
+                    };
+                    
+                    // Store handler reference for later removal
+                    form._confirmHandler = handler;
+                    form.addEventListener('submit', handler);
+                });
+            });
+        </script>
+
+        <!-- Page-specific scripts -->
+        @stack('scripts')
+    </body>
+</html>
