@@ -136,8 +136,10 @@
                                     <select name="section_id" id="section_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
                                         <option value="">Select Section</option>
                                         @foreach($sections as $section)
-                                            <option value="{{ $section->id }}" {{ old('section_id') == $section->id ? 'selected' : '' }}>
-                                                {{ $section->gradeLevel->name }} - {{ $section->name }} ({{ $section->gradeLevel->division->name }})
+                                            <option value="{{ $section->id }}" {{ old('section_id') == $section->id ? 'selected' : '' }} 
+                                                class="{{ $section->enrolled_count >= $section->capacity ? 'text-red-600 font-bold' : '' }}">
+                                                {{ $section->gradeLevel->name }} - {{ $section->name }} 
+                                                ({{ $section->enrolled_count }}/{{ $section->capacity }} filled)
                                             </option>
                                         @endforeach
                                     </select>

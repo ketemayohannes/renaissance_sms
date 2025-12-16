@@ -13,6 +13,9 @@
             ]" />
             
             <div class="flex justify-end mb-4 gap-2">
+                <a href="{{ route('admin.sections.bulk-create') }}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded">
+                    Bulk Create Sections
+                </a>
                 <a href="{{ route('admin.sections.import') }}" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
                     Import Sections
                 </a>

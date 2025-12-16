@@ -51,24 +51,48 @@ class StudentController extends Controller
         }
 
         // Grade & Section Filter
-        if ($request->filled('grade_id') || $request->filled('section_id')) {
-            $query->whereHas('enrollments', function($q) use ($request) {
-                // We typically want to filter based on CURRENT enrollment
-                $q->whereNull('end_date'); 
-                
-                if ($request->filled('section_id')) {
-                    $q->where('section_id', $request->section_id);
-                }
-                
-                if ($request->filled('grade_id')) {
+        if ($request->filled('grade_id') || $request->filled('section_name')) {
+            if ($request->section_name === 'unassigned') {
+                // Filter for students who do NOT have an active enrollment
+                $query->whereDoesntHave('enrollments', function($q) {
+                    $q->whereNull('end_date');
+                });
+            } else {
+                $query->whereHas('enrollments', function($q) use ($request) {
+                    // We typically want to filter based on CURRENT enrollment
+                    $q->whereNull('end_date'); 
+                    
                     $q->whereHas('section', function($sq) use ($request) {
-                        $sq->where('grade_level_id', $request->grade_id);
+                        if ($request->filled('grade_id')) {
+                            $sq->where('grade_level_id', $request->grade_id);
+                        }
+                        if ($request->filled('section_name')) {
+                            $sq->where('name', $request->section_name);
+                        }
                     });
-                }
-            });
+                });
+            }
         }
 
-        $students = $query->latest()->paginate(15)->withQueryString();
+        // Sorting
+        $sort = $request->get('sort', 'created_at');
+        $direction = $request->get('direction', 'desc');
+
+        if ($sort === 'name') {
+            $query->orderBy('first_name', $direction)
+                  ->orderBy('father_name', $direction)
+                  ->orderBy('grandfather_name', $direction);
+        } elseif (in_array($sort, ['student_id', 'admission_number', 'gender', 'is_active'])) {
+            $query->orderBy($sort, $direction);
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        $perPage = $request->input('per_page', 15);
+        // Limit max per page to avoid performance issues
+        if ($perPage > 100) $perPage = 100;
+        
+        $students = $query->paginate($perPage)->withQueryString();
         
         // Data for filters
         $gradeLevels = \App\Models\GradeLevel::all();
@@ -83,6 +107,9 @@ class StudentController extends Controller
     {
         $activeYear = AcademicYear::where('is_active', true)->first();
         $sections = Section::with('gradeLevel.division')
+            ->withCount(['students as enrolled_count' => function($q) {
+                 $q->whereNull('student_enrollments.end_date');
+            }])
             ->where('is_active', true)
             ->when($activeYear, function($q) use ($activeYear) {
                 return $q->where('academic_year_id', $activeYear->id);
@@ -157,6 +184,15 @@ class StudentController extends Controller
             'route' => 'nullable|string|max:255',
             'driver_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
+
+        // Check Section Capacity
+        $section = Section::withCount(['students' => function($q) {
+            $q->whereNull('end_date');
+        }])->findOrFail($request->section_id);
+
+        if ($section->students_count >= $section->capacity) {
+            return back()->withInput()->with('error', "Section {$section->name} is full (Capacity: {$section->capacity}). Please select another section.");
+        }
 
         try {
             DB::beginTransaction();
@@ -890,6 +926,9 @@ class StudentController extends Controller
             'file' => 'required|file|mimes:csv,txt|max:2048',
         ]);
 
+        // Fix for MAC/Legacy line endings
+        ini_set('auto_detect_line_endings', true);
+
         $file = $request->file('file');
         $path = $file->getRealPath();
         
@@ -937,77 +976,142 @@ class StudentController extends Controller
             }
         }
 
-        DB::beginTransaction();
-        try {
-            $count = 0;
-            foreach ($data as $row) {
-                // Skip empty rows
-                if (empty($row) || empty($row[0])) continue;
+        $successCount = 0;
+        $skippedCount = 0;
+        $errors = [];
 
-                // Helper to get value by column name
-                $val = function($col) use ($row, $headerMap) {
-                    return isset($headerMap[$col]) ? trim($row[$headerMap[$col]]) : null;
-                };
+        // Cache active year
+        $activeYear = \App\Models\AcademicYear::where('is_active', true)->first();
+        if (!$activeYear) {
+            return back()->with('error', 'No active academic year found.');
+        }
 
-                // Find Section
-                $gradeLevelName = $val('grade_level');
-                $sectionName = $val('section_name');
-                
-                $section = \App\Models\Section::where('name', $sectionName)
-                    ->whereHas('gradeLevel', function($q) use ($gradeLevelName) {
-                        $q->where('name', $gradeLevelName);
-                    })->first();
+        // Increase time limit for large imports
+        set_time_limit(300); // 5 minutes
+        
+        // Pre-hash password for performance
+        $defaultPassword = Hash::make('student123');
 
-                if (!$section) {
-                    throw new \Exception("Section '$sectionName' in Grade '$gradeLevelName' not found for student " . $val('first_name'));
+        while (($line = fgets($file)) !== false) {
+            $rowNum++;
+            $row = str_getcsv($line, $delimiter);
+            
+            // Helper to get value by column name
+            $val = function($key) use ($row, $header) {
+                $index = array_search($key, $header);
+                if ($index === false) return null;
+                return isset($row[$index]) ? trim($row[$index]) : null;
+            };
+
+
+            // Basic validation
+            if (empty($val('first_name')) || empty($val('admission_number'))) {
+                $skippedCount++;
+                $errors[] = "Row $rowNum Skipped: Missing first name or admission number.";
+                continue; 
+            }
+
+            // 1. Validate Section (Do this first)
+            $gradeLevelName = $val('grade_level');
+            $sectionName = $val('section_name');
+            
+            $section = \App\Models\Section::where('name', $sectionName)
+                ->whereHas('gradeLevel', function($q) use ($gradeLevelName) {
+                    $q->where('name', $gradeLevelName);
+                })
+                ->where('academic_year_id', $activeYear->id)
+                ->first();
+
+            if (!$section) {
+                $skippedCount++;
+                $errors[] = "Row $rowNum: Section '$sectionName' (Grade $gradeLevelName) not found in active year.";
+                continue;
+            }
+
+            // Helper to parse dates
+            $dateVal = function($col) use ($val) {
+                $d = $val($col);
+                if (empty($d)) return null;
+                try {
+                    return \Carbon\Carbon::parse($d)->format('Y-m-d');
+                } catch (\Exception $e) {
+                     throw new \Exception("Invalid date format for $col. Expected YYYY-MM-DD (e.g., 2024-09-11).");
                 }
+            };
 
-                // Create User
+            // 2. Check if Student Exists
+            $existingStudent = Student::where('admission_number', $val('admission_number'))->first();
+
+            if ($existingStudent) {
+                // ENTRY POINT: Existing Student -> Enroll if needed
+                try {
+                    DB::beginTransaction();
+                    
+                    // Check if already enrolled in THIS section for THIS year
+                    $exists = $existingStudent->enrollments()
+                        ->where('section_id', $section->id)
+                        ->where('academic_year_id', $activeYear->id)
+                        ->exists();
+
+                    if (!$exists) {
+                        $existingStudent->enrollments()->create([
+                            'section_id' => $section->id,
+                            'academic_year_id' => $activeYear->id,
+                            'status' => 'active',
+                            'enrollment_date' => $dateVal('admission_date') ?? now(),
+                        ]);
+                        $successCount++;
+                        DB::commit();
+                    } else {
+                        $skippedCount++;
+                        $errors[] = "Row $rowNum Skipped: Student already enrolled in this section for this academic year.";
+                        DB::rollBack(); // Nothing to commit
+                    }
+                } catch (\Exception $e) {
+                    DB::rollBack();
+                    $errors[] = "Row $rowNum (Update): " . $e->getMessage();
+                }
+                continue; // Done with this row
+            }
+
+            // 3. New Student Logic
+            try {
+                DB::beginTransaction();
+
+                // Check User Email
                 $email = $val('email');
                 if (empty($email)) {
-                    $email = $val('admission_number') . '@student.renaissance.com';
+                    $email = $val('admission_number') . '@student.renaissance.com'; // Default email format
                 }
                 
-                // Check if user exists
                 if (User::where('email', $email)->exists()) {
-                    // Skip this row if user with this email already exists
+                    $skippedCount++;
+                    $errors[] = "Row $rowNum Skipped: User/Email '$email' already exists.";
+                    DB::rollBack(); 
                     continue; 
                 }
 
+                // Create User
                 $user = User::create([
                     'name' => $val('first_name') . ' ' . $val('father_name') . ' ' . $val('grandfather_name'),
                     'email' => $email,
-                    'password' => Hash::make('student123'),
+                    'password' => $defaultPassword,
                 ]);
                 $user->assignRole('Student');
 
                 // Generate Student ID
-                $studentId = $val('student_id');
-                if (empty($studentId)) {
-                    $year = date('Y');
-                    $existingCount = Student::whereYear('created_at', $year)->count();
-                    $studentId = 'STU-' . $year . '-' . str_pad($existingCount + 1 + $count, 4, '0', STR_PAD_LEFT);
-                }
-
-                // Helper to parse dates
-                $dateVal = function($col) use ($val) {
-                    $d = $val($col);
-                    if (empty($d)) return null;
-                    try {
-                        return \Carbon\Carbon::parse($d)->format('Y-m-d');
-                    } catch (\Exception $e) {
-                        return null;
-                    }
-                };
+                $year = date('Y');
+                $countInDb = Student::whereYear('created_at', $year)->count();
+                $studentId = 'STU-' . $year . '-' . str_pad($countInDb + 1, 4, '0', STR_PAD_LEFT);
 
                 // Create Student
                 $student = Student::create([
                     'user_id' => $user->id,
-                    'student_id' => $studentId,
+                    'student_id' => $val('student_id') ?: $studentId,
                     'first_name' => $val('first_name'),
                     'father_name' => $val('father_name'),
                     'grandfather_name' => $val('grandfather_name'),
-                    'last_name' => $val('grandfather_name'), // Use grandfather name as last name
+                    'last_name' => $val('grandfather_name'),
                     'gender' => $val('gender'),
                     'date_of_birth' => $dateVal('date_of_birth'),
                     'birth_country' => $val('birth_country'),
@@ -1023,32 +1127,15 @@ class StudentController extends Controller
                     'is_active' => true,
                 ]);
 
-                // Enroll in Section
-                // Assuming current academic year is active. We need to find active year.
-                $activeYear = \App\Models\AcademicYear::where('is_active', true)->first();
-                if ($activeYear) {
-                    if ($gradeLevelName && $sectionName) {
-                        $section = \App\Models\Section::where('name', $sectionName)
-                            ->whereHas('gradeLevel', function($q) use ($gradeLevelName) {
-                                $q->where('name', $gradeLevelName);
-                            })
-                            ->where('academic_year_id', $activeYear->id)
-                            ->first();
+                // Enroll
+                $student->enrollments()->create([
+                    'section_id' => $section->id,
+                    'academic_year_id' => $activeYear->id,
+                    'status' => 'active',
+                    'enrollment_date' => $dateVal('admission_date'),
+                ]);
 
-                        if (!$section) {
-                            throw new \Exception("Section '$sectionName' in Grade '$gradeLevelName' not found for student " . $val('first_name'));
-                        }
-
-                        $student->enrollments()->create([
-                            'section_id' => $section->id,
-                            'academic_year_id' => $activeYear->id,
-                            'status' => 'active',
-                            'enrollment_date' => $dateVal('admission_date'),
-                        ]);
-                    }
-                }
-
-                // Create Primary Guardian
+                // Guardians
                 if ($val('primary_guardian_first_name')) {
                     $student->guardians()->create([
                         'first_name' => $val('primary_guardian_first_name'),
@@ -1062,15 +1149,69 @@ class StudentController extends Controller
                     ]);
                 }
 
-                $count++;
+                DB::commit();
+                $successCount++;
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                $errors[] = "Row $rowNum: " . $e->getMessage();
             }
-            
+        }
+        
+        fclose($file); // Close the file handle
+
+        $message = "Import completed. Success: $successCount, Skipped: $skippedCount.";
+        
+        if (count($errors) > 0) {
+            return redirect()->route('admin.students.index')
+                ->with('success', $message) // Still show success count
+                ->with('import_errors', $errors); // Pass all errors
+        }
+
+        return redirect()->route('admin.students.index')->with('success', $message);
+    }
+    public function bulkDestroy(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'exists:students,id',
+        ]);
+
+        $ids = $request->ids;
+        $count = count($ids);
+
+        try {
+            DB::beginTransaction();
+
+            foreach ($ids as $id) {
+                $student = Student::findOrFail($id);
+                
+                // Delete User Account
+                if ($student->user) {
+                    $student->user->delete();
+                }
+
+                // Delete Photo
+                if ($student->photo) {
+                    \Storage::disk('public')->delete($student->photo);
+                }
+                
+                // Delete Guardians and their photos
+                foreach ($student->guardians as $guardian) {
+                     if ($guardian->photo) {
+                        \Storage::disk('public')->delete($guardian->photo);
+                     }
+                }
+
+                $student->delete();
+            }
+
             DB::commit();
-            return redirect()->route('admin.students.index')->with('success', "$count students imported successfully.");
+            return redirect()->route('admin.students.index')->with('success', "$count students deleted successfully.");
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Import failed: ' . $e->getMessage());
+            return back()->with('error', 'Error deleting students: ' . $e->getMessage());
         }
     }
 }

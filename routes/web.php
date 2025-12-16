@@ -3,6 +3,8 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
+
+
 Route::get('/', function () {
     return view('welcome');
 });
@@ -37,11 +39,20 @@ Route::middleware('auth')->group(function () {
         Route::get('sections/import', [App\Http\Controllers\Admin\SectionController::class, 'import'])->name('sections.import');
         Route::post('sections/import', [App\Http\Controllers\Admin\SectionController::class, 'upload'])->name('sections.upload');
         Route::get('sections/download-template', [App\Http\Controllers\Admin\SectionController::class, 'downloadTemplate'])->name('sections.download-template');
+        // Bulk Create Sections
+        Route::get('sections/bulk-create', [App\Http\Controllers\Admin\SectionController::class, 'bulkCreate'])->name('sections.bulk-create');
+        Route::post('sections/bulk-create', [App\Http\Controllers\Admin\SectionController::class, 'bulkStore'])->name('sections.bulk-store');
+
         Route::resource('sections', App\Http\Controllers\Admin\SectionController::class)->except(['show']);
         Route::resource('subjects', App\Http\Controllers\Admin\SubjectController::class)->except(['show']);
         
         // Subject Assignment
+        Route::get('subject-assignments/bulk-assign', [App\Http\Controllers\Admin\SubjectAssignmentController::class, 'bulkAssignForm'])->name('subject-assignments.bulk-assign');
+        Route::post('subject-assignments/bulk-assign', [App\Http\Controllers\Admin\SubjectAssignmentController::class, 'storeBulkAssign'])->name('subject-assignments.bulk-assign.store');
+        
         Route::get('subject-assignments', [App\Http\Controllers\Admin\SubjectAssignmentController::class, 'index'])->name('subject-assignments.index');
+        
+
         Route::get('subject-assignments/{grade_level}/edit', [App\Http\Controllers\Admin\SubjectAssignmentController::class, 'edit'])->name('subject-assignments.edit');
         Route::put('subject-assignments/{grade_level}', [App\Http\Controllers\Admin\SubjectAssignmentController::class, 'update'])->name('subject-assignments.update');
 
@@ -62,6 +73,7 @@ Route::middleware('auth')->group(function () {
         Route::post('students/{student}/assign-electives', [App\Http\Controllers\Admin\StudentController::class, 'storeElectives'])->name('students.assign-electives.store');
         Route::post('students/{student}/siblings', [App\Http\Controllers\Admin\StudentController::class, 'linkSibling'])->name('students.siblings.link');
         Route::delete('students/{student}/siblings/{sibling}', [App\Http\Controllers\Admin\StudentController::class, 'unlinkSibling'])->name('students.siblings.unlink');
+        Route::post('students/bulk-destroy', [App\Http\Controllers\Admin\StudentController::class, 'bulkDestroy'])->name('students.bulk-destroy');
         
         // Electives Bulk Assign
         Route::get('electives/bulk-assign', [App\Http\Controllers\Admin\ElectiveController::class, 'bulkAssignForm'])->name('electives.bulk-assign');

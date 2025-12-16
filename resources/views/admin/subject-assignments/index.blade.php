@@ -7,10 +7,18 @@
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <!-- Breadcrumb -->
+            <x-breadcrumb :items="[
+                ['label' => 'Subject Assignments', 'url' => '#']
+            ]" />
+            
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
-                    <div class="mb-4">
+                    <div class="mb-4 flex justify-between items-center">
                         <p class="text-sm text-gray-600">Assign subjects to grade levels for the active academic year.</p>
+                        <a href="{{ route('admin.subject-assignments.bulk-assign') }}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded shadow-sm text-sm">
+                            Bulk Assign Subjects
+                        </a>
                     </div>
 
                     <div class="relative overflow-x-auto shadow-md sm:rounded-lg">

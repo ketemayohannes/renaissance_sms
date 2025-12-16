@@ -29,6 +29,70 @@ class SectionController extends Controller
         return view('admin.sections.create', compact('gradeLevels', 'academicYears', 'teachers'));
     }
 
+    public function bulkCreate()
+    {
+        $gradeLevels = GradeLevel::with('division')->where('is_active', true)->orderBy('sort_order')->get();
+        $academicYears = AcademicYear::orderBy('start_date', 'desc')->get();
+        
+        return view('admin.sections.bulk_create', compact('gradeLevels', 'academicYears'));
+    }
+
+    public function bulkStore(Request $request)
+    {
+        $request->validate([
+            'grade_level_ids' => 'required|array',
+            'grade_level_ids.*' => 'exists:grade_levels,id',
+            'academic_year_id' => 'required|exists:academic_years,id',
+            'section_names' => 'required|string', // A, B, C
+            'capacity' => 'required|integer|min:1',
+        ]);
+
+        $sectionNames = array_map('trim', explode(',', $request->section_names));
+        $gradeLevelIds = $request->grade_level_ids;
+        $academicYearId = $request->academic_year_id;
+        $capacity = $request->capacity;
+
+        $count = 0;
+        $skipped = 0;
+
+        DB::beginTransaction();
+        try {
+            foreach ($gradeLevelIds as $gradeLevelId) {
+                foreach ($sectionNames as $name) {
+                    if (empty($name)) continue;
+
+                    // Check for duplicate
+                    $exists = Section::where('grade_level_id', $gradeLevelId)
+                        ->where('academic_year_id', $academicYearId)
+                        ->where('name', $name)
+                        ->exists();
+
+                    if ($exists) {
+                        $skipped++;
+                        continue;
+                    }
+
+                    Section::create([
+                        'grade_level_id' => $gradeLevelId,
+                        'academic_year_id' => $academicYearId,
+                        'name' => $name,
+                        'capacity' => $capacity,
+                        'is_active' => true,
+                    ]);
+                    $count++;
+                }
+            }
+            DB::commit();
+
+            return redirect()->route('admin.sections.index')
+                ->with('success', "Successfully created $count sections. Skipped $skipped existing sections.");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Failed to create sections: ' . $e->getMessage())->withInput();
+        }
+    }
+
     public function store(Request $request)
     {
         $request->validate([

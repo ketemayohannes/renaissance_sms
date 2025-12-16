@@ -71,4 +71,54 @@ class SubjectAssignmentController extends Controller
         return redirect()->route('admin.subject-assignments.index')
             ->with('success', 'Subjects assigned successfully to ' . $gradeLevel->name);
     }
+    public function bulkAssignForm()
+    {
+        $gradeLevels = GradeLevel::with('division')->orderBy('sort_order')->get();
+        $subjects = Subject::where('is_active', true)->orderBy('name')->get();
+        return view('admin.subject-assignments.bulk-assign', compact('gradeLevels', 'subjects'));
+    }
+
+    public function storeBulkAssign(Request $request)
+    {
+        $request->validate([
+            'grade_levels' => 'required|array|min:1',
+            'grade_levels.*' => 'exists:grade_levels,id',
+            'subjects' => 'nullable|array',
+            'subjects.*' => 'exists:subjects,id',
+        ]);
+
+        $activeYear = AcademicYear::where('is_active', true)->firstOrFail();
+        $gradeLevelIds = $request->input('grade_levels');
+        $subjectIds = $request->input('subjects', []);
+
+        DB::transaction(function () use ($gradeLevelIds, $subjectIds, $activeYear) {
+            foreach ($gradeLevelIds as $gradeLevelId) {
+                // 1. Remove existing assignments for this year
+                DB::table('grade_level_subjects')
+                    ->where('grade_level_id', $gradeLevelId)
+                    ->where('academic_year_id', $activeYear->id)
+                    ->delete();
+
+                // 2. Insert new
+                $data = [];
+                foreach ($subjectIds as $subjectId) {
+                    $data[] = [
+                        'grade_level_id' => $gradeLevelId,
+                        'subject_id' => $subjectId,
+                        'academic_year_id' => $activeYear->id,
+                        'is_required' => true,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+
+                if (!empty($data)) {
+                    DB::table('grade_level_subjects')->insert($data);
+                }
+            }
+        });
+
+        return redirect()->route('admin.subject-assignments.index')
+            ->with('success', 'Subjects assigned successfully to ' . count($gradeLevelIds) . ' grade levels.');
+    }
 }

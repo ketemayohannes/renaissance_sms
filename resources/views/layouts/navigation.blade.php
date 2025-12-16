@@ -18,6 +18,13 @@
                 </div>
             </div>
 
+            <!-- Date Display -->
+            <div class="hidden sm:flex sm:items-center sm:ms-6 text-sm text-gray-500">
+                <span class="font-medium mr-1">📅</span>
+                <span class="mr-1">{{ now()->format('M j, Y') }}</span>
+                <span class="text-xs text-gray-400">({{ \App\Helpers\EthiopianDateHelper::now() }})</span>
+            </div>
+
             <!-- Settings Dropdown -->
             <div class="hidden sm:flex sm:items-center sm:ms-6">
                 <x-dropdown align="right" width="48">
@@ -74,6 +81,11 @@
 
         <!-- Responsive Settings Options -->
         <div class="pt-4 pb-1 border-t border-gray-200">
+            <div class="px-4 pb-2 border-b border-gray-100 mb-2">
+                <div class="text-sm font-medium text-gray-500">
+                     {{ now()->format('M j, Y') }} <span class="text-xs text-gray-400">({{ \App\Helpers\EthiopianDateHelper::now() }})</span>
+                </div>
+            </div>
             <div class="px-4">
                 <div class="font-medium text-base text-gray-800">{{ Auth::user()->name }}</div>
                 <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>

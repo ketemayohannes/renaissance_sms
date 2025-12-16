@@ -34,6 +34,18 @@
                     {{ session('error') }}
                 </div>
             @endif
+            @if(session('import_errors'))
+                <div class="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded relative mb-4">
+                    <strong class="font-bold">Import Warnings/Errors:</strong>
+                    <div class="mt-2 max-h-40 overflow-y-auto text-sm">
+                        <ul class="list-disc list-inside">
+                            @foreach(session('import_errors') as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </div>
+            @endif
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
@@ -70,9 +82,10 @@
 
                             <!-- Section -->
                             <div>
-                                <label for="section_id" class="block text-sm font-medium text-gray-700 mb-1">Section</label>
-                                <select name="section_id" id="section_id" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                                <label for="section_name" class="block text-sm font-medium text-gray-700 mb-1">Section</label>
+                                <select name="section_name" id="section_name" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
                                     <option value="">All Sections</option>
+                                    <option value="unassigned" {{ request('section_name') == 'unassigned' ? 'selected' : '' }} class="text-red-600 font-bold">Unassigned</option>
                                     @php
                                         $uniqueSections = collect();
                                         foreach($sections as $gradeSections) {
@@ -85,7 +98,7 @@
                                         $uniqueSections = $uniqueSections->sortBy('name');
                                     @endphp
                                     @foreach($uniqueSections as $section)
-                                        <option value="{{ $section->id }}" {{ request('section_id') == $section->id ? 'selected' : '' }}>{{ $section->name }}</option>
+                                        <option value="{{ $section->name }}" {{ request('section_name') == $section->name ? 'selected' : '' }}>{{ $section->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -104,7 +117,7 @@
                             <div class="md:col-span-6 flex justify-between items-center mt-2">
                                 <div class="flex gap-2">
                                     <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md shadow-sm text-sm font-semibold">Apply Filters</button>
-                                    @if(request()->anyFilled(['search', 'gender', 'grade_id', 'section_id', 'status']))
+                                    @if(request()->anyFilled(['search', 'gender', 'grade_id', 'section_name', 'status']))
                                         <a href="{{ route('admin.students.index') }}" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md shadow-sm text-sm font-semibold flex items-center">Clear Filters</a>
                                     @endif
                                 </div>
@@ -117,24 +130,75 @@
                         </form>
                     </div>
 
-                    <div class="overflow-x-auto">
+                    <div class="overflow-x-auto" x-data="{ selected: [], allSelected: false }">
+                        <!-- Bulk Actions Toolbar -->
+                        <div x-show="selected.length > 0" class="bg-indigo-50 p-2 mb-2 rounded flex justify-between items-center transition " style="display: none;">
+                            <span class="text-sm text-indigo-700 font-semibold" x-text="selected.length + ' selected'"></span>
+                            <div class="flex space-x-2">
+                                <form action="{{ route('admin.students.bulk-destroy') }}" method="POST" onsubmit="return confirm('Are you sure you want to delete the selected students?')">
+                                    @csrf
+                                    <!-- Create hidden inputs for each selected ID -->
+                                    <template x-for="id in selected">
+                                        <input type="hidden" name="ids[]" :value="id">
+                                    </template>
+                                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-1 px-3 rounded shadow-sm">
+                                        Delete Selected
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Name
+                                        <input type="checkbox" id="selectAll" @click="allSelected = !allSelected; selected = allSelected ? {{ $students->pluck('id') }} : []" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
                                     </th>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        ID
+                                        No
                                     </th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Gender
+                                    <th scope="col" class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider p-0">
+                                        <a href="{{ route('admin.students.index', array_merge(request()->except('page'), ['sort' => 'name', 'direction' => request('sort') === 'name' && request('direction') === 'asc' ? 'desc' : 'asc'])) }}" class="px-6 py-3 group flex items-center w-full h-full hover:text-gray-700 cursor-pointer">
+                                            Name
+                                            @if(request('sort') === 'name')
+                                                <span class="ml-1">{{ request('direction') === 'asc' ? '↑' : '↓' }}</span>
+                                            @else
+                                                <span class="ml-1 text-gray-300 opacity-0 group-hover:opacity-100">↕</span>
+                                            @endif
+                                        </a>
+                                    </th>
+                                    <th scope="col" class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider p-0">
+                                        <a href="{{ route('admin.students.index', array_merge(request()->except('page'), ['sort' => 'student_id', 'direction' => request('sort') === 'student_id' && request('direction') === 'asc' ? 'desc' : 'asc'])) }}" class="px-6 py-3 group flex items-center w-full h-full hover:text-gray-700 cursor-pointer">
+                                            ID
+                                            @if(request('sort') === 'student_id')
+                                                <span class="ml-1">{{ request('direction') === 'asc' ? '↑' : '↓' }}</span>
+                                            @else
+                                                <span class="ml-1 text-gray-300 opacity-0 group-hover:opacity-100">↕</span>
+                                            @endif
+                                        </a>
+                                    </th>
+                                    <th scope="col" class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider p-0">
+                                        <a href="{{ route('admin.students.index', array_merge(request()->except('page'), ['sort' => 'gender', 'direction' => request('sort') === 'gender' && request('direction') === 'asc' ? 'desc' : 'asc'])) }}" class="px-6 py-3 group flex items-center w-full h-full hover:text-gray-700 cursor-pointer">
+                                            Gender
+                                            @if(request('sort') === 'gender')
+                                                <span class="ml-1">{{ request('direction') === 'asc' ? '↑' : '↓' }}</span>
+                                            @else
+                                                <span class="ml-1 text-gray-300 opacity-0 group-hover:opacity-100">↕</span>
+                                            @endif
+                                        </a>
                                     </th>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Grade/Section
                                     </th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Status
+                                    <th scope="col" class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider p-0">
+                                        <a href="{{ route('admin.students.index', array_merge(request()->except('page'), ['sort' => 'is_active', 'direction' => request('sort') === 'is_active' && request('direction') === 'asc' ? 'desc' : 'asc'])) }}" class="px-6 py-3 group flex items-center w-full h-full hover:text-gray-700 cursor-pointer">
+                                            Status
+                                            @if(request('sort') === 'is_active')
+                                                <span class="ml-1">{{ request('direction') === 'asc' ? '↑' : '↓' }}</span>
+                                            @else
+                                                <span class="ml-1 text-gray-300 opacity-0 group-hover:opacity-100">↕</span>
+                                            @endif
+                                        </a>
                                     </th>
                                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Actions
@@ -144,6 +208,12 @@
                             <tbody class="bg-white divide-y divide-gray-200">
                                 @forelse($students as $student)
                                     <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <input type="checkbox" value="{{ $student->id }}" x-model="selected" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            {{ ($students->currentPage() - 1) * $students->perPage() + $loop->iteration }}
+                                        </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <div class="flex items-center">
                                                 <div class="flex-shrink-0 h-10 w-10">
@@ -208,8 +278,22 @@
                             </tbody>
                         </table>
                     </div>
-                    <div class="mt-4">
-                        {{ $students->links() }}
+                    <div class="mt-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <div>
+                            {{ $students->links() }}
+                        </div>
+                        <form method="GET" action="{{ route('admin.students.index') }}" class="flex items-center gap-2">
+                            @foreach(request()->except(['per_page', 'page']) as $key => $value)
+                                <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                            @endforeach
+                            
+                            <label for="per_page" class="text-sm text-gray-700 font-medium">Rows per page:</label>
+                            <select name="per_page" id="per_page" onchange="this.form.submit()" class="text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-1 pl-2 pr-8">
+                                <option value="15" {{ request('per_page') == 15 ? 'selected' : '' }}>15</option>
+                                <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+                                <option value="100" {{ request('per_page') == 100 ? 'selected' : '' }}>100</option>
+                            </select>
+                        </form>
                     </div>
                 </div>
             </div>
