@@ -30,6 +30,10 @@ class ReportCardController extends Controller
         $request->validate([
             'school_name' => 'required|string|max:255',
             'logo' => 'nullable|image|max:2048',
+            'email' => 'nullable|email|max:255',
+            'website' => 'nullable|string|max:255',
+            'telephone' => 'nullable|string|max:255',
+            'po_box' => 'nullable|string|max:255',
         ]);
 
         $settings = ReportCardSetting::firstOrNew();

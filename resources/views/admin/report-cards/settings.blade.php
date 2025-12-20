@@ -8,7 +8,6 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <x-breadcrumb :items="[
-                ['label' => 'Dashboard', 'url' => route('admin.dashboard')],
                 ['label' => 'Report Card Settings', 'url' => '#']
             ]" />
 
@@ -47,6 +46,14 @@
                                 <div class="mb-4">
                                     <label for="telephone" class="block text-sm font-medium text-gray-700">Telephone</label>
                                     <input type="text" name="telephone" id="telephone" value="{{ old('telephone', $settings->telephone) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                </div>
+                                <div class="mb-4">
+                                    <label for="email" class="block text-sm font-medium text-gray-700">School Email</label>
+                                    <input type="email" name="email" id="email" value="{{ old('email', $settings->email) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                </div>
+                                <div class="mb-4">
+                                    <label for="po_box" class="block text-sm font-medium text-gray-700">P.O.Box</label>
+                                    <input type="text" name="po_box" id="po_box" value="{{ old('po_box', $settings->po_box) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                                 </div>
                             </div>
 

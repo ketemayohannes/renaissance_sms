@@ -112,6 +112,12 @@ Route::middleware('auth')->group(function () {
         Route::get('report-cards/settings', [App\Http\Controllers\Admin\ReportCardController::class, 'settings'])->name('report-cards.settings');
         Route::post('report-cards/settings', [App\Http\Controllers\Admin\ReportCardController::class, 'updateSettings'])->name('report-cards.update-settings');
 
+        // Academic Reports
+        Route::get('academic-reports/settings', [App\Http\Controllers\Admin\AcademicReportController::class, 'settings'])->name('academic-reports.settings');
+        Route::post('academic-reports/settings', [App\Http\Controllers\Admin\AcademicReportController::class, 'updateSettings'])->name('academic-reports.settings.update');
+        Route::get('academic-reports', [App\Http\Controllers\Admin\AcademicReportController::class, 'index'])->name('academic-reports.index');
+        Route::get('academic-reports/show', [App\Http\Controllers\Admin\AcademicReportController::class, 'show'])->name('academic-reports.show');
+
         Route::get('section-grades/{section}/report-card-details', [App\Http\Controllers\Admin\ReportCardController::class, 'entry'])->name('section-grades.report-card-entry');
         Route::post('section-grades/{section}/report-card-details', [App\Http\Controllers\Admin\ReportCardController::class, 'storeEntry'])->name('section-grades.store-report-card-entry');
         

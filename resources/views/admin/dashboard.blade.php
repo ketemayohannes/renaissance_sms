@@ -49,6 +49,8 @@
                         <a href="{{ route('admin.assessment-types.index') }}" class="block text-purple-700 hover:underline">• Assessment Types</a>
                         <a href="{{ route('admin.assessment-templates.index') }}" class="block text-purple-700 hover:underline font-semibold">• Assessment Templates (New!)</a>
                         <a href="{{ route('admin.report-cards.settings') }}" class="block text-indigo-700 hover:underline font-bold">+ Report Card Settings</a>
+                        <a href="{{ route('admin.academic-reports.settings') }}" class="block text-orange-700 hover:underline font-bold">+ Roster Settings</a>
+                        <a href="{{ route('admin.academic-reports.index') }}" class="block text-red-700 hover:underline font-bold">📊 Academic Reports (Result Sheet)</a>
                         <a href="{{ route('admin.grade-components.index') }}" class="block text-purple-700 hover:underline text-sm opacity-60">• Grade Components (Old)</a>
                     </div>
                 </div>

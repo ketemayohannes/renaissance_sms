@@ -21,7 +21,7 @@
                 display: none;
             }
             .page-break {
-                page-break-after: always;
+                page-break-before: always;
             }
             @page {
                 size: A4;
@@ -64,7 +64,7 @@
             margin-bottom: 30px;
             padding-top: 10px;
             position: relative; /* Fixes absolute logo positioning context */
-            min-height: 130px; /* Increased for larger logo */
+            min-height: 110px; /* Increased for larger logo */
         }
         .logo {
             width: 180px;
@@ -75,13 +75,14 @@
         }
         .school-name {
             font-family: "Times New Roman", Times, serif;
-            font-size: 24pt;
+            font-size: 20pt;
             font-weight: bold;
             text-transform: uppercase;
             color: #000;
             margin-bottom: 10px;
-            padding-left: 100px;
-            padding-right: 100px;
+            padding-left: 190px;
+            padding-right: 190px;
+            white-space: nowrap;
         }
         .report-title {
             font-family: "Times New Roman", Times, serif;
@@ -128,7 +129,7 @@
         }
         .subjects-table th, .subjects-table td {
             border: 1px solid black;
-            padding: 5px;
+            padding: 3px 5px;
             text-align: center;
         }
         .subjects-table th {
@@ -174,10 +175,30 @@
             margin-top: 25px;
             height: 1px;
         }
-        .footer {
-            margin-top: 50px;
-            width: 100%;
+        .contact-footer {
+            position: absolute;
+            bottom: 15mm;
+            left: 15mm;
+            right: 15mm;
+            width: auto;
             font-family: sans-serif;
+        }
+        .contact-footer-content {
+            width: 100%;
+            border-top: 1.5px solid black;
+            padding-top: 10px;
+            font-size: 10pt;
+        }
+        .contact-footer-content td {
+            width: 50%;
+            vertical-align: top;
+        }
+        .contact-right {
+            text-align: right;
+        }
+        .signature-section {
+            margin-top: 30px;
+            width: 100%;
         }
         .signature-box {
             width: 45%;
@@ -190,16 +211,19 @@
         }
         .signature-line {
             border-top: 1px solid black;
-            margin-top: 50px;
+            margin-top: 40px;
             display: block;
             width: 100%;
+            font-weight: bold;
         }
 
         /* Print Spacing */
         .print-page {
-            padding: 20px;
+            position: relative;
+            height: 297mm;
+            width: 210mm;
+            padding: 15mm;
             box-sizing: border-box;
-            min-height: 297mm; /* A4 Height */
         }
     </style>
 </head>
@@ -222,7 +246,7 @@
             $average = $data['average'];
         @endphp
 
-        <div class="print-page {{ !$loop->last ? 'page-break' : '' }}">
+        <div class="print-page {{ $loop->first ? '' : 'page-break' }}">
             
             <div class="header">
                 @if($settings->logo_path)
@@ -252,7 +276,7 @@
                 </tr>
                 <tr>
                     <td class="label">Academic Year:</td>
-                    <td>{{ $academicYear->name }}</td>
+                    <td>{{ $academicYear->name }} G.C {{ \App\Helpers\EthiopianDateHelper::fromGregorian($academicYear->start_date)->format('Y') }} E.C</td>
                 </tr>
             </table>
 
@@ -411,30 +435,28 @@
 
             </div>
 
-            <div class="footer clearfix">
+            <div class="signature-section clearfix">
                 <div class="signature-box">
-                     <span class="signature-line">Principal Name</span>
+                    <span class="signature-line">Principal Name</span>
                 </div>
                 <div class="signature-box right">
-                     <span class="signature-line">Principal Signature</span>
+                    <span class="signature-line">Principal Signature</span>
                 </div>
             </div>
 
-            <div style="clear: both; text-align: center; margin-top: 30px; padding-top: 15px; border-top: 1px solid #ccc; font-size: 10pt; color: #333;">
-                @if($settings->school_address)
-                    <div>{{ $settings->school_address }}</div>
-                @endif
-                <div style="margin-top: 5px;">
-                    @if($settings->telephone)
-                        Tel: {{ $settings->telephone }}
-                    @endif
-                    @if($settings->telephone && $settings->website)
-                        &nbsp;|&nbsp;
-                    @endif
-                    @if($settings->website)
-                        {{ $settings->website }}
-                    @endif
-                </div>
+            <div class="contact-footer">
+                <table class="contact-footer-content">
+                    <tr>
+                        <td>
+                            <div>Telephone:-{{ $settings->telephone ?? '+251-11-349-5462' }}</div>
+                            <div>Email:- {{ $settings->email ?? 'renaissanceschool589@gmail.com' }}</div>
+                        </td>
+                        <td class="contact-right">
+                            <div>PoBox:- {{ $settings->po_box ?? '404/1056' }}</div>
+                            <div>Website:-{{ $settings->website ?? 'www.risethiopia.com' }}</div>
+                        </td>
+                    </tr>
+                </table>
             </div>
         </div>
     @endforeach

@@ -8,7 +8,6 @@
     <div class="py-12">
         <div class="max-w-full mx-auto sm:px-6 lg:px-8">
             <x-breadcrumb :items="[
-                ['label' => 'Dashboard', 'url' => route('admin.dashboard')],
                 ['label' => 'Section Grades', 'url' => route('admin.section-grades.index')],
                 ['label' => 'Entry', 'url' => '#']
             ]" />

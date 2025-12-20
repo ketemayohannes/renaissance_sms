@@ -11,6 +11,8 @@ class ReportCardSetting extends Model
         'school_address',
         'website',
         'telephone',
+        'email',
+        'po_box',
         'logo_path',
         'template_config',
     ];

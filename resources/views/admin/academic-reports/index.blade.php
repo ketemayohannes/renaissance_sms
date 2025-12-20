@@ -1,21 +1,26 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Section Grade Entry (Master Sheet)') }}
-        </h2>
+        <div class="flex justify-between items-center">
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                {{ __('Academic Reports (Result Sheet)') }}
+            </h2>
+            <a href="{{ route('admin.academic-reports.settings') }}" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded text-sm transition focus:outline-none focus:shadow-outline">
+                <i class="fas fa-cog mr-1"></i> Roster Settings
+            </a>
+        </div>
     </x-slot>
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <x-breadcrumb :items="[
-                ['label' => 'Section Grades', 'url' => '#']
+                ['label' => 'Academic Reports', 'url' => '#']
             ]" />
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
                     <h3 class="text-lg font-medium text-gray-900 border-b pb-2 mb-4">Select Criteria</h3>
                     
-                    <form action="{{ route('admin.section-grades.entry') }}" method="GET">
+                    <form action="{{ route('admin.academic-reports.show') }}" method="GET">
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                             <!-- Academic Year -->
                             <div>
@@ -49,7 +54,7 @@
                             </div>
 
                             <!-- Section -->
-                            <div>
+                            <div class="lg:col-span-1">
                                 <label for="section_id" class="block text-sm font-medium text-gray-700">Section</label>
                                 <select name="section_id" id="section_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
                                     <option value="">Select Section</option>
@@ -58,9 +63,35 @@
                             </div>
                         </div>
 
-                        <div class="mt-6 flex justify-end">
+                        <div class="mt-8">
+                            <h4 class="text-md font-medium text-gray-900 mb-4">Select Report Type</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <!-- Report Card -->
+                                <label class="border rounded-lg p-4 cursor-pointer hover:bg-blue-50 transition block">
+                                    <input type="radio" name="report_type" value="report_card" class="mr-2" required>
+                                    <span class="font-bold">Report Card</span>
+                                    <p class="text-xs text-gray-500 mt-1">Generate individual student report cards in bulk.</p>
+                                </label>
+
+                                <!-- Roster -->
+                                <label class="border rounded-lg p-4 cursor-pointer hover:bg-blue-50 transition block border-blue-200 bg-blue-50">
+                                    <input type="radio" name="report_type" value="roster" class="mr-2" checked required>
+                                    <span class="font-bold">Roster</span>
+                                    <p class="text-xs text-gray-500 mt-1">Summary table of all student marks and rankings.</p>
+                                </label>
+
+                                <!-- Result Analysis -->
+                                <label class="border rounded-lg p-4 cursor-pointer hover:bg-blue-50 transition block">
+                                    <input type="radio" name="report_type" value="result_analysis" class="mr-2" required>
+                                    <span class="font-bold">Result Analysis</span>
+                                    <p class="text-xs text-gray-500 mt-1">Data insights and performance analysis (Coming Soon).</p>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mt-8 flex justify-end">
                             <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150 ease-in-out">
-                                Load Master Sheet
+                                Generate Report
                             </button>
                         </div>
                     </form>
@@ -96,7 +127,6 @@
 
             function loadTerms(yearId) {
                 if(!yearId) return;
-                // Reuse existing gradebook route for terms
                 fetch(`{{ route('admin.gradebook.get-terms') }}?academic_year_id=${yearId}`)
                     .then(response => response.json())
                     .then(data => {
@@ -108,7 +138,6 @@
             }
 
             function loadSections(yearId, gradeId) {
-                // Reuse existing gradebook route for sections
                 fetch(`{{ route('admin.gradebook.get-sections') }}?academic_year_id=${yearId}&grade_level_id=${gradeId}`)
                     .then(response => response.json())
                     .then(data => {
