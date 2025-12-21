@@ -16,13 +16,20 @@
                 </a>
 
                 <!-- Academic Structure -->
-                <div class="p-6 bg-blue-50 border border-blue-200 rounded-lg shadow">
-                    <h5 class="mb-4 text-2xl font-bold tracking-tight text-blue-900">Academic Structure</h5>
-                    <div class="space-y-2">
+                <div class="bg-indigo-50 p-6 rounded-xl border border-indigo-100">
+                    <h3 class="text-lg font-semibold text-indigo-900 mb-4">Academic Structure</h3>
+                    <div class="space-y-3">
+                        <a href="{{ route('admin.audit-logs.index') }}" class="flex items-center text-indigo-700 hover:text-indigo-900 transition-colors group">
+                            <span class="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center mr-3 group-hover:bg-indigo-200">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            </span>
+                            System Audit Trail
+                        </a>
                         <a href="{{ route('admin.divisions.index') }}" class="block text-blue-700 hover:underline">• Divisions</a>
                         <a href="{{ route('admin.grade-levels.index') }}" class="block text-blue-700 hover:underline">• Grade Levels</a>
                         <a href="{{ route('admin.sections.index') }}" class="block text-blue-700 hover:underline">• Sections</a>
                         <a href="{{ route('admin.subjects.index') }}" class="block text-blue-700 hover:underline">• Subjects</a>
+                        <a href="{{ route('admin.subjects.reorder') }}" class="block text-blue-700 hover:underline font-semibold text-sm">+ Subject Ordering</a>
                         <a href="{{ route('admin.subject-assignments.index') }}" class="block text-blue-700 hover:underline">• Subject Assignments</a>
                         <a href="{{ route('admin.academic-years.index') }}" class="block text-blue-700 hover:underline">• Academic Years</a>
                         <a href="{{ route('admin.terms.index') }}" class="block text-blue-700 hover:underline">• Terms</a>

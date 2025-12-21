@@ -992,17 +992,32 @@ class StudentController extends Controller
         // Pre-hash password for performance
         $defaultPassword = Hash::make('student123');
 
-        while (($line = fgets($file)) !== false) {
+        // Prepare student ID generation
+        $year = date('Y');
+        $lastStudent = Student::where('student_id', 'like', "STU-{$year}-%")
+            ->orderBy('student_id', 'desc')
+            ->first();
+        
+        $nextIdSeq = 1;
+        if ($lastStudent) {
+            $parts = explode('-', $lastStudent->student_id);
+            $nextIdSeq = (int)end($parts) + 1;
+        }
+
+        $rowNum = 1; // Header was row 1
+        foreach ($data as $row) {
             $rowNum++;
-            $row = str_getcsv($line, $delimiter);
-            
+
             // Helper to get value by column name
-            $val = function($key) use ($row, $header) {
-                $index = array_search($key, $header);
-                if ($index === false) return null;
-                return isset($row[$index]) ? trim($row[$index]) : null;
+            $val = function($key) use ($row, $headerMap) {
+                return isset($headerMap[$key]) && isset($row[$headerMap[$key]]) ? trim($row[$headerMap[$key]]) : null;
             };
 
+
+            // Skip if row is entirely empty
+            if (empty(array_filter($row))) {
+                continue;
+            }
 
             // Basic validation
             if (empty($val('first_name')) || empty($val('admission_number'))) {
@@ -1100,9 +1115,7 @@ class StudentController extends Controller
                 $user->assignRole('Student');
 
                 // Generate Student ID
-                $year = date('Y');
-                $countInDb = Student::whereYear('created_at', $year)->count();
-                $studentId = 'STU-' . $year . '-' . str_pad($countInDb + 1, 4, '0', STR_PAD_LEFT);
+                $studentId = 'STU-' . $year . '-' . str_pad($nextIdSeq++, 4, '0', STR_PAD_LEFT);
 
                 // Create Student
                 $student = Student::create([
@@ -1157,8 +1170,6 @@ class StudentController extends Controller
                 $errors[] = "Row $rowNum: " . $e->getMessage();
             }
         }
-        
-        fclose($file); // Close the file handle
 
         $message = "Import completed. Success: $successCount, Skipped: $skippedCount.";
         

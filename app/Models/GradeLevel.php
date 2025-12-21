@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\Division;
 use App\Models\Section;
 use App\Models\Subject;
+use App\Traits\Auditable;
 
 class GradeLevel extends Model
 {
-    use HasFactory;
+    use HasFactory, Auditable;
 
     protected $fillable = ['division_id', 'name', 'code', 'sort_order', 'is_active'];
 
@@ -27,7 +28,7 @@ class GradeLevel extends Model
     public function subjects()
     {
         return $this->belongsToMany(Subject::class, 'grade_level_subjects')
-                    ->withPivot('academic_year_id', 'is_required')
+                    ->withPivot('academic_year_id', 'is_required', 'sort_order')
                     ->withTimestamps();
     }
 }

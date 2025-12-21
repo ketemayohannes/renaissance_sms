@@ -63,19 +63,30 @@ class AcademicReportController extends Controller
         return back()->with('success', 'Roster settings updated successfully.');
     }
 
-    public function show(Request $request)
+    public function show(Request $request, \App\Services\GradingService $gradingService)
     {
         $request->validate([
             'academic_year_id' => 'required|exists:academic_years,id',
-            'term_id' => 'required|exists:terms,id',
+            'term_id' => 'required', // Relaxed to allow 'yearly'
             'section_id' => 'required|exists:sections,id',
         ]);
 
         $academicYear = AcademicYear::findOrFail($request->academic_year_id);
-        $term = Term::findOrFail($request->term_id);
+        
+        $termId = $request->term_id;
+        if ($termId === 'yearly') {
+            $term = new Term([
+                'type' => 'yearly', 
+                'name' => 'Yearly', 
+                'academic_year_id' => $academicYear->id
+            ]);
+            $term->id = 'yearly';
+        } else {
+            $term = Term::findOrFail($termId);
+        }
         $section = Section::findOrFail($request->section_id);
         $gradeLevel = $section->gradeLevel;
-        $subjects = $gradeLevel->subjects;
+        $subjects = $gradeLevel->subjects()->orderByPivot('sort_order')->get();
 
         // Apply custom subject order if exists
         $settings = \App\Models\AcademicReportSetting::first();
@@ -94,178 +105,203 @@ class AcademicReportController extends Controller
             ->orderBy('first_name')
             ->get();
 
-        if ($term->isSemester()) {
-            $quarters = $term->quarters()->orderBy('term_number')->get();
-            $quarterIds = $quarters->pluck('id')->toArray();
+        // Ensure statistics are up to date
+        $gradingService->recalculateSectionStatistics($section, $term, $academicYear);
+        
+        $reports = [];
+        foreach ($students as $student) {
+            $reportData = $gradingService->getStudentReportData($student, $term, $academicYear);
+            $totalStudentsCount = $reportData['rank_out_of'];
             
-            // Fetch all marks for this section and all quarters in the semester
-            $marksCollection = StudentMark::where('academic_year_id', $academicYear->id)
-                ->whereIn('term_id', $quarterIds)
-                ->whereIn('student_id', $students->pluck('id'))
-                ->get();
-                
-            $allMarks = $marksCollection->groupBy('student_id');
-            
-            // Filter subjects: hide electives with no data in ANY quarter
-            $subjectIdsWithData = $marksCollection->pluck('subject_id')->unique()->toArray();
-            $subjects = $subjects->filter(function($subject) use ($subjectIdsWithData) {
-                return !$subject->is_elective || in_array($subject->id, $subjectIdsWithData);
-            });
-
-            $termRecords = \App\Models\StudentTermRecord::whereIn('term_id', array_merge($quarterIds, [$term->id]))
-                ->whereIn('student_id', $students->pluck('id'))
-                ->get()
-                ->groupBy('student_id');
-
-            $reports = [];
-            $subjectIds = $subjects->pluck('id')->toArray();
-            
-            foreach ($students as $student) {
-                $studentMarks = $allMarks->get($student->id, collect());
-                $studentRecords = $termRecords->get($student->id, collect());
-                
+            if ($term->isSemester()) {
                 $rows = [];
-                // Row 1 & 2: Quarters
-                foreach ($quarters as $index => $q) {
-                    $qMarks = $studentMarks->filter(fn($m) => $m->term_id == $q->id && in_array($m->subject_id, $subjectIds))
-                        ->pluck('score', 'subject_id');
-                    
-                    $total = $qMarks->sum();
-                    $count = $qMarks->count();
-                    $average = $count > 0 ? $total / $count : 0;
-                    $record = $studentRecords->firstWhere('term_id', $q->id);
-
-                    $rows['q' . ($index + 1)] = [
-                        'label' => $q->name,
-                        'marks' => $qMarks,
-                        'total' => $total,
-                        'average' => $average,
-                        'conduct' => $record->conduct_grade ?? '',
-                        'absence' => $record->days_absent ?? '',
-                        'rank' => 0
+                $qIdx = 1;
+                foreach ($reportData['quarters'] as $qId => $qData) {
+                    $absence = $qData['record']->days_absent ?? null;
+                    $rows['q' . $qIdx] = [
+                        'label' => $qData['term']->name,
+                        'marks' => $qData['marks'],
+                        'total' => $qData['total'],
+                        'average' => $qData['average'],
+                        'conduct' => $qData['record']->conduct_grade ?? 'A',
+                        'absence' => ($absence === null || $absence === '' || $absence == 0) ? '_' : $absence,
+                        'rank' => $qData['rank']
                     ];
+                    $qIdx++;
                 }
-
-                // Row 3: Semester Average
-                $semMarks = collect();
-                foreach ($subjectIds as $subId) {
-                    $q1 = $rows['q1']['marks'][$subId] ?? null;
-                    $q2 = $rows['q2']['marks'][$subId] ?? null;
-                    if ($q1 !== null || $q2 !== null) {
-                        $avg = (($q1 ?? 0) + ($q2 ?? 0)) / (($q1 !== null && $q2 !== null) ? 2 : 1);
-                        $semMarks[$subId] = $avg;
-                    }
-                }
-
-                $semTotal = $semMarks->sum();
-                $semCount = $semMarks->count();
-                $semAverage = $semCount > 0 ? $semTotal / $semCount : 0;
-                $semRecord = $studentRecords->firstWhere('term_id', $term->id);
-
+                
+                $semAbsence = $reportData['record']->days_absent ?? null;
                 $rows['avg'] = [
                     'label' => 'Sem Avg',
-                    'marks' => $semMarks,
-                    'total' => $semTotal,
-                    'average' => $semAverage,
-                    'conduct' => $semRecord->conduct_grade ?? '',
-                    'absence' => $semRecord->days_absent ?? '',
-                    'rank' => 0
+                    'marks' => $reportData['marks'],
+                    'total' => $reportData['totalScore'],
+                    'average' => $reportData['average'],
+                    'conduct' => '-',
+                    'absence' => ($semAbsence === null || $semAbsence === '' || $semAbsence == 0) ? '_' : $semAbsence,
+                    'rank' => $reportData['rank']
                 ];
-
+                
                 $reports[] = [
                     'student' => $student,
                     'gender' => $student->gender,
                     'rows' => $rows
                 ];
-            }
-
-            // Calculate Ranks for each row type
-            foreach (['q1', 'q2', 'avg'] as $type) {
-                if (isset($reports[0]['rows'][$type])) {
-                    usort($reports, fn($a, $b) => $b['rows'][$type]['total'] <=> $a['rows'][$type]['total']);
-                    $prevTotal = null;
-                    $actualRank = 1;
-                    foreach ($reports as $index => &$report) {
-                        if ($prevTotal !== null && $report['rows'][$type]['total'] < $prevTotal) {
-                            $actualRank = $index + 1;
+            } elseif ($term->type === 'yearly') {
+                // Get all semesters and their quarters
+                $semesters = Term::where('academic_year_id', $academicYear->id)
+                    ->where('type', 'semester')
+                    ->orderBy('start_date')
+                    ->get();
+                
+                $rows = [];
+                $yearlySubjectTotals = [];
+                $yearlySubjectCounts = [];
+                
+                foreach ($semesters as $semester) {
+                    $quarters = $semester->quarters()->orderBy('term_number')->get();
+                    $semesterSubjectTotals = [];
+                    $semesterSubjectCounts = [];
+                    
+                    foreach ($quarters as $quarter) {
+                        // Get quarter data
+                        $qRecord = \App\Models\StudentTermRecord::where('student_id', $student->id)
+                            ->where('term_id', $quarter->id)
+                            ->first();
+                        
+                        $qMarks = \App\Models\StudentMark::where('student_id', $student->id)
+                            ->where('term_id', $quarter->id)
+                            ->get()
+                            ->pluck('score', 'subject_id');
+                        
+                        $qAbsence = $qRecord->days_absent ?? null;
+                        $rows['q' . $quarter->term_number] = [
+                            'label' => 'Quarter ' . $this->romanNumeral($quarter->term_number),
+                            'marks' => $qMarks,
+                            'total' => $qRecord->total_score ?? $qMarks->sum(),
+                            'average' => $qRecord->average_score ?? ($subjects->count() > 0 ? $qMarks->sum() / $subjects->count() : 0),
+                            'conduct' => $qRecord->conduct_grade ?? 'A',
+                            'absence' => ($qAbsence === null || $qAbsence === '' || $qAbsence == 0) ? '_' : $qAbsence,
+                            'rank' => $qRecord->rank ?? '-'
+                        ];
+                        
+                        // Accumulate for semester average
+                        foreach ($qMarks as $subId => $score) {
+                            if (!isset($semesterSubjectTotals[$subId])) {
+                                $semesterSubjectTotals[$subId] = 0;
+                                $semesterSubjectCounts[$subId] = 0;
+                            }
+                            $semesterSubjectTotals[$subId] += $score;
+                            $semesterSubjectCounts[$subId]++;
                         }
-                        $report['rows'][$type]['rank'] = $actualRank;
-                        $prevTotal = $report['rows'][$type]['total'];
                     }
+                    
+                    // Calculate semester averages
+                    $semMarks = collect();
+                    foreach ($semesterSubjectTotals as $subId => $total) {
+                        $semMarks[$subId] = $total / $semesterSubjectCounts[$subId];
+                        
+                        // Also accumulate for yearly
+                        if (!isset($yearlySubjectTotals[$subId])) {
+                            $yearlySubjectTotals[$subId] = 0;
+                            $yearlySubjectCounts[$subId] = 0;
+                        }
+                        $yearlySubjectTotals[$subId] += $semMarks[$subId];
+                        $yearlySubjectCounts[$subId]++;
+                    }
+                    
+                    $sRecord = \App\Models\StudentTermRecord::where('student_id', $student->id)
+                        ->where('term_id', $semester->id)
+                        ->first();
+                    
+                    $sAbsence = $sRecord->days_absent ?? null;
+                    $rows['s' . $semester->term_number] = [
+                        'label' => 'Sem Avg',
+                        'marks' => $semMarks,
+                        'total' => $sRecord->total_score ?? $semMarks->sum(),
+                        'average' => $sRecord->average_score ?? ($subjects->count() > 0 ? $semMarks->sum() / $subjects->count() : 0),
+                        'conduct' => '-',
+                        'absence' => ($sAbsence === null || $sAbsence === '' || $sAbsence == 0) ? '_' : $sAbsence,
+                        'rank' => $sRecord->rank ?? '-'
+                    ];
                 }
-            }
-
-            // Final sort by name
-            usort($reports, fn($a, $b) => strcmp($a['student']->full_name, $b['student']->full_name));
-
-        } else {
-            // Existing Quarter Roster logic
-            // Fetch all marks for this section and term
-            $marksCollection = StudentMark::where('academic_year_id', $academicYear->id)
-                ->where('term_id', $term->id)
-                ->whereIn('student_id', $students->pluck('id'))
-                ->get();
                 
-            $allMarks = $marksCollection->groupBy('student_id');
-            
-            // Filter subjects: hide electives with no data
-            $subjectIdsWithData = $marksCollection->pluck('subject_id')->unique()->toArray();
-            $subjects = $subjects->filter(function($subject) use ($subjectIdsWithData) {
-                return !$subject->is_elective || in_array($subject->id, $subjectIdsWithData);
-            });
-
-            // Fetch Student Term Records (Conduct, Attendance)
-            $termRecords = \App\Models\StudentTermRecord::where('term_id', $term->id)
-                ->whereIn('student_id', $students->pluck('id'))
-                ->get()
-                ->keyBy('student_id');
-            
-            // Aggregate data
-            $reports = [];
-            $subjectIds = $subjects->pluck('id')->toArray();
-            foreach ($students as $student) {
-                $studentMarks = $allMarks->get($student->id, collect())
-                    ->filter(fn($m) => in_array($m->subject_id, $subjectIds));
+                // Calculate yearly averages
+                $yearMarks = collect();
+                foreach ($yearlySubjectTotals as $subId => $total) {
+                    $yearMarks[$subId] = $total / $yearlySubjectCounts[$subId];
+                }
                 
-                $marks = $studentMarks->pluck('score', 'subject_id');
-                $total = $marks->sum();
-                $count = $marks->count();
-                $average = $count > 0 ? $total / $count : 0;
-                
-                $record = $termRecords->get($student->id);
+                $yearTotal = $yearMarks->sum();
+                $rows['avg'] = [
+                    'label' => 'Year Avg',
+                    'marks' => $yearMarks,
+                    'total' => $yearTotal,
+                    'average' => $subjects->count() > 0 ? $yearTotal / $subjects->count() : 0,
+                    'conduct' => '-',
+                    'absence' => '_',
+                    'rank' => '-'  // Will be calculated after all students processed
+                ];
 
                 $reports[] = [
                     'student' => $student,
-                    'marks' => $marks,
-                    'total' => $total,
-                    'average' => $average,
                     'gender' => $student->gender,
-                    'conduct' => $record->conduct_grade ?? '',
-                    'absence' => $record->days_absent ?? '',
+                    'rows' => $rows,
+                    'yearTotal' => $yearTotal  // Store for rank calculation
+                ];
+
+            } else {
+                $qtrAbsence = $reportData['record']->days_absent ?? null;
+                $reports[] = [
+                    'student' => $student,
+                    'marks' => $reportData['marks'],
+                    'total' => $reportData['totalScore'],
+                    'average' => $reportData['average'],
+                    'gender' => $student->gender,
+                    'conduct' => $reportData['record']->conduct_grade ?? '',
+                    'absence' => ($qtrAbsence === null || $qtrAbsence === '' || $qtrAbsence == 0) ? '_' : $qtrAbsence,
+                    'rank' => $reportData['rank'],
+                    'rows' => [
+                        'q1' => [
+                            'label' => $term->name,
+                            'marks' => $reportData['marks'],
+                            'total' => $reportData['totalScore'],
+                            'average' => $reportData['average'],
+                            'conduct' => $reportData['record']->conduct_grade ?? '',
+                            'absence' => ($qtrAbsence === null || $qtrAbsence === '' || $qtrAbsence == 0) ? '_' : $qtrAbsence,
+                            'rank' => $reportData['rank']
+                        ]
+                    ]
                 ];
             }
-
-            // Calculate Rank based on Total Score
-            usort($reports, function ($a, $b) {
-                return $b['total'] <=> $a['total'];
-            });
-
-            $currentRank = 1;
-            $prevTotal = null;
-            $actualRank = 1;
-            foreach ($reports as $index => &$report) {
-                if ($prevTotal !== null && $report['total'] < $prevTotal) {
-                    $actualRank = $index + 1;
-                }
-                $report['rank'] = $actualRank;
-                $prevTotal = $report['total'];
-            }
-
-            // Re-sort by name for display (default for Roster)
-            usort($reports, function ($a, $b) {
-                return strcmp($a['student']->full_name, $b['student']->full_name);
-            });
         }
+
+        // Calculate yearly ranks if this is a yearly report
+        if ($term->type === 'yearly') {
+            $totalStudentsCount = count($reports);
+            $sortedTotals = collect($reports)->pluck('yearTotal')->sortDesc();
+            
+            foreach ($reports as &$report) {
+                $yearTotal = $report['yearTotal'] ?? 0;
+                $rank = $sortedTotals->filter(fn($score) => $score > $yearTotal)->count() + 1;
+                $report['rows']['avg']['rank'] = $rank;
+            }
+            unset($report); // Break reference
+        }
+
+        // Final subject filtering for the whole roster
+        $subjects = $subjects->filter(function($subject) use ($reports) {
+            if (!$subject->is_elective) return true;
+            foreach ($reports as $r) {
+                if (isset($r['rows'])) {
+                    foreach ($r['rows'] as $row) {
+                        if (isset($row['marks'][$subject->id])) return true;
+                    }
+                } elseif (isset($r['marks'][$subject->id])) {
+                    return true;
+                }
+            }
+            return false;
+        });
 
         $reportType = $request->get('report_type', 'roster');
 
@@ -284,5 +320,11 @@ class AcademicReportController extends Controller
         $generalSettings = \App\Models\ReportCardSetting::first();
 
         return view('admin.academic-reports.show', compact('academicYear', 'term', 'section', 'subjects', 'reports', 'settings', 'generalSettings'));
+    }
+
+    private function romanNumeral($num)
+    {
+        $numerals = [1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV'];
+        return $numerals[$num] ?? $num;
     }
 }

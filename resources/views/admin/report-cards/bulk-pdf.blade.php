@@ -124,7 +124,7 @@
         .subjects-table {
             width: 100%;
             border-collapse: collapse;
-            border: 2px solid black;
+            border: 1px solid black;
             font-family: sans-serif;
         }
         .subjects-table th, .subjects-table td {
@@ -142,7 +142,7 @@
         }
         .total-row td {
             font-weight: bold;
-            border-top: 2px solid black !important;
+            border-top: 1px solid black !important;
         }
         .trait-row {
             margin-bottom: 15px;
@@ -152,7 +152,7 @@
             display: inline-block;
             width: 25px;
             height: 25px;
-            border: 2px solid black;
+            border: 1px solid black;
             margin-right: 10px;
             vertical-align: top;
             text-align: center;
@@ -250,7 +250,7 @@
             
             <div class="header">
                 @if($settings->logo_path)
-                    <img class="logo" src="{{ asset('storage/' . $settings->logo_path) }}" alt="Logo">
+                    <img class="logo" src="/storage/{{ $settings->logo_path }}" alt="Logo">
                 @endif
                 <div class="school-name">{{ $settings->school_name }}</div>
                 <div class="report-title">Progress Report Card</div>
@@ -289,10 +289,11 @@
                             <tr>
                                 <th style="width: 40%">Subject</th>
                                 @if($isSemester)
+                                    @php $qLabels = [1 => 'First Quarter', 2 => 'Second Quarter', 3 => 'Third Quarter', 4 => 'Fourth Quarter']; @endphp
                                     @foreach($quarters as $quarter)
-                                        <th style="width: 20%">{{ str_replace('Quarter ', 'Q', $quarter->name) }}</th>
+                                        <th style="width: 20%">{{ $qLabels[$quarter->term_number] ?? $quarter->name }}</th>
                                     @endforeach
-                                    <th style="width: 20%">Avg</th>
+                                    <th style="width: 20%">Semester Average</th>
                                 @else
                                     <th style="width: 40%">Result</th>
                                 @endif
@@ -313,11 +314,11 @@
                                                 $score = $qMarks[$quarter->id] ?? null;
                                                 if($score !== null) { $subjTotal += $score; $subjCount++; }
                                             @endphp
-                                            <td>{{ $score !== null ? round($score) : '-' }}</td>
+                                            <td>{{ $score !== null ? $score : '-' }}</td>
                                         @endforeach
-                                        <td>{{ $subjCount > 0 ? round($subjTotal / $subjCount) : '-' }}</td>
+                                        <td>{{ $subjCount > 0 ? number_format($subjTotal / $subjCount, 1) : '-' }}</td>
                                     @else
-                                        <td>{{ isset($marks[$subject->id]) ? round($marks[$subject->id]) : '-' }}</td>
+                                        <td>{{ isset($marks[$subject->id]) ? $marks[$subject->id] : '-' }}</td>
                                     @endif
                                 </tr>
                             @endforeach
@@ -326,10 +327,10 @@
                                 <td style="text-align: center">Total</td>
                                 @if($isSemester)
                                     @foreach($quarters as $quarter)
-                                        <td>{{ round($data['studentQuarterStats'][$quarter->id]['total'] ?? 0) }}</td>
+                                        <td>{{ $data['studentQuarterStats'][$quarter->id]['total'] ?? 0 }}</td>
                                     @endforeach
                                 @endif
-                                <td>{{ round($totalScore) }}</td>
+                                <td>{{ $totalScore }}</td>
                             </tr>
                             <tr class="total-row">
                                 <td style="text-align: center">Average</td>
@@ -346,7 +347,7 @@
                                     @foreach($quarters as $quarter)
                                         <td>{{ $data['studentQuarterRecords'][$quarter->id]->conduct_grade ?? 'A' }}</td>
                                     @endforeach
-                                    <td>{{ $termRecord->conduct_grade ?? 'A' }}</td>
+                                    <td>-</td>
                                 @else
                                     <td>{{ $termRecord->conduct_grade ?? 'A' }}</td>
                                 @endif
@@ -355,13 +356,17 @@
                                 <td style="text-align: center">Absence</td>
                                 @if($isSemester)
                                     @foreach($quarters as $quarter)
-                                        <td>{{ $data['studentQuarterRecords'][$quarter->id]->days_absent ?? '_' }}</td>
+                                        @php $qAbs = $data['studentQuarterRecords'][$quarter->id]->days_absent ?? null; @endphp
+                                        <td>{{ ($qAbs === null || $qAbs === '' || $qAbs == 0) ? '_' : $qAbs }}</td>
                                     @endforeach
-                                    <td>{{ $termRecord->days_absent ?? '_' }}</td>
+                                    @php $tAbs = $termRecord->days_absent ?? null; @endphp
+                                    <td>{{ ($tAbs === null || $tAbs === '' || $tAbs == 0) ? '_' : $tAbs }}</td>
                                 @else
-                                    <td>{{ $termRecord->days_absent ?? '_' }}</td>
+                                    @php $tAbs = $termRecord->days_absent ?? null; @endphp
+                                    <td>{{ ($tAbs === null || $tAbs === '' || $tAbs == 0) ? '_' : $tAbs }}</td>
                                 @endif
                             </tr>
+
                             @if($settings->template_config['show_rank'] ?? true)
                             <tr class="total-row">
                                 <td style="text-align: center">Rank</td>

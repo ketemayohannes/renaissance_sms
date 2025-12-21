@@ -37,8 +37,8 @@ class SectionGradeController extends Controller
         $term = Term::findOrFail($request->term_id);
         $section = Section::findOrFail($request->section_id);
         
-        // Fetch subjects for this grade level
-        $subjects = $section->gradeLevel->subjects;
+        // Fetch subjects for this grade level - ordered by the pivot sort_order
+        $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
 
         // If Quarter, exclude Elective Subjects (per user request)
         if ($term->type === 'quarter') {
@@ -157,7 +157,7 @@ class SectionGradeController extends Controller
         return view('admin.section-grades.entry', compact('academicYear', 'term', 'section', 'students', 'subjects', 'marksMap', 'studentElectives'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, \App\Services\GradingService $gradingService)
     {
         $request->validate([
             'academic_year_id' => 'required',
@@ -213,7 +213,12 @@ class SectionGradeController extends Controller
                 }
             }
             DB::commit();
-            return back()->with('success', 'Grades saved successfully.');
+            
+            // Recalculate Statistics
+            $academicYear = AcademicYear::findOrFail($request->academic_year_id);
+            $gradingService->recalculateSectionStatistics($section, $term, $academicYear);
+            
+            return back()->with('success', 'Grades saved and statistics recalculated.');
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Error saving grades: ' . $e->getMessage());
@@ -232,7 +237,7 @@ class SectionGradeController extends Controller
         $term = Term::findOrFail($request->term_id);
         $academicYear = AcademicYear::findOrFail($request->academic_year_id);
         
-        $subjects = $section->gradeLevel->subjects;
+        $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
         $students = $section->students()->orderBy('first_name')->get();
 
         $filename = "master_sheet_{$section->name}_{$term->name}.csv";

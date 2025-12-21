@@ -65,7 +65,7 @@
                                     <label class="block text-sm font-medium text-gray-700">School Logo</label>
                                     @if($settings->logo_path)
                                         <div class="mt-2 mb-2">
-                                            <img src="{{ asset('storage/' . $settings->logo_path) }}" alt="Current Logo" class="h-20 w-auto object-contain border p-1 rounded">
+                                            <img src="/storage/{{ $settings->logo_path }}" alt="Current Logo" class="h-20 w-auto object-contain border p-1 rounded">
                                         </div>
                                     @endif
                                     <input type="file" name="logo" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">

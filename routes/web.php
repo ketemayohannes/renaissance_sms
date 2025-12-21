@@ -32,6 +32,9 @@ Route::middleware('auth')->group(function () {
         // Role Management
         Route::resource('roles', App\Http\Controllers\Admin\RoleController::class);
         
+        // Audit Logs
+        Route::get('audit-logs', [App\Http\Controllers\Admin\AuditLogController::class, 'index'])->name('audit-logs.index');
+        
         // Academic Structure
         Route::resource('divisions', App\Http\Controllers\Admin\DivisionController::class)->except(['show']);
         Route::resource('grade-levels', App\Http\Controllers\Admin\GradeLevelController::class)->except(['show']);
@@ -44,6 +47,11 @@ Route::middleware('auth')->group(function () {
         Route::post('sections/bulk-create', [App\Http\Controllers\Admin\SectionController::class, 'bulkStore'])->name('sections.bulk-store');
 
         Route::resource('sections', App\Http\Controllers\Admin\SectionController::class)->except(['show']);
+        
+        // Subject Ordering
+        Route::get('subjects/reorder', [App\Http\Controllers\Admin\SubjectController::class, 'reorder'])->name('subjects.reorder');
+        Route::post('subjects/reorder', [App\Http\Controllers\Admin\SubjectController::class, 'updateOrder'])->name('subjects.update-order');
+        
         Route::resource('subjects', App\Http\Controllers\Admin\SubjectController::class)->except(['show']);
         
         // Subject Assignment

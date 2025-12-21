@@ -127,7 +127,15 @@ class GradebookController extends Controller
 
         $terms = \App\Models\Term::where('academic_year_id', $request->academic_year_id)
             ->orderBy('start_date')
-            ->get(['id', 'name']);
+            ->get(['id', 'name', 'type']);
+
+        if ($terms->where('type', 'semester')->count() > 0) {
+            $terms->push([
+                'id' => 'yearly',
+                'name' => 'Yearly Report',
+                'type' => 'yearly'
+            ]);
+        }
 
         return response()->json($terms);
     }

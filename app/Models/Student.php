@@ -10,10 +10,11 @@ use App\Models\StudentEnrollment;
 use App\Models\StudentGuardian;
 use App\Models\StudentMedicalInfo;
 use App\Models\StudentTransportation;
+use App\Traits\Auditable;
 
 class Student extends Model
 {
-    use HasFactory;
+    use HasFactory, Auditable;
 
     protected $fillable = [
         'user_id', 'student_id', 'first_name', 'father_name', 'grandfather_name',

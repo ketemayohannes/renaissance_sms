@@ -202,11 +202,18 @@ class TermController extends Controller
     }
 
     // API endpoint to get quarters for a specific academic year
-    public function getQuarters($academicYearId)
+    public function getQuarters(Request $request, $academicYearId)
     {
+        $includeAssignedTo = $request->get('include_assigned_to');
+
         $quarters = Term::where('academic_year_id', $academicYearId)
             ->where('type', 'quarter')
-            ->whereNull('parent_term_id') // Only get quarters not already in a semester
+            ->where(function($q) use ($includeAssignedTo) {
+                $q->whereNull('parent_term_id');
+                if ($includeAssignedTo) {
+                    $q->orWhere('parent_term_id', $includeAssignedTo);
+                }
+            })
             ->orderBy('term_number')
             ->get(['id', 'name', 'term_number', 'start_date', 'end_date']);
 

@@ -12,8 +12,11 @@
                 ['label' => 'Subjects', 'url' => '#']
             ]" />
             
-            <div class="flex justify-end mb-4">
-                <a href="{{ route('admin.subjects.create') }}" class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+            <div class="flex justify-end mb-4 space-x-2">
+                <a href="{{ route('admin.subjects.reorder') }}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded shadow-sm text-sm">
+                    Reorder Subjects
+                </a>
+                <a href="{{ route('admin.subjects.create') }}" class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded text-sm">
                     Add New Subject
                 </a>
             </div>
@@ -29,6 +32,7 @@
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-20">Order</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Code</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
@@ -39,6 +43,7 @@
                         <tbody class="bg-white divide-y divide-gray-200">
                             @forelse($subjects as $subject)
                                 <tr>
+                                    <td class="px-6 py-4 text-sm text-gray-900">{{ $subject->sort_order }}</td>
                                     <td class="px-6 py-4">{{ $subject->name }}</td>
                                     <td class="px-6 py-4">{{ $subject->code }}</td>
                                     <td class="px-6 py-4">{{ $subject->description ?? '-' }}</td>

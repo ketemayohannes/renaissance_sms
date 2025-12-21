@@ -29,6 +29,12 @@
                         </div>
 
                         <div class="mb-4">
+                            <label for="sort_order" class="block text-sm font-medium text-gray-700">Display Order</label>
+                            <input type="number" name="sort_order" id="sort_order" value="{{ old('sort_order', 0) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <p class="text-xs text-gray-500">Determines the order of subjects in the Master Sheet (lower numbers first).</p>
+                        </div>
+
+                        <div class="mb-4">
                             <label class="flex items-center">
                                 <input type="checkbox" name="is_elective" value="1" {{ old('is_elective') ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
                                 <span class="ml-2 text-sm text-gray-600">Is Elective Subject?</span>

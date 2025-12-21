@@ -16,6 +16,10 @@ class StudentTermRecord extends Model
         'homeroom_teacher_comment',
         'principal_comment',
         'behavior_traits',
+        'total_score',
+        'average_score',
+        'rank',
+        'rank_out_of',
     ];
 
     protected $casts = [

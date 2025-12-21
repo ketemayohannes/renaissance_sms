@@ -78,7 +78,7 @@
         .subjects-table {
             width: 100%;
             border-collapse: collapse;
-            border: 2px solid black;
+            border: 1px solid black;
             font-family: sans-serif;
         }
         .subjects-table th, .subjects-table td {
@@ -96,7 +96,7 @@
         }
         .total-row td {
             font-weight: bold;
-            border-top: 2px solid black !important;
+            border-top: 1px solid black !important;
         }
 
         /* Traits Box (Right Side) */
@@ -108,7 +108,7 @@
             display: inline-block;
             width: 25px; /* Larger checkbox */
             height: 25px;
-            border: 2px solid black; /* Thicker border */
+            border: 1px solid black; /* Thicker border */
             margin-right: 10px;
             vertical-align: top;
             text-align: center;
@@ -239,7 +239,7 @@
     <div class="report-container">
         <div class="header">
         @if($settings->logo_path)
-            <img class="logo" src="{{ asset('storage/' . $settings->logo_path) }}" alt="Logo">
+            <img class="logo" src="/storage/{{ $settings->logo_path }}" alt="Logo">
         @endif
         <div class="school-name">{{ $settings->school_name }}</div>
         <div class="report-title">Progress Report Card</div>
@@ -278,10 +278,16 @@
                     <tr>
                         <th style="width: 40%">Subject</th>
                         @if($isSemester)
+                            @php $qLabels = [1 => 'First Quarter', 2 => 'Second Quarter', 3 => 'Third Quarter', 4 => 'Fourth Quarter']; @endphp
                             @foreach($quarters as $quarter)
-                                <th style="width: 20%">{{ str_replace('Quarter ', 'Q', $quarter->name) }}</th>
+                                <th style="width: 20%">{{ $qLabels[$quarter->term_number] ?? $quarter->name }}</th>
                             @endforeach
-                            <th style="width: 20%">Avg</th>
+                            <th style="width: 20%">Semester Average</th>
+                        @elseif($isYearly)
+                            @foreach($semesters as $semester)
+                                <th style="width: 20%">{{ $semester->name }}</th>
+                            @endforeach
+                            <th style="width: 20%">Yearly Average</th>
                         @else
                             <th style="width: 40%">Result</th>
                         @endif
@@ -304,6 +310,19 @@
                                     <td>{{ $score !== null ? round($score) : '-' }}</td>
                                 @endforeach
                                 <td>{{ $subjCount > 0 ? round($subjTotal / $subjCount) : '-' }}</td>
+                            @elseif($isYearly)
+                                @php 
+                                    $subjTotal = 0; 
+                                    $subjCount = 0;
+                                @endphp
+                                @foreach($semesters as $semester)
+                                    @php
+                                        $score = $semesterMarks[$subject->id][$semester->id] ?? null;
+                                        if($score !== null) { $subjTotal += $score; $subjCount++; }
+                                    @endphp
+                                    <td>{{ $score !== null ? round($score) : '-' }}</td>
+                                @endforeach
+                                <td>{{ $subjCount > 0 ? round($subjTotal / $subjCount) : '-' }}</td>
                             @else
                                 <td>{{ isset($marks[$subject->id]) ? round($marks[$subject->id]) : '-' }}</td>
                             @endif
@@ -317,9 +336,15 @@
                                 <td>{{ round($quarterTotals[$quarter->id] ?? 0) }}</td>
                             @endforeach
                             <td>{{ round($totalScore) }}</td>
+                        @elseif($isYearly)
+                            @foreach($semesters as $semester)
+                                <td>{{ round($semesterTotals[$semester->id] ?? 0) }}</td>
+                            @endforeach
+                            <td>{{ round($totalScore) }}</td>
                         @else
                             <td>{{ round($totalScore) }}</td>
                         @endif
+
                     </tr>
                     <tr class="total-row">
                         <td style="text-align: center">Average</td>
@@ -328,9 +353,15 @@
                                 <td>{{ number_format($quarterAverages[$quarter->id] ?? 0, 2) }}</td>
                             @endforeach
                             <td>{{ number_format($average, 2) }}</td>
+                        @elseif($isYearly)
+                            @foreach($semesters as $semester)
+                                <td>{{ number_format($semesterAverages[$semester->id] ?? 0, 2) }}</td>
+                            @endforeach
+                            <td>{{ number_format($average, 2) }}</td>
                         @else
                             <td>{{ number_format($average, 2) }}</td>
                         @endif
+
                     </tr>
                     <tr class="total-row">
                         <td style="text-align: center">Conduct</td>
@@ -338,21 +369,37 @@
                             @foreach($quarters as $quarter)
                                 <td>{{ $quarterRecords[$quarter->id]->conduct_grade ?? 'A' }}</td>
                             @endforeach
-                            <td>{{ $termRecord->conduct_grade ?? 'A' }}</td>
+                            <td>-</td>
+                        @elseif($isYearly)
+                            @foreach($semesters as $semester)
+                                <td>-</td>
+                            @endforeach
+                            <td>-</td>
                         @else
                             <td>{{ $termRecord->conduct_grade ?? 'A' }}</td>
                         @endif
+
                     </tr>
                     <tr class="total-row">
                         <td style="text-align: center">Absence</td>
                         @if($isSemester)
                             @foreach($quarters as $quarter)
-                                <td>{{ $quarterRecords[$quarter->id]->days_absent ?? '_' }}</td>
+                                @php $qAbs = $quarterRecords[$quarter->id]->days_absent ?? null; @endphp
+                                <td>{{ ($qAbs === null || $qAbs === '' || $qAbs == 0) ? '_' : $qAbs }}</td>
                             @endforeach
-                            <td>{{ $termRecord->days_absent ?? '_' }}</td>
+                            @php $tAbs = $termRecord->days_absent ?? null; @endphp
+                            <td>{{ ($tAbs === null || $tAbs === '' || $tAbs == 0) ? '_' : $tAbs }}</td>
+                        @elseif($isYearly)
+                            @foreach($semesters as $semester)
+                                <td>-</td>
+                            @endforeach
+                            <td>-</td>
                         @else
-                            <td>{{ $termRecord->days_absent ?? '_' }}</td>
+                            @php $tAbs = $termRecord->days_absent ?? null; @endphp
+                            <td>{{ ($tAbs === null || $tAbs === '' || $tAbs == 0) ? '_' : $tAbs }}</td>
                         @endif
+
+
                     </tr>
                     @if($settings->template_config['show_rank'] ?? true)
                     <tr class="total-row">
@@ -361,8 +408,16 @@
                             @foreach($quarters as $quarter)
                                 <td>{{ $quarterRanks[$quarter->id] ?? '-' }}</td>
                             @endforeach
+                            <td>{{ $rank }} / {{ $totalStudents }}</td>
+                        @elseif($isYearly)
+                            @foreach($semesters as $semester)
+                                <td>{{ $semesterRanks[$semester->id] ?? '-' }}</td>
+                            @endforeach
+                            <td>{{ $rank }} / {{ $totalStudents }}</td>
+                        @else
+                            <td>{{ $rank }} / {{ $totalStudents }}</td>
                         @endif
-                        <td>{{ $rank }} / {{ $totalStudents }}</td>
+
                     </tr>
                     @endif
                 </tbody>

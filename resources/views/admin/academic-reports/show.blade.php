@@ -19,11 +19,13 @@
 
             @php
                 $isSem = $term->isSemester();
+                $isYearly = ($term->type === 'yearly');
                 $subjectCount = count($subjects);
-                // Fixed categories: S.no(3%), Name(35%), Gender(3% if !sem), Quarter(6% if sem), Total(5%), Avg(5%), Cond(3%), Abs(3%), Rank(4%)
-                $fixedWidth = 3 + 35 + ($isSem ? 6 : 3) + 5 + 5 + 3 + 3 + 4;
+                // Fixed categories: S.no(3%), Name(35%), Gender(3% if !sem), Quarter(6% if sem or yearly), Total(5%), Avg(5%), Cond(3%), Abs(3%), Rank(4%)
+                $fixedWidth = 3 + 35 + ($isYearly ? 9 : ($isSem ? 6 : 3)) + 5 + 5 + 3 + 3 + 4;
                 $subjectWidth = ($subjectCount > 0) ? (100 - $fixedWidth) / $subjectCount : 0;
             @endphp
+
 
             <!-- Header Section (Outside Table) -->
             <div class="relative mb-2 print:mt-0 mt-8">
@@ -64,8 +66,8 @@
                         @if(!$isSem)
                         <col style="width: 3%;"><!-- Gender -->
                         @endif
-                        @if($isSem)
-                        <col style="width: 6%;"><!-- Quarter -->
+                        @if($isSem || $isYearly)
+                        <col style="width: 6%;"><!-- Quarter/Term -->
                         @endif
                         @foreach($subjects as $subject)
                         <col style="width: {{ $subjectWidth }}%;"><!-- Subject -->
@@ -94,9 +96,9 @@
                                 <div class="vertical-text">Gender</div>
                             </th>
                             @endif
-                            @if($isSem)
+                            @if($isSem || $isYearly)
                             <th class="p-0 w-[6%] h-24 relative text-center">
-                                <div class="vertical-text">Quarter</div>
+                                <div class="vertical-text">Term</div>
                             </th>
                             @endif
                             @foreach($subjects as $subject)
@@ -137,7 +139,9 @@
                                             <td rowspan="3" class="p-0.5 text-center align-middle border-b-[1.5pt] border-black text-sm font-bold">{{ $index + 1 }}</td>
                                             <td rowspan="3" class="p-0.5 px-2 uppercase text-[11px] whitespace-normal leading-[1.1] break-words font-bold text-center align-middle border-b-[1.5pt] border-black">{{ $report['student']->full_name }}</td>
                                         @endif
-                                        <td class="p-0.5 text-center text-[9px] font-semibold {{ $rowIndex === 2 ? 'border-b-[1.5pt] border-black bg-[#eee] font-bold' : '' }}">{{ $rowLabels[$rowIndex] }}</td>
+                                        <td class="p-0.5 text-center text-[9px] font-semibold {{ $rowIndex === 2 ? 'border-b-[1.5pt] border-black bg-[#eee] font-bold' : '' }}">
+                                            {{ $report['rows'][$type]['label'] ?? $rowLabels[$rowIndex] }}
+                                        </td>
                                         
                                         @foreach($subjects as $subject)
                                             <td class="p-0.5 text-center {{ $rowIndex === 2 ? 'border-b-[1.5pt] border-black bg-[#eee] font-bold' : '' }}">
@@ -147,22 +151,78 @@
                                         @endforeach
 
                                         <td class="p-0.5 text-center font-bold {{ $rowIndex === 2 ? 'border-b-[1.5pt] border-black bg-[#eee]' : '' }}">
-                                            {{ number_format($report['rows'][$type]['total'], 1) }}
+                                            {{ number_format($report['rows'][$type]['total'] ?? 0, 1) }}
                                         </td>
                                         <td class="p-0.5 text-center font-bold {{ $rowIndex === 2 ? 'border-b-[1.5pt] border-black bg-[#eee]' : '' }}">
-                                            {{ number_format($report['rows'][$type]['average'], 2) }}
+                                            {{ number_format($report['rows'][$type]['average'] ?? 0, 2) }}
                                         </td>
                                         <td class="p-0.5 text-center {{ $rowIndex === 2 ? 'border-b-[1.5pt] border-black bg-[#eee]' : '' }}">
-                                            {{ $report['rows'][$type]['conduct'] }}
+                                            {{ $report['rows'][$type]['conduct'] ?? '' }}
                                         </td>
                                         <td class="p-0.5 text-center {{ $rowIndex === 2 ? 'border-b-[1.5pt] border-black bg-[#eee]' : '' }}">
-                                            {{ $report['rows'][$type]['absence'] }}
+                                            {{ $report['rows'][$type]['absence'] ?? '' }}
                                         </td>
                                         <td class="p-0.5 text-center font-bold {{ $rowIndex === 2 ? 'border-b-[1.5pt] border-black bg-[#eee]' : '' }}">
-                                            {{ $report['rows'][$type]['rank'] }}
+                                            {{ $report['rows'][$type]['rank'] ?? '-' }}
                                         </td>
+                                </tr>
+                                @endforeach
+                            @elseif($isYearly)
+                                {{-- Yearly Layout: 7 rows per student (Q1, Q2, Sem1, Q3, Q4, Sem2, YearAvg) --}}
+                                @php
+                                    $rowTypes = ['q1', 'q2', 's1', 'q3', 'q4', 's2', 'avg'];
+                                @endphp
+                                @foreach($rowTypes as $rowIndex => $type)
+                                    @php 
+                                        $isSemAvgRow = in_array($type, ['s1', 's2']);
+                                        $isYearAvgRow = ($type === 'avg');
+                                    @endphp
+                                    <tr class="h-5">
+                                        @if($rowIndex === 0)
+                                            <td rowspan="7" class="p-0.5 text-center align-middle border-b-[1.5pt] border-black text-sm font-bold">{{ $index + 1 }}</td>
+                                            <td rowspan="7" class="p-0.5 px-2 uppercase text-[10px] whitespace-normal leading-[1.1] break-words font-bold text-center align-middle border-b-[1.5pt] border-black">{{ $report['student']->full_name }}</td>
+                                            <td rowspan="7" class="p-0.5 text-center align-middle border-b-[1.5pt] border-black text-sm font-bold">{{ substr($report['student']->gender, 0, 1) }}</td>
+                                        @endif
+                                        <td class="p-0.5 text-center text-[8px] font-semibold {{ $isSemAvgRow ? 'bg-[#ddd]' : '' }} {{ $isYearAvgRow ? 'border-b-[1.5pt] border-black bg-[#bbb] font-bold' : '' }}">
+                                            {{ $report['rows'][$type]['label'] ?? $type }}
+                                        </td>
+                                        
+                                        @foreach($subjects as $subject)
+                                            <td class="p-0.5 text-center {{ $isSemAvgRow ? 'bg-[#ddd]' : '' }} {{ $isYearAvgRow ? 'border-b-[1.5pt] border-black bg-[#bbb]' : '' }}">
+                                                @php $score = $report['rows'][$type]['marks'][$subject->id] ?? null; @endphp
+                                                {{ $score !== null ? (is_numeric($score) ? number_format($score, 1) : $score) : '-' }}
+                                            </td>
+                                        @endforeach
+                                        <td class="p-0.5 text-center font-bold {{ $isSemAvgRow ? 'bg-[#ddd]' : '' }} {{ $isYearAvgRow ? 'border-b-[1.5pt] border-black bg-[#bbb]' : '' }}">
+                                            {{ number_format($report['rows'][$type]['total'] ?? 0, 1) }}
+                                        </td>
+                                        <td class="p-0.5 text-center font-bold {{ $isSemAvgRow ? 'bg-[#ddd]' : '' }} {{ $isYearAvgRow ? 'border-b-[1.5pt] border-black bg-[#bbb]' : '' }}">
+                                            {{ number_format($report['rows'][$type]['average'] ?? 0, 2) }}
+                                        </td>
+                                        <td class="p-0.5 text-center {{ $isSemAvgRow ? 'bg-[#ddd]' : '' }} {{ $isYearAvgRow ? 'border-b-[1.5pt] border-black bg-[#bbb]' : '' }}">
+                                            {{ $report['rows'][$type]['conduct'] ?? '' }}
+                                        </td>
+                                        <td class="p-0.5 text-center {{ $isSemAvgRow ? 'bg-[#ddd]' : '' }} {{ $isYearAvgRow ? 'border-b-[1.5pt] border-black bg-[#bbb]' : '' }}">
+                                            {{ $report['rows'][$type]['absence'] ?? '_' }}
+                                        </td>
+                                        <td class="p-0.5 text-center font-bold {{ $isSemAvgRow ? 'bg-[#ddd]' : '' }} {{ $isYearAvgRow ? 'border-b-[1.5pt] border-black bg-[#bbb]' : '' }}">
+                                            {{ $report['rows'][$type]['rank'] ?? '-' }}
                                     </tr>
                                 @endforeach
+                                {{-- Page break logic: 3 students on first page, then 4 students per page --}}
+                                @php
+                                    $shouldBreak = false;
+                                    $studentNum = $index + 1;
+                                    if ($studentNum == 3) {
+                                        $shouldBreak = true; // Break after 3rd student (end of page 1)
+                                    } elseif ($studentNum > 3 && ($studentNum - 3) % 4 == 0) {
+                                        $shouldBreak = true; // Break after every 4th student subsequently (3+4, 3+8, etc.)
+                                    }
+                                @endphp
+
+                                @if($shouldBreak && $studentNum < count($reports))
+                                    <tr class="page-break-after"><td colspan="{{ 7 + count($subjects) }}"></td></tr>
+                                @endif
                             @else
                                 {{-- Existing Quarter Layout --}}
                                 <tr class="h-7">
@@ -184,28 +244,25 @@
                             @endif
                         @endforeach
                     </tbody>
-                    <tfoot class="print-tfoot">
-                        <tr>
-                            <td id="roster-footer-cell" colspan="{{ 8 + $subjectCount }}" class="border-none p-0 footer-cell">
-                                <div id="roster-signatures" class="mt-8 flex justify-between font-serif text-[10px] italic print-footer w-full">
-                                    <div class="w-1/3 text-left whitespace-nowrap">
-                                        <p>Homeroom Teacher's Name:______________</p>
-                                        <p class="mt-2">Signature:____________</p>
-                                    </div>
-                                    <div class="w-1/3 text-center whitespace-nowrap">
-                                        <p>Principal's Name:______________</p>
-                                        <p class="mt-2">Signature:____________</p>
-                                    </div>
-                                    <div class="w-1/3 text-right whitespace-nowrap">
-                                        <p>Record Officer's Name:______________</p>
-                                        <p class="mt-2">Signature:____________</p>
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                    </tfoot>
                 </table>
+
+                {{-- Signatures Section (After Table - End of Document) --}}
+                <div id="roster-signatures" class="mt-4 flex justify-between font-serif text-[10px] italic print-footer w-full break-inside-avoid">
+                    <div class="w-1/3 text-left whitespace-nowrap">
+                        <p>Homeroom Teacher's Name:______________</p>
+                        <p class="mt-1">Signature:____________</p>
+                    </div>
+                    <div class="w-1/3 text-center whitespace-nowrap">
+                        <p>Principal's Name:______________</p>
+                        <p class="mt-1">Signature:____________</p>
+                    </div>
+                    <div class="w-1/3 text-right whitespace-nowrap">
+                        <p>Record Officer's Name:______________</p>
+                        <p class="mt-1">Signature:____________</p>
+                    </div>
+                </div>
             </div>
+
         </div>
     </div>
 
@@ -263,7 +320,7 @@
         
         @media print {
             @page {
-                size: {{ $isSem ? 'landscape' : 'portrait' }};
+                size: {{ ($isSem || $isYearly) ? 'landscape' : 'portrait' }};
                 margin: 0; /* Hides browser URLs and page numbers */
             }
             body { 
@@ -285,12 +342,24 @@
             thead {
                 display: table-header-group !important;
             }
+            tfoot {
+                display: table-footer-group !important;
+            }
+
+            .page-break-after td {
+                page-break-after: always !important;
+                height: 0 !important;
+                padding: 0 !important;
+                line-height: 0 !important;
+                border: none !important;
+                visibility: hidden !important;
+            }
 
             .print-footer {
                 padding-top: 0 !important;
                 margin-top: 5mm !important;
                 page-break-inside: avoid !important;
-                font-size: 8pt !important;
+                font-size: 7pt !important;
                 white-space: nowrap !important;
                 border: none !important;
             }
