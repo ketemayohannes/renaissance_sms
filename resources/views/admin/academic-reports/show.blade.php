@@ -146,15 +146,15 @@
                                         @foreach($subjects as $subject)
                                             <td class="p-0.5 text-center {{ $rowIndex === 2 ? 'border-b-[1.5pt] border-black bg-[#eee] font-bold' : '' }}">
                                                 @php $score = $report['rows'][$type]['marks'][$subject->id] ?? null; @endphp
-                                                {{ $score !== null ? (is_numeric($score) ? number_format($score, 1) : $score) : '-' }}
+                                                {{ \App\Helpers\NumberFormatter::format($score) }}
                                             </td>
                                         @endforeach
 
                                         <td class="p-0.5 text-center font-bold {{ $rowIndex === 2 ? 'border-b-[1.5pt] border-black bg-[#eee]' : '' }}">
-                                            {{ number_format($report['rows'][$type]['total'] ?? 0, 1) }}
+                                            {{ \App\Helpers\NumberFormatter::format($report['rows'][$type]['total'] ?? 0) }}
                                         </td>
                                         <td class="p-0.5 text-center font-bold {{ $rowIndex === 2 ? 'border-b-[1.5pt] border-black bg-[#eee]' : '' }}">
-                                            {{ number_format($report['rows'][$type]['average'] ?? 0, 2) }}
+                                            {{ \App\Helpers\NumberFormatter::format($report['rows'][$type]['average'] ?? 0) }}
                                         </td>
                                         <td class="p-0.5 text-center {{ $rowIndex === 2 ? 'border-b-[1.5pt] border-black bg-[#eee]' : '' }}">
                                             {{ $report['rows'][$type]['conduct'] ?? '' }}
@@ -190,14 +190,14 @@
                                         @foreach($subjects as $subject)
                                             <td class="p-0.5 text-center {{ $isSemAvgRow ? 'bg-[#ddd]' : '' }} {{ $isYearAvgRow ? 'border-b-[1.5pt] border-black bg-[#bbb]' : '' }}">
                                                 @php $score = $report['rows'][$type]['marks'][$subject->id] ?? null; @endphp
-                                                {{ $score !== null ? (is_numeric($score) ? number_format($score, 1) : $score) : '-' }}
+                                                {{ \App\Helpers\NumberFormatter::format($score) }}
                                             </td>
                                         @endforeach
                                         <td class="p-0.5 text-center font-bold {{ $isSemAvgRow ? 'bg-[#ddd]' : '' }} {{ $isYearAvgRow ? 'border-b-[1.5pt] border-black bg-[#bbb]' : '' }}">
-                                            {{ number_format($report['rows'][$type]['total'] ?? 0, 1) }}
+                                            {{ \App\Helpers\NumberFormatter::format($report['rows'][$type]['total'] ?? 0) }}
                                         </td>
                                         <td class="p-0.5 text-center font-bold {{ $isSemAvgRow ? 'bg-[#ddd]' : '' }} {{ $isYearAvgRow ? 'border-b-[1.5pt] border-black bg-[#bbb]' : '' }}">
-                                            {{ number_format($report['rows'][$type]['average'] ?? 0, 2) }}
+                                            {{ \App\Helpers\NumberFormatter::format($report['rows'][$type]['average'] ?? 0) }}
                                         </td>
                                         <td class="p-0.5 text-center {{ $isSemAvgRow ? 'bg-[#ddd]' : '' }} {{ $isYearAvgRow ? 'border-b-[1.5pt] border-black bg-[#bbb]' : '' }}">
                                             {{ $report['rows'][$type]['conduct'] ?? '' }}
@@ -232,11 +232,11 @@
                                     @foreach($subjects as $subject)
                                         <td class="p-0.5 text-center">
                                             @php $score = $report['marks'][$subject->id] ?? null; @endphp
-                                            {{ $score !== null ? (is_numeric($score) ? number_format($score, 1) : $score) : '-' }}
+                                            {{ \App\Helpers\NumberFormatter::format($score) }}
                                         </td>
                                     @endforeach
-                                    <td class="p-0.5 text-center font-bold">{{ number_format($report['total'], 1) }}</td>
-                                    <td class="p-0.5 text-center font-bold">{{ number_format($report['average'], 2) }}</td>
+                                    <td class="p-0.5 text-center font-bold">{{ \App\Helpers\NumberFormatter::format($report['total']) }}</td>
+                                    <td class="p-0.5 text-center font-bold">{{ \App\Helpers\NumberFormatter::format($report['average']) }}</td>
                                     <td class="p-0.5 text-center">{{ $report['conduct'] }}</td>
                                     <td class="p-0.5 text-center">{{ $report['absence'] }}</td>
                                     <td class="p-0.5 text-center font-bold">{{ $report['rank'] }}</td>

@@ -307,9 +307,9 @@
                                         $score = $quarterMarks[$subject->id][$quarter->id] ?? null;
                                         if($score !== null) { $subjTotal += $score; $subjCount++; }
                                     @endphp
-                                    <td>{{ $score !== null ? round($score) : '-' }}</td>
+                                    <td>{{ $score !== null ? \App\Helpers\NumberFormatter::format($score) : '-' }}</td>
                                 @endforeach
-                                <td>{{ $subjCount > 0 ? round($subjTotal / $subjCount) : '-' }}</td>
+                                <td>{{ $subjCount > 0 ? \App\Helpers\NumberFormatter::format($subjTotal / $subjCount) : '-' }}</td>
                             @elseif($isYearly)
                                 @php 
                                     $subjTotal = 0; 
@@ -320,11 +320,11 @@
                                         $score = $semesterMarks[$subject->id][$semester->id] ?? null;
                                         if($score !== null) { $subjTotal += $score; $subjCount++; }
                                     @endphp
-                                    <td>{{ $score !== null ? round($score) : '-' }}</td>
+                                    <td>{{ $score !== null ? \App\Helpers\NumberFormatter::format($score) : '-' }}</td>
                                 @endforeach
-                                <td>{{ $subjCount > 0 ? round($subjTotal / $subjCount) : '-' }}</td>
+                                <td>{{ $subjCount > 0 ? \App\Helpers\NumberFormatter::format($subjTotal / $subjCount) : '-' }}</td>
                             @else
-                                <td>{{ isset($marks[$subject->id]) ? round($marks[$subject->id]) : '-' }}</td>
+                                <td>{{ isset($marks[$subject->id]) ? \App\Helpers\NumberFormatter::format($marks[$subject->id]) : '-' }}</td>
                             @endif
                         </tr>
                     @endforeach
@@ -333,16 +333,16 @@
                         <td style="text-align: center">Total</td>
                         @if($isSemester)
                             @foreach($quarters as $quarter)
-                                <td>{{ round($quarterTotals[$quarter->id] ?? 0) }}</td>
+                                <td>{{ \App\Helpers\NumberFormatter::format($quarterTotals[$quarter->id] ?? 0) }}</td>
                             @endforeach
-                            <td>{{ round($totalScore) }}</td>
+                            <td>{{ \App\Helpers\NumberFormatter::format($totalScore) }}</td>
                         @elseif($isYearly)
                             @foreach($semesters as $semester)
-                                <td>{{ round($semesterTotals[$semester->id] ?? 0) }}</td>
+                                <td>{{ \App\Helpers\NumberFormatter::format($semesterTotals[$semester->id] ?? 0) }}</td>
                             @endforeach
-                            <td>{{ round($totalScore) }}</td>
+                            <td>{{ \App\Helpers\NumberFormatter::format($totalScore) }}</td>
                         @else
-                            <td>{{ round($totalScore) }}</td>
+                            <td>{{ \App\Helpers\NumberFormatter::format($totalScore) }}</td>
                         @endif
 
                     </tr>
@@ -350,16 +350,16 @@
                         <td style="text-align: center">Average</td>
                         @if($isSemester)
                             @foreach($quarters as $quarter)
-                                <td>{{ number_format($quarterAverages[$quarter->id] ?? 0, 2) }}</td>
+                                <td>{{ \App\Helpers\NumberFormatter::format($quarterAverages[$quarter->id] ?? 0) }}</td>
                             @endforeach
-                            <td>{{ number_format($average, 2) }}</td>
+                            <td>{{ \App\Helpers\NumberFormatter::format($average) }}</td>
                         @elseif($isYearly)
                             @foreach($semesters as $semester)
-                                <td>{{ number_format($semesterAverages[$semester->id] ?? 0, 2) }}</td>
+                                <td>{{ \App\Helpers\NumberFormatter::format($semesterAverages[$semester->id] ?? 0) }}</td>
                             @endforeach
-                            <td>{{ number_format($average, 2) }}</td>
+                            <td>{{ \App\Helpers\NumberFormatter::format($average) }}</td>
                         @else
-                            <td>{{ number_format($average, 2) }}</td>
+                            <td>{{ \App\Helpers\NumberFormatter::format($average) }}</td>
                         @endif
 
                     </tr>
