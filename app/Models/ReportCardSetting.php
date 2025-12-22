@@ -15,9 +15,11 @@ class ReportCardSetting extends Model
         'po_box',
         'logo_path',
         'template_config',
+        'yearly_config',
     ];
 
     protected $casts = [
         'template_config' => 'array',
+        'yearly_config' => 'array',
     ];
 }

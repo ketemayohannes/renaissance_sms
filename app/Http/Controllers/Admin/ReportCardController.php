@@ -43,6 +43,11 @@ class ReportCardController extends Controller
         if ($request->hasFile('logo')) {
             $path = $request->file('logo')->store('report-cards', 'public');
             $settings->logo_path = $path;
+            // Delete old logo if exists
+            if ($settings->logo_path) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($settings->logo_path);
+            }
+            $settings->logo_path = $request->file('logo')->store('report-cards', 'public');
         }
 
         // Handle JSON config (checkboxes)
@@ -57,7 +62,36 @@ class ReportCardController extends Controller
         
         $settings->save();
 
-        return back()->with('success', 'Report Card Settings updated.');
+        return back()->with('success', 'Report card settings updated successfully.');
+    }
+
+    public function yearlySettings()
+    {
+        $settings = ReportCardSetting::firstOrNew();
+        return view('admin.report-cards.yearly-settings', compact('settings'));
+    }
+
+    public function updateYearlySettings(Request $request)
+    {
+        $request->validate([
+            'evaluation_method' => 'nullable|string',
+            'remark' => 'nullable|string',
+            'principal_name' => 'nullable|string',
+            'parent_instructions' => 'nullable|string',
+        ]);
+
+        $settings = ReportCardSetting::firstOrNew();
+        
+        $config = $settings->yearly_config ?? [];
+        $config['evaluation_method'] = $request->evaluation_method;
+        $config['remark'] = $request->remark;
+        $config['principal_name'] = $request->principal_name;
+        $config['parent_instructions'] = $request->parent_instructions;
+        
+        $settings->yearly_config = $config;
+        $settings->save();
+
+        return back()->with('success', 'Yearly report card settings updated successfully.');
     }
 
     // Data Entry (Conduct, Attendance, Comments)
@@ -193,6 +227,16 @@ class ReportCardController extends Controller
             return isset($marks[$subject->id]);
         });
         
+        if ($isYearly) {
+            return view('admin.report-cards.yearly-pdf', compact(
+                'student', 'term', 'academicYear', 'subjects', 'marks', 'termRecord', 
+                'settings', 'totalScore', 'average', 'section', 'rank', 'totalStudents', 
+                'isSemester', 'isYearly', 'quarters', 'semesters', 'quarterMarks', 
+                'quarterTotals', 'quarterAverages', 'quarterRanks', 'quarterRecords',
+                'semesterMarks', 'semesterTotals', 'semesterAverages', 'semesterRanks'
+            ));
+        }
+
         // Return view directly for browser printing
         return view('admin.report-cards.pdf', compact(
             'student', 'term', 'academicYear', 'subjects', 'marks', 'termRecord', 

@@ -119,6 +119,8 @@ Route::middleware('auth')->group(function () {
         // Report Cards
         Route::get('report-cards/settings', [App\Http\Controllers\Admin\ReportCardController::class, 'settings'])->name('report-cards.settings');
         Route::post('report-cards/settings', [App\Http\Controllers\Admin\ReportCardController::class, 'updateSettings'])->name('report-cards.update-settings');
+        Route::get('report-cards/yearly-settings', [App\Http\Controllers\Admin\ReportCardController::class, 'yearlySettings'])->name('report-cards.yearly-settings');
+        Route::post('report-cards/yearly-settings', [App\Http\Controllers\Admin\ReportCardController::class, 'updateYearlySettings'])->name('report-cards.update-yearly-settings');
 
         // Academic Reports
         Route::get('academic-reports/settings', [App\Http\Controllers\Admin\AcademicReportController::class, 'settings'])->name('academic-reports.settings');
