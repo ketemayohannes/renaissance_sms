@@ -232,17 +232,16 @@
 </head>
 <body>
 
-    <div class="no-print-bar">
-        <button onclick="window.print()" class="print-btn" style="background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">Print Report Card</button>
-        <span style="margin-left: 20px; font-weight: bold; color: #333;">Press Ctrl+P to save as PDF</span>
-    </div>
     <!-- Spacer for fixed header -->
-    <div class="spacer"></div>
+    <div class="spacer" style="height: 20px;"></div>
 
     <div class="report-container">
         <div class="header">
-        @if($settings->logo_path)
-            <img class="logo" src="/storage/{{ $settings->logo_path }}" alt="Logo">
+        @if($settings->logo_path && extension_loaded('gd'))
+            <img class="logo" src="{{ public_path('storage/' . $settings->logo_path) }}" alt="Logo">
+        @elseif($settings->logo_path)
+             <!-- GD is missing, showing text fallback -->
+             <div style="margin-bottom: 10px; font-style: italic; color: #666; font-size: 0.8em;">(Enable PHP GD Extension to view Logo)</div>
         @endif
         <div class="school-name">{{ $settings->school_name }}</div>
         <div class="report-title">Progress Report Card</div>
@@ -431,10 +430,6 @@
                 </tbody>
             </table>
         </div>
-        
-
-        
-    </div>
 
     <!-- Right Column: Traits Details -->
     <div class="col-right">

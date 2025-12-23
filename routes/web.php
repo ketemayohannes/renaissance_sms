@@ -33,6 +33,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware(['role:Student'])->prefix('student')->name('student.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Student\DashboardController::class, 'index'])->name('dashboard');
         Route::get('/grades', [App\Http\Controllers\Student\GradeController::class, 'index'])->name('grades.index');
+        Route::get('/grades/download', [App\Http\Controllers\Student\GradeController::class, 'downloadReport'])->name('grades.download');
         Route::get('/profile', [App\Http\Controllers\Student\ProfileController::class, 'show'])->name('profile');
         Route::put('/password', [App\Http\Controllers\Student\ProfileController::class, 'updatePassword'])->name('password.update');
     });
