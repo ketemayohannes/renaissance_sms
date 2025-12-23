@@ -15,6 +15,9 @@ use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Andegna\DateTime as EthDateTime;
 use Andegna\Constants;
+use App\Models\ExportRequest;
+use App\Jobs\GenerateSectionReportCards;
+use Illuminate\Support\Facades\Storage;
 
 class ReportCardController extends Controller
 {
@@ -157,6 +160,7 @@ class ReportCardController extends Controller
                 'name' => 'Yearly Report', 
                 'academic_year_id' => $academicYear->id
             ]);
+            $term->incrementing = false;
             $term->id = 'yearly';
         } else {
             $term = Term::findOrFail($termId ?? Term::where('is_active', true)->value('id'));
@@ -183,7 +187,15 @@ class ReportCardController extends Controller
         $totalStudents = $reportData['rank_out_of'];
         $isSemester = $reportData['isSemester'];
         $isYearly = $term->type === 'yearly';
-        $quarters = $isSemester ? $term->quarters()->orderBy('term_number')->get() : collect();
+        $quarters = collect();
+        if ($isSemester) {
+            $quarters = $term->quarters()->orderBy('term_number')->get();
+        } elseif ($isYearly) {
+            $quarters = Term::where('academic_year_id', $academicYear->id)
+                ->where('type', 'quarter')
+                ->orderBy('term_number')
+                ->get();
+        }
         $semesters = $isYearly ? Term::where('academic_year_id', $academicYear->id)->where('type', 'semester')->orderBy('start_date')->get() : collect();
         
         // Prepare legacy variables for view compatibility
@@ -193,7 +205,7 @@ class ReportCardController extends Controller
         $quarterRanks = [];
         $quarterRecords = [];
         
-        if ($isSemester) {
+        if ($isSemester || $isYearly) {
             foreach ($reportData['quarters'] as $qId => $qData) {
                 foreach ($qData['marks'] as $subId => $score) {
                     $quarterMarks[$subId][$qId] = $score;
@@ -228,22 +240,32 @@ class ReportCardController extends Controller
         });
         
         if ($isYearly) {
+            $attendance = $this->getAttendanceSummary($student, $term, $academicYear); // Yearly attendance
+            // Calculate Sub-Term Attendance
+            $subTermAttendance = $this->calculateSubTermAttendance($student, $quarters, $semesters, $isSemester, $isYearly, $academicYear);
+            
             return view('admin.report-cards.yearly-pdf', compact(
                 'student', 'term', 'academicYear', 'subjects', 'marks', 'termRecord', 
                 'settings', 'totalScore', 'average', 'section', 'rank', 'totalStudents', 
                 'isSemester', 'isYearly', 'quarters', 'semesters', 'quarterMarks', 
                 'quarterTotals', 'quarterAverages', 'quarterRanks', 'quarterRecords',
-                'semesterMarks', 'semesterTotals', 'semesterAverages', 'semesterRanks'
+                'semesterMarks', 'semesterTotals', 'semesterAverages', 'semesterRanks', 
+                'attendance', 'subTermAttendance'
             ));
         }
 
+        // Calculate Sub-Term Attendance
+        $subTermAttendance = $this->calculateSubTermAttendance($student, $quarters, $semesters, $isSemester, $isYearly, $academicYear);
+
         // Return view directly for browser printing
+        $attendance = $this->getAttendanceSummary($student, $term, $academicYear);
         return view('admin.report-cards.pdf', compact(
             'student', 'term', 'academicYear', 'subjects', 'marks', 'termRecord', 
             'settings', 'totalScore', 'average', 'section', 'rank', 'totalStudents', 
             'isSemester', 'isYearly', 'quarters', 'semesters', 'quarterMarks', 
             'quarterTotals', 'quarterAverages', 'quarterRanks', 'quarterRecords',
-            'semesterMarks', 'semesterTotals', 'semesterAverages', 'semesterRanks'
+            'semesterMarks', 'semesterTotals', 'semesterAverages', 'semesterRanks', 
+            'attendance', 'subTermAttendance'
         ));
     }
     // Bulk Print
@@ -258,6 +280,7 @@ class ReportCardController extends Controller
                 'name' => 'Yearly Report', 
                 'academic_year_id' => $academicYear->id
             ]);
+            $term->incrementing = false;
             $term->id = 'yearly';
         } else {
             $term = Term::findOrFail($termId);
@@ -280,14 +303,25 @@ class ReportCardController extends Controller
             ->orderBy('first_name')
             ->get();
 
+        $sectionReportData = $gradingService->getSectionReportData($students, $section, $term, $academicYear);
+
         $reportCards = [];
         $isSemester = $term->isSemester();
         $isYearly = $term->type === 'yearly';
-        $quarters = $isSemester ? $term->quarters()->orderBy('term_number')->get() : collect();
+        $quarters = collect();
+        if ($isSemester) {
+            $quarters = $term->quarters()->orderBy('term_number')->get();
+        } elseif ($isYearly) {
+            $quarters = Term::where('academic_year_id', $academicYear->id)
+                ->where('type', 'quarter')
+                ->orderBy('term_number')
+                ->get();
+        }
         $semesters = $isYearly ? Term::where('academic_year_id', $academicYear->id)->where('type', 'semester')->orderBy('start_date')->get() : collect();
         
         foreach ($students as $student) {
-            $reportData = $gradingService->getStudentReportData($student, $term, $academicYear);
+            $reportData = $sectionReportData[$student->id] ?? null;
+            if (!$reportData) continue;
             
             // Extract and prepare for view compatibility
             $marks = $reportData['marks'];
@@ -301,7 +335,7 @@ class ReportCardController extends Controller
             $studentQuarterStats = [];
             $studentQuarterRecords = [];
             
-            if ($isSemester) {
+            if ($isSemester || $isYearly) {
                 foreach ($reportData['quarters'] as $qId => $qData) {
                     foreach ($qData['marks'] as $subId => $score) {
                         $studentQuarterMarks[$subId][$qId] = $score;
@@ -356,14 +390,137 @@ class ReportCardController extends Controller
                 'studentQuarterRecords' => collect($studentQuarterRecords),
                 'studentSemesterMarks' => $studentSemesterMarks,
                 'studentSemesterStats' => $studentSemesterStats,
+                'attendance' => $this->getAttendanceSummary($student, $term, $academicYear),
+                'subTermAttendance' => $this->calculateSubTermAttendance($student, $quarters, $semesters, $isSemester, $isYearly, $academicYear),
             ];
         }
 
         $totalStudents = $students->count();
 
-        return view('admin.report-cards.bulk-pdf', compact(
+        $viewName = $isYearly ? 'admin.report-cards.bulk-yearly-pdf' : 'admin.report-cards.bulk-pdf';
+        
+        return view($viewName, compact(
             'section', 'term', 'academicYear', 'subjects', 'reportCards', 'settings', 
             'totalStudents', 'isSemester', 'isYearly', 'quarters', 'semesters'
         ));
+    }
+
+    // Background Exports
+    public function exports()
+    {
+        $exports = ExportRequest::where('user_id', auth()->id())
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
+            
+        return view('admin.report-cards.exports', compact('exports'));
+    }
+
+    public function bulkExport(Request $request, Section $section)
+    {
+        $academicYear = AcademicYear::findOrFail($request->get('academic_year_id'));
+        $termId = $request->get('term_id');
+        
+        if ($termId === 'yearly') {
+            $term = new Term([
+                'type' => 'yearly', 
+                'name' => 'Yearly Report', 
+                'academic_year_id' => $academicYear->id
+            ]);
+            $term->incrementing = false;
+            $term->id = 'yearly';
+        } else {
+            $term = Term::findOrFail($termId);
+        }
+
+        $exportRequest = ExportRequest::create([
+            'user_id' => auth()->id(),
+            'type' => 'yearly_report_zip', // or something descriptive
+            'status' => 'pending',
+            'params' => [
+                'section_id' => $section->id,
+                'term_id' => $termId,
+                'academic_year_id' => $academicYear->id,
+                'section_name' => $section->name,
+                'term_name' => $term->name,
+            ],
+        ]);
+
+        GenerateSectionReportCards::dispatch($exportRequest, $section, $term, $academicYear);
+
+        return redirect()->route('admin.report-cards.exports')
+            ->with('success', 'Bulk export started in background. You will find it here when finished.');
+    }
+
+    public function downloadExport(ExportRequest $exportRequest)
+    {
+        if ($exportRequest->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        if ($exportRequest->status !== 'completed' || !$exportRequest->file_path) {
+            return back()->with('error', 'Export is not ready for download.');
+        }
+
+        return Storage::disk('public')->download($exportRequest->file_path);
+    }
+
+    private function calculateSubTermAttendance($student, $quarters, $semesters, $isSemester, $isYearly, $academicYear)
+    {
+        $subTermAttendance = [];
+        
+        if (($isSemester || $isYearly) && $quarters) {
+            foreach ($quarters as $q) {
+                $subTermAttendance[$q->id] = $this->getAttendanceSummary($student, $q, $academicYear);
+            }
+        }
+        
+        if ($isYearly && $semesters) {
+             foreach ($semesters as $s) {
+                 $subTermAttendance[$s->id] = $this->getAttendanceSummary($student, $s, $academicYear);
+             }
+        }
+        
+        return $subTermAttendance;
+    }
+
+    private function getAttendanceSummary($student, $term, $academicYear)
+    {
+        // Define query base
+        $query = \App\Models\StudentAttendance::where('student_id', $student->id)
+            ->whereHas('section', function($q) use ($academicYear) {
+                $q->where('academic_year_id', $academicYear->id);
+            });
+
+        // Filter by date range if Term is provided (and not yearly)
+        if ($term->type !== 'yearly') {
+            $query->whereBetween('attendance_date', [$term->start_date, $term->end_date]);
+        }
+
+        $stats = $query->selectRaw('count(*) as total, status')
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->toArray();
+
+        // Calculate totals
+        $present = $stats['present'] ?? 0;
+        $absent = $stats['absent'] ?? 0;
+        $late = $stats['late'] ?? 0;
+        $excused = $stats['excused'] ?? 0;
+        
+        // Total days calculation: count distinct dates for this section in this period
+        // Or simply sum of all statuses if we assume 1 status per day per student
+        $totalDays = $present + $absent + $late + $excused;
+
+        // If we want "Total School Days" regardless of student record (e.g. if they weren't marked),
+        // we'd need to query distinct dates from the whole table for this section.
+        // For individual report, sum of records is safer as "Days on Roll".
+
+        return [
+            'total_days' => $totalDays,
+            'present' => $present,
+            'absent' => $absent,
+            'late' => $late,
+            'excused' => $excused
+        ];
     }
 }

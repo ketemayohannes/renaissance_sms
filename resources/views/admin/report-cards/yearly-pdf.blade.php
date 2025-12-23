@@ -16,14 +16,13 @@
         }
         .page {
             width: 100%;
-            height: 100%;
-            padding: 20px;
+            min-height: 280mm;
+            padding: 5mm 10mm;
             box-sizing: border-box;
-            page-break-after: always;
             position: relative;
         }
-        .page:last-child {
-            page-break-after: avoid;
+        @media print {
+            .page { margin-bottom: 0 !important; padding-top: 2mm !important; }
         }
         
         /* General Utils */
@@ -39,73 +38,89 @@
         .header-box {
             text-align: center;
             font-weight: bold;
-            font-size: 14pt;
+            font-size: 11pt;
             text-decoration: underline;
-            margin-bottom: 5px;
+            margin-bottom: 2px;
         }
         
         .comments-grid {
             width: 100%;
             border-collapse: collapse;
         }
+        .comments-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid black;
+        }
         .comments-col {
-            width: 60%;
+            width: 65%;
             vertical-align: top;
-            padding-right: 10px;
+            border-right: 1px solid black;
         }
         .info-col {
-            width: 40%;
+            width: 35%;
             vertical-align: top;
-            border: 2px solid black;
-            padding: 0;
         }
         
         .comment-box {
-            border: 1px solid black;
-            padding: 5px;
-            margin-bottom: 5px;
-            font-size: 9pt;
+            padding: 4px 6px;
+            border-bottom: 1px solid black;
+            font-size: 8.5pt;
+            line-height: 1.2;
         }
+        .comment-box:last-child { border-bottom: none; }
         .comment-header {
             font-weight: bold;
-            margin-bottom: 3px;
-            border-bottom: 1px dotted #ccc;
+            font-size: 9pt;
+            margin-bottom: 2px;
+            text-decoration: underline;
         }
-        .checkbox-line { margin-bottom: 2px; }
+        .checkbox-line { 
+            margin-bottom: 5px; 
+            display: flex;
+            align-items: start;
+            font-size: 8.5pt;
+        }
         .checkbox {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
+            flex-shrink: 0;
+            width: 14px;
+            height: 14px;
             border: 1px solid black;
-            margin-right: 5px;
+            margin-right: 8px;
+            margin-top: 1px;
         }
         
         .eval-box, .remark-box {
-            padding: 5px;
-            border-bottom: 1px solid black;
+            padding: 2px 4px;
+            font-size: 8pt;
+            line-height: 1.1;
         }
+        .eval-box { border-bottom: 1px solid black; }
         .remark-box { border-bottom: none; height: 100%; }
         
         .student-strip {
-            border: 2px solid black;
-            padding: 5px;
-            margin: 10px 0;
-            font-weight: bold;
+            margin-top: 5px;
+            margin-bottom: 5px;
+            font-size: 10pt;
         }
         
         .grades-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 9pt;
-            border: 2px solid black;
+            font-size: 10pt;
+            border: 1px solid black;
+            page-break-inside: avoid;
+            line-height: 1.1;
         }
         .grades-table th, .grades-table td {
             border: 1px solid black;
             text-align: center;
-            padding: 4px;
+            padding: 1px 2px;
         }
-        .grades-table th { background-color: #f0f0f0; }
-        .grades-table td:first-child { text-align: left; font-weight: bold; }
+        .grades-table th { background-color: #d1d5db; padding: 2px 3px; }
+        .grades-table td:first-child { text-align: left; font-weight: bold; padding-left: 4px; }
+        .grades-table tr.footer-row { background-color: #d1d5db; font-weight: bold; }
+        .footer-row td:first-child { text-align: center !important; }
         
         .footer-sig {
             margin-top: 30px;
@@ -141,7 +156,7 @@
         }
         
         .student-details {
-            border: 2px solid black;
+            border: 1px solid black;
             padding: 10px;
             margin-bottom: 20px;
             line-height: 1.6;
@@ -164,9 +179,76 @@
         }
         
         .footer-note {
-            margin-top: 10px;
-            font-size: 9pt;
+            margin-top: 0;
+            font-size: 8pt;
             text-align: justify;
+            line-height: 1.2;
+            min-height: 80px;
+        }
+
+        .back-section-box {
+            border: 1px solid black;
+            margin-bottom: 25px;
+            padding: 20px 15px;
+        }
+
+        .school-header-box {
+            border: 1px solid black;
+            padding: 20px 15px;
+            margin-bottom: 25px;
+            position: relative;
+        }
+        
+        .school-name-large {
+            font-size: 28pt;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        .header-content-table {
+            width: 100%;
+            font-size: 8pt;
+        }
+        
+        .student-details-grid {
+            width: 100%;
+            margin-top: 10px;
+            font-size: 11pt;
+            line-height: 2.2;
+        }
+        .underlined-value {
+            text-decoration: underline;
+            padding: 0 5px;
+        }
+        
+        .parent-sig-header {
+            border: 1px solid black;
+            border-bottom: none;
+            padding: 5px 10px;
+            font-weight: normal;
+            font-size: 10pt;
+            margin-bottom: 0;
+            height: 35px;
+        }
+        
+        .parent-sig-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9pt;
+            border: 1px solid black;
+            border-top: none;
+            margin-top: 0;
+        }
+        .parent-sig-table th, .parent-sig-table td {
+            border: 1px solid black;
+            padding: 4px;
+        }
+        .parent-sig-table th { background-color: transparent; }
+
+        .back-page-container {
+            padding: 0;
+            height: 250mm;
         }
         
         /* Print Fixes */
@@ -202,58 +284,66 @@
     @endphp
 
     <!-- PAGE 1: FRONT -->
-    <div class="page">
-        <div class="header-box">
-            {{ strtoupper($settings->school_name ?? 'RENAISSANCE SCHOOL') }}<br>
-            <span style="font-size: 12pt; text-decoration: none;">Teacher's Comment and Recommendations</span>
-        </div>
-        
-        <table class="comments-grid">
+    <div class="page" style="page-break-after: always;">
+        <table class="comments-table">
             <tr>
                 <td class="comments-col">
-                    <!-- Q1 -->
+                    <div style="text-align: center; margin-bottom: 5px;">
+                        <div style="font-weight: bold; font-size: 11pt; text-decoration: underline; line-height: 1.2;">RENAISSANCE SCHOOL</div>
+                        <div style="font-weight: bold; font-size: 9pt; text-decoration: underline; line-height: 1.2;">Teacher's Comment and Recommendations</div>
+                    </div>
                     @foreach(['First' => $q1, 'Second' => $q2, 'Third' => $q3, 'Fourth' => $q4] as $label => $q)
                     <div class="comment-box">
-                        <div class="comment-header">{{ $label }} Quarter/{{ $q ? $q->end_date->format('M, Y') : '' }}</div>
-                        <div class="checkbox-line"><span class="checkbox"></span> More effort and attention are needed in_______________________and</div>
-                        <div class="checkbox-line" style="padding-left: 19px;">Subject.</div>
-                        <div class="checkbox-line"><span class="checkbox"></span> His/her work is excellent so keep it up.</div>
-                        <div class="checkbox-line"><span class="checkbox"></span> We appreciated his/her desirable behaviour, but he/she need advice to</div>
-                        <div class="checkbox-line" style="padding-left: 19px;">improve_______________________</div>
-                        <div class="checkbox-line"><span class="checkbox"></span> Other: {{ $com($q) }}</div>
-                        <div class="checkbox-line"><span class="checkbox"></span> Needs to be encouraged to listen and pay attention to his/her lesson.</div>
-                        @if($label === 'Fourth')
-                            <div style="margin-top: 5px; border-top: 1px dotted #ccc; padding-top: 2px;">
-                                <div class="checkbox-line"><span class="checkbox"></span> Promoted to Grade: ________________</div>
-                                <div class="checkbox-line"><span class="checkbox"></span> Detained in Grade: ________________</div>
-                                <div style="margin-top: 5px;">Homeroom Teacher Name: <u>{{ $section->homeroomTeacher->full_name ?? '________________' }}</u> &nbsp; Signature: ________</div>
-                            </div>
+                        @php
+                            $month = $q ? $q->start_date->format('F') : '____';
+                            $startYear = $academicYear->start_date->format('Y');
+                            $endYearShort = $academicYear->end_date->format('y');
+                            $acYearDisplay = "{$startYear}/{$endYearShort}";
+                        @endphp
+                        <div class="comment-header">{{ $label }} Quarter/{{ $month }}, {{ $acYearDisplay }}</div>
+                        
+                        @if($label !== 'Fourth')
+                        <div class="checkbox-line">
+                            <span class="checkbox"></span> 
+                            <span>More effort and attention are needed in <span style="border-bottom: 1px solid black; display: inline-block; width: 150px;">&nbsp;</span>,<br><span style="border-bottom: 1px solid black; display: inline-block; width: 150px;">&nbsp;</span> and <span style="border-bottom: 1px solid black; display: inline-block; width: 150px;">&nbsp;</span> Subject.</span>
+                        </div>
+                        <div class="checkbox-line"><span class="checkbox"></span> <span>His/her work is excellent so keep it up.</span></div>
+                        <div class="checkbox-line">
+                            <span class="checkbox"></span> 
+                            <span>We appreciated his/her desirable behaviour, but he/she need advice to<br>improve <span style="border-bottom: 1px solid black; display: inline-block; width: 150px;">&nbsp;</span>, <span style="border-bottom: 1px solid black; display: inline-block; width: 150px;">&nbsp;</span></span>
+                        </div>
+                        <div class="checkbox-line"><span class="checkbox"></span> <span>others <span style="border-bottom: 1px solid black; display: inline-block; width: 250px; text-transform: lowercase;">{{ $com($q) ?: '' }}&nbsp;</span></span></div>
+                        <div class="checkbox-line"><span class="checkbox"></span> <span>Needs to be encouraged to listen and pay attention to his/her lesson.</span></div>
+                        @else
+                            <div class="checkbox-line"><span class="checkbox"></span> <span>Promoted to Grade: <span style="border-bottom: 1px solid black; display: inline-block; width: 150px;">&nbsp;</span></span></div>
+                            <div class="checkbox-line"><span class="checkbox"></span> <span>Detained in Grade: <span style="border-bottom: 1px solid black; display: inline-block; width: 150px;">&nbsp;</span></span></div>
+                            <div style="margin-top: 5px; font-size: 8pt;">Homeroom Teacher Name: <span style="border-bottom: 1px solid black; display: inline-block; min-width: 150px;">{{ $section->homeroomTeacher->full_name ?? '' }}&nbsp;</span> &nbsp; Signature: <span style="border-bottom: 1px solid black; display: inline-block; width: 120px;">&nbsp;</span></div>
                         @endif
                     </div>
                     @endforeach
                 </td>
                 <td class="info-col">
                     <div class="eval-box">
-                        <div class="text-center font-bold" style="text-decoration: underline;">RS<br>Evaluation method</div>
-                        <div style="white-space: pre-wrap; font-size: 9pt;">{{ $conf('evaluation_method', "100-90 - A .... Excellent\n89-80 - B .... Very Good\n79-70 - C .... Satisfactory\n69-60 - D .... Fair\n<60 .... Poor") }}</div>
+                        <div style="text-align: center; font-weight: bold;">
+                            <div style="font-size: 10pt;">RS</div>
+                            <div style="font-size: 9pt;">Evaluation Method</div>
+                        </div>
+                        <div style="white-space: pre-wrap; font-size: 9pt; margin-top: 5px;">{{ $conf('evaluation_method', "100-90 = A .... Excellent\n89-80 = B .... Very Good\n79-70 = C .... Satisfactory\n69-60 = D .... Fair\n<60 .... Poor") }}</div>
                     </div>
-                    <div class="remark-box">
-                        <div class="text-center font-bold" style="text-decoration: underline;">Remark</div>
-                        <div style="white-space: pre-wrap; font-size: 9pt; text-align: justify;">{{ $conf('remark', "A student who has a final yearly average mark of 50% or above in every subject is to be considered as a better achiever.\nAny mark below 50% needs more effort to improve his/her performance.\nConduct marks of C or below show that some behavioral problem. Which should be improved by close follow up and counselling of parents.") }}</div>
+                    <div class="remark-box" style="border-bottom: 1px solid black; height: auto;">
+                        <div style="text-align: center; font-weight: bold; font-size: 9pt; text-decoration: underline;">Remark</div>
+                        <div style="white-space: pre-wrap; font-size: 8pt; text-align: justify; margin-top: 3px;">{{ $conf('remark', "A student who has a final yearly average mark of 75% or above in every subject is to be considered as a better achiever. Any mark below 75% needs more effort to improve his/her performance. Conduct marks of C or below show that some behavioural problem. Which should be improved by close follow up and counselling of parents.") }}</div>
                     </div>
+
                 </td>
             </tr>
         </table>
         
         <div class="student-strip">
-            <table width="100%">
-                <tr>
-                    <td width="15%">Student Full Name:</td>
-                    <td width="35%" style="border-bottom: 1px dotted black;">{{ strtoupper($student->full_name) }}</td>
-                    <td width="20%" class="text-right">Grade & Section:</td>
-                    <td width="30%" style="border-bottom: 1px dotted black; font-weight: bold;">{{ $section->gradeLevel->name }} {{ $section->name }}</td>
-                </tr>
-            </table>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-weight: bold;">Student Full Name: <span style="text-decoration: underline; padding: 0 5px;">{{ strtoupper($student->full_name) }}</span></div>
+                <div style="font-weight: bold;">Grade & Section: <span style="text-decoration: underline; padding: 0 5px;">{{ str_replace('Grade ', '', $section->gradeLevel->name) }}{{ $section->name }}</span></div>
+            </div>
         </div>
         
         <table class="grades-table">
@@ -262,10 +352,10 @@
                     <th rowspan="2">Subject</th>
                     <th>First<br>Quarter<br>(100%)</th>
                     <th>Second<br>Quarter<br>(100%)</th>
-                    <th>First<br>Semester<br>(100%)</th>
+                    <th>First Semester<br>(100%)</th>
                     <th>Third<br>Quarter<br>(100%)</th>
                     <th>Fourth<br>Quarter<br>(100%)</th>
-                    <th>Second<br>Semester<br>(100%)</th>
+                    <th>Second Semester<br>(100%)</th>
                     <th>Final Yearly<br>Average</th>
                 </tr>
             </thead>
@@ -291,27 +381,27 @@
                 @endforeach
                 
                 <!-- Totals -->
-                <tr style="border-top: 2px solid black;">
+                <tr class="footer-row">
                     <td>Total</td>
                     <td>{{ $q1 ? $fmt($quarterTotals[$q1->id] ?? 0) : '-' }}</td>
                     <td>{{ $q2 ? $fmt($quarterTotals[$q2->id] ?? 0) : '-' }}</td>
-                    <td class="font-bold">{{ $s1 ? $fmt($semesterTotals[$s1->id] ?? 0) : '-' }}</td>
+                    <td>{{ $s1 ? $fmt($semesterTotals[$s1->id] ?? 0) : '-' }}</td>
                     <td>{{ $q3 ? $fmt($quarterTotals[$q3->id] ?? 0) : '-' }}</td>
                     <td>{{ $q4 ? $fmt($quarterTotals[$q4->id] ?? 0) : '-' }}</td>
-                    <td class="font-bold">{{ $s2 ? $fmt($semesterTotals[$s2->id] ?? 0) : '-' }}</td>
-                    <td class="font-bold">{{ $fmt($totalScore) }}</td>
+                    <td>{{ $s2 ? $fmt($semesterTotals[$s2->id] ?? 0) : '-' }}</td>
+                    <td>{{ $fmt($totalScore) }}</td>
                 </tr>
-                 <tr>
+                 <tr class="footer-row">
                     <td>Average</td>
                     <td>{{ $q1 ? $fmt($quarterAverages[$q1->id] ?? 0) : '-' }}</td>
                     <td>{{ $q2 ? $fmt($quarterAverages[$q2->id] ?? 0) : '-' }}</td>
-                    <td class="font-bold">{{ $s1 ? $fmt($semesterAverages[$s1->id] ?? 0) : '-' }}</td>
+                    <td>{{ $s1 ? $fmt($semesterAverages[$s1->id] ?? 0) : '-' }}</td>
                     <td>{{ $q3 ? $fmt($quarterAverages[$q3->id] ?? 0) : '-' }}</td>
                     <td>{{ $q4 ? $fmt($quarterAverages[$q4->id] ?? 0) : '-' }}</td>
-                    <td class="font-bold">{{ $s2 ? $fmt($semesterAverages[$s2->id] ?? 0) : '-' }}</td>
-                    <td class="font-bold">{{ $fmt($average) }}</td>
+                    <td>{{ $s2 ? $fmt($semesterAverages[$s2->id] ?? 0) : '-' }}</td>
+                    <td>{{ $fmt($average) }}</td>
                 </tr>
-                <tr>
+                <tr class="footer-row">
                     <td>Conduct</td>
                     <td>{{ $quarterRecords[$q1->id]->conduct_grade ?? 'A' }}</td>
                     <td>{{ $quarterRecords[$q2->id]->conduct_grade ?? 'A' }}</td>
@@ -321,139 +411,151 @@
                     <td>-</td>
                     <td>-</td>
                 </tr>
-                <tr>
+                <tr class="footer-row">
                     <td>Absence</td>
-                    <td>{{ $quarterRecords[$q1->id]->days_absent ?? 0 }}</td>
-                    <td>{{ $quarterRecords[$q2->id]->days_absent ?? 0 }}</td>
+                    <td>{{ ($subTermAttendance[$q1->id]['absent'] ?? 0) > 0 ? $subTermAttendance[$q1->id]['absent'] : '_' }}</td>
+                    <td>{{ ($subTermAttendance[$q2->id]['absent'] ?? 0) > 0 ? $subTermAttendance[$q2->id]['absent'] : '_' }}</td>
                     <td>-</td>
-                    <td>{{ $quarterRecords[$q3->id]->days_absent ?? 0 }}</td>
-                    <td>{{ $quarterRecords[$q4->id]->days_absent ?? 0 }}</td>
+                    <td>{{ ($subTermAttendance[$q3->id]['absent'] ?? 0) > 0 ? $subTermAttendance[$q3->id]['absent'] : '_' }}</td>
+                    <td>{{ ($subTermAttendance[$q4->id]['absent'] ?? 0) > 0 ? $subTermAttendance[$q4->id]['absent'] : '_' }}</td>
                     <td>-</td>
-                    <td>-</td>
+                    <td>{{ ($attendance['absent'] ?? 0) > 0 ? $attendance['absent'] : '_' }}</td>
                 </tr>
-                <tr>
+                <tr class="footer-row">
                     <td>Rank</td>
-                    <td>{{ $quarterRanks[$q1->id] ?? '-' }}</td>
-                    <td>{{ $quarterRanks[$q2->id] ?? '-' }}</td>
-                    <td class="font-bold">{{ $semesterRanks[$s1->id] ?? '-' }}</td>
-                    <td>{{ $quarterRanks[$q3->id] ?? '-' }}</td>
-                    <td>{{ $quarterRanks[$q4->id] ?? '-' }}</td>
-                    <td class="font-bold">{{ $semesterRanks[$s2->id] ?? '-' }}</td>
-                    <td class="font-bold">{{ $rank }} / {{ $totalStudents }}</td>
+                    <td>{{ $q1 ? ($quarterRanks[$q1->id] ?? '-') : '-' }}</td>
+                    <td>{{ $q2 ? ($quarterRanks[$q2->id] ?? '-') : '-' }}</td>
+                    <td>{{ $s1 ? ($semesterRanks[$s1->id] ?? '-') : '-' }}</td>
+                    <td>{{ $q3 ? ($quarterRanks[$q3->id] ?? '-') : '-' }}</td>
+                    <td>{{ $q4 ? ($quarterRanks[$q4->id] ?? '-') : '-' }}</td>
+                    <td>{{ $s2 ? ($semesterRanks[$s2->id] ?? '-') : '-' }}</td>
+                    <td>{{ $rank }} / {{ $totalStudents }}</td>
                 </tr>
             </tbody>
         </table>
         
-        <table width="100%" style="margin-top: 30px;">
-            <tr>
-                <td width="50%" style="text-align: left;">
-                    Principal Name: <u>&nbsp;&nbsp;{{ $conf('principal_name') }}&nbsp;&nbsp;</u>
-                </td>
-                <td width="50%" style="text-align: right;">
-                    Principal Signature: ______________________
-                </td>
-            </tr>
-        </table>
+        <div style="margin-top: 35px; width: 100%;">
+            <table width="100%">
+                <tr>
+                    <td width="50%" style="text-align: center;">
+                        <div style="margin-bottom: 5px; border-bottom: 1px solid black; width: 220px; margin-left: auto; margin-right: auto; height: 2px;"></div>
+                        <div style="font-size: 9pt; font-weight: bold;">Principal Name</div>
+                    </td>
+                    <td width="50%" style="text-align: center;">
+                        <div style="margin-bottom: 5px; border-bottom: 1px solid black; width: 220px; margin-left: auto; margin-right: auto; height: 2px;"></div>
+                        <div style="font-size: 9pt; font-weight: bold;">Principal Signature</div>
+                    </td>
+                </tr>
+            </table>
+        </div>
     </div>
 
     <!-- PAGE 2: BACK -->
     <div class="page">
-        <div class="school-header">
-            <div class="school-name">{{ $settings->school_name ?? 'RENAISSANCE SCHOOL' }}</div>
-            <div class="logo-container">
-                @if($settings->logo_path)
-                    <img src="{{ public_path('storage/' . $settings->logo_path) }}" style="height: 80px; width: auto;">
-                @else
-                    <div style="height: 80px; width: 80px; border: 1px dashed #ccc; display: inline-block; line-height: 80px;">NO LOGO</div>
-                @endif
+        <div class="back-page-container">
+            <!-- Box 1: School Header -->
+            <div class="school-header-box">
+                <div class="school-name-large">{{ strtoupper($settings->school_name ?? 'RENAISSANCE SCHOOL') }}</div>
+                <div style="text-align: center; margin: 5px 0;">
+                    @if($settings->logo_path)
+                        <img src="{{ public_path('storage/' . $settings->logo_path) }}" style="height: 100px; width: auto;">
+                    @else
+                        <div style="height: 100px; width: 100px; border: 1px dashed #ccc; display: inline-block;"></div>
+                    @endif
+                </div>
+                <table class="header-content-table">
+                    <tr>
+                        <td width="50%">
+                            Tel: {{ $settings->telephone }}<br>
+                            Email: {{ $settings->email }}
+                        </td>
+                        <td width="50%" style="text-align: right; vertical-align: bottom;">
+                            Po. Box: {{ $settings->po_box }}<br>
+                            Website: {{ $settings->website }}
+                        </td>
+                    </tr>
+                </table>
             </div>
-            <div class="contact-info">
-                Tel: {{ $settings->telephone }}<br>
-                Email: {{ $settings->email }} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Po. Box: {{ $settings->po_box }}<br>
-                Website: {{ $settings->website }}
+
+            <!-- Box 2: Student Details -->
+            <div class="back-section-box">
+                <div class="text-center font-bold" style="text-decoration: underline; font-size: 12pt; margin-bottom: 10px;">STUDENTS REPORT CARD</div>
+                <table class="student-details-grid">
+                    <tr>
+                        <td colspan="4">Student Full Name: <span class="underlined-value">{{ strtoupper($student->full_name) }}</span></td>
+                    </tr>
+                    <tr>
+                        <td width="25%">Gender: <span class="underlined-value">{{ $student->gender ?? 'M' }}</span></td>
+                        <td colspan="3"></td>
+                    </tr>
+                    <tr>
+                        <td colspan="4">
+                            Region: <span class="underlined-value">Addis Ababa</span> &nbsp; &nbsp;
+                            Sub City: <span class="underlined-value">Kolfe Keraniyo</span> &nbsp; &nbsp;
+                            Werda: <span class="underlined-value">6</span> &nbsp; &nbsp;
+                            H.No: <span style="border-bottom: 1px solid black; display: inline-block; width: 180px;">&nbsp;</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="4">Homeroom Teacher Name: <span style="border-bottom: 1px solid black; display: inline-block; width: 350px;">{{ $section->homeroomTeacher->full_name ?? '' }}&nbsp;</span></td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">Academic Year: <span class="underlined-value">{{ $academicYear->name }}G.C 2017E.C</span></td>
+                        <td colspan="2">Grade & Section: <span class="underlined-value">{{ str_replace('Grade ', '', $section->gradeLevel->name) }}{{ $section->name }}</span></td>
+                    </tr>
+                    <tr>
+                        <td colspan="4">Promoted to Grade: <span style="border-bottom: 1px solid black; display: inline-block; width: 450px;">&nbsp;</span></td>
+                    </tr>
+                </table>
             </div>
-        </div>
-        
-        <div class="card-title">STUDENTS REPORT CARD</div>
-        
-        <div class="student-details">
-            <div class="detail-row">
-                <span class="detail-label">Student Full Name:</span> <span class="detail-value" style="width: 300px;">{{ strtoupper($student->full_name) }}</span>
+
+            <!-- Box 3: Repeated School Header -->
+            <div class="school-header-box" style="margin-top: 20px;">
+                <div class="school-name-large">{{ strtoupper($settings->school_name ?? 'RENAISSANCE SCHOOL') }}</div>
+                <div style="text-align: center; margin: 5px 0;">
+                    @if($settings->logo_path)
+                        <img src="{{ public_path('storage/' . $settings->logo_path) }}" style="height: 100px; width: auto;">
+                    @else
+                        <div style="height: 100px; width: 100px; border: 1px dashed #ccc; display: inline-block;"></div>
+                    @endif
+                </div>
+                <table class="header-content-table">
+                    <tr>
+                        <td width="50%">
+                            Tel: {{ $settings->telephone }}<br>
+                            Email: {{ $settings->email }}
+                        </td>
+                        <td width="50%" style="text-align: right; vertical-align: bottom;">
+                            Po. Box: {{ $settings->po_box }}<br>
+                            Website: {{ $settings->website }}
+                        </td>
+                    </tr>
+                </table>
             </div>
-            <div class="detail-row">
-                <span class="detail-label">Gender:</span> <span class="detail-value" style="width: 50px;">{{ $student->gender ?? 'F' }}</span>
+
+            <!-- Box 4: Parent Signature -->
+            <div style="margin-top: 10px;">
+                <div class="parent-sig-header">Parent's Signature</div>
+                <table class="parent-sig-table">
+                    <thead>
+                        <tr>
+                            <th>Evaluation Period</th>
+                            <th>Parent's Comment</th>
+                            <th>Parent's Name</th>
+                            <th>Parent's Signature</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td style="text-align: left;">1st Quarter</td><td>&nbsp;</td><td></td><td></td><td></td></tr>
+                        <tr><td style="text-align: left;">2nd Quarter</td><td>&nbsp;</td><td></td><td></td><td></td></tr>
+                        <tr><td style="text-align: left;">3rd Quarter</td><td>&nbsp;</td><td></td><td></td><td></td></tr>
+                    </tbody>
+                </table>
+                <div class="footer-note" style="border: 1px solid black; border-top: none; padding: 5px 10px; min-height: 40px;">
+                    {{ $conf('parent_instructions', "Please sign the grade report after the first, second, and third quarters and return it back to school immediately after discussing the report with your child. After the fourth quarter the grade report card will be collected by parents. These and all school records should be kept in a safe place for permanent record.") }}
+                </div>
             </div>
-             <div class="detail-row">
-                <span class="detail-label">Region:</span> <span class="detail-value" style="width: 100px;">Addis Ababa</span> &nbsp; 
-                <span class="detail-label">Sub City:</span> <span class="detail-value" style="width: 100px;">Kolfe Keraniyo</span> &nbsp;
-                <span class="detail-label">Werda:</span> <span class="detail-value" style="width: 50px;">6</span> &nbsp;
-                <span class="detail-label">H.No:</span> <span class="detail-value" style="width: 80px;">_______</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Homeroom Teacher Name:</span> <span class="detail-value" style="width: 250px;">{{ $section->homeroomTeacher->full_name ?? '_____________________' }}</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Academic Year:</span> <span class="detail-value" style="width: 100px;">{{ $academicYear->name }}</span> &nbsp;&nbsp;
-                <span class="detail-label">Grade & Section:</span> <span class="detail-value" style="width: 150px;">{{ $section->gradeLevel->name }} {{ $section->name }}</span>
-            </div>
-             <div class="detail-row" style="margin-top: 10px;">
-                <span class="detail-label">Promoted to Grade:</span> <span class="detail-value" style="width: 150px;">__________________</span>
-            </div>
-        </div>
-        
-        <!-- Middle Logo Divider -->
-        <div class="school-header" style="margin: 40px 0;">
-            <div class="school-name">RENAISSANCE SCHOOL</div>
-             <div class="logo-container">
-                @if($settings->logo_path)
-                    <img src="{{ public_path('storage/' . $settings->logo_path) }}" style="height: 60px; width: auto;">
-                @else
-                    <div style="height: 60px; width: 60px; border: 1px dashed #ccc; display: inline-block;"></div>
-                @endif
-            </div>
-             <div class="contact-info">
-                Tel: {{ $settings->telephone }}<br>
-                Email: {{ $settings->email }} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Po. Box: {{ $settings->po_box }}<br>
-                Website: {{ $settings->website }}
-            </div>
-        </div>
-        
-        <table class="parent-sig-table">
-            <tr>
-                <td colspan="4" style="border: none; padding-bottom: 5px;">Parent's Signature</td>
-            </tr>
-            <tr style="background-color: #f0f0f0;">
-                <th>Evaluation Period</th>
-                <th>Parent's Comment</th>
-                <th>Parent's Name</th>
-                <th>Parent's Signature</th>
-                <th>Date</th>
-            </tr>
-            <tr>
-                <td>1st Quarter</td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-            </tr>
-            <tr>
-                <td>2nd Quarter</td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-            </tr>
-            <tr>
-                <td>3rd Quarter</td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-            </tr>
-        </table>
-        
-        <div class="footer-note">
-            {{ $conf('parent_instructions', "Please sign the grade report after the first, second, and third quarters and return it back to school immediately after discussing the report with your child. After the fourth quarter the grade report card will be collected by parents. These and all school records should be kept in a safe place for permanent record.") }}
         </div>
     </div>
 </body>

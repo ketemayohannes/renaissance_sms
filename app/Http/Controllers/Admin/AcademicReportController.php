@@ -80,6 +80,7 @@ class AcademicReportController extends Controller
                 'name' => 'Yearly', 
                 'academic_year_id' => $academicYear->id
             ]);
+            $term->incrementing = false;
             $term->id = 'yearly';
         } else {
             $term = Term::findOrFail($termId);
@@ -309,7 +310,7 @@ class AcademicReportController extends Controller
             return redirect()->route('admin.section-grades.bulk-print-report-cards', [
                 'section' => $section->id,
                 'academic_year_id' => $academicYear->id,
-                'term_id' => $term->id
+                'term_id' => $termId
             ]);
         }
 

@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
 
 class StudentController extends Controller
@@ -26,13 +27,20 @@ class StudentController extends Controller
         // Search Filter
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('father_name', 'like', "%{$search}%")
-                  ->orWhere('grandfather_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('student_id', 'like', "%{$search}%")
-                  ->orWhere('admission_number', 'like', "%{$search}%");
+            $query->where(function($q) use ($request) {
+                $search = $request->search;
+                
+                // Prioritize exact match for IDs to use indexes efficiently
+                $q->where('student_id', $search)
+                  ->orWhere('admission_number', $search)
+                  // Use prefix matching for names to utilize the compound index
+                  ->orWhere('first_name', 'like', "{$search}%")
+                  ->orWhere('father_name', 'like', "{$search}%")
+                  ->orWhere('grandfather_name', 'like', "{$search}%")
+                  ->orWhere('last_name', 'like', "{$search}%")
+                  // Fallback to substring match for IDs if no exact/prefix match (optional, but keeping it for flexibility)
+                  ->orWhere('student_id', 'like', "{$search}%") 
+                  ->orWhere('admission_number', 'like', "{$search}%");
             });
         }
 
@@ -74,6 +82,22 @@ class StudentController extends Controller
             }
         }
 
+        // Advanced Filters
+        // Age Range
+        if ($request->filled('age_min')) {
+            $query->whereDate('date_of_birth', '<=', now()->subYears($request->age_min));
+        }
+        if ($request->filled('age_max')) {
+            $query->whereDate('date_of_birth', '>=', now()->subYears($request->age_max + 1));
+        }
+
+        // Enrollment Year
+        if ($request->filled('enrollment_year')) {
+            $query->whereHas('enrollments', function($q) use ($request) {
+                 $q->where('academic_year_id', $request->enrollment_year);
+            });
+        }
+
         // Sorting
         $sort = $request->get('sort', 'created_at');
         $direction = $request->get('direction', 'desc');
@@ -94,10 +118,15 @@ class StudentController extends Controller
         
         $students = $query->paginate($perPage)->withQueryString();
         
-        // Data for filters
-        $gradeLevels = \App\Models\GradeLevel::all();
-        $sections = Section::with('gradeLevel')->get()->groupBy(function($section) {
-            return $section->gradeLevel ? $section->gradeLevel->name : 'Unassigned';
+        // Data for filters (Cached)
+        $gradeLevels = Cache::remember('grade_levels_all', 3600, function () {
+            return \App\Models\GradeLevel::all();
+        });
+
+        $sections = Cache::remember('sections_grouped_by_grade', 3600, function () {
+            return Section::with('gradeLevel')->get()->groupBy(function($section) {
+                return $section->gradeLevel ? $section->gradeLevel->name : 'Unassigned';
+            });
         });
 
         return view('admin.students.index', compact('students', 'gradeLevels', 'sections'));
@@ -149,23 +178,17 @@ class StudentController extends Controller
             'email' => 'nullable|email|unique:users,email',
             'phone' => 'nullable|string|max:20',
             
-            // Primary Guardian
-            'primary_guardian_first_name' => 'required|string|max:255',
-            'primary_guardian_father_name' => 'required|string|max:255',
-            'primary_guardian_grandfather_name' => 'required|string|max:255',
-            'primary_guardian_phone' => 'required|string|max:20',
-            'primary_guardian_email' => 'nullable|email',
-            'primary_guardian_relationship' => 'required|string|in:Father,Mother,Guardian',
-            'primary_guardian_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            
-            // Secondary Guardian (Optional)
-            'secondary_guardian_first_name' => 'nullable|string|max:255',
-            'secondary_guardian_father_name' => 'nullable|string|max:255',
-            'secondary_guardian_grandfather_name' => 'nullable|string|max:255',
-            'secondary_guardian_phone' => 'nullable|string|max:20',
-            'secondary_guardian_email' => 'nullable|email',
-            'secondary_guardian_relationship' => 'nullable|string|in:Father,Mother,Guardian',
-            'secondary_guardian_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            // Guardians
+            'guardians' => 'required|array|min:1',
+            'guardians.*.first_name' => 'required|string|max:255',
+            'guardians.*.father_name' => 'required|string|max:255',
+            'guardians.*.grandfather_name' => 'required|string|max:255',
+            'guardians.*.phone' => 'required|string|max:20',
+            'guardians.*.email' => 'nullable|email',
+            'guardians.*.relationship' => 'required|string',
+            'guardians.*.communication_preferences' => 'nullable|array',
+            'guardians.*.is_emergency_contact' => 'nullable|boolean',
+            'guardians.*.photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             
             // Medical Info
             'blood_group' => 'nullable|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
@@ -216,7 +239,8 @@ class StudentController extends Controller
             }
 
             // 3. Create Student Record
-            $studentId = 'STU-' . date('Y') . '-' . str_pad(Student::count() + 1, 4, '0', STR_PAD_LEFT);
+            $nextValue = \App\Models\SystemCounter::next('student_id_sequence', Student::count());
+            $studentId = 'STU-' . date('Y') . '-' . str_pad($nextValue, 4, '0', STR_PAD_LEFT);
 
             $student = Student::create([
                 'user_id' => $user->id,
@@ -243,42 +267,29 @@ class StudentController extends Controller
                 'email' => $email,
             ]);
 
-            // 4. Create Primary Guardian
-            $primaryGuardianPhotoPath = null;
-            if ($request->hasFile('primary_guardian_photo')) {
-                $primaryGuardianPhotoPath = $request->file('primary_guardian_photo')->store('guardians/photos', 'public');
-            }
-
-            StudentGuardian::create([
-                'student_id' => $student->id,
-                'guardian_type' => 'primary',
-                'photo' => $primaryGuardianPhotoPath,
-                'first_name' => $request->primary_guardian_first_name,
-                'father_name' => $request->primary_guardian_father_name,
-                'grandfather_name' => $request->primary_guardian_grandfather_name,
-                'phone' => $request->primary_guardian_phone,
-                'email' => $request->primary_guardian_email,
-                'relationship' => $request->primary_guardian_relationship,
-            ]);
-
-            // 5. Create Secondary Guardian (if provided)
-            if ($request->filled('secondary_guardian_first_name')) {
-                $secondaryGuardianPhotoPath = null;
-                if ($request->hasFile('secondary_guardian_photo')) {
-                    $secondaryGuardianPhotoPath = $request->file('secondary_guardian_photo')->store('guardians/photos', 'public');
+            // 4. Create Guardians
+            foreach ($request->guardians as $index => $guardianData) {
+                $guardianPhotoPath = null;
+                // Handle file upload correctly for array input
+                if ($request->hasFile("guardians.{$index}.photo")) {
+                    $guardianPhotoPath = $request->file("guardians.{$index}.photo")->store('guardians/photos', 'public');
                 }
 
-                StudentGuardian::create([
+                $guardian = StudentGuardian::create([
                     'student_id' => $student->id,
-                    'guardian_type' => 'secondary',
-                    'photo' => $secondaryGuardianPhotoPath,
-                    'first_name' => $request->secondary_guardian_first_name,
-                    'father_name' => $request->secondary_guardian_father_name,
-                    'grandfather_name' => $request->secondary_guardian_grandfather_name,
-                    'phone' => $request->secondary_guardian_phone,
-                    'email' => $request->secondary_guardian_email,
-                    'relationship' => $request->secondary_guardian_relationship,
+                    'guardian_type' => $index === 0 ? 'primary' : 'secondary', // Keep simplified type for backward compat
+                    'photo' => $guardianPhotoPath,
+                    'first_name' => $guardianData['first_name'],
+                    'father_name' => $guardianData['father_name'],
+                    'grandfather_name' => $guardianData['grandfather_name'],
+                    'phone' => $guardianData['phone'],
+                    'email' => $guardianData['email'] ?? null,
+                    'relationship' => $guardianData['relationship'],
+                    'is_emergency_contact' => isset($guardianData['is_emergency_contact']) && $guardianData['is_emergency_contact'] == '1' ? true : false,
+                    'communication_preferences' => $guardianData['communication_preferences'] ?? [],
                 ]);
+                
+                // If email provided, optionally create user or invite (skipped for now as per plan focus on structure first)
             }
 
             // 6. Create Medical Info
@@ -411,23 +422,18 @@ class StudentController extends Controller
             'house_number' => 'nullable|string|max:50',
             'phone' => 'nullable|string|max:20',
             
-            // Primary Guardian
-            'primary_guardian_first_name' => 'nullable|string|max:255',
-            'primary_guardian_father_name' => 'nullable|string|max:255',
-            'primary_guardian_grandfather_name' => 'nullable|string|max:255',
-            'primary_guardian_phone' => 'nullable|string|max:20',
-            'primary_guardian_email' => 'nullable|email|max:255',
-            'primary_guardian_relationship' => 'nullable|in:Father,Mother,Guardian',
-            'primary_guardian_photo' => 'nullable|image|max:2048',
-            
-            // Secondary Guardian
-            'secondary_guardian_first_name' => 'nullable|string|max:255',
-            'secondary_guardian_father_name' => 'nullable|string|max:255',
-            'secondary_guardian_grandfather_name' => 'nullable|string|max:255',
-            'secondary_guardian_phone' => 'nullable|string|max:20',
-            'secondary_guardian_email' => 'nullable|email|max:255',
-            'secondary_guardian_relationship' => 'nullable|in:Father,Mother,Guardian',
-            'secondary_guardian_photo' => 'nullable|image|max:2048',
+            // Guardians
+            'guardians' => 'nullable|array',
+            'guardians.*.id' => 'nullable|exists:student_guardians,id',
+            'guardians.*.first_name' => 'required_with:guardians|string|max:255',
+            'guardians.*.father_name' => 'required_with:guardians|string|max:255',
+            'guardians.*.grandfather_name' => 'required_with:guardians|string|max:255',
+            'guardians.*.phone' => 'required_with:guardians|string|max:20',
+            'guardians.*.email' => 'nullable|email|max:255',
+            'guardians.*.relationship' => 'required_with:guardians|string',
+            'guardians.*.photo' => 'nullable|image|max:2048',
+            'guardians.*.communication_preferences' => 'nullable|array',
+            'guardians.*.is_emergency_contact' => 'nullable|boolean',
             
             // Medical
             'blood_type' => 'nullable|string|max:10',
@@ -483,75 +489,48 @@ class StudentController extends Controller
                 'name' => $request->first_name . ' ' . $request->father_name . ' ' . $request->grandfather_name
             ]);
 
-            // Update Primary Guardian
-            if ($request->filled('primary_guardian_first_name')) {
-                $primaryGuardian = $student->guardians()->where('guardian_type', 'primary')->first();
+            // Update Guardians
+            if ($request->has('guardians')) {
+                // Get existing guardian IDs to identify deletions if we wanted that (optional for now, let's just update/create)
+                // Actually, let's sync. If ID is present, update. If not, create. 
+                // Any existing guardian NOT in the request ID list should arguably be DELETED, 
+                // but let's be careful. The UI sends all guardians. So yes, deletions are implied if missing.
                 
-                $primaryPhotoPath = $primaryGuardian->photo ?? null;
-                if ($request->hasFile('primary_guardian_photo')) {
-                    if ($primaryGuardian && $primaryGuardian->photo) {
-                        Storage::disk('public')->delete($primaryGuardian->photo);
+                $incomingIds = collect($request->guardians)->pluck('id')->filter()->toArray();
+                $student->guardians()->whereNotIn('id', $incomingIds)->delete();
+
+                foreach ($request->guardians as $index => $guardianData) {
+                    $guardianPhotoPath = null;
+                    if ($request->hasFile("guardians.{$index}.photo")) {
+                        $guardianPhotoPath = $request->file("guardians.{$index}.photo")->store('guardians/photos', 'public');
                     }
-                    $primaryPhotoPath = $request->file('primary_guardian_photo')->store('guardians', 'public');
-                }
 
-                if ($primaryGuardian) {
-                    $primaryGuardian->update([
-                        'first_name' => $request->primary_guardian_first_name,
-                        'father_name' => $request->primary_guardian_father_name,
-                        'grandfather_name' => $request->primary_guardian_grandfather_name,
-                        'phone' => $request->primary_guardian_phone,
-                        'email' => $request->primary_guardian_email,
-                        'relationship' => $request->primary_guardian_relationship,
-                        'photo' => $primaryPhotoPath,
-                    ]);
-                } else {
-                    $student->guardians()->create([
-                        'first_name' => $request->primary_guardian_first_name,
-                        'father_name' => $request->primary_guardian_father_name,
-                        'grandfather_name' => $request->primary_guardian_grandfather_name,
-                        'phone' => $request->primary_guardian_phone,
-                        'email' => $request->primary_guardian_email,
-                        'relationship' => $request->primary_guardian_relationship,
-                        'photo' => $primaryPhotoPath,
-                        'guardian_type' => 'primary',
-                    ]);
-                }
-            }
+                    $dataToUpdate = [
+                        'first_name' => $guardianData['first_name'],
+                        'father_name' => $guardianData['father_name'],
+                        'grandfather_name' => $guardianData['grandfather_name'],
+                        'phone' => $guardianData['phone'],
+                        'email' => $guardianData['email'] ?? null,
+                        'relationship' => $guardianData['relationship'],
+                        'guardian_type' => $index === 0 ? 'primary' : 'secondary', // Maintain primitive type for now
+                        'is_emergency_contact' => isset($guardianData['is_emergency_contact']) && $guardianData['is_emergency_contact'] == '1' ? true : false,
+                        'communication_preferences' => $guardianData['communication_preferences'] ?? [],
+                    ];
 
-            // Update Secondary Guardian
-            if ($request->filled('secondary_guardian_first_name')) {
-                $secondaryGuardian = $student->guardians()->where('guardian_type', 'secondary')->first();
-                
-                $secondaryPhotoPath = $secondaryGuardian->photo ?? null;
-                if ($request->hasFile('secondary_guardian_photo')) {
-                    if ($secondaryGuardian && $secondaryGuardian->photo) {
-                        Storage::disk('public')->delete($secondaryGuardian->photo);
+                    if ($guardianPhotoPath) {
+                        $dataToUpdate['photo'] = $guardianPhotoPath;
                     }
-                    $secondaryPhotoPath = $request->file('secondary_guardian_photo')->store('guardians', 'public');
-                }
 
-                if ($secondaryGuardian) {
-                    $secondaryGuardian->update([
-                        'first_name' => $request->secondary_guardian_first_name,
-                        'father_name' => $request->secondary_guardian_father_name,
-                        'grandfather_name' => $request->secondary_guardian_grandfather_name,
-                        'phone' => $request->secondary_guardian_phone,
-                        'email' => $request->secondary_guardian_email,
-                        'relationship' => $request->secondary_guardian_relationship,
-                        'photo' => $secondaryPhotoPath,
-                    ]);
-                } else {
-                    $student->guardians()->create([
-                        'first_name' => $request->secondary_guardian_first_name,
-                        'father_name' => $request->secondary_guardian_father_name,
-                        'grandfather_name' => $request->secondary_guardian_grandfather_name,
-                        'phone' => $request->secondary_guardian_phone,
-                        'email' => $request->secondary_guardian_email,
-                        'relationship' => $request->secondary_guardian_relationship,
-                        'photo' => $secondaryPhotoPath,
-                        'guardian_type' => 'secondary',
-                    ]);
+                    if (isset($guardianData['id']) && $guardianData['id']) {
+                        $guardian = StudentGuardian::find($guardianData['id']);
+                        if ($guardian) {
+                            $guardian->update($dataToUpdate);
+                        }
+                    } else {
+                        // Create new
+                        $dataToUpdate['student_id'] = $student->id;
+                        StudentGuardian::create($dataToUpdate);
+                    }
                 }
             }
 
@@ -1224,6 +1203,169 @@ class StudentController extends Controller
             DB::rollBack();
             return back()->with('error', 'Error deleting students: ' . $e->getMessage());
         }
+    }
+
+    public function idCardsIndex()
+    {
+        $gradeLevels = \App\Models\GradeLevel::with('sections')->orderBy('order')->get();
+        return view('admin.students.id-cards-index', compact('gradeLevels'));
+    }
+
+    public function generateIdCard(Student $student)
+    {
+        $student->load(['currentEnrollment.section.gradeLevel', 'primaryGuardian']);
+        $academicYear = \App\Models\AcademicYear::where('is_active', true)->first();
+        $settings = \App\Models\ReportCardSetting::first();
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.students.id-card-pdf', compact('student', 'academicYear', 'settings'))
+            ->setPaper([0, 0, 243.78, 153.07], 'landscape'); // 86mm x 54mm in points
+
+        return $pdf->stream("id-card-{$student->student_id}.pdf");
+    }
+
+    public function bulkIdCards(\App\Models\Section $section)
+    {
+        $academicYear = \App\Models\AcademicYear::where('is_active', true)->first();
+        $students = Student::whereHas('enrollments', function($q) use ($section, $academicYear) {
+            $q->where('section_id', $section->id)
+              ->where('academic_year_id', $academicYear->id)
+              ->where('status', 'active');
+        })->with(['currentEnrollment.section.gradeLevel', 'primaryGuardian'])->orderBy('first_name')->get();
+
+        $settings = \App\Models\ReportCardSetting::first();
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.students.id-cards-bulk-pdf', compact('students', 'section', 'academicYear', 'settings'))
+            ->setPaper([0, 0, 243.78, 153.07], 'landscape');
+
+        return $pdf->stream("id-cards-{$section->name}.pdf");
+    }
+
+    public function withdrawForm(Student $student)
+    {
+        $student->load('currentEnrollment.section.gradeLevel');
+        $reasons = \App\Models\StudentStatusHistory::withdrawalReasons();
+        $statuses = \App\Models\StudentStatusHistory::statusOptions();
+        
+        return view('admin.students.withdraw', compact('student', 'reasons', 'statuses'));
+    }
+
+    public function processWithdrawal(Request $request, Student $student)
+    {
+        $request->validate([
+            'new_status' => 'required|in:withdrawn,graduated,transferred,dropped_out',
+            'reason' => 'required|string',
+            'notes' => 'nullable|string',
+            'effective_date' => 'required|date',
+        ]);
+
+        DB::transaction(function() use ($request, $student) {
+            $oldStatus = $student->is_active ? 'active' : 'inactive';
+            
+            // Create status history record
+            \App\Models\StudentStatusHistory::create([
+                'student_id' => $student->id,
+                'old_status' => $oldStatus,
+                'new_status' => $request->new_status,
+                'reason' => $request->reason,
+                'notes' => $request->notes,
+                'effective_date' => $request->effective_date,
+                'changed_by' => auth()->id(),
+            ]);
+
+            // Update student status
+            $student->update(['is_active' => false]);
+
+            // Close current enrollment
+            $enrollment = $student->currentEnrollment;
+            if ($enrollment) {
+                $enrollment->update([
+                    'status' => 'completed',
+                    'end_date' => $request->effective_date,
+                ]);
+            }
+        });
+
+        return redirect()->route('admin.students.show', $student)
+            ->with('success', 'Student status updated to ' . ucfirst(str_replace('_', ' ', $request->new_status)) . ' hideously!');
+    }
+
+    public function statusHistory(Student $student)
+    {
+        $history = \App\Models\StudentStatusHistory::where('student_id', $student->id)
+            ->with('changer')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('admin.students.status-history', compact('student', 'history'));
+    }
+
+    public function createStudentUser(Student $student)
+    {
+        // Check if student already has user
+        if ($student->user_id) {
+            return back()->with('error', 'Student already has a portal account.');
+        }
+
+        // Check for email
+        if (empty($student->email)) {
+            // Option: Generate a dummy email or fail?
+            // For now, let's require an email or generate one based on ID.
+            // Let's generate one if missing: ID@school.com (Example) 
+            // Better behavior: Require email update first or use generated.
+            // Let's use generated if empty: studentID@domain
+            $email = $student->admission_number . '@renaissance.edu';
+             // return back()->with('error', 'Student must have an email address to create a portal account.');
+        } else {
+            $email = $student->email;
+        }
+
+        // Check if user exists with this email
+        $existingUser = User::where('email', $email)->first();
+        
+        $password = null;
+
+        DB::transaction(function() use ($student, $email, $existingUser, &$password) {
+            if ($existingUser) {
+                // Link to existing user
+                $student->update(['user_id' => $existingUser->id]);
+                
+                // Ensure role
+                if (!$existingUser->hasRole('Student')) {
+                    $existingUser->assignRole('Student');
+                }
+            } else {
+                // Create new user
+                $password = \Illuminate\Support\Str::random(10);
+                
+                $user = User::create([
+                    'name' => $student->full_name,
+                    'email' => $email,
+                    'password' => Hash::make($password),
+                ]);
+
+                $user->assignRole('Student');
+                $student->update(['user_id' => $user->id]);
+            }
+        });
+
+        if ($password) {
+            return back()->with('success', 'Portal account created. Password: ' . $password);
+        } else {
+            return back()->with('success', 'Portal account linked successfully.');
+        }
+    }
+    public function resetStudentPassword(Student $student)
+    {
+        if (!$student->user_id || !$student->user) {
+            return back()->with('error', 'Student does not have a portal account.');
+        }
+
+        $password = \Illuminate\Support\Str::random(10);
+        $student->user->update([
+            'password' => Hash::make($password),
+        ]);
+
+        return back()->with('success', 'Password reset successfully. New Password: ' . $password);
     }
 }
 

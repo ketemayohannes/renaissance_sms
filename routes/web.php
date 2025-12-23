@@ -16,6 +16,10 @@ Route::get('/dashboard', function () {
         return redirect()->route('admin.dashboard');
     }
     
+    if ($user->hasRole('Student')) {
+        return redirect()->route('student.dashboard');
+    }
+    
     // For other roles, show default dashboard for now
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
@@ -24,6 +28,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Student Routes
+    Route::middleware(['role:Student'])->prefix('student')->name('student.')->group(function () {
+        Route::get('/dashboard', [App\Http\Controllers\Student\DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/grades', [App\Http\Controllers\Student\GradeController::class, 'index'])->name('grades.index');
+        Route::get('/profile', [App\Http\Controllers\Student\ProfileController::class, 'show'])->name('profile');
+        Route::put('/password', [App\Http\Controllers\Student\ProfileController::class, 'updatePassword'])->name('password.update');
+    });
 
     // Admin Routes
     Route::middleware(['role:Super Admin|Principal'])->prefix('admin')->name('admin.')->group(function () {
@@ -82,6 +94,10 @@ Route::middleware('auth')->group(function () {
         Route::post('students/{student}/siblings', [App\Http\Controllers\Admin\StudentController::class, 'linkSibling'])->name('students.siblings.link');
         Route::delete('students/{student}/siblings/{sibling}', [App\Http\Controllers\Admin\StudentController::class, 'unlinkSibling'])->name('students.siblings.unlink');
         Route::post('students/bulk-destroy', [App\Http\Controllers\Admin\StudentController::class, 'bulkDestroy'])->name('students.bulk-destroy');
+        Route::get('students/{student}/withdraw', [App\Http\Controllers\Admin\StudentController::class, 'withdrawForm'])->name('students.withdraw');
+        Route::post('students/{student}/withdraw', [App\Http\Controllers\Admin\StudentController::class, 'processWithdrawal'])->name('students.withdraw.store');
+        Route::get('students/{student}/status-history', [App\Http\Controllers\Admin\StudentController::class, 'statusHistory'])->name('students.status-history');
+        Route::get('id-cards', [App\Http\Controllers\Admin\StudentController::class, 'idCardsIndex'])->name('id-cards.index');
         
         // Electives Bulk Assign
         Route::get('electives/bulk-assign', [App\Http\Controllers\Admin\ElectiveController::class, 'bulkAssignForm'])->name('electives.bulk-assign');
@@ -134,6 +150,41 @@ Route::middleware('auth')->group(function () {
         Route::get('section-grades/{section}/report-card/bulk-print', [App\Http\Controllers\Admin\ReportCardController::class, 'bulkPrint'])->name('section-grades.bulk-print-report-cards');
         
         Route::get('students/{student}/report-card/pdf', [App\Http\Controllers\Admin\ReportCardController::class, 'generatePdf'])->name('report-cards.pdf');
+
+        // Background Exports
+        Route::get('report-cards/exports', [App\Http\Controllers\Admin\ReportCardController::class, 'exports'])->name('report-cards.exports');
+        Route::get('section-grades/{section}/report-card/bulk-export', [App\Http\Controllers\Admin\ReportCardController::class, 'bulkExport'])->name('section-grades.bulk-export-report-cards');
+        Route::get('report-cards/exports/{exportRequest}/download', [App\Http\Controllers\Admin\ReportCardController::class, 'downloadExport'])->name('report-cards.download-export');
+
+        // Attendance Management
+        Route::get('attendance', [App\Http\Controllers\Admin\AttendanceController::class, 'index'])->name('attendance.index');
+        Route::get('attendance/register', [App\Http\Controllers\Admin\AttendanceController::class, 'register'])->name('attendance.register');
+        Route::post('attendance/store', [App\Http\Controllers\Admin\AttendanceController::class, 'store'])->name('attendance.store');
+        Route::get('attendance/report', [App\Http\Controllers\Admin\AttendanceController::class, 'report'])->name('attendance.report');
+
+        // Promotion Management
+        Route::get('promotions', [App\Http\Controllers\Admin\PromotionController::class, 'index'])->name('promotions.index');
+        Route::post('promotions/rules', [App\Http\Controllers\Admin\PromotionController::class, 'storeRule'])->name('promotions.store-rule');
+        Route::delete('promotions/rules/{promotionRule}', [App\Http\Controllers\Admin\PromotionController::class, 'deleteRule'])->name('promotions.delete-rule');
+        Route::get('promotions/process', [App\Http\Controllers\Admin\PromotionController::class, 'processForm'])->name('promotions.process');
+        Route::post('promotions/preview', [App\Http\Controllers\Admin\PromotionController::class, 'preview'])->name('promotions.preview');
+        Route::post('promotions/execute', [App\Http\Controllers\Admin\PromotionController::class, 'execute'])->name('promotions.execute');
+        Route::get('promotions/history', [App\Http\Controllers\Admin\PromotionController::class, 'history'])->name('promotions.history');
+
+        // Disciplinary Records
+        Route::get('disciplinary', [App\Http\Controllers\Admin\DisciplinaryController::class, 'index'])->name('disciplinary.index');
+        Route::get('disciplinary/create/{student?}', [App\Http\Controllers\Admin\DisciplinaryController::class, 'create'])->name('disciplinary.create');
+        Route::post('disciplinary', [App\Http\Controllers\Admin\DisciplinaryController::class, 'store'])->name('disciplinary.store');
+        Route::get('disciplinary/{disciplinary}', [App\Http\Controllers\Admin\DisciplinaryController::class, 'show'])->name('disciplinary.show');
+        Route::put('disciplinary/{disciplinary}', [App\Http\Controllers\Admin\DisciplinaryController::class, 'update'])->name('disciplinary.update');
+        Route::get('students/{student}/disciplinary', [App\Http\Controllers\Admin\DisciplinaryController::class, 'studentRecords'])->name('students.disciplinary');
+
+        // Student ID Cards
+        Route::get('students/{student}/id-card', [App\Http\Controllers\Admin\StudentController::class, 'generateIdCard'])->name('students.id-card');
+        Route::get('sections/{section}/id-cards', [App\Http\Controllers\Admin\StudentController::class, 'bulkIdCards'])->name('sections.bulk-id-cards');
+        Route::post('guardians/{guardian}/create-user', [App\Http\Controllers\Admin\StudentController::class, 'createGuardianUser'])->name('guardians.create-user');
+        Route::post('students/{student}/create-user', [App\Http\Controllers\Admin\StudentController::class, 'createStudentUser'])->name('students.create-user');
+        Route::post('students/{student}/reset-password', [App\Http\Controllers\Admin\StudentController::class, 'resetStudentPassword'])->name('students.reset-password');
 
         Route::resource('students', App\Http\Controllers\Admin\StudentController::class);
     });

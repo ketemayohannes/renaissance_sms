@@ -11,6 +11,7 @@ class StudentGuardian extends Model
 
     protected $fillable = [
         'student_id',
+        'user_id',
         'guardian_type',
         'photo',
         'first_name',
@@ -19,6 +20,14 @@ class StudentGuardian extends Model
         'phone',
         'email',
         'relationship',
+        'address',
+        'communication_preferences',
+        'is_emergency_contact',
+    ];
+
+    protected $casts = [
+        'communication_preferences' => 'array',
+        'is_emergency_contact' => 'boolean',
     ];
 
     /**

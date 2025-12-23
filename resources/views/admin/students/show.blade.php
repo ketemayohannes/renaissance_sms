@@ -29,10 +29,46 @@
                             <p class="text-gray-500">{{ $student->student_id }}</p>
                             <div class="mt-4 w-full">
                                 <div class="bg-gray-50 p-3 rounded text-center">
-                                    <span class="block text-xs text-gray-500 uppercase">Status</span>
                                     <span class="font-bold {{ $student->is_active ? 'text-green-600' : 'text-red-600' }}">
                                         {{ $student->is_active ? 'Active' : 'Inactive' }}
                                     </span>
+                                </div>
+                            </div>
+                            
+                            <!-- Portal Account Status -->
+                            <div class="mt-4 w-full">
+                                <div class="bg-gray-50 p-3 rounded text-center">
+                                    <span class="block text-xs text-gray-500 uppercase">Portal Account</span>
+                                    @if($student->user_id)
+                                        <div class="flex flex-col items-center gap-1">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                Active
+                                            </span>
+                                            <span class="text-xs text-gray-500 truncate w-full" title="{{ $student->user->email }}">
+                                                {{ $student->user->email }}
+                                            </span>
+                                            
+                                            <form action="{{ route('admin.students.reset-password', $student) }}" method="POST" class="mt-1 delete-form" 
+                                                  data-confirm-title="Reset Password" 
+                                                  data-confirm-button="Reset Password" 
+                                                  data-confirm-type="danger">
+                                                @csrf
+                                                <button type="submit" class="text-xs text-indigo-600 hover:text-indigo-800 underline">
+                                                    Reset Password
+                                                </button>
+                                            </form>
+                                        </div>
+                                    @else
+                                        <form action="{{ route('admin.students.create-user', $student) }}" method="POST" class="mt-2 delete-form" 
+                                              data-confirm-title="Create Portal Account" 
+                                              data-confirm-button="Create Account" 
+                                              data-confirm-type="primary">
+                                            @csrf
+                                            <button type="submit" class="text-xs bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700">
+                                                Create Account
+                                            </button>
+                                        </form>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -120,18 +156,46 @@
                             <div class="mb-6">
                                 <h4 class="font-bold text-gray-700 border-b pb-2 mb-3">Guardian Information</h4>
                                 @foreach($student->guardians as $guardian)
-                                    <div class="mb-4 p-4 bg-gray-50 rounded">
-                                        <div class="flex items-center mb-2">
-                                            @if($guardian->photo)
-                                                <img src="{{ asset('storage/' . $guardian->photo) }}" alt="Guardian Photo" class="h-16 w-16 rounded-full object-cover mr-3">
-                                            @else
-                                                <div class="h-16 w-16 bg-gray-300 rounded-full flex items-center justify-center text-xl text-gray-600 font-bold mr-3">
-                                                    {{ substr($guardian->first_name, 0, 1) }}{{ substr($guardian->father_name, 0, 1) }}
+                                    <div class="mb-4 p-4 bg-gray-50 rounded border border-gray-200">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <div class="flex items-center">
+                                                @if($guardian->photo)
+                                                    <img src="{{ asset('storage/' . $guardian->photo) }}" alt="Guardian Photo" class="h-16 w-16 rounded-full object-cover mr-3">
+                                                @else
+                                                    <div class="h-16 w-16 bg-gray-300 rounded-full flex items-center justify-center text-xl text-gray-600 font-bold mr-3">
+                                                        {{ substr($guardian->first_name, 0, 1) }}{{ substr($guardian->father_name, 0, 1) }}
+                                                    </div>
+                                                @endif
+                                                <div>
+                                                    <h5 class="font-semibold text-gray-900">{{ $guardian->full_name }}</h5>
+                                                    <p class="text-sm text-gray-600">
+                                                        {{ ucfirst($guardian->guardian_type) == 'Primary' ? 'Primary Guardian' : (ucfirst($guardian->guardian_type) == 'Secondary' ? 'Secondary Guardian' : 'Additional Guardian') }}
+                                                    </p>
+                                                    @if($guardian->is_emergency_contact)
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                                            Emergency Contact
+                                                        </span>
+                                                    @endif
                                                 </div>
-                                            @endif
+                                            </div>
+                                            
+                                            <!-- Action Buttons -->
                                             <div>
-                                                <h5 class="font-semibold text-gray-900">{{ $guardian->full_name }}</h5>
-                                                <p class="text-sm text-gray-600">{{ ucfirst($guardian->guardian_type) }} Guardian</p>
+                                                @if(!$guardian->user_id)
+                                                    <form action="{{ route('admin.guardians.create-user', $guardian) }}" method="POST" class="inline" onsubmit="return confirm('Create a portal account for this guardian?');">
+                                                        @csrf
+                                                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-1 px-3 rounded shadow">
+                                                            Create Portal Account
+                                                        </button>
+                                                    </form>
+                                                @else
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                        <svg class="-ml-0.5 mr-1.5 h-2 w-2 text-green-400" fill="currentColor" viewBox="0 0 8 8">
+                                                            <circle cx="4" cy="4" r="3" />
+                                                        </svg>
+                                                        Portal Access Active
+                                                    </span>
+                                                @endif
                                             </div>
                                         </div>
                                         <dl class="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2 mt-3">
@@ -147,6 +211,22 @@
                                                 <dt class="text-xs font-medium text-gray-500">Email</dt>
                                                 <dd class="text-sm text-gray-900">{{ $guardian->email ?? 'N/A' }}</dd>
                                             </div>
+                                            <div>
+                                                <dt class="text-xs font-medium text-gray-500">Communication Prefs</dt>
+                                                <dd class="text-sm text-gray-900">
+                                                    @if(!empty($guardian->communication_preferences))
+                                                        {{ implode(', ', array_map('ucfirst', $guardian->communication_preferences)) }}
+                                                    @else
+                                                        None
+                                                    @endif
+                                                </dd>
+                                            </div>
+                                            @if($guardian->address)
+                                            <div class="sm:col-span-2">
+                                                <dt class="text-xs font-medium text-gray-500">Address</dt>
+                                                <dd class="text-sm text-gray-900">{{ $guardian->address }}</dd>
+                                            </div>
+                                            @endif
                                         </dl>
                                     </div>
                                 @endforeach
@@ -345,9 +425,14 @@
                         <a href="{{ route('admin.students.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Back</a>
                         
                         <!-- Block/Unblock Button -->
-                        <form action="{{ route('admin.students.toggle-block', $student) }}" method="POST" class="inline">
+                        <!-- Block/Unblock Button -->
+                        <form action="{{ route('admin.students.toggle-block', $student) }}" method="POST" class="inline delete-form"
+                              data-confirm-message="Are you sure you want to {{ $student->is_active ? 'block' : 'unblock' }} this student?"
+                              data-confirm-title="Confirm {{ $student->is_active ? 'Block' : 'Unblock' }}"
+                              data-confirm-button="{{ $student->is_active ? 'Block' : 'Unblock' }}"
+                              data-confirm-type="{{ $student->is_active ? 'danger' : 'success' }}">
                             @csrf
-                            <button type="submit" class="{{ $student->is_active ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700' }} text-white font-bold py-2 px-4 rounded" onclick="return confirm('Are you sure you want to {{ $student->is_active ? 'block' : 'unblock' }} this student?')">
+                            <button type="submit" class="{{ $student->is_active ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700' }} text-white font-bold py-2 px-4 rounded">
                                 {{ $student->is_active ? 'Block Student' : 'Unblock Student' }}
                             </button>
                         </form>
@@ -360,6 +445,16 @@
                         <a href="{{ route('admin.students.assign-electives', $student) }}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded">
                             Assign Electives
                         </a>
+
+                        <a href="{{ route('admin.students.status-history', $student) }}" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded">
+                            Status History
+                        </a>
+
+                        @if($student->is_active)
+                            <a href="{{ route('admin.students.withdraw', $student) }}" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+                                Withdraw Student
+                            </a>
+                        @endif
 
                         <a href="{{ route('admin.students.edit', $student) }}" class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Edit Student</a>
                     </div>

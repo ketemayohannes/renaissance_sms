@@ -127,14 +127,24 @@ class GradebookController extends Controller
 
         $terms = \App\Models\Term::where('academic_year_id', $request->academic_year_id)
             ->orderBy('start_date')
-            ->get(['id', 'name', 'type']);
+            ->get(['id', 'name', 'type'])
+            ->toArray();
 
-        if ($terms->where('type', 'semester')->count() > 0) {
-            $terms->push([
+        // Check if there are semesters to allow yearly report
+        $hasSemesters = false;
+        foreach ($terms as $term) {
+            if ($term['type'] === 'semester') {
+                $hasSemesters = true;
+                break;
+            }
+        }
+
+        if ($hasSemesters) {
+            $terms[] = [
                 'id' => 'yearly',
                 'name' => 'Yearly Report',
                 'type' => 'yearly'
-            ]);
+            ];
         }
 
         return response()->json($terms);
@@ -175,6 +185,9 @@ class GradebookController extends Controller
 
             $errors = [];
             
+            $upsertData = [];
+            $now = now();
+            
             foreach ($request->marks as $studentId => $components) {
                 foreach ($components as $templateId => $data) {
                     // Skip if score is empty (not entered)
@@ -191,22 +204,40 @@ class GradebookController extends Controller
                         continue; // Skip this entry
                     }
 
-                    StudentMark::updateOrCreate(
-                        [
-                            'student_id' => $studentId,
-                            'academic_year_id' => $request->academic_year_id,
-                            'term_id' => $request->term_id,
-                            'subject_id' => $request->subject_id,
-                            'assessment_template_id' => $templateId,
-                        ],
-                        [
-                            'section_id' => $request->section_id,
-                            'teacher_id' => auth()->id(),
-                            'score' => $data['score'],
-                            'remarks' => $data['remarks'] ?? null,
-                        ]
-                    );
+                    $upsertData[] = [
+                        'student_id' => $studentId,
+                        'academic_year_id' => $request->academic_year_id,
+                        'term_id' => $request->term_id,
+                        'subject_id' => $request->subject_id,
+                        'assessment_template_id' => $templateId,
+                        'section_id' => $request->section_id,
+                        'teacher_id' => auth()->id(),
+                        'score' => $data['score'],
+                        'remarks' => $data['remarks'] ?? null,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
                 }
+            }
+
+            if (!empty($upsertData)) {
+                StudentMark::upsert(
+                    $upsertData,
+                    ['student_id', 'assessment_template_id'],
+                    ['score', 'remarks', 'teacher_id', 'section_id', 'updated_at']
+                );
+
+                // Manual Audit Injection
+                \App\Models\AuditLog::create([
+                    'user_id' => auth()->id(),
+                    'event' => 'bulk_grade_entry',
+                    'auditable_type' => StudentMark::class,
+                    'auditable_id' => $request->subject_id,
+                    'new_values' => ['subject_id' => $request->subject_id, 'term_id' => $request->term_id, 'section_id' => $request->section_id, 'count' => count($upsertData)],
+                    'url' => request()->fullUrl(),
+                    'ip_address' => request()->ip(),
+                    'user_agent' => request()->userAgent(),
+                ]);
             }
             
             DB::commit();
@@ -380,52 +411,74 @@ class GradebookController extends Controller
             $successCount = 0;
             $errors = [];
             
+            $upsertData = [];
+            $now = now();
+
             while (($line = fgets($file)) !== false) {
                 $row = str_getcsv($line, $delimiter);
                 
                 // Skip empty rows
                 if (empty($row) || (count($row) === 1 && empty($row[0]))) continue;
                 
-                $studentId = trim($row[0]);
-                $student = \App\Models\Student::where('student_id', $studentId)->first();
+                $studentIdStr = trim($row[0]);
+                $student = \App\Models\Student::where('student_id', $studentIdStr)->first();
                 
                 if (!$student) {
-                    $errors[] = "Student ID $studentId not found";
+                    $errors[] = "Student ID $studentIdStr not found";
                     continue;
                 }
 
                 foreach ($columnMap as $index => $template) {
                     $score = $row[$index] ?? null;
+                    if ($score === null) continue;
                     $score = trim($score);
                     
-                    if ($score === null || $score === '') continue;
+                    if ($score === '') continue;
                     
                     if (!is_numeric($score)) {
-                        $errors[] = "Invalid score for $studentId in {$template->name}";
+                        $errors[] = "Invalid score for $studentIdStr in {$template->name}";
                         continue;
                     }
 
                     if ($score > $template->max_score) {
-                        $errors[] = "Score $score exceeds max {$template->max_score} for $studentId in {$template->name}";
+                        $errors[] = "Score $score exceeds max {$template->max_score} for $studentIdStr in {$template->name}";
                         continue;
                     }
 
-                    StudentMark::updateOrCreate(
-                        [
-                            'student_id' => $student->id,
-                            'academic_year_id' => $request->academic_year_id,
-                            'term_id' => $request->term_id,
-                            'subject_id' => $request->subject_id,
-                            'assessment_template_id' => $template->id,
-                        ],
-                        [
-                            'section_id' => $request->section_id,
-                            'teacher_id' => auth()->id(),
-                            'score' => $score,
-                        ]
-                    );
+                    $upsertData[] = [
+                        'student_id' => $student->id,
+                        'academic_year_id' => $request->academic_year_id,
+                        'term_id' => $request->term_id,
+                        'subject_id' => $request->subject_id,
+                        'assessment_template_id' => $template->id,
+                        'section_id' => $request->section_id,
+                        'teacher_id' => auth()->id(),
+                        'score' => $score,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
                 }
                 $successCount++;
+            }
+
+            if (!empty($upsertData)) {
+                StudentMark::upsert(
+                    $upsertData,
+                    ['student_id', 'assessment_template_id'],
+                    ['score', 'teacher_id', 'section_id', 'updated_at']
+                );
+
+                // Manual Audit Injection
+                \App\Models\AuditLog::create([
+                    'user_id' => auth()->id(),
+                    'event' => 'bulk_grade_import',
+                    'auditable_type' => StudentMark::class,
+                    'auditable_id' => $request->subject_id,
+                    'new_values' => ['subject_id' => $request->subject_id, 'term_id' => $request->term_id, 'section_id' => $request->section_id, 'count' => count($upsertData)],
+                    'url' => request()->fullUrl(),
+                    'ip_address' => request()->ip(),
+                    'user_agent' => request()->userAgent(),
+                ]);
             }
             
             DB::commit();

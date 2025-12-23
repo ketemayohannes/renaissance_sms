@@ -37,15 +37,18 @@
                 </div>
 
                 <!-- Student Management -->
-                <a href="{{ route('admin.students.index') }}" class="block p-6 bg-green-50 border border-green-200 rounded-lg shadow hover:bg-green-100">
-                    <h5 class="mb-2 text-2xl font-bold tracking-tight text-green-900">Student Management</h5>
+                <div class="p-6 bg-green-50 border border-green-200 rounded-lg shadow">
+                    <a href="{{ route('admin.students.index') }}" class="block mb-2">
+                        <h5 class="text-2xl font-bold tracking-tight text-green-900 hover:underline">Student Management</h5>
+                    </a>
                     <p class="font-normal text-green-700 mb-2">Register students, manage enrollments and profiles.</p>
-                    <div class="border-t border-green-200 pt-2 mt-2">
-                         <object class="block text-green-700 hover:underline font-semibold" onclick="window.location='{{ route('admin.electives.bulk-assign') }}'; return false;">
-                             • Bulk Assign Electives
-                         </object>
+                    <div class="border-t border-green-200 pt-2 mt-2 space-y-1">
+                         <a href="{{ route('admin.electives.bulk-assign') }}" class="block text-green-700 hover:underline font-semibold">• Bulk Assign Electives</a>
+                         <a href="{{ route('admin.promotions.index') }}" class="block text-emerald-700 hover:underline font-bold">🎓 Promotions & Graduation</a>
+                         <a href="{{ route('admin.disciplinary.index') }}" class="block text-red-700 hover:underline font-bold">⚠️ Disciplinary Records</a>
+                         <a href="{{ route('admin.id-cards.index') }}" class="block text-blue-700 hover:underline font-bold">🪪 ID Card Generation</a>
                     </div>
-                </a>
+                </div>
 
                 <!-- Gradebook -->
                 <div class="p-6 bg-purple-50 border border-purple-200 rounded-lg shadow">
@@ -58,6 +61,7 @@
                         <a href="{{ route('admin.report-cards.settings') }}" class="block text-indigo-700 hover:underline font-bold">+ Report Card Settings</a>
                         <a href="{{ route('admin.academic-reports.settings') }}" class="block text-orange-700 hover:underline font-bold">+ Roster Settings</a>
                         <a href="{{ route('admin.academic-reports.index') }}" class="block text-red-700 hover:underline font-bold">📊 Academic Reports (Result Sheet)</a>
+                        <a href="{{ route('admin.attendance.index') }}" class="block text-teal-700 hover:underline font-bold">📅 Student Attendance</a>
                         <a href="{{ route('admin.grade-components.index') }}" class="block text-purple-700 hover:underline text-sm opacity-60">• Grade Components (Old)</a>
                     </div>
                 </div>

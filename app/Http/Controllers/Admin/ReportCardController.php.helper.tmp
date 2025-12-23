@@ -1,0 +1,19 @@
+
+    private function calculateSubTermAttendance($student, $quarters, $semesters, $isSemester, $isYearly, $academicYear)
+    {
+        $subTermAttendance = [];
+        
+        if (($isSemester || $isYearly) && $quarters) {
+            foreach ($quarters as $q) {
+                $subTermAttendance[$q->id] = $this->getAttendanceSummary($student, $q, $academicYear);
+            }
+        }
+        
+        if ($isYearly && $semesters) {
+             foreach ($semesters as $s) {
+                 $subTermAttendance[$s->id] = $this->getAttendanceSummary($student, $s, $academicYear);
+             }
+        }
+        
+        return $subTermAttendance;
+    }

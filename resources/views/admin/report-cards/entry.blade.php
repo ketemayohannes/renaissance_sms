@@ -29,6 +29,10 @@
                             <a href="{{ route('admin.section-grades.bulk-print-report-cards', $section->id) }}?academic_year_id={{$academicYear->id}}&term_id={{$term->id}}" target="_blank" class="bg-gray-800 text-white font-bold py-2 px-4 rounded hover:bg-gray-700 mr-2">
                                 Print All
                             </a>
+                            <a href="{{ route('admin.section-grades.bulk-export-report-cards', $section->id) }}?academic_year_id={{$academicYear->id}}&term_id={{$term_id ?? $term->id}}&academic_year_id={{$academicYear->id}}" class="bg-indigo-600 text-white font-bold py-2 px-4 rounded hover:bg-indigo-700 mr-2 flex items-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                Bulk Background Export ⚡
+                            </a>
                             <a href="{{ route('admin.section-grades.index') }}" class="text-blue-600 hover:underline">Back to Grades</a>
                         </div>
                     </div>

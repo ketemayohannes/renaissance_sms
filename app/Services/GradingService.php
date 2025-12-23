@@ -10,12 +10,16 @@ use App\Models\Subject;
 use App\Models\Term;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 use App\Models\Student;
 use App\Models\StudentTermRecord;
+use Illuminate\Support\Collection;
 
 class GradingService
 {
+    private $yearlyStatsCache = [];
+
     /**
      * Recalculate and save statistics for all students in a section for a term.
      */
@@ -23,7 +27,7 @@ class GradingService
     {
         // Skip for virtual yearly term (no real DB record)
         if ($term->type === 'yearly' || $term->id === 'yearly') {
-            // For yearly, recalculate all semesters and their quarters
+            // First ensure all semesters are calculated
             $semesters = Term::where('academic_year_id', $academicYear->id)
                 ->where('type', 'semester')
                 ->get();
@@ -31,7 +35,83 @@ class GradingService
             foreach ($semesters as $semester) {
                 $this->recalculateSectionStatistics($section, $semester, $academicYear);
             }
-            return 0;
+
+            // Now calculate yearly scores and ranks
+            $students = $section->students()
+                ->wherePivot('academic_year_id', $academicYear->id)
+                ->get();
+            $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
+
+            $batchResults = $this->calculateSectionTotals($students, $term, $academicYear, $subjects);
+            $studentTotals = [];
+            $studentAverages = [];
+
+            foreach ($students as $student) {
+                $data = $batchResults[$student->id] ?? ['total' => 0, 'average' => 0];
+                $studentTotals[$student->id] = $data['total'];
+                $studentAverages[$student->id] = $data['average'];
+            }
+
+            $sortedTotals = collect($studentTotals)->sortDesc();
+            $totalStudents = $sortedTotals->count();
+
+            $sectionCache = [];
+            $upsertData = [];
+            $now = now();
+
+            foreach ($students as $student) {
+                $total = $studentTotals[$student->id];
+                $avg = $studentAverages[$student->id];
+                $rank = $sortedTotals->filter(fn($score) => $score > $total)->count() + 1;
+
+                $sectionCache[$student->id] = [
+                    'total' => $total,
+                    'average' => $avg,
+                    'rank' => $rank,
+                    'rank_out_of' => $totalStudents,
+                ];
+
+                // Only persist to DB if it's a real term (not virtual 'yearly')
+                if ($term->id !== 'yearly' && is_numeric($term->id)) {
+                    $upsertData[] = [
+                        'student_id' => $student->id,
+                        'term_id' => $term->id,
+                        'academic_year_id' => $academicYear->id,
+                        'total_score' => $total,
+                        'average_score' => $avg,
+                        'rank' => $rank,
+                        'rank_out_of' => $totalStudents,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+            }
+
+            if (!empty($upsertData)) {
+                StudentTermRecord::upsert(
+                    $upsertData,
+                    ['student_id', 'term_id'],
+                    ['total_score', 'average_score', 'rank', 'rank_out_of', 'updated_at']
+                );
+
+                // Manual Audit Injection
+                \App\Models\AuditLog::create([
+                    'user_id' => auth()->id(),
+                    'event' => 'bulk_recalculate',
+                    'auditable_type' => StudentTermRecord::class,
+                    'auditable_id' => $section->id,
+                    'new_values' => ['section_id' => $section->id, 'term_id' => $term->id, 'count' => count($upsertData)],
+                    'url' => request()->fullUrl(),
+                    'ip_address' => request()->ip(),
+                    'user_agent' => request()->userAgent(),
+                ]);
+            }
+
+            if ($term->id === 'yearly') {
+                $this->yearlyStatsCache["{$section->id}_{$academicYear->id}"] = $sectionCache;
+            }
+
+            return $students->count();
         }
         
         $students = $section->students()
@@ -58,38 +138,140 @@ class GradingService
 
     private function recalculateTermStats($students, $term, $academicYear, $subjects)
     {
+        // Batch calculate all totals for the section
+        $batchResults = $this->calculateSectionTotals($students, $term, $academicYear, $subjects);
+        
+        $studentTotals = collect($batchResults)->pluck('total', 'id')->toArray(); // This is wrong because batchResults is keyed by student_id
         $studentTotals = [];
-        $studentAverages = [];
-
-        foreach ($students as $student) {
-            $data = $this->calculateStudentTotals($student, $term, $academicYear, $subjects);
-            $studentTotals[$student->id] = $data['total'];
-            $studentAverages[$student->id] = $data['average'];
+        foreach($batchResults as $sid => $data) {
+            $studentTotals[$sid] = $data['total'];
         }
 
         // Calculate Ranks
         $sortedTotals = collect($studentTotals)->sortDesc();
         $totalStudents = $sortedTotals->count();
 
+        $upsertData = [];
+        $now = now();
+
         foreach ($students as $student) {
-            $total = $studentTotals[$student->id];
-            $avg = $studentAverages[$student->id];
+            $total = $studentTotals[$student->id] ?? 0;
+            $avg = $batchResults[$student->id]['average'] ?? 0;
             $rank = $sortedTotals->filter(fn($score) => $score > $total)->count() + 1;
 
-            StudentTermRecord::updateOrCreate(
-                [
-                    'student_id' => $student->id,
-                    'term_id' => $term->id,
-                    'academic_year_id' => $academicYear->id,
-                ],
-                [
-                    'total_score' => $total,
-                    'average_score' => $avg,
-                    'rank' => $rank,
-                    'rank_out_of' => $totalStudents,
-                ]
-            );
+            $upsertData[] = [
+                'student_id' => $student->id,
+                'term_id' => $term->id,
+                'academic_year_id' => $academicYear->id,
+                'total_score' => $total,
+                'average_score' => $avg,
+                'rank' => $rank,
+                'rank_out_of' => $totalStudents,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
         }
+
+        if (!empty($upsertData)) {
+            StudentTermRecord::upsert(
+                $upsertData,
+                ['student_id', 'term_id'],
+                ['total_score', 'average_score', 'rank', 'rank_out_of', 'updated_at']
+            );
+
+            // Manual Audit Injection
+            \App\Models\AuditLog::create([
+                'user_id' => auth()->id(),
+                'event' => 'bulk_recalculate_term',
+                'auditable_type' => StudentTermRecord::class,
+                'auditable_id' => $term->id,
+                'new_values' => ['term_id' => $term->id, 'count' => count($upsertData)],
+                'url' => request()->fullUrl(),
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ]);
+        }
+    }
+
+    /**
+     * Batch calculate totals and averages for multiple students.
+     */
+    public function calculateSectionTotals($students, Term $term, AcademicYear $academicYear, $subjects)
+    {
+        $studentIds = $students->pluck('id');
+        $subjectIds = $subjects->pluck('id');
+        $results = [];
+
+        if ($term->isSemester()) {
+            $quarterIds = $term->quarters()->pluck('id');
+            $allMarks = StudentMark::whereIn('student_id', $studentIds)
+                ->whereIn('term_id', $quarterIds)
+                ->whereIn('subject_id', $subjectIds)
+                ->get()
+                ->groupBy('student_id');
+
+            foreach ($students as $student) {
+                $studentMarks = $allMarks->get($student->id, collect())->groupBy('subject_id');
+                $total = 0;
+                $subjectScores = [];
+                foreach ($subjects as $subject) {
+                    $subMarks = $studentMarks->get($subject->id);
+                    if ($subMarks) {
+                        $score = $subMarks->avg('score');
+                        $total += $score;
+                        $subjectScores[$subject->id] = $score;
+                    }
+                }
+                $average = $subjects->count() > 0 ? $total / $subjects->count() : 0;
+                $results[$student->id] = ['total' => $total, 'average' => $average, 'marks' => $subjectScores];
+            }
+        } elseif ($term->type === 'yearly' || $term->id === 'yearly') {
+            $semesters = Term::where('academic_year_id', $academicYear->id)
+                ->where('type', 'semester')
+                ->get();
+            
+            $semesterResults = [];
+            foreach ($semesters as $sem) {
+                $semesterResults[$sem->id] = $this->calculateSectionTotals($students, $sem, $academicYear, $subjects);
+            }
+
+            foreach ($students as $student) {
+                $total = 0;
+                $subjectScores = [];
+                foreach ($subjects as $subject) {
+                    $subSemAverages = [];
+                    foreach ($semesters as $sem) {
+                        $stats = $semesterResults[$sem->id][$student->id] ?? null;
+                        if ($stats && isset($stats['marks'][$subject->id]) && $stats['marks'][$subject->id] > 0) {
+                            $subSemAverages[] = $stats['marks'][$subject->id];
+                        }
+                    }
+                    if (!empty($subSemAverages)) {
+                        $score = array_sum($subSemAverages) / count($subSemAverages);
+                        $total += $score;
+                        $subjectScores[$subject->id] = $score;
+                    }
+                }
+                $average = $subjects->count() > 0 ? $total / $subjects->count() : 0;
+                $results[$student->id] = ['total' => $total, 'average' => $average, 'marks' => $subjectScores];
+            }
+        } else {
+            $allMarks = StudentMark::whereIn('student_id', $studentIds)
+                ->where('term_id', $term->id)
+                ->whereIn('subject_id', $subjectIds)
+                ->get()
+                ->groupBy('student_id');
+
+            foreach ($students as $student) {
+                $studentMarks = $allMarks->get($student->id, collect());
+                $total = $studentMarks->sum('score');
+                $subjectScores = $studentMarks->pluck('score', 'subject_id')->toArray();
+                $average = $subjects->count() > 0 ? $total / $subjects->count() : 0;
+                $results[$student->id] = ['total' => $total, 'average' => $average, 'marks' => $subjectScores];
+            }
+        }
+
+        return $results;
     }
 
     /**
@@ -165,68 +347,164 @@ class GradingService
         $enrollment = $student->enrollments()->where('academic_year_id', $academicYear->id)->first();
         $section = $enrollment->section;
         $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
+        
+        return $this->prepareReportData($student, $section, $term, $academicYear, $subjects);
+    }
+
+    /**
+     * Get report data for all students in a section (Bulk Version).
+     */
+    public function getSectionReportData(Collection $students, Section $section, Term $term, AcademicYear $academicYear)
+    {
+        $cacheKey = "section_subjects_{$section->grade_level_id}";
+        $subjects = Cache::remember($cacheKey, 3600, function() use ($section) {
+            return $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
+        });
+        $isYearly = $term->id === 'yearly' || $term->type === 'yearly';
         $isSemester = $term->isSemester();
+        
+        $studentIds = $students->pluck('id');
+        $targetTermsIds = [];
 
-        $record = StudentTermRecord::where('student_id', $student->id)
-            ->where('term_id', $term->id)
-            ->first();
-
-        // If record doesn't have calc fields, recalculate on the fly (but log it as a warning)
-        if (!$record || $record->total_score === null) {
-            $stats = $this->calculateStudentTotals($student, $term, $academicYear, $subjects);
-            $totalScore = $stats['total'];
-            $average = $stats['average'];
-            $rank = $record->rank ?? '-';
+        if ($isYearly) {
+            $semesters = Term::where('academic_year_id', $academicYear->id)->where('type', 'semester')->get();
+            $targetTermsIds = $semesters->pluck('id')->toArray();
+            foreach ($semesters as $sem) {
+                $targetTermsIds = array_merge($targetTermsIds, $sem->quarters()->pluck('id')->toArray());
+            }
+        } elseif ($isSemester) {
+            $targetTermsIds = array_merge([$term->id], $term->quarters()->pluck('id')->toArray());
         } else {
-            $totalScore = $record->total_score;
-            $average = $record->average_score;
-            $rank = $record->rank;
+            $targetTermsIds = [$term->id];
         }
 
+        // Fetch all relevant records and marks in bulk
+        $allRecords = StudentTermRecord::whereIn('student_id', $studentIds)
+            ->whereIn('term_id', $targetTermsIds)
+            ->get()
+            ->groupBy('student_id');
+
+        $allMarks = StudentMark::whereIn('student_id', $studentIds)
+            ->whereIn('term_id', $targetTermsIds)
+            ->get()
+            ->groupBy('student_id');
+
+        $reports = [];
+        foreach ($students as $student) {
+            $reports[$student->id] = $this->prepareReportData(
+                $student, $section, $term, $academicYear, $subjects,
+                $allRecords->get($student->id, collect()),
+                $allMarks->get($student->id, collect())
+            );
+        }
+        
+        return $reports;
+    }
+
+    /**
+     * Helper to prepare report data from provided or fetched records/marks.
+     */
+    private function prepareReportData(Student $student, Section $section, Term $term, AcademicYear $academicYear, $subjects, $preFetchedRecords = null, $preFetchedMarks = null)
+    {
+        $isSemester = $term->isSemester();
+        $isYearly = $term->id === 'yearly' || $term->type === 'yearly';
+        $cacheKey = "{$section->id}_{$academicYear->id}";
+        
+        // 1. Basic Stats Calculation/Retrieval
+        if ($isYearly && isset($this->yearlyStatsCache[$cacheKey][$student->id])) {
+            $stats = $this->yearlyStatsCache[$cacheKey][$student->id];
+            $totalScore = $stats['total'];
+            $average = $stats['average'];
+            $rank = $stats['rank'];
+            $rankOutOf = $stats['rank_out_of'];
+            $record = null; 
+        } else {
+            $record = $preFetchedRecords ? $preFetchedRecords->firstWhere('term_id', $term->id) : StudentTermRecord::where('student_id', $student->id)->where('term_id', $term->id)->first();
+
+            if (!$record || $record->total_score === null) {
+                $stats = $this->calculateStudentTotals($student, $term, $academicYear, $subjects);
+                $totalScore = $stats['total'];
+                $average = $stats['average'];
+                $rank = $record->rank ?? '-';
+                $rankOutOf = $record->rank_out_of ?? '-';
+            } else {
+                $totalScore = $record->total_score;
+                $average = $record->average_score;
+                $rank = $record->rank;
+                $rankOutOf = $record->rank_out_of;
+            }
+        }
+
+        // 2. Term Breakdown Data
         $marks = collect();
         $quarterData = [];
+        $marksByQuarter = [];
+        $marksBySemester = [];
+        $statsByQuarter = [];
+        $statsBySemester = [];
+        $recordsByQuarter = [];
         
-        if ($isSemester) {
-            $quarters = $term->quarters()->orderBy('term_number')->get();
+        if ($isSemester || $isYearly) {
+            $targetSemesters = $isSemester ? collect([$term]) : Term::where('academic_year_id', $academicYear->id)->where('type', 'semester')->orderBy('start_date')->get();
             $allQuarterMarks = [];
             
-            foreach ($quarters as $q) {
-                $qRecord = StudentTermRecord::where('student_id', $student->id)
-                    ->where('term_id', $q->id)
-                    ->first();
-                
-                $qMarks = StudentMark::where('student_id', $student->id)
-                    ->where('term_id', $q->id)
-                    ->get()
-                    ->pluck('score', 'subject_id');
+            foreach ($targetSemesters as $sem) {
+                $quarters = $sem->quarters()->orderBy('term_number')->get();
+                foreach ($quarters as $q) {
+                    $qRecord = $preFetchedRecords ? $preFetchedRecords->firstWhere('term_id', $q->id) : StudentTermRecord::where('student_id', $student->id)->where('term_id', $q->id)->first();
+                    
+                    $qMarks = $preFetchedMarks ? $preFetchedMarks->where('term_id', $q->id)->pluck('score', 'subject_id') : StudentMark::where('student_id', $student->id)->where('term_id', $q->id)->get()->pluck('score', 'subject_id');
 
-                $quarterData[$q->id] = [
-                    'term' => $q,
-                    'marks' => $qMarks,
-                    'record' => $qRecord,
-                    'total' => $qRecord->total_score ?? $qMarks->sum(),
-                    'average' => $qRecord->average_score ?? ($subjects->count() > 0 ? $qMarks->sum() / $subjects->count() : 0),
-                    'rank' => $qRecord->rank ?? '-',
-                ];
-                
-                // Collect marks for semester average calculation
-                foreach ($qMarks as $subId => $score) {
-                    if (!isset($allQuarterMarks[$subId])) {
-                        $allQuarterMarks[$subId] = [];
+                    $quarterData[$q->id] = [
+                        'term' => $q,
+                        'marks' => $qMarks,
+                        'record' => $qRecord,
+                        'total' => $qRecord->total_score ?? $qMarks->sum(),
+                        'average' => $qRecord->average_score ?? ($subjects->count() > 0 ? $qMarks->sum() / $subjects->count() : 0),
+                        'rank' => $qRecord->rank ?? '-',
+                    ];
+
+                    $statsByQuarter[$q->id] = [
+                        'total' => $quarterData[$q->id]['total'],
+                        'average' => $quarterData[$q->id]['average'],
+                        'rank' => $quarterData[$q->id]['rank'],
+                    ];
+
+                    $recordsByQuarter[$q->id] = $qRecord;
+                    
+                    foreach ($qMarks as $subId => $score) {
+                        $marksByQuarter[$subId][$q->id] = $score;
+                        if (!isset($allQuarterMarks[$subId])) {
+                            $allQuarterMarks[$subId] = [];
+                        }
+                        $allQuarterMarks[$subId][] = $score;
                     }
-                    $allQuarterMarks[$subId][] = $score;
+                }
+
+                // Building Semester Stats
+                $sStats = $this->calculateStudentTotals($student, $sem, $academicYear, $subjects);
+                $sRecord = $preFetchedRecords ? $preFetchedRecords->firstWhere('term_id', $sem->id) : StudentTermRecord::where('student_id', $student->id)->where('term_id', $sem->id)->first();
+                
+                $statsBySemester[$sem->id] = [
+                    'total' => $sRecord->total_score ?? $sStats['total'],
+                    'average' => $sRecord->average_score ?? $sStats['average'],
+                    'rank' => $sRecord->rank ?? '-',
+                ];
+
+                foreach ($sStats['marks'] as $subId => $score) {
+                    $marksBySemester[$subId][$sem->id] = $score;
                 }
             }
             
-            // Calculate semester averages per subject
+            // Calculate averages per subject (for yearly average)
             foreach ($allQuarterMarks as $subId => $scores) {
-                $marks[$subId] = round(array_sum($scores) / count($scores));
+                $marks[$subId] = round(array_sum($scores) / count($scores), 2);
             }
+        } elseif ($term->type === 'yearly') {
+            $stats = $this->calculateStudentTotals($student, $term, $academicYear, $subjects);
+            $marks = collect($stats['marks']);
         } else {
-            $marks = StudentMark::where('student_id', $student->id)
-                ->where('term_id', $term->id)
-                ->get()
-                ->pluck('score', 'subject_id');
+            $marks = $preFetchedMarks ? $preFetchedMarks->where('term_id', $term->id)->pluck('score', 'subject_id') : StudentMark::where('student_id', $student->id)->where('term_id', $term->id)->get()->pluck('score', 'subject_id');
         }
 
         return [
@@ -240,10 +518,15 @@ class GradingService
             'totalScore' => $totalScore,
             'average' => $average,
             'rank' => $rank,
-            'rank_out_of' => $record->rank_out_of ?? '-',
+            'rank_out_of' => $rankOutOf,
             'isSemester' => $isSemester,
             'quarters' => $quarterData,
             'semesters' => $this->getYearlyStats($student, $term, $academicYear, $subjects),
+            'marks_by_quarter' => $marksByQuarter,
+            'marks_by_semester' => $marksBySemester,
+            'stats_by_quarter' => $statsByQuarter,
+            'stats_by_semester' => $statsBySemester,
+            'records_by_quarter' => $recordsByQuarter,
         ];
     }
 

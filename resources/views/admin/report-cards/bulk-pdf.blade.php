@@ -134,15 +134,18 @@
         }
         .subjects-table th {
             font-weight: bold;
-            background-color: #f0f0f0;
+            background-color: #d1d5db;
         }
         .subjects-table td:first-child {
             text-align: left;
             padding-left: 5px;
         }
-        .total-row td {
+        .total-row {
+            background-color: #d1d5db;
             font-weight: bold;
-            border-top: 1px solid black !important;
+        }
+        .total-row td {
+            border-top: 1px solid black;
         }
         .trait-row {
             margin-bottom: 15px;
@@ -185,7 +188,7 @@
         }
         .contact-footer-content {
             width: 100%;
-            border-top: 1.5px solid black;
+            border-top: 1px solid black;
             padding-top: 10px;
             font-size: 10pt;
         }
@@ -244,6 +247,7 @@
             $termRecord = $data['termRecord'];
             $totalScore = $data['totalScore'];
             $average = $data['average'];
+            $attendance = $data['attendance'] ?? null;
         @endphp
 
         <div class="print-page {{ $loop->first ? '' : 'page-break' }}">
@@ -356,14 +360,16 @@
                                 <td style="text-align: center">Absence</td>
                                 @if($isSemester)
                                     @foreach($quarters as $quarter)
-                                        @php $qAbs = $data['studentQuarterRecords'][$quarter->id]->days_absent ?? null; @endphp
-                                        <td>{{ ($qAbs === null || $qAbs === '' || $qAbs == 0) ? '_' : $qAbs }}</td>
+                                        @php 
+                                            // Access subTermAttendance from $data
+                                            $absCount = $data['subTermAttendance'][$quarter->id]['absent'] ?? 0;
+                                            $display = $absCount > 0 ? $absCount : '_';
+                                        @endphp
+                                        <td>{{ $display }}</td>
                                     @endforeach
-                                    @php $tAbs = $termRecord->days_absent ?? null; @endphp
-                                    <td>{{ ($tAbs === null || $tAbs === '' || $tAbs == 0) ? '_' : $tAbs }}</td>
+                                    <td>{{ ($attendance['absent'] ?? 0) > 0 ? $attendance['absent'] : '_' }}</td>
                                 @else
-                                    @php $tAbs = $termRecord->days_absent ?? null; @endphp
-                                    <td>{{ ($tAbs === null || $tAbs === '' || $tAbs == 0) ? '_' : $tAbs }}</td>
+                                    <td>{{ ($attendance['absent'] ?? 0) > 0 ? $attendance['absent'] : '_' }}</td>
                                 @endif
                             </tr>
 
@@ -380,6 +386,8 @@
                             @endif
                         </tbody>
                     </table>
+
+
                 </div>
 
                 <!-- Right Column: Traits Details -->

@@ -159,114 +159,128 @@
                             </div>
                         </div>
 
-                        <!-- Primary Guardian -->
+                        <!-- Guardians Information -->
                         @php
-                            $primaryGuardian = $student->guardians->where('guardian_type', 'primary')->first();
-                        @endphp
-                        <div class="mb-8">
-                            <h3 class="text-lg font-medium text-gray-900 border-b pb-2 mb-4">Primary Guardian Information</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div class="md:col-span-3">
-                                    <label for="primary_guardian_photo" class="block text-sm font-medium text-gray-700">Guardian Photo</label>
-                                    @if($primaryGuardian && $primaryGuardian->photo)
-                                        <div class="mb-2">
-                                            <img src="{{ asset('storage/' . $primaryGuardian->photo) }}" alt="Guardian Photo" class="h-20 w-20 object-cover rounded">
-                                        </div>
-                                    @endif
-                                    <input type="file" name="primary_guardian_photo" id="primary_guardian_photo" accept="image/*" class="mt-1 block w-full">
-                                    @error('primary_guardian_photo')<span class="text-red-600 text-sm">{{ $message }}</span>@enderror
-                                </div>
-                                <div>
-                                    <label for="primary_guardian_first_name" class="block text-sm font-medium text-gray-700">First Name</label>
-                                    <input type="text" name="primary_guardian_first_name" id="primary_guardian_first_name" value="{{ old('primary_guardian_first_name', $primaryGuardian->first_name ?? '') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                    @error('primary_guardian_first_name')<span class="text-red-600 text-sm">{{ $message }}</span>@enderror
-                                </div>
-                                <div>
-                                    <label for="primary_guardian_father_name" class="block text-sm font-medium text-gray-700">Father Name</label>
-                                    <input type="text" name="primary_guardian_father_name" id="primary_guardian_father_name" value="{{ old('primary_guardian_father_name', $primaryGuardian->father_name ?? '') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                    @error('primary_guardian_father_name')<span class="text-red-600 text-sm">{{ $message }}</span>@enderror
-                                </div>
-                                <div>
-                                    <label for="primary_guardian_grandfather_name" class="block text-sm font-medium text-gray-700">Grandfather Name</label>
-                                    <input type="text" name="primary_guardian_grandfather_name" id="primary_guardian_grandfather_name" value="{{ old('primary_guardian_grandfather_name', $primaryGuardian->grandfather_name ?? '') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                    @error('primary_guardian_grandfather_name')<span class="text-red-600 text-sm">{{ $message }}</span>@enderror
-                                </div>
-                                <div>
-                                    <label for="primary_guardian_phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
-                                    <input type="text" name="primary_guardian_phone" id="primary_guardian_phone" value="{{ old('primary_guardian_phone', $primaryGuardian->phone ?? '') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                    @error('primary_guardian_phone')<span class="text-red-600 text-sm">{{ $message }}</span>@enderror
-                                </div>
-                                <div>
-                                    <label for="primary_guardian_email" class="block text-sm font-medium text-gray-700">Email</label>
-                                    <input type="email" name="primary_guardian_email" id="primary_guardian_email" value="{{ old('primary_guardian_email', $primaryGuardian->email ?? '') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                    @error('primary_guardian_email')<span class="text-red-600 text-sm">{{ $message }}</span>@enderror
-                                </div>
-                                <div>
-                                    <label for="primary_guardian_relationship" class="block text-sm font-medium text-gray-700">Relationship to Student</label>
-                                    <select name="primary_guardian_relationship" id="primary_guardian_relationship" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                        <option value="">Select Relationship</option>
-                                        @foreach(['Father', 'Mother', 'Guardian'] as $rel)
-                                            <option value="{{ $rel }}" {{ old('primary_guardian_relationship', $primaryGuardian->relationship ?? '') == $rel ? 'selected' : '' }}>{{ $rel }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('primary_guardian_relationship')<span class="text-red-600 text-sm">{{ $message }}</span>@enderror
-                                </div>
-                            </div>
-                        </div>
+                            $guardians = $student->guardians->map(function($guardian, $index) {
+                                return [
+                                    'id' => $guardian->id,
+                                    'category' => $index === 0 ? 'Primary' : ($index === 1 ? 'Secondary' : 'Additional'),
+                                    'first_name' => $guardian->first_name,
+                                    'father_name' => $guardian->father_name,
+                                    'grandfather_name' => $guardian->grandfather_name,
+                                    'phone' => $guardian->phone,
+                                    'email' => $guardian->email,
+                                    'relationship' => $guardian->relationship,
+                                    'is_emergency' => (bool)$guardian->is_emergency_contact,
+                                    'comm_prefs' => $guardian->communication_preferences ?? [],
+                                    'photo_url' => $guardian->photo ? asset('storage/' . $guardian->photo) : null
+                                ];
+                            })->values()->toArray();
 
-                        <!-- Secondary Guardian -->
-                        @php
-                            $secondaryGuardian = $student->guardians->where('guardian_type', 'secondary')->first();
+                            if (empty($guardians)) {
+                                $guardians = [
+                                    ['category' => 'Primary', 'first_name' => '', 'father_name' => '', 'grandfather_name' => '', 'phone' => '', 'email' => '', 'relationship' => '', 'is_emergency' => true, 'comm_prefs' => []]
+                                ];
+                            }
                         @endphp
-                        <div class="mb-8">
-                            <h3 class="text-lg font-medium text-gray-900 border-b pb-2 mb-4">Secondary Guardian Information (Optional)</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div class="md:col-span-3">
-                                    <label for="secondary_guardian_photo" class="block text-sm font-medium text-gray-700">Guardian Photo</label>
-                                    @if($secondaryGuardian && $secondaryGuardian->photo)
-                                        <div class="mb-2">
-                                            <img src="{{ asset('storage/' . $secondaryGuardian->photo) }}" alt="Guardian Photo" class="h-20 w-20 object-cover rounded">
-                                        </div>
-                                    @endif
-                                    <input type="file" name="secondary_guardian_photo" id="secondary_guardian_photo" accept="image/*" class="mt-1 block w-full">
-                                    @error('secondary_guardian_photo')<span class="text-red-600 text-sm">{{ $message }}</span>@enderror
-                                </div>
-                                <div>
-                                    <label for="secondary_guardian_first_name" class="block text-sm font-medium text-gray-700">First Name</label>
-                                    <input type="text" name="secondary_guardian_first_name" id="secondary_guardian_first_name" value="{{ old('secondary_guardian_first_name', $secondaryGuardian->first_name ?? '') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                    @error('secondary_guardian_first_name')<span class="text-red-600 text-sm">{{ $message }}</span>@enderror
-                                </div>
-                                <div>
-                                    <label for="secondary_guardian_father_name" class="block text-sm font-medium text-gray-700">Father Name</label>
-                                    <input type="text" name="secondary_guardian_father_name" id="secondary_guardian_father_name" value="{{ old('secondary_guardian_father_name', $secondaryGuardian->father_name ?? '') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                    @error('secondary_guardian_father_name')<span class="text-red-600 text-sm">{{ $message }}</span>@enderror
-                                </div>
-                                <div>
-                                    <label for="secondary_guardian_grandfather_name" class="block text-sm font-medium text-gray-700">Grandfather Name</label>
-                                    <input type="text" name="secondary_guardian_grandfather_name" id="secondary_guardian_grandfather_name" value="{{ old('secondary_guardian_grandfather_name', $secondaryGuardian->grandfather_name ?? '') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                    @error('secondary_guardian_grandfather_name')<span class="text-red-600 text-sm">{{ $message }}</span>@enderror
-                                </div>
-                                <div>
-                                    <label for="secondary_guardian_phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
-                                    <input type="text" name="secondary_guardian_phone" id="secondary_guardian_phone" value="{{ old('secondary_guardian_phone', $secondaryGuardian->phone ?? '') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                    @error('secondary_guardian_phone')<span class="text-red-600 text-sm">{{ $message }}</span>@enderror
-                                </div>
-                                <div>
-                                    <label for="secondary_guardian_email" class="block text-sm font-medium text-gray-700">Email</label>
-                                    <input type="email" name="secondary_guardian_email" id="secondary_guardian_email" value="{{ old('secondary_guardian_email', $secondaryGuardian->email ?? '') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                    @error('secondary_guardian_email')<span class="text-red-600 text-sm">{{ $message }}</span>@enderror
-                                </div>
-                                <div>
-                                    <label for="secondary_guardian_relationship" class="block text-sm font-medium text-gray-700">Relationship to Student</label>
-                                    <select name="secondary_guardian_relationship" id="secondary_guardian_relationship" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                        <option value="">Select Relationship</option>
-                                        @foreach(['Father', 'Mother', 'Guardian'] as $rel)
-                                            <option value="{{ $rel }}" {{ old('secondary_guardian_relationship', $secondaryGuardian->relationship ?? '') == $rel ? 'selected' : '' }}>{{ $rel }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('secondary_guardian_relationship')<span class="text-red-600 text-sm">{{ $message }}</span>@enderror
-                                </div>
+                        <div x-data="{
+                            guardians: {{ Js::from($guardians) }},
+                            addGuardian() {
+                                this.guardians.push({ category: 'Additional', first_name: '', father_name: '', grandfather_name: '', phone: '', email: '', relationship: '', is_emergency: false, comm_prefs: [] });
+                            },
+                            removeGuardian(index) {
+                                if(this.guardians.length > 1) {
+                                    this.guardians.splice(index, 1);
+                                }
+                            }
+                        }" class="mb-8">
+                            <div class="flex justify-between items-center border-b pb-2 mb-4">
+                                <h3 class="text-lg font-medium text-gray-900">Guardian Information</h3>
+                                <button type="button" @click="addGuardian()" class="bg-indigo-600 text-white text-sm px-3 py-1 rounded hover:bg-indigo-700">
+                                    + Add Guardian
+                                </button>
                             </div>
+
+                            <template x-for="(guardian, index) in guardians" :key="index">
+                                <div class="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200 relative">
+                                    <div class="flex justify-between mb-4">
+                                        <h4 class="font-bold text-gray-700" x-text="index === 0 ? 'Primary Guardian *' : (index === 1 ? 'Secondary Guardian (Optional)' : 'Additional Guardian')"></h4>
+                                        <button type="button" @click="removeGuardian(index)" x-show="index > 0" class="text-red-600 hover:text-red-800 text-sm font-bold">Remove</button>
+                                    </div>
+
+                                    <!-- Hidden input for ID to update existing records -->
+                                    <input type="hidden" :name="'guardians['+index+'][id]'" x-model="guardian.id">
+
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <div class="md:col-span-3">
+                                            <label :for="'guardian_photo_'+index" class="block text-sm font-medium text-gray-700">Guardian Photo</label>
+                                            <template x-if="guardian.photo_url">
+                                                <div class="mb-2">
+                                                    <img :src="guardian.photo_url" alt="Guardian Photo" class="h-20 w-20 object-cover rounded">
+                                                </div>
+                                            </template>
+                                            <input type="file" :name="'guardians['+index+'][photo]'" :id="'guardian_photo_'+index" accept="image/*" class="mt-1 block w-full">
+                                        </div>
+                                        <div>
+                                            <label :for="'guardian_first_name_'+index" class="block text-sm font-medium text-gray-700">First Name <span x-show="index===0">*</span></label>
+                                            <input type="text" :name="'guardians['+index+'][first_name]'" x-model="guardian.first_name" :required="index===0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                        </div>
+                                        <div>
+                                            <label :for="'guardian_father_name_'+index" class="block text-sm font-medium text-gray-700">Father Name <span x-show="index===0">*</span></label>
+                                            <input type="text" :name="'guardians['+index+'][father_name]'" x-model="guardian.father_name" :required="index===0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                        </div>
+                                        <div>
+                                            <label :for="'guardian_grandfather_name_'+index" class="block text-sm font-medium text-gray-700">Grandfather Name <span x-show="index===0">*</span></label>
+                                            <input type="text" :name="'guardians['+index+'][grandfather_name]'" x-model="guardian.grandfather_name" :required="index===0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                        </div>
+                                        <div>
+                                            <label :for="'guardian_phone_'+index" class="block text-sm font-medium text-gray-700">Phone Number <span x-show="index===0">*</span></label>
+                                            <input type="text" :name="'guardians['+index+'][phone]'" x-model="guardian.phone" :required="index===0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                        </div>
+                                        <div>
+                                            <label :for="'guardian_email_'+index" class="block text-sm font-medium text-gray-700">Email</label>
+                                            <input type="email" :name="'guardians['+index+'][email]'" x-model="guardian.email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                        </div>
+                                        <div>
+                                            <label :for="'guardian_relationship_'+index" class="block text-sm font-medium text-gray-700">Relationship <span x-show="index===0">*</span></label>
+                                            <select :name="'guardians['+index+'][relationship]'" x-model="guardian.relationship" :required="index===0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                                <option value="">Select Relationship</option>
+                                                <option value="Father">Father</option>
+                                                <option value="Mother">Mother</option>
+                                                <option value="Grandparent">Grandparent</option>
+                                                <option value="Uncle">Uncle</option>
+                                                <option value="Aunt">Aunt</option>
+                                                <option value="Sister">Sister</option>
+                                                <option value="Brother">Brother</option>
+                                                <option value="Guardian">Legal Guardian</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <!-- Preferences -->
+                                        <div class="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4 mt-2">
+                                            <div>
+                                                <label class="flex items-center space-x-2 cursor-pointer">
+                                                    <input type="checkbox" :name="'guardians['+index+'][is_emergency_contact]'" value="1" x-model="guardian.is_emergency" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                                                    <span class="text-sm font-medium text-red-700">Emergency Contact</span>
+                                                </label>
+                                            </div>
+                                            <div>
+                                                <span class="block text-sm font-medium text-gray-700 mb-2">Communication Preferences:</span>
+                                                <div class="flex space-x-4">
+                                                    <label class="flex items-center space-x-2 cursor-pointer">
+                                                        <input type="checkbox" :name="'guardians['+index+'][communication_preferences][]'" value="sms" x-model="guardian.comm_prefs" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                                                        <span class="text-sm text-gray-600">SMS</span>
+                                                    </label>
+                                                    <label class="flex items-center space-x-2 cursor-pointer">
+                                                        <input type="checkbox" :name="'guardians['+index+'][communication_preferences][]'" value="email" x-model="guardian.comm_prefs" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                                                        <span class="text-sm text-gray-600">Email</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
                         </div>
 
                         <!-- Medical Information -->
