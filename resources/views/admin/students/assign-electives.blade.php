@@ -1,20 +1,15 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Assign Elective Subjects') }}: {{ $student->first_name }} {{ $student->father_name }}
-        </h2>
-    </x-slot>
+<x-admin-layout>
+    <x-slot name="header">Assign Elective Subjects: {{ $student->full_name }}</x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <x-breadcrumb :items="[
-                ['label' => 'Students', 'url' => route('admin.students.index')],
-                ['label' => $student->first_name, 'url' => route('admin.students.show', $student)],
-                ['label' => 'Assign Electives', 'url' => '#']
-            ]" />
+    <div class="space-y-6">
+        <x-breadcrumb :items="[
+            ['label' => 'Students', 'url' => route('admin.students.index')],
+            ['label' => $student->first_name, 'url' => route('admin.students.show', $student)],
+            ['label' => 'Assign Electives', 'url' => '#']
+        ]" />
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6">
+        <div class="card overflow-hidden">
+            <div class="p-6">
                     <div class="mb-6">
                         <h3 class="text-lg font-medium text-gray-900">Current Enrollment</h3>
                         <p class="text-sm text-gray-600">
@@ -77,5 +72,5 @@
                 </div>
             </div>
         </div>
-    </div>
-</x-app-layout>
+        </div>
+</x-admin-layout>

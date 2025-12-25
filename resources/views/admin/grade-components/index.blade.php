@@ -1,21 +1,23 @@
-<x-app-layout>
-    <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                {{ __('Grade Components') }}
-            </h2>
-            <a href="{{ route('admin.grade-components.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+<x-admin-layout>
+    <x-slot name="header">Grade Components</x-slot>
+
+    <div class="space-y-6">
+        <div class="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+            <div>
+                <h2 class="text-lg font-bold text-slate-800">Assessment Breakdown</h2>
+                <p class="text-sm text-slate-500">Manage how subjects are graded across terms.</p>
+            </div>
+            <a href="{{ route('admin.grade-components.create') }}" class="btn-primary">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
                 Add New Component
             </a>
         </div>
-    </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <!-- Breadcrumb -->
-            <x-breadcrumb :items="[
-                ['label' => 'Grade Components', 'url' => '#']
-            ]" />
+        <x-breadcrumb :items="[
+            ['label' => 'Grade Components', 'url' => '#']
+        ]" />
 
             @if(session('success'))
                 <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
@@ -172,4 +174,5 @@
             </div>
         </div>
     </div>
-</x-app-layout>
+    </div>
+</x-admin-layout>

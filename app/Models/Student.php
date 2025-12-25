@@ -11,10 +11,24 @@ use App\Models\StudentGuardian;
 use App\Models\StudentMedicalInfo;
 use App\Models\StudentTransportation;
 use App\Traits\Auditable;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Student extends Model
 {
-    use HasFactory, Auditable;
+    use HasFactory, Auditable, SoftDeletes;
+    
+    protected static function booted()
+    {
+        static::saved(function ($student) {
+            \Illuminate\Support\Facades\Cache::forget('admin_dashboard_stats');
+            \Illuminate\Support\Facades\Cache::forget('admin_dashboard_gender_breakdown');
+        });
+
+        static::deleted(function ($student) {
+            \Illuminate\Support\Facades\Cache::forget('admin_dashboard_stats');
+            \Illuminate\Support\Facades\Cache::forget('admin_dashboard_gender_breakdown');
+        });
+    }
 
     protected $fillable = [
         'user_id', 'student_id', 'first_name', 'father_name', 'grandfather_name',
@@ -136,5 +150,122 @@ class Student extends Model
     {
         $this->siblings()->detach($sibling->id);
         $sibling->siblings()->detach($this->id);
+    }
+    public function documents()
+    {
+        return $this->hasMany(StudentDocument::class);
+    }
+
+    public function attendance()
+    {
+        return $this->hasMany(StudentAttendance::class);
+    }
+
+    public function disciplinaryRecords()
+    {
+        return $this->hasMany(DisciplinaryRecord::class);
+    }
+
+    public function marks()
+    {
+        return $this->hasMany(StudentMark::class);
+    }
+
+    // ==========================================
+    // QUERY SCOPES - Reusable query patterns
+    // ==========================================
+
+    /**
+     * Scope: Only active students.
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    /**
+     * Scope: Only inactive/blocked students.
+     */
+    public function scopeInactive($query)
+    {
+        return $query->where('is_active', false);
+    }
+
+    /**
+     * Scope: Students in a specific grade level.
+     */
+    public function scopeInGrade($query, $gradeLevelId)
+    {
+        return $query->whereHas('enrollments', function ($q) use ($gradeLevelId) {
+            $q->whereNull('end_date')
+              ->whereHas('section', fn($sq) => $sq->where('grade_level_id', $gradeLevelId));
+        });
+    }
+
+    /**
+     * Scope: Students in a specific section.
+     */
+    public function scopeInSection($query, $sectionId)
+    {
+        return $query->whereHas('enrollments', function ($q) use ($sectionId) {
+            $q->whereNull('end_date')
+              ->where('section_id', $sectionId);
+        });
+    }
+
+    /**
+     * Scope: Students currently enrolled (optionally in a specific academic year).
+     */
+    public function scopeCurrentlyEnrolled($query, $academicYearId = null)
+    {
+        return $query->whereHas('enrollments', function ($q) use ($academicYearId) {
+            $q->whereNull('end_date')
+              ->where('status', 'active');
+            
+            if ($academicYearId) {
+                $q->where('academic_year_id', $academicYearId);
+            }
+        });
+    }
+
+    /**
+     * Scope: Search students by name, ID, or admission number.
+     */
+    public function scopeSearch($query, $search)
+    {
+        if (!$search) {
+            return $query;
+        }
+
+        return $query->where(function ($q) use ($search) {
+            $q->where('student_id', $search)
+              ->orWhere('admission_number', $search)
+              ->orWhere('first_name', 'like', "{$search}%")
+              ->orWhere('father_name', 'like', "{$search}%")
+              ->orWhere('grandfather_name', 'like', "{$search}%")
+              ->orWhere('last_name', 'like', "{$search}%");
+        });
+    }
+
+    /**
+     * Scope: Filter by gender.
+     */
+    public function scopeByGender($query, $gender)
+    {
+        if (!$gender) {
+            return $query;
+        }
+        
+        return $query->where('gender', $gender);
+    }
+
+    /**
+     * Scope: Students without active enrollment (unassigned).
+     */
+    public function scopeUnassigned($query)
+    {
+        return $query->whereDoesntHave('enrollments', function ($q) {
+            $q->whereNull('end_date');
+        });
     }
 }

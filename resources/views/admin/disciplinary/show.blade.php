@@ -1,22 +1,14 @@
-<x-app-layout>
-    <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                {{ __('Disciplinary Record Details') }}
-            </h2>
-            <a href="{{ route('admin.disciplinary.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition">
-                Back
-            </a>
-        </div>
-    </x-slot>
+<x-admin-layout>
+    <x-slot name="header">Disciplinary Record Details</x-slot>
 
-    <div class="py-12">
-        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
-            <!-- Breadcrumb -->
-            <x-breadcrumb :items="[
-                ['label' => 'Disciplinary Records', 'url' => route('admin.disciplinary.index')],
-                ['label' => 'Details', 'url' => '#']
-            ]" />
+    <div class="space-y-6">
+        <x-breadcrumb :items="[
+            ['label' => 'Disciplinary Records', 'url' => route('admin.disciplinary.index')],
+            ['label' => 'Details', 'url' => '#']
+        ]" />
+
+        <div class="card overflow-hidden">
+            <div class="p-6 text-gray-900">
             
             @if(session('success'))
                 <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
@@ -157,4 +149,5 @@
             @endif
         </div>
     </div>
-</x-app-layout>
+    </div>
+</x-admin-layout>

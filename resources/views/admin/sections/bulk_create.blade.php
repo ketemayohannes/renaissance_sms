@@ -1,20 +1,15 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Bulk Create Sections') }}
-        </h2>
-    </x-slot>
+<x-admin-layout>
+    <x-slot name="header">Bulk Create Sections</x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <!-- Breadcrumb -->
-            <x-breadcrumb :items="[
-                ['label' => 'Sections', 'url' => route('admin.sections.index')],
-                ['label' => 'Bulk Create', 'url' => '#']
-            ]" />
+    <div class="space-y-6">
+        <!-- Breadcrumb -->
+        <x-breadcrumb :items="[
+            ['label' => 'Sections', 'url' => route('admin.sections.index')],
+            ['label' => 'Bulk Create', 'url' => '#']
+        ]" />
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 bg-white border-b border-gray-200">
+        <div class="card overflow-hidden">
+            <div class="p-6">
                     <form method="POST" action="{{ route('admin.sections.bulk-store') }}">
                         @csrf
 
@@ -74,5 +69,5 @@
                 </div>
             </div>
         </div>
-    </div>
-</x-app-layout>
+        </div>
+</x-admin-layout>

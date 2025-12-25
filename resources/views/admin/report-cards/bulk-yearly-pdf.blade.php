@@ -8,6 +8,10 @@
             margin: 0;
             size: A4;
         }
+        * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
         body {
             font-family: "Times New Roman", Times, serif;
             font-size: 10pt;
@@ -45,12 +49,14 @@
             }
         }
         .page {
-            width: 100%;
-            min-height: 280mm; /* Leave some safety space for printers */
+            width: 210mm;
+            height: 296.5mm; /* Exact A4 height to prevent spillover */
             padding: 5mm 10mm;
             box-sizing: border-box;
             position: relative;
-            margin-bottom: 20px;
+            margin: 0 auto;
+            background: white;
+            overflow: hidden;
         }
         
         /* Shared Styles */
@@ -154,127 +160,85 @@
             font-size: 9pt;
         }
         
-        .school-header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .school-name {
-            font-size: 24pt;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-        .logo-container {
-            text-align: center;
-            margin: 10px 0;
-        }
-        .contact-info {
-            font-size: 9pt;
-            margin-top: 10px;
-        }
-        
-        .card-title {
-            text-align: center;
-            font-weight: bold;
-            text-decoration: underline;
-            margin: 10px 0;
-            font-size: 12pt;
-        }
-        
-        .student-details {
-            border: 1px solid black;
-            padding: 10px;
-            margin-bottom: 20px;
-            line-height: 1.6;
-            font-size: 11pt;
-        }
-        .detail-row { margin-bottom: 5px; }
-        .detail-label { font-weight: normal; }
-        .detail-value { font-weight: bold; border-bottom: 1px solid black; display: inline-block; min-width: 50px; text-align: center;}
-        
-        .parent-sig-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            font-size: 10pt;
-        }
-        .parent-sig-table th, .parent-sig-table td {
-            border: 1px solid black;
-            padding: 8px;
-            text-align: left;
-        }
-        
-        .footer-note {
-            margin-top: 0;
-            font-size: 8pt;
-            text-align: justify;
-            line-height: 1.2;
-            min-height: 80px;
-        }
-
-        .back-section-box {
-            border: 1px solid black;
-            margin-bottom: 25px;
-            padding: 20px 15px;
-        }
-
-        .school-header-box {
-            border: 1px solid black;
-            padding: 20px 15px;
-            margin-bottom: 25px;
-            position: relative;
-        }
-        
-        .school-name-large {
-            font-size: 28pt;
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 5px;
-        }
-
-        .header-content-table {
-            width: 100%;
-            font-size: 8pt;
-        }
-        
-        .student-details-grid {
-            width: 100%;
-            margin-top: 10px;
-            font-size: 11pt;
-            line-height: 2.2;
-        }
-        .underlined-value {
-            text-decoration: underline;
-            padding: 0 5px;
-        }
-        
-        .parent-sig-header {
-            border: 1px solid black;
-            border-bottom: none;
-            padding: 5px 10px;
-            font-weight: normal;
-            font-size: 10pt;
-            margin-bottom: 0;
-            height: 35px;
-        }
-        
-        .parent-sig-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 9pt;
-            border: 1px solid black;
-            border-top: none;
-            margin-top: 0;
-        }
-        .parent-sig-table th, .parent-sig-table td {
-            border: 1px solid black;
-            padding: 4px;
-            text-align: center;
-        }
-        .parent-sig-table th { background-color: transparent; }
-
+        /* Page 2 Specifics (Back Page) */
         .back-page-container {
             padding: 0;
-            height: 250mm;
+        }
+        .school-header-box-new {
+            border: 1px solid black;
+            padding: 2px 15px;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+        .school-name-large-new {
+            font-size: 24pt;
+            font-weight: bold;
+            margin-bottom: 1px;
+            letter-spacing: 1px;
+        }
+        .logo-img-new {
+            height: 180px;
+            width: auto;
+            display: inline-block;
+            margin: 0;
+        }
+        .header-details-table {
+            width: 100%;
+            font-size: 8.5pt;
+            margin-top: 8px;
+        }
+        
+        .student-details-box-new {
+            border: 1px solid black;
+            padding: 2px 25px;
+            margin-bottom: 5px;
+        }
+        .card-title-new {
+            text-align: center;
+            font-weight: bold;
+            text-decoration: underline;
+            font-size: 14pt;
+            margin-bottom: 15px;
+        }
+        .details-grid-new {
+            width: 100%;
+            font-size: 11pt;
+            line-height: 1.6;
+        }
+        .underlined-val-new {
+            border-bottom: 1px solid black;
+            padding: 0 8px;
+            font-weight: normal;
+        }
+        
+        .signature-box-new {
+            border: 1px solid black;
+            margin-top: 2px;
+        }
+        .sig-header-new {
+            padding: 4px 12px;
+            font-weight: normal;
+            font-size: 11pt;
+            border-bottom: 1px solid black;
+        }
+        .sig-table-new {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .sig-table-new th, .sig-table-new td {
+            border: 1px solid black;
+            padding: 2px 5px;
+            text-align: center;
+            font-size: 9pt;
+        }
+        .sig-table-new th { font-weight: bold; }
+        .sig-table-new td:first-child { text-align: left; padding-left: 10px; }
+        
+        .footer-note-new {
+            padding: 10px 12px;
+            font-size: 8.5pt;
+            text-align: justify;
+            line-height: 1.3;
         }
     </style>
 </head>
@@ -304,6 +268,16 @@
         $fmt = function($val) {
             return \App\Helpers\NumberFormatter::format($val);
         };
+
+        // Handle Logo Base64 for robust rendering
+        $logoBase64 = null;
+        if (isset($settings->logo_path) && $settings->logo_path) {
+            $logoPath = storage_path('app/public/' . $settings->logo_path);
+            if (file_exists($logoPath)) {
+                $logoData = base64_encode(file_get_contents($logoPath));
+                $logoBase64 = 'data:image/' . pathinfo($logoPath, PATHINFO_EXTENSION) . ';base64,' . $logoData;
+            }
+        }
     @endphp
 
     @foreach($reportCards as $data)
@@ -354,7 +328,7 @@
                             <span class="checkbox"></span> 
                             <span>We appreciated his/her desirable behaviour, but he/she need advice to<br>improve <span style="border-bottom: 1px solid black; display: inline-block; width: 150px;">&nbsp;</span>, <span style="border-bottom: 1px solid black; display: inline-block; width: 150px;">&nbsp;</span></span>
                         </div>
-                        <div class="checkbox-line"><span class="checkbox"></span> <span>others <span style="border-bottom: 1px solid black; display: inline-block; width: 250px; text-transform: lowercase;">{{ ($q ? ($studentComments[$q->id] ?? '') : '') ?: '' }}&nbsp;</span></span></div>
+                        <div class="checkbox-line"><span class="checkbox"></span> <span>others <span style="border-bottom: 1px solid black; display: inline-block; width: 250px; text-transform: lowercase;">{{ ($q && isset($qRecords[$q->id])) ? $qRecords[$q->id]->homeroom_teacher_comment : '' }}&nbsp;</span></span></div>
                         <div class="checkbox-line"><span class="checkbox"></span> <span>Needs to be encouraged to listen and pay attention to his/her lesson.</span></div>
                         @else
                             <div class="checkbox-line"><span class="checkbox"></span> <span>Promoted to Grade: <span style="border-bottom: 1px solid black; display: inline-block; width: 150px;">&nbsp;</span></span></div>
@@ -376,8 +350,7 @@
                         <div style="text-align: center; font-weight: bold; font-size: 9pt; text-decoration: underline;">Remark</div>
                         <div style="white-space: pre-wrap; font-size: 8pt; text-align: justify; margin-top: 3px;">{{ $conf('remark', "A student who has a final yearly average mark of 75% or above in every subject is to be considered as a better achiever. Any mark below 75% needs more effort to improve his/her performance. Conduct marks of C or below show that some behavioural problem. Which should be improved by close follow up and counselling of parents.") }}</div>
                     </div>
-
-                </td>        </td>
+                </td>
                     </tr>
                 </table>
                 
@@ -489,22 +462,20 @@
             <div class="page" style="clear: both;">
                 <div class="back-page-container">
                     <!-- Box 1: School Header -->
-                    <div class="school-header-box">
-                        <div class="school-name-large">{{ strtoupper($settings->school_name ?? 'RENAISSANCE SCHOOL') }}</div>
-                        <div style="text-align: center; margin: 5px 0;">
-                            @if($settings->logo_path)
-                                <img src="/storage/{{ $settings->logo_path }}" style="height: 100px; width: auto;">
-                            @else
-                                <div style="height: 100px; width: 100px; border: 1px dashed #ccc; display: inline-block;"></div>
+                    <div class="school-header-box-new">
+                        <div class="school-name-large-new">{{ strtoupper($settings->school_name ?? 'RENAISSANCE SCHOOL') }}</div>
+                        <div style="text-align: center; margin: 10px 0;">
+                             @if($logoBase64)
+                                <img src="{{ $logoBase64 }}" class="logo-img-new">
                             @endif
                         </div>
-                        <table class="header-content-table">
+                        <table class="header-details-table">
                             <tr>
-                                <td width="50%">
+                                <td width="50%" style="text-align: left;">
                                     Tel: {{ $settings->telephone }}<br>
                                     Email: {{ $settings->email }}
                                 </td>
-                                <td width="50%" style="text-align: right; vertical-align: bottom;">
+                                <td width="50%" style="text-align: right;">
                                     Po. Box: {{ $settings->po_box }}<br>
                                     Website: {{ $settings->website }}
                                 </td>
@@ -513,30 +484,29 @@
                     </div>
 
                     <!-- Box 2: Student Details -->
-                    <div class="back-section-box">
-                        <div class="text-center font-bold" style="text-decoration: underline; font-size: 12pt; margin-bottom: 10px;">STUDENTS REPORT CARD</div>
-                        <table class="student-details-grid">
+                    <div class="student-details-box-new">
+                        <div class="card-title-new">STUDENTS REPORT CARD</div>
+                        <table class="details-grid-new">
                             <tr>
-                                <td colspan="4">Student Full Name: <span class="underlined-value">{{ strtoupper($student->full_name) }}</span></td>
+                                <td colspan="4">Student Full Name: <span class="underlined-val-new" style="min-width: 350px;">{{ strtoupper($student->full_name) }}</span></td>
                             </tr>
                             <tr>
-                                <td width="25%">Gender: <span class="underlined-value">{{ $student->gender ?? 'M' }}</span></td>
-                                <td colspan="3"></td>
+                                <td colspan="4">Gender: <span class="underlined-val-new" style="min-width: 60px;">{{ $student->gender ?? 'M' }}</span></td>
                             </tr>
                             <tr>
                                 <td colspan="4">
-                                    Region: <span class="underlined-value">Addis Ababa</span> &nbsp; &nbsp;
-                                    Sub City: <span class="underlined-value">Kolfe Keraniyo</span> &nbsp; &nbsp;
-                                    Werda: <span class="underlined-value">6</span> &nbsp; &nbsp;
+                                    Region: <span class="underlined-val-new">Addis Ababa</span> &nbsp; &nbsp;
+                                    Sub City: <span class="underlined-val-new">Kolfe Keraniyo</span> &nbsp; &nbsp;
+                                    Werda: <span class="underlined-val-new">6</span> &nbsp; &nbsp;
                                     H.No: <span style="border-bottom: 1px solid black; display: inline-block; width: 180px;">&nbsp;</span>
                                 </td>
                             </tr>
                             <tr>
-                                <td colspan="4">Homeroom Teacher Name: <span style="border-bottom: 1px solid black; display: inline-block; width: 350px;">{{ $section->homeroomTeacher->full_name ?? '' }}&nbsp;</span></td>
+                                <td colspan="4">Homeroom Teacher Name: <span style="border-bottom: 1px solid black; display: inline-block; width: 400px;">{{ $section->homeroomTeacher->full_name ?? '' }}&nbsp;</span></td>
                             </tr>
                             <tr>
-                                <td colspan="2">Academic Year: <span class="underlined-value">{{ $academicYear->name }}G.C 2017E.C</span></td>
-                                <td colspan="2">Grade & Section: <span class="underlined-value">{{ str_replace('Grade ', '', $section->gradeLevel->name) }}{{ $section->name }}</span></td>
+                                <td colspan="2">Academic Year: <span class="underlined-val-new">{{ $academicYear->name }}G.C 2017E.C</span></td>
+                                <td colspan="2" style="text-align: right;">Grade & Section: <span class="underlined-val-new" style="min-width: 80px;">{{ str_replace('Grade ', '', $section->gradeLevel->name) }}{{ $section->name }}</span></td>
                             </tr>
                             <tr>
                                 <td colspan="4">Promoted to Grade: <span style="border-bottom: 1px solid black; display: inline-block; width: 450px;">&nbsp;</span></td>
@@ -544,23 +514,21 @@
                         </table>
                     </div>
 
-                    <!-- Box 3: Repeated School Header -->
-                    <div class="school-header-box" style="margin-top: 20px;">
-                        <div class="school-name-large">{{ strtoupper($settings->school_name ?? 'RENAISSANCE SCHOOL') }}</div>
-                        <div style="text-align: center; margin: 5px 0;">
-                            @if($settings->logo_path)
-                                <img src="/storage/{{ $settings->logo_path }}" style="height: 100px; width: auto;">
-                            @else
-                                <div style="height: 100px; width: 100px; border: 1px dashed #ccc; display: inline-block;"></div>
+                    <!-- Box 3: Repeated Header -->
+                    <div class="school-header-box-new" style="margin-top: 2px;">
+                        <div class="school-name-large-new">{{ strtoupper($settings->school_name ?? 'RENAISSANCE SCHOOL') }}</div>
+                        <div style="text-align: center; margin: 10px 0;">
+                             @if($logoBase64)
+                                <img src="{{ $logoBase64 }}" class="logo-img-new">
                             @endif
                         </div>
-                        <table class="header-content-table">
+                        <table class="header-details-table">
                             <tr>
-                                <td width="50%">
+                                <td width="50%" style="text-align: left;">
                                     Tel: {{ $settings->telephone }}<br>
                                     Email: {{ $settings->email }}
                                 </td>
-                                <td width="50%" style="text-align: right; vertical-align: bottom;">
+                                <td width="50%" style="text-align: right;">
                                     Po. Box: {{ $settings->po_box }}<br>
                                     Website: {{ $settings->website }}
                                 </td>
@@ -569,25 +537,25 @@
                     </div>
 
                     <!-- Box 4: Parent Signature -->
-                    <div style="margin-top: 10px;">
-                        <div class="parent-sig-header">Parent's Signature</div>
-                        <table class="parent-sig-table">
+                    <div class="signature-box-new" style="margin-top: 15px;">
+                        <div class="sig-header-new">Parent's Signature</div>
+                        <table class="sig-table-new">
                             <thead>
                                 <tr>
-                                    <th>Evaluation Period</th>
-                                    <th>Parent's Comment</th>
-                                    <th>Parent's Name</th>
-                                    <th>Parent's Signature</th>
-                                    <th>Date</th>
+                                    <th width="20%">Evaluation Period</th>
+                                    <th width="25%">Parent's Comment</th>
+                                    <th width="25%">Parent's Name</th>
+                                    <th width="20%">Parent's Signature</th>
+                                    <th width="10%">Date</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr><td style="text-align: left;">1st Quarter</td><td>&nbsp;</td><td></td><td></td><td></td></tr>
-                                <tr><td style="text-align: left;">2nd Quarter</td><td>&nbsp;</td><td></td><td></td><td></td></tr>
-                                <tr><td style="text-align: left;">3rd Quarter</td><td>&nbsp;</td><td></td><td></td><td></td></tr>
+                                <tr><td>1st Quarter</td><td>&nbsp;</td><td></td><td></td><td></td></tr>
+                                <tr><td>2nd Quarter</td><td>&nbsp;</td><td></td><td></td><td></td></tr>
+                                <tr><td>3rd Quarter</td><td>&nbsp;</td><td></td><td></td><td></td></tr>
                             </tbody>
                         </table>
-                        <div class="footer-note" style="border: 1px solid black; border-top: none; padding: 5px 10px; min-height: 40px;">
+                        <div class="footer-note-new">
                             {{ $conf('parent_instructions', "Please sign the grade report after the first, second, and third quarters and return it back to school immediately after discussing the report with your child. After the fourth quarter the grade report card will be collected by parents. These and all school records should be kept in a safe place for permanent record.") }}
                         </div>
                     </div>

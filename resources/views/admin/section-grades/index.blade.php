@@ -1,18 +1,13 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Section Grade Entry (Master Sheet)') }}
-        </h2>
-    </x-slot>
+<x-admin-layout>
+    <x-slot name="header">Section Grade Entry (Master Sheet)</x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+    <div class="space-y-6">
             <x-breadcrumb :items="[
                 ['label' => 'Section Grades', 'url' => '#']
             ]" />
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900">
+        <div class="card overflow-hidden">
+            <div class="p-6">
                     <div class="flex justify-between items-center border-b pb-2 mb-4">
                         <h3 class="text-lg font-medium text-gray-900">Select Criteria</h3>
                         <a href="{{ route('admin.report-cards.exports') }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-500 flex items-center">
@@ -72,7 +67,6 @@
                             </button>
                         </div>
                     </form>
-                </div>
             </div>
         </div>
     </div>
@@ -129,4 +123,4 @@
         });
     </script>
     @endpush
-</x-app-layout>
+</x-admin-layout>

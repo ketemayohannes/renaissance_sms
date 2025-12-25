@@ -100,6 +100,12 @@ Route::middleware('auth')->group(function () {
         Route::get('students/{student}/status-history', [App\Http\Controllers\Admin\StudentController::class, 'statusHistory'])->name('students.status-history');
         Route::get('id-cards', [App\Http\Controllers\Admin\StudentController::class, 'idCardsIndex'])->name('id-cards.index');
         
+        // New Student Routes
+        Route::post('students/{student}/document', [App\Http\Controllers\Admin\StudentController::class, 'storeDocument'])->name('students.store-document');
+        Route::delete('students/{student}/document/{document}', [App\Http\Controllers\Admin\StudentController::class, 'deleteDocument'])->name('students.delete-document');
+        Route::post('students/{id}/restore', [App\Http\Controllers\Admin\StudentController::class, 'restore'])->name('students.restore');
+        Route::post('students/bulk-id-cards', [App\Http\Controllers\Admin\StudentController::class, 'bulkIdCardsSelected'])->name('students.bulk-id-cards-selected');
+        
         // Electives Bulk Assign
         Route::get('electives/bulk-assign', [App\Http\Controllers\Admin\ElectiveController::class, 'bulkAssignForm'])->name('electives.bulk-assign');
         Route::post('electives/bulk-assign', [App\Http\Controllers\Admin\ElectiveController::class, 'storeBulkAssign'])->name('electives.bulk-assign.store');
@@ -144,6 +150,8 @@ Route::middleware('auth')->group(function () {
         Route::post('academic-reports/settings', [App\Http\Controllers\Admin\AcademicReportController::class, 'updateSettings'])->name('academic-reports.settings.update');
         Route::get('academic-reports', [App\Http\Controllers\Admin\AcademicReportController::class, 'index'])->name('academic-reports.index');
         Route::get('academic-reports/show', [App\Http\Controllers\Admin\AcademicReportController::class, 'show'])->name('academic-reports.show');
+        Route::get('academic-reports/subject-analysis', [App\Http\Controllers\Admin\AcademicReportController::class, 'subjectAnalysis'])->name('academic-reports.subject-analysis');
+        Route::get('academic-reports/grade-matrix', [App\Http\Controllers\Admin\AcademicReportController::class, 'gradeMatrix'])->name('academic-reports.grade-matrix');
 
         Route::get('section-grades/{section}/report-card-details', [App\Http\Controllers\Admin\ReportCardController::class, 'entry'])->name('section-grades.report-card-entry');
         Route::post('section-grades/{section}/report-card-details', [App\Http\Controllers\Admin\ReportCardController::class, 'storeEntry'])->name('section-grades.store-report-card-entry');

@@ -1,26 +1,16 @@
-<x-app-layout>
-    <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                {{ __('Status History') }}: {{ $student->full_name }}
-            </h2>
-            <a href="{{ route('admin.students.show', $student) }}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition">
-                Back
-            </a>
-        </div>
-    </x-slot>
+<x-admin-layout>
+    <x-slot name="header">Status History: {{ $student->full_name }}</x-slot>
 
-    <div class="py-12">
-        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
-            <!-- Breadcrumb -->
-            <x-breadcrumb :items="[
-                ['label' => 'Students', 'url' => route('admin.students.index')],
-                ['label' => $student->full_name, 'url' => route('admin.students.show', $student)],
-                ['label' => 'Status History', 'url' => '#']
-            ]" />
-            
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900">
+    <div class="space-y-6">
+        <!-- Breadcrumb -->
+        <x-breadcrumb :items="[
+            ['label' => 'Students', 'url' => route('admin.students.index')],
+            ['label' => $student->full_name, 'url' => route('admin.students.show', $student)],
+            ['label' => 'Status History', 'url' => '#']
+        ]" />
+        
+        <div class="card overflow-hidden">
+            <div class="p-6">
                     @if($history->isEmpty())
                         <p class="text-gray-500 italic">No status history found for this student hideously.</p>
                     @else
@@ -57,5 +47,5 @@
                 </div>
             </div>
         </div>
-    </div>
-</x-app-layout>
+        </div>
+</x-admin-layout>

@@ -1,12 +1,7 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Student Management') }}
-        </h2>
-    </x-slot>
+<x-admin-layout>
+    <x-slot name="header">Student Management</x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+    <div class="space-y-6">
             <!-- Breadcrumb -->
             <x-breadcrumb :items="[
                 ['label' => 'Students', 'url' => '#']
@@ -113,6 +108,7 @@
                                         <option value="">All</option>
                                         <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
                                         <option value="blocked" {{ request('status') == 'blocked' ? 'selected' : '' }}>Blocked</option>
+                                        <option value="trashed" {{ request('status') == 'trashed' ? 'selected' : '' }}>Trash</option>
                                     </select>
                                 </div>
                             </div>
@@ -166,7 +162,7 @@
                         <div x-show="selected.length > 0" class="bg-indigo-50 p-2 mb-2 rounded flex justify-between items-center transition " style="display: none;">
                             <span class="text-sm text-indigo-700 font-semibold" x-text="selected.length + ' selected'"></span>
                             <div class="flex space-x-2">
-                                <form action="{{ route('admin.students.bulk-destroy') }}" method="POST" onsubmit="return confirm('Are you sure you want to delete the selected students?')">
+                                <form action="{{ route('admin.students.bulk-destroy') }}" method="POST" class="confirm-form" data-confirm-message="Are you sure you want to delete the selected students?" data-confirm-title="Bulk Delete Students" data-confirm-button="Delete Selected">
                                     @csrf
                                     <!-- Create hidden inputs for each selected ID -->
                                     <template x-for="id in selected">
@@ -174,6 +170,15 @@
                                     </template>
                                     <button type="submit" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-1 px-3 rounded shadow-sm">
                                         Delete Selected
+                                    </button>
+                                </form>
+                                <form action="{{ route('admin.students.bulk-id-cards-selected') }}" method="POST" target="_blank">
+                                    @csrf
+                                    <template x-for="id in selected">
+                                        <input type="hidden" name="ids[]" :value="id">
+                                    </template>
+                                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-1 px-3 rounded shadow-sm">
+                                        Print ID Cards
                                     </button>
                                 </form>
                             </div>
@@ -278,31 +283,38 @@
                                             @endif
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $student->is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                                                {{ $student->is_active ? 'Active' : 'Blocked' }}
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $student->trashed() ? 'bg-red-600 text-white' : ($student->is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800') }}">
+                                                {{ $student->trashed() ? 'Deleted' : ($student->is_active ? 'Active' : 'Blocked') }}
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <a href="{{ route('admin.students.show', $student) }}" class="text-blue-600 hover:text-blue-800 font-medium mr-3">View</a>
-                                            <a href="{{ route('admin.students.edit', $student) }}" class="text-indigo-600 hover:text-indigo-800 font-medium mr-3">Edit</a>
-                                            
-                                            <!-- Block/Unblock -->
-                                            <form action="{{ route('admin.students.toggle-block', $student) }}" method="POST" class="inline-block mr-3 delete-form" 
-                                                  data-confirm-message="Are you sure you want to {{ $student->is_active ? 'block' : 'unblock' }} this student?"
-                                                  data-confirm-title="Confirm {{ $student->is_active ? 'Block' : 'Unblock' }}"
-                                                  data-confirm-button="{{ $student->is_active ? 'Block' : 'Unblock' }}"
-                                                  data-confirm-type="{{ $student->is_active ? 'danger' : 'success' }}">
-                                                @csrf
-                                                <button type="submit" class="{{ $student->is_active ? 'text-orange-600 hover:text-orange-800 font-medium' : 'text-green-600 hover:text-green-800 font-medium' }}">
-                                                    {{ $student->is_active ? 'Block' : 'Unblock' }}
-                                                </button>
-                                            </form>
-                                            
-                                            <form action="{{ route('admin.students.destroy', $student) }}" method="POST" class="inline-block delete-form" data-confirm-message="Are you sure? This will delete the user account as well.">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="text-red-600 hover:text-red-800 font-medium">Delete</button>
-                                            </form>
+                                            @if($student->trashed())
+                                                <form action="{{ route('admin.students.restore', $student->id) }}" method="POST" class="inline-block">
+                                                    @csrf
+                                                    <button type="submit" class="text-green-600 hover:text-green-900 font-bold mr-3">Restore</button>
+                                                </form>
+                                            @else
+                                                <a href="{{ route('admin.students.show', $student) }}" class="text-blue-600 hover:text-blue-800 font-medium mr-3">View</a>
+                                                <a href="{{ route('admin.students.edit', $student) }}" class="text-indigo-600 hover:text-indigo-800 font-medium mr-3">Edit</a>
+                                                
+                                                <!-- Block/Unblock -->
+                                                <form action="{{ route('admin.students.toggle-block', $student) }}" method="POST" class="inline-block mr-3 delete-form" 
+                                                      data-confirm-message="Are you sure you want to {{ $student->is_active ? 'block' : 'unblock' }} this student?"
+                                                      data-confirm-title="Confirm {{ $student->is_active ? 'Block' : 'Unblock' }}"
+                                                      data-confirm-button="{{ $student->is_active ? 'Block' : 'Unblock' }}"
+                                                      data-confirm-type="{{ $student->is_active ? 'danger' : 'success' }}">
+                                                    @csrf
+                                                    <button type="submit" class="{{ $student->is_active ? 'text-orange-600 hover:text-orange-800 font-medium' : 'text-green-600 hover:text-green-800 font-medium' }}">
+                                                        {{ $student->is_active ? 'Block' : 'Unblock' }}
+                                                    </button>
+                                                </form>
+                                                
+                                                <form action="{{ route('admin.students.destroy', $student) }}" method="POST" class="inline-block delete-form" data-confirm-message="Are you sure? This will delete the user account as well.">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="text-red-600 hover:text-red-800 font-medium">Delete</button>
+                                                </form>
+                                            @endif
                                         </td>
                                     </tr>
                                 @empty
@@ -334,4 +346,4 @@
             </div>
         </div>
     </div>
-</x-app-layout>
+</x-admin-layout>

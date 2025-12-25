@@ -1,25 +1,25 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Promotion Preview') }}: {{ $section->gradeLevel->name }}{{ $section->name }}
-        </h2>
-    </x-slot>
+<x-admin-layout>
+    <x-slot name="header">Promotion Preview: {{ $section->gradeLevel->name }}{{ $section->name }}</x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <!-- Breadcrumb -->
-            <x-breadcrumb :items="[
-                ['label' => 'Promotions', 'url' => route('admin.promotions.index')],
-                ['label' => 'Preview', 'url' => '#']
-            ]" />
-            
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900">
-                    <div class="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4 bg-blue-50 p-4 rounded-lg">
-                        <div><span class="text-gray-500">From:</span> <strong>{{ $section->gradeLevel->name }}</strong></div>
-                        <div><span class="text-gray-500">To:</span> <strong>{{ $nextGradeLevel?->name ?? 'N/A' }}</strong></div>
-                        <div><span class="text-gray-500">Rule:</span> <strong>{{ $promotionRule ? 'Min ' . $promotionRule->min_average . '%' : 'Default (50%)' }}</strong></div>
-                        <div><span class="text-gray-500">Students:</span> <strong>{{ count($previewData) }}</strong></div>
+    <div class="space-y-6">
+        <x-breadcrumb :items="[
+            ['label' => 'Promotions', 'url' => route('admin.promotions.index')],
+            ['label' => 'Preview', 'url' => '#']
+        ]" />
+
+        <div class="card overflow-hidden">
+            <div class="p-6">
+                    <div class="mb-6 flex justify-between items-center bg-blue-50 p-4 rounded-lg">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 flex-1">
+                            <div><span class="text-gray-500">From:</span> <strong>{{ $section->gradeLevel->name }}</strong></div>
+                            <div><span class="text-gray-500">To:</span> <strong>{{ $nextGradeLevel?->name ?? 'N/A' }}</strong></div>
+                            <div><span class="text-gray-500">Rule:</span> <strong>{{ $promotionRule ? 'Min ' . $promotionRule->min_average . '%' : 'Default (50%)' }}</strong></div>
+                            <div><span class="text-gray-500">Students:</span> <strong>{{ count($previewData) }}</strong></div>
+                        </div>
+                        <a href="{{ route('admin.academic-reports.show') }}?academic_year_id={{$academicYear->id}}&term_id=yearly&section_id={{$section->id}}&report_type=result_analysis" target="_blank" class="text-sm font-bold text-indigo-600 hover:text-indigo-800 flex items-center bg-white px-4 py-2 rounded-lg shadow-sm border border-indigo-100 transition">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                            View Full Yearly Analysis
+                        </a>
                     </div>
 
                     <form action="{{ route('admin.promotions.execute') }}" method="POST">
@@ -79,4 +79,4 @@
             </div>
         </div>
     </div>
-</x-app-layout>
+</x-admin-layout>

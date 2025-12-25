@@ -1,16 +1,14 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Bulk Assign Electives') }}
-        </h2>
-    </x-slot>
+<x-admin-layout>
+    <x-slot name="header">Bulk Assign Electives</x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <x-breadcrumb :items="[
-                ['label' => 'Electives', 'url' => '#'],
-                ['label' => 'Bulk Assign', 'url' => '#']
-            ]" />
+    <div class="space-y-6">
+        <x-breadcrumb :items="[
+            ['label' => 'Electives', 'url' => '#'],
+            ['label' => 'Bulk Assign', 'url' => '#']
+        ]" />
+
+        <div class="card overflow-hidden">
+            <div class="p-6">
 
             @if (session('success'))
                 <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
@@ -254,4 +252,5 @@
         }
     </script>
     @endpush
-</x-app-layout>
+    </div>
+</x-admin-layout>

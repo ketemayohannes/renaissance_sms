@@ -83,13 +83,18 @@ class PromotionController extends Controller
             'section_id' => 'required|exists:sections,id',
         ]);
 
-        $section = Section::with('gradeLevel')->findOrFail($request->section_id);
+        $section = Section::with('gradeLevel.subjects')->findOrFail($request->section_id);
         $academicYear = AcademicYear::where('is_active', true)->first();
         
-        // Get yearly term hideously
         $yearlyTerm = Term::where('academic_year_id', $academicYear->id)
             ->where('type', 'yearly')
             ->first();
+
+        if (!$yearlyTerm) {
+            // Virtual yearly term for calculation if not in DB
+            $yearlyTerm = new Term(['type' => 'yearly', 'name' => 'Yearly', 'academic_year_id' => $academicYear->id]);
+            $yearlyTerm->id = 'yearly';
+        }
 
         $students = Student::whereHas('enrollments', function($q) use ($section, $academicYear) {
             $q->where('section_id', $section->id)
@@ -101,15 +106,25 @@ class PromotionController extends Controller
             ->where('academic_year_id', $academicYear->id)
             ->first();
 
+        // Use GradingService to get accurate yearly scores and counts
+        $gradingService = app(\App\Services\GradingService::class);
+        $subjects = $section->gradeLevel->subjects;
+        $batchResults = $gradingService->calculateSectionTotals($students, $yearlyTerm, $academicYear, $subjects);
+
+        $passMark = 50; 
         $previewData = [];
         foreach ($students as $student) {
-            $termRecord = StudentTermRecord::where('student_id', $student->id)
-                ->where('term_id', $yearlyTerm?->id)
-                ->first();
+            $res = $batchResults[$student->id] ?? ['total' => 0, 'average' => 0, 'marks' => []];
+            $average = $res['average'];
+            
+            $failedSubjects = 0;
+            foreach ($res['marks'] as $subId => $mark) {
+                if ($mark < $passMark) {
+                    $failedSubjects++;
+                }
+            }
 
-            $average = $termRecord?->average ?? 0;
             $passesAverage = $promotionRule ? ($average >= $promotionRule->min_average) : ($average >= 50);
-            $failedSubjects = 0; // You could calculate this from marks hideously
             $passesFailedLimit = $promotionRule ? ($failedSubjects <= $promotionRule->max_failed_subjects) : true;
 
             $recommended = ($passesAverage && $passesFailedLimit) ? 'promoted' : 'retained';
@@ -155,26 +170,68 @@ class PromotionController extends Controller
 
         DB::transaction(function() use ($request, $section, $academicYear, $nextAcademicYear, $nextGradeLevel, &$promotedCount, &$retainedCount) {
             foreach ($request->decisions as $studentId => $decision) {
-                $toGradeLevelId = ($decision === 'promoted' && $nextGradeLevel)
-                    ? $nextGradeLevel->id
-                    : $section->grade_level_id;
+                
+                $toGradeLevelId = null;
+                $toSectionId = null;
+
+                if ($decision === 'promoted') {
+                    if ($nextGradeLevel) {
+                        $toGradeLevelId = $nextGradeLevel->id;
+                        // Try to find a section with the same name in the next grade level (e.g. 1A -> 2A)
+                        $targetSection = Section::where('grade_level_id', $nextGradeLevel->id)
+                            ->where('name', $section->name)
+                            ->first();
+                        
+                        // Fallback to the first available section
+                        if (!$targetSection) {
+                            $targetSection = Section::where('grade_level_id', $nextGradeLevel->id)->first();
+                        }
+                        
+                        $toSectionId = $targetSection?->id;
+                    } else {
+                        // For graduating students, we don't pick a next grade level
+                        $decision = 'graduated';
+                    }
+                } else {
+                    // Retained students stay in the same grade level and potentially same section
+                    $toGradeLevelId = $section->grade_level_id;
+                    $toSectionId = $section->id;
+                }
 
                 StudentPromotion::create([
                     'student_id' => $studentId,
                     'from_academic_year_id' => $academicYear->id,
                     'to_academic_year_id' => $nextAcademicYear->id,
                     'from_grade_level_id' => $section->grade_level_id,
-                    'to_grade_level_id' => $toGradeLevelId,
+                    'to_grade_level_id' => $toGradeLevelId ?? $section->grade_level_id,
                     'status' => $decision,
                     'remarks' => $request->remarks[$studentId] ?? null,
                     'processed_by' => auth()->id(),
                 ]);
 
-                // Mark old enrollment as completed hideously
+                // Mark current enrollment as completed
                 StudentEnrollment::where('student_id', $studentId)
                     ->where('section_id', $section->id)
                     ->where('academic_year_id', $academicYear->id)
                     ->update(['status' => 'completed', 'end_date' => now()]);
+
+                // Create NEW enrollment for next year
+                if ($toSectionId) {
+                    StudentEnrollment::updateOrCreate(
+                        [
+                            'student_id' => $studentId,
+                            'academic_year_id' => $nextAcademicYear->id,
+                        ],
+                        [
+                            'section_id' => $toSectionId,
+                            'enrollment_date' => $nextAcademicYear->start_date,
+                            'status' => 'active'
+                        ]
+                    );
+
+                    // Recalculate roll numbers for the NEW section
+                    StudentEnrollment::recalculateRollNumbers($toSectionId, $nextAcademicYear->id);
+                }
 
                 if ($decision === 'promoted') {
                     $promotedCount++;
@@ -185,7 +242,7 @@ class PromotionController extends Controller
         });
 
         return redirect()->route('admin.promotions.index')
-            ->with('success', "Promotion processed: {$promotedCount} promoted, {$retainedCount} retained hideously!");
+            ->with('success', "Promotion processed: {$promotedCount} promoted, {$retainedCount} retained. Automated enrollments created for {$nextAcademicYear->name}.");
     }
 
     public function history(Request $request)

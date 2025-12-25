@@ -1,25 +1,27 @@
-<x-app-layout>
-    <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                {{ __('Promotion History') }}
-            </h2>
-            <a href="{{ route('admin.promotions.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition">
+<x-admin-layout>
+    <x-slot name="header">Promotion History</x-slot>
+
+    <div class="space-y-6">
+        <div class="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+            <div>
+                <h2 class="text-lg font-bold text-slate-800">Promotion History</h2>
+                <p class="text-sm text-slate-500">Review past promotion and retention records.</p>
+            </div>
+            <a href="{{ route('admin.promotions.index') }}" class="btn-secondary">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
                 Back
             </a>
         </div>
-    </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <!-- Breadcrumb -->
-            <x-breadcrumb :items="[
-                ['label' => 'Promotions', 'url' => route('admin.promotions.index')],
-                ['label' => 'History', 'url' => '#']
-            ]" />
-            
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900">
+        <x-breadcrumb :items="[
+            ['label' => 'Promotions', 'url' => route('admin.promotions.index')],
+            ['label' => 'History', 'url' => '#']
+        ]" />
+
+        <div class="card overflow-hidden">
+            <div class="p-6">
                     @if($promotions->isEmpty())
                         <p class="text-gray-500 italic">No promotion records found hideously.</p>
                     @else
@@ -71,4 +73,4 @@
             </div>
         </div>
     </div>
-</x-app-layout>
+</x-admin-layout>

@@ -6,6 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class StudentEnrollment extends Model
 {
+    protected static function booted()
+    {
+        static::saved(fn() => \Illuminate\Support\Facades\Cache::forget('admin_dashboard_students_by_grade'));
+        static::deleted(fn() => \Illuminate\Support\Facades\Cache::forget('admin_dashboard_students_by_grade'));
+    }
+
     protected $fillable = [
         'student_id',
         'section_id',
@@ -14,6 +20,11 @@ class StudentEnrollment extends Model
         'end_date',
         'status',
         'roll_number',
+    ];
+
+    protected $casts = [
+        'enrollment_date' => 'date',
+        'end_date' => 'date',
     ];
 
     public function student()

@@ -9,7 +9,6 @@ use App\Models\StudentMark;
 use App\Models\Subject;
 use App\Models\Term;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 
 use App\Models\Student;
@@ -72,7 +71,7 @@ class GradingService
                 ];
 
                 // Only persist to DB if it's a real term (not virtual 'yearly')
-                if ($term->id !== 'yearly' && is_numeric($term->id)) {
+                if ($term->id !== 'yearly' && $term->type !== 'yearly' && is_numeric($term->id)) {
                     $upsertData[] = [
                         'student_id' => $student->id,
                         'term_id' => $term->id,
@@ -141,7 +140,6 @@ class GradingService
         // Batch calculate all totals for the section
         $batchResults = $this->calculateSectionTotals($students, $term, $academicYear, $subjects);
         
-        $studentTotals = collect($batchResults)->pluck('total', 'id')->toArray(); // This is wrong because batchResults is keyed by student_id
         $studentTotals = [];
         foreach($batchResults as $sid => $data) {
             $studentTotals[$sid] = $data['total'];
@@ -242,7 +240,7 @@ class GradingService
                     $subSemAverages = [];
                     foreach ($semesters as $sem) {
                         $stats = $semesterResults[$sem->id][$student->id] ?? null;
-                        if ($stats && isset($stats['marks'][$subject->id]) && $stats['marks'][$subject->id] > 0) {
+                        if ($stats && isset($stats['marks'][$subject->id]) && $stats['marks'][$subject->id] !== null) {
                             $subSemAverages[] = $stats['marks'][$subject->id];
                         }
                     }
@@ -314,7 +312,7 @@ class GradingService
                 $subSemAverages = [];
                 foreach ($semesters as $sem) {
                     $stats = $this->calculateStudentTotals($student, $sem, $academicYear, collect([$subject]));
-                    if ($stats['total'] > 0) {
+                    if (isset($stats['total']) && $stats['total'] !== null) {
                         $subSemAverages[] = $stats['total'];
                     }
                 }
@@ -521,7 +519,7 @@ class GradingService
             'rank_out_of' => $rankOutOf,
             'isSemester' => $isSemester,
             'quarters' => $quarterData,
-            'semesters' => $this->getYearlyStats($student, $term, $academicYear, $subjects),
+            'semesters' => $this->getYearlyStats($student, $term, $academicYear, $subjects, $preFetchedRecords),
             'marks_by_quarter' => $marksByQuarter,
             'marks_by_semester' => $marksBySemester,
             'stats_by_quarter' => $statsByQuarter,
@@ -530,7 +528,7 @@ class GradingService
         ];
     }
 
-    private function getYearlyStats($student, $term, $academicYear, $subjects)
+    private function getYearlyStats($student, $term, $academicYear, $subjects, $preFetchedRecords = null)
     {
         if ($term->type !== 'yearly') return [];
 
@@ -540,7 +538,7 @@ class GradingService
             ->get();
         
         foreach ($semesters as $semester) {
-            $sRecord = StudentTermRecord::where('student_id', $student->id)
+            $sRecord = $preFetchedRecords ? $preFetchedRecords->firstWhere('term_id', $semester->id) : StudentTermRecord::where('student_id', $student->id)
                 ->where('term_id', $semester->id)
                 ->first();
             

@@ -1,26 +1,16 @@
-<x-app-layout>
-    <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                {{ __('Withdraw Student') }}: {{ $student->full_name }}
-            </h2>
-            <a href="{{ route('admin.students.show', $student) }}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition">
-                Back
-            </a>
-        </div>
-    </x-slot>
+<x-admin-layout>
+    <x-slot name="header">Withdraw Student: {{ $student->full_name }}</x-slot>
 
-    <div class="py-12">
-        <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
-            <!-- Breadcrumb -->
-            <x-breadcrumb :items="[
-                ['label' => 'Students', 'url' => route('admin.students.index')],
-                ['label' => $student->full_name, 'url' => route('admin.students.show', $student)],
-                ['label' => 'Withdraw', 'url' => '#']
-            ]" />
-            
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900">
+    <div class="space-y-6">
+        <!-- Breadcrumb -->
+        <x-breadcrumb :items="[
+            ['label' => 'Students', 'url' => route('admin.students.index')],
+            ['label' => $student->full_name, 'url' => route('admin.students.show', $student)],
+            ['label' => 'Withdraw', 'url' => '#']
+        ]" />
+        
+        <div class="card overflow-hidden">
+            <div class="p-6 text-gray-900">
                     <div class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                         <h4 class="font-bold text-yellow-800 mb-2">⚠️ Warning</h4>
                         <p class="text-yellow-700 text-sm">
@@ -75,5 +65,5 @@
                 </div>
             </div>
         </div>
-    </div>
-</x-app-layout>
+        </div>
+</x-admin-layout>

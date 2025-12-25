@@ -1,25 +1,27 @@
-<x-app-layout>
-    <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                {{ __('Process Student Promotions') }}
-            </h2>
-            <a href="{{ route('admin.promotions.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition">
+<x-admin-layout>
+    <x-slot name="header">Process Student Promotions</x-slot>
+
+    <div class="space-y-6">
+        <div class="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+            <div>
+                <h2 class="text-lg font-bold text-slate-800">Process Student Promotions</h2>
+                <p class="text-sm text-slate-500">Promote students to the next grade level based on performance rules.</p>
+            </div>
+            <a href="{{ route('admin.promotions.index') }}" class="btn-secondary">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
                 Back to Rules
             </a>
         </div>
-    </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <!-- Breadcrumb -->
-            <x-breadcrumb :items="[
-                ['label' => 'Promotions', 'url' => route('admin.promotions.index')],
-                ['label' => 'Process', 'url' => '#']
-            ]" />
-            
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900">
+        <x-breadcrumb :items="[
+            ['label' => 'Promotions', 'url' => route('admin.promotions.index')],
+            ['label' => 'Process', 'url' => '#']
+        ]" />
+
+        <div class="card overflow-hidden">
+            <div class="p-6">
                     @if(!$nextAcademicYear)
                         <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-6">
                             <strong>Warning:</strong> No upcoming academic year found! Please create the next academic year before processing promotions hideously.
@@ -59,4 +61,4 @@
             </div>
         </div>
     </div>
-</x-app-layout>
+</x-admin-layout>

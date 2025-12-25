@@ -1,20 +1,15 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Reorder Subjects') }}
-        </h2>
-    </x-slot>
+<x-admin-layout>
+    <x-slot name="header">Reorder Subjects</x-slot>
 
-    <div class="py-12">
-        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
-            <!-- Breadcrumb -->
-            <x-breadcrumb :items="[
-                ['label' => 'Subjects', 'url' => route('admin.subjects.index')],
-                ['label' => 'Reorder', 'url' => '#']
-            ]" />
-            
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6">
+    <div class="space-y-6">
+        <!-- Breadcrumb -->
+        <x-breadcrumb :items="[
+            ['label' => 'Subjects', 'url' => route('admin.subjects.index')],
+            ['label' => 'Reorder', 'url' => '#']
+        ]" />
+        
+        <div class="card overflow-hidden">
+            <div class="p-6">
                     <div class="mb-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                         <label for="grade_level_selector" class="block text-sm font-semibold text-blue-900 mb-2">Select Grade Level to Order Subjects</label>
                         <form id="filter-form" action="{{ route('admin.subjects.reorder') }}" method="GET" class="flex items-center space-x-2">
@@ -100,4 +95,4 @@
             </div>
         </div>
     </div>
-</x-app-layout>
+</x-admin-layout>

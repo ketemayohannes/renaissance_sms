@@ -1,20 +1,15 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Bulk Assign Subjects') }}
-        </h2>
-    </x-slot>
+<x-admin-layout>
+    <x-slot name="header">Bulk Assign Subjects</x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <!-- Breadcrumb -->
-            <x-breadcrumb :items="[
-                ['label' => 'Subject Assignments', 'url' => route('admin.subject-assignments.index')],
-                ['label' => 'Bulk Assign', 'url' => '#']
-            ]" />
-            
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg" x-data="{ confirmModal: false }">
-                <div class="p-6 text-gray-900">
+    <div class="space-y-6">
+        <!-- Breadcrumb -->
+        <x-breadcrumb :items="[
+            ['label' => 'Subject Assignments', 'url' => route('admin.subject-assignments.index')],
+            ['label' => 'Bulk Assign', 'url' => '#']
+        ]" />
+        
+        <div class="card overflow-hidden">
+            <div class="p-6">
                     <div class="mb-6">
                         <p class="text-sm text-gray-600">Select multiple grade levels and the subjects you want to assign to them. This will overwrite any existing assignments for the selected grades.</p>
                     </div>
@@ -140,4 +135,5 @@
         });
     </script>
     @endpush
-</x-app-layout>
+    </div>
+</x-admin-layout>

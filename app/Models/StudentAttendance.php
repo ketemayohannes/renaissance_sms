@@ -8,6 +8,19 @@ class StudentAttendance extends Model
 {
     protected $table = 'student_attendance';
 
+    protected static function booted()
+    {
+        static::saved(function ($attendance) {
+            \Illuminate\Support\Facades\Cache::forget('admin_dashboard_attendance_rate');
+            \Illuminate\Support\Facades\Cache::forget('admin_dashboard_missing_attendance');
+        });
+
+        static::deleted(function ($attendance) {
+            \Illuminate\Support\Facades\Cache::forget('admin_dashboard_attendance_rate');
+            \Illuminate\Support\Facades\Cache::forget('admin_dashboard_missing_attendance');
+        });
+    }
+
     protected $fillable = [
         'student_id',
         'section_id',

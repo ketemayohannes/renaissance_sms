@@ -12,6 +12,12 @@ class User extends Authenticatable
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, \Spatie\Permission\Traits\HasRoles;
 
+    protected static function booted()
+    {
+        static::saved(fn() => \Illuminate\Support\Facades\Cache::forget('admin_dashboard_stats'));
+        static::deleted(fn() => \Illuminate\Support\Facades\Cache::forget('admin_dashboard_stats'));
+    }
+
     /**
      * The attributes that are mass assignable.
      *

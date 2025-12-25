@@ -1,17 +1,12 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Grade Entry') }}
-        </h2>
-    </x-slot>
+<x-admin-layout>
+    <x-slot name="header">Grade Entry</x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <!-- Breadcrumb -->
-            <x-breadcrumb :items="[
-                ['label' => 'Gradebook', 'url' => route('admin.gradebook.index')],
-                ['label' => 'Grade Entry', 'url' => '#']
-            ]" />
+    <div class="space-y-6">
+        <!-- Breadcrumb -->
+        <x-breadcrumb :items="[
+            ['label' => 'Gradebook', 'url' => route('admin.gradebook.index')],
+            ['label' => 'Grade Entry', 'url' => '#']
+        ]" />
 
             <!-- Selection Summary -->
             
@@ -22,48 +17,73 @@
                 </div>
             @endif
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
-                <div class="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200 flex justify-between items-center">
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-3">Grade Entry Details</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <div>
-                                <p class="text-sm text-gray-600">Academic Year</p>
-                                <p class="font-semibold text-gray-900">{{ $academicYear->name }}</p>
-                            </div>
-                            <div>
-                                <p class="text-sm text-gray-600">Term</p>
-                                <p class="font-semibold text-gray-900">{{ $term->name }}</p>
-                            </div>
-                            <div>
-                                <p class="text-sm text-gray-600">Grade & Section</p>
-                                <p class="font-semibold text-gray-900">{{ $section->gradeLevel->name }} - {{ $section->name }}</p>
-                            </div>
-                            <div>
-                                <p class="text-sm text-gray-600">Subject</p>
-                                <p class="font-semibold text-gray-900">{{ $subject->name }} ({{ $subject->code }})</p>
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6" x-data="gradebookState()">
+                <div class="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
+                    <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-3">Grade Entry Details</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div>
+                                    <p class="text-sm text-gray-600">Academic Year</p>
+                                    <p class="font-semibold text-gray-900">{{ $academicYear->name }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-600">Term</p>
+                                    <p class="font-semibold text-gray-900">{{ $term->name }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-600">Grade & Section</p>
+                                    <p class="font-semibold text-gray-900">{{ $section->gradeLevel->name }} - {{ $section->name }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-600">Subject</p>
+                                    <p class="font-semibold text-gray-900">{{ $subject->name }} ({{ $subject->code }})</p>
+                                </div>
                             </div>
                         </div>
+                        <div class="flex flex-col space-y-2">
+                            <!-- Unsaved Changes Warning -->
+                            <div x-show="hasUnsavedChanges" x-cloak class="flex items-center text-amber-600 bg-amber-50 px-3 py-2 rounded-lg text-sm font-medium">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                Unsaved changes
+                            </div>
+                            <a href="{{ route('admin.gradebook.export-template', ['academic_year_id' => $academicYear->id, 'term_id' => $term->id, 'section_id' => $section->id, 'subject_id' => $subject->id]) }}" 
+                               class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                <svg class="-ml-1 mr-2 h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                                Export Template
+                            </a>
+                            <button type="button" @if($term->is_grading_open) onclick="document.getElementById('importModal').classList.remove('hidden')" @endif
+                                    class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 @if(!$term->is_grading_open) opacity-50 cursor-not-allowed @endif"
+                                    @if(!$term->is_grading_open) disabled @endif>
+                                <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                </svg>
+                                Import Grades
+                            </button>
+                        </div>
                     </div>
-                    <div class="flex flex-col space-y-2">
-                        <a href="{{ route('admin.gradebook.export-template', ['academic_year_id' => $academicYear->id, 'term_id' => $term->id, 'section_id' => $section->id, 'subject_id' => $subject->id]) }}" 
-                           class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                            <svg class="-ml-1 mr-2 h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                            Export Template
-                        </a>
-                                    </svg>
-                            Export Template
-                        </a>
-                        <button type="button" @if($term->is_grading_open) onclick="document.getElementById('importModal').classList.remove('hidden')" @endif
-                                class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 @if(!$term->is_grading_open) opacity-50 cursor-not-allowed @endif"
-                                @if(!$term->is_grading_open) disabled @endif>
-                            <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                            </svg>
-                            Import Grades
-                        </button>
+                    
+                    <!-- Progress Bar -->
+                    @php
+                        $totalStudents = $students->count();
+                        $gradedStudents = 0;
+                        foreach($students as $student) {
+                            $studentMarks = $existingMarks->get($student->id);
+                            $hasAnyGrade = $studentMarks && $studentMarks->count() > 0;
+                            if($hasAnyGrade) $gradedStudents++;
+                        }
+                        $progressPercent = $totalStudents > 0 ? round(($gradedStudents / $totalStudents) * 100) : 0;
+                    @endphp
+                    <div class="mt-4 pt-4 border-t border-blue-100">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-700">Grading Progress</span>
+                            <span class="text-sm font-bold text-gray-900">{{ $gradedStudents }} / {{ $totalStudents }} students</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5">
+                            <div class="h-2.5 rounded-full transition-all {{ $progressPercent == 100 ? 'bg-green-500' : 'bg-blue-500' }}" style="width: {{ $progressPercent }}%"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -260,17 +280,50 @@
 
     @push('scripts')
     <script>
+        // Alpine.js component for gradebook state
+        function gradebookState() {
+            return {
+                hasUnsavedChanges: false,
+                isSaving: false,
+                
+                init() {
+                    // Track changes on all inputs
+                    this.$nextTick(() => {
+                        const form = document.querySelector('form');
+                        if (form) {
+                            form.querySelectorAll('input[type="number"]').forEach(input => {
+                                input.addEventListener('change', () => {
+                                    this.hasUnsavedChanges = true;
+                                });
+                            });
+                        }
+                    });
+                    
+                    // Warn before leaving with unsaved changes
+                    window.addEventListener('beforeunload', (e) => {
+                        if (this.hasUnsavedChanges) {
+                            e.preventDefault();
+                            e.returnValue = '';
+                        }
+                    });
+                }
+            }
+        }
+        
         function calculateTotals(input) {
+            // Mark as unsaved
+            if (window.Alpine) {
+                const component = Alpine.$data(document.querySelector('[x-data]'));
+                if (component) component.hasUnsavedChanges = true;
+            }
+            
             // Validate score doesn't exceed max
             const maxScore = parseFloat(input.getAttribute('max'));
             const enteredScore = parseFloat(input.value);
             
             if (enteredScore > maxScore) {
-                console.log('Validation failed: Score', enteredScore, 'exceeds max', maxScore);
-                console.log('Dispatching confirm-action event');
-                
                 const event = new CustomEvent('confirm-action', {
-                    bubbles: true, // Make sure it bubbles up
+                    bubbles: true,
                     detail: {
                         type: 'danger',
                         title: 'Invalid Score',
@@ -280,12 +333,7 @@
                     }
                 });
                 window.dispatchEvent(event);
-                console.log('Event dispatched:', event);
-                
-                input.value = maxScore; // Reset to max
-                // input.focus();
-                // input.select();
-                // Continue calculation with the corrected value (maxScore)
+                input.value = maxScore;
             }
             
             const row = input.closest('tr');
@@ -297,9 +345,7 @@
                 const val = parseFloat(inp.value) || 0;
                 totalScore += val;
                 
-                // Identify if this input belongs to a 'Final Exam' component
                 const cellIndex = inp.closest('td').cellIndex;
-                // Get header text safely
                 const headerCell = input.closest('table').tHead.rows[0].cells[cellIndex];
                 const headerText = headerCell ? headerCell.innerText.toLowerCase() : '';
                 
@@ -311,6 +357,58 @@
             row.querySelector('.total-score').innerText = totalScore.toFixed(2);
             row.querySelector('.class-assessment-total').innerText = classAssessmentScore.toFixed(2);
         }
+        
+        // Keyboard navigation
+        document.addEventListener('DOMContentLoaded', function() {
+            const table = document.querySelector('table');
+            if (!table) return;
+            
+            table.addEventListener('keydown', function(e) {
+                if (e.target.tagName !== 'INPUT') return;
+                
+                const cell = e.target.closest('td');
+                const row = cell.closest('tr');
+                const rows = Array.from(table.querySelectorAll('tbody tr'));
+                const rowIndex = rows.indexOf(row);
+                const cells = Array.from(row.querySelectorAll('td'));
+                const cellIndex = cells.indexOf(cell);
+                
+                let nextInput = null;
+                
+                // Enter key: move to next row (same column)
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const nextRow = rows[rowIndex + 1];
+                    if (nextRow) {
+                        nextInput = nextRow.querySelectorAll('td')[cellIndex]?.querySelector('input');
+                    }
+                }
+                
+                // Arrow down: move to next row
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    const nextRow = rows[rowIndex + 1];
+                    if (nextRow) {
+                        nextInput = nextRow.querySelectorAll('td')[cellIndex]?.querySelector('input');
+                    }
+                }
+                
+                // Arrow up: move to previous row
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    const prevRow = rows[rowIndex - 1];
+                    if (prevRow) {
+                        nextInput = prevRow.querySelectorAll('td')[cellIndex]?.querySelector('input');
+                    }
+                }
+                
+                if (nextInput) {
+                    nextInput.focus();
+                    nextInput.select();
+                }
+            });
+        });
     </script>
     @endpush
-</x-app-layout>
+    </div>
+</x-admin-layout>

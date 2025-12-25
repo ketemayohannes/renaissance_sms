@@ -1,21 +1,16 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            Transfer Student: {{ $student->first_name }} {{ $student->father_name }}
-        </h2>
-    </x-slot>
+<x-admin-layout>
+    <x-slot name="header">Transfer Student: {{ $student->full_name }}</x-slot>
 
-    <div class="py-12">
-        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
-            <!-- Breadcrumb -->
-            <x-breadcrumb :items="[
-                ['label' => 'Students', 'url' => route('admin.students.index')],
-                ['label' => $student->full_name, 'url' => route('admin.students.show', $student)],
-                ['label' => 'Transfer', 'url' => '#']
-            ]" />
-            
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6">
+    <div class="space-y-6">
+        <!-- Breadcrumb -->
+        <x-breadcrumb :items="[
+            ['label' => 'Students', 'url' => route('admin.students.index')],
+            ['label' => $student->full_name, 'url' => route('admin.students.show', $student)],
+            ['label' => 'Transfer', 'url' => '#']
+        ]" />
+        
+        <div class="card overflow-hidden">
+            <div class="p-6">
                     @if(session('error'))
                         <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
                             {{ session('error') }}
@@ -130,4 +125,4 @@
             </div>
         </div>
     </div>
-</x-app-layout>
+</x-admin-layout>

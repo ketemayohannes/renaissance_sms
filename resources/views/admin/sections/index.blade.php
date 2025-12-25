@@ -1,28 +1,25 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Section Management') }}
-        </h2>
-    </x-slot>
+<x-admin-layout>
+    <x-slot name="header">Section Management</x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+    <div class="space-y-6">
             <!-- Breadcrumb -->
             <x-breadcrumb :items="[
                 ['label' => 'Sections', 'url' => '#']
             ]" />
             
-            <div class="flex justify-end mb-4 gap-2">
-                <a href="{{ route('admin.sections.bulk-create') }}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded">
-                    Bulk Create Sections
-                </a>
-                <a href="{{ route('admin.sections.import') }}" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
-                    Import Sections
-                </a>
-                <a href="{{ route('admin.sections.create') }}" class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
-                    Add New Section
-                </a>
-            </div>
+        <!-- Action Buttons -->
+        <div class="flex justify-end gap-3">
+            <a href="{{ route('admin.sections.bulk-create') }}" class="btn-secondary">
+                Bulk Create
+            </a>
+            <a href="{{ route('admin.sections.import') }}" class="btn-secondary">
+                Import
+            </a>
+            <a href="{{ route('admin.sections.create') }}" class="btn-primary">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                Add Section
+            </a>
+        </div>
 
             @if(session('success'))
                 <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
@@ -35,8 +32,8 @@
                 </div>
             @endif
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6">
+        <div class="card overflow-hidden">
+            <div class="p-6">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
@@ -80,6 +77,5 @@
                     </table>
                 </div>
             </div>
-        </div>
     </div>
-</x-app-layout>
+</x-admin-layout>

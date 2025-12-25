@@ -1,14 +1,9 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Import Students') }}
-        </h2>
-    </x-slot>
+<x-admin-layout>
+    <x-slot name="header">Import Students</x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6">
+    <div class="space-y-6">
+        <div class="card overflow-hidden">
+            <div class="p-6">
                     <div class="mb-6">
                         <h3 class="text-lg font-medium text-gray-900">Instructions</h3>
                         <ul class="list-disc list-inside text-sm text-gray-600 mt-2">
@@ -54,5 +49,5 @@
                 </div>
             </div>
         </div>
-    </div>
-</x-app-layout>
+        </div>
+</x-admin-layout>

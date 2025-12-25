@@ -1,22 +1,17 @@
-<x-app-layout>
-    <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                {{ __('Student Promotion Management') }}
-            </h2>
-            <div class="flex gap-2">
-                <a href="{{ route('admin.promotions.process') }}" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition">
-                    Process Promotions
-                </a>
-                <a href="{{ route('admin.promotions.history') }}" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition">
-                    View History
-                </a>
-            </div>
-        </div>
-    </x-slot>
+<x-admin-layout>
+    <x-slot name="header">Student Promotion Management</x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+    <div class="space-y-6">
+        <!-- Action Buttons -->
+        <div class="flex justify-end gap-3">
+            <a href="{{ route('admin.promotions.history') }}" class="btn-secondary">
+                View History
+            </a>
+            <a href="{{ route('admin.promotions.process') }}" class="btn-primary">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                Process Promotions
+            </a>
+        </div>
             <!-- Breadcrumb -->
             <x-breadcrumb :items="[
                 ['label' => 'Promotions', 'url' => '#']
@@ -28,8 +23,8 @@
                 </div>
             @endif
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
-                <div class="p-6 text-gray-900">
+        <div class="card overflow-hidden mb-6">
+            <div class="p-6">
                     <h3 class="text-lg font-medium text-gray-900 mb-4">Add/Edit Promotion Rule</h3>
                     <form action="{{ route('admin.promotions.store-rule') }}" method="POST" class="grid grid-cols-1 md:grid-cols-6 gap-4">
                         @csrf
@@ -72,8 +67,8 @@
                 </div>
             </div>
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900">
+        <div class="card overflow-hidden">
+            <div class="p-6">
                     <h3 class="text-lg font-medium text-gray-900 mb-4">Existing Promotion Rules ({{ $academicYear->name }})</h3>
                     @if($promotionRules->isEmpty())
                         <p class="text-gray-500 italic">No promotion rules configured for this academic year hideously.</p>
@@ -111,6 +106,5 @@
                     @endif
                 </div>
             </div>
-        </div>
     </div>
-</x-app-layout>
+</x-admin-layout>

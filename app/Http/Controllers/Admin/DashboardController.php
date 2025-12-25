@@ -4,11 +4,89 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Models\Student;
+use App\Models\User;
+use App\Models\StudentAttendance;
+use App\Models\AcademicYear;
+use App\Models\AuditLog;
+use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        return view('admin.dashboard');
+        $academicYear = AcademicYear::where('is_active', true)->first();
+        $cacheTtl = 3600; // 1 hour
+        
+        // Key Metrics (Cached)
+        $stats = \Illuminate\Support\Facades\Cache::remember('admin_dashboard_stats', $cacheTtl, function() {
+            return [
+                'total_students' => Student::where('is_active', true)->count(),
+                'total_staff' => User::whereHas('roles', fn($q) => $q->whereNotIn('name', ['Student', 'Guardian', 'Parent']))->count(),
+                'today_attendance' => 0,
+                'pending_actions' => 0,
+            ];
+        });
+        
+        // Today's Attendance Rate (Cached)
+        if ($academicYear) {
+            $attendanceRate = \Illuminate\Support\Facades\Cache::remember('admin_dashboard_attendance_rate', $cacheTtl, function() use ($academicYear) {
+                $todayAttendance = StudentAttendance::whereDate('attendance_date', Carbon::today())
+                    ->selectRaw('status, count(*) as count')
+                    ->groupBy('status')
+                    ->pluck('count', 'status')
+                    ->toArray();
+                
+                $totalToday = array_sum($todayAttendance);
+                if ($totalToday > 0) {
+                    $presentToday = ($todayAttendance['present'] ?? 0) + ($todayAttendance['late'] ?? 0);
+                    return round(($presentToday / $totalToday) * 100, 1);
+                }
+                return 0;
+            });
+            $stats['today_attendance'] = $attendanceRate;
+        }
+        
+        // Recent Activity (Live - for real-time visibility)
+        $recentActivity = AuditLog::with('user')
+            ->latest()
+            ->take(10)
+            ->get();
+        
+        // Student breakdown by Grade Level (Cached)
+        $studentsByGrade = \Illuminate\Support\Facades\Cache::remember('admin_dashboard_students_by_grade', $cacheTtl, function() {
+            return \App\Models\StudentEnrollment::whereNull('end_date')
+                ->whereHas('student', fn($q) => $q->where('is_active', true))
+                ->join('sections', 'student_enrollments.section_id', '=', 'sections.id')
+                ->join('grade_levels', 'sections.grade_level_id', '=', 'grade_levels.id')
+                ->selectRaw('grade_levels.name as grade_name, count(*) as count')
+                ->groupBy('grade_levels.name', 'grade_levels.sort_order')
+                ->orderBy('grade_levels.sort_order')
+                ->get();
+        });
+        
+        // Sections without attendance marked today (Cached short-term)
+        $sectionsMissingAttendance = \Illuminate\Support\Facades\Cache::remember('admin_dashboard_missing_attendance', 300, function() use ($academicYear) {
+            $allActiveSections = \App\Models\Section::where('is_active', true)
+                ->when($academicYear, fn($q) => $q->where('academic_year_id', $academicYear->id))
+                ->count();
+            
+            $sectionsWithAttendance = StudentAttendance::whereDate('attendance_date', Carbon::today())
+                ->distinct('section_id')
+                ->count('section_id');
+            
+            return $allActiveSections - $sectionsWithAttendance;
+        });
+        
+        // Gender breakdown (Cached)
+        $genderBreakdown = \Illuminate\Support\Facades\Cache::remember('admin_dashboard_gender_breakdown', $cacheTtl, function() {
+            return Student::where('is_active', true)
+                ->selectRaw('gender, count(*) as count')
+                ->groupBy('gender')
+                ->pluck('count', 'gender')
+                ->toArray();
+        });
+        
+        return view('admin.dashboard', compact('stats', 'recentActivity', 'studentsByGrade', 'sectionsMissingAttendance', 'genderBreakdown', 'academicYear'));
     }
 }

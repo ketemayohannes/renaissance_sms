@@ -13,13 +13,23 @@ use Illuminate\Support\Facades\DB;
 
 class AttendanceController extends Controller
 {
+    protected $attendanceService;
+
+    public function __construct(\App\Services\AttendanceService $attendanceService)
+    {
+        $this->attendanceService = $attendanceService;
+    }
+
     public function index(Request $request)
     {
-        $gradeLevels = GradeLevel::with('sections')->get();
         $academicYear = AcademicYear::where('is_active', true)->first();
+        $sections = $this->attendanceService->getActiveSectionsSummary($academicYear);
+        $gradeLevels = GradeLevel::orderBy('sort_order')->get();
+        $today = now()->format('Y-m-d');
         
-        return view('admin.attendance.index', compact('gradeLevels', 'academicYear'));
+        return view('admin.attendance.index', compact('gradeLevels', 'academicYear', 'sections', 'today'));
     }
+
 
     public function register(Request $request)
     {
@@ -29,7 +39,7 @@ class AttendanceController extends Controller
         ]);
 
         $section = Section::with('gradeLevel')->findOrFail($request->section_id);
-        $date = $request->date;
+        $date = \Carbon\Carbon::parse($request->date)->toDateString();
         $academicYear = AcademicYear::where('is_active', true)->first();
 
         $students = Student::whereHas('enrollments', function($q) use ($section, $academicYear) {
@@ -56,7 +66,7 @@ class AttendanceController extends Controller
         ]);
 
         $sectionId = $request->section_id;
-        $date = $request->date;
+        $date = \Carbon\Carbon::parse($request->date)->toDateString();
         $userId = auth()->id();
 
         DB::transaction(function() use ($request, $sectionId, $date, $userId) {

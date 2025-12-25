@@ -64,11 +64,15 @@ class GenerateSectionReportCards implements ShouldQueue
             $isSemester = $this->term->isSemester();
             $isYearly = $this->term->type === 'yearly';
 
+            $reportCardService = app(\App\Services\ReportCardService::class);
+            $targetTermsForAttendance = collect([$this->term])->concat($quarters)->concat($semesters)->unique('id');
+            $batchAttendance = $reportCardService->getBatchAttendanceSummary($students, $targetTermsForAttendance, $this->academicYear);
+
             foreach ($students as $student) {
                 $reportData = $sectionReportData[$student->id] ?? null;
                 if (!$reportData) continue;
 
-                $viewData = $this->prepareViewData($reportData, $isSemester, $isYearly);
+                $viewData = $this->prepareViewData($reportData, $isSemester, $isYearly, $batchAttendance);
                 
                 $view = $isYearly ? 'admin.report-cards.yearly-pdf' : 'admin.report-cards.pdf';
                 $pdf = Pdf::loadView($view, $viewData)->setPaper('a4', 'portrait');
@@ -114,7 +118,7 @@ class GenerateSectionReportCards implements ShouldQueue
         }
     }
 
-    private function prepareViewData($reportData, $isSemester, $isYearly)
+    private function prepareViewData($reportData, $isSemester, $isYearly, $batchAttendance = [])
     {
         $student = $reportData['student'];
         $section = $reportData['section'];
@@ -180,6 +184,10 @@ class GenerateSectionReportCards implements ShouldQueue
             return isset($marks[$subject->id]);
         });
 
+        $reportCardService = app(\App\Services\ReportCardService::class);
+        $attendance = $batchAttendance[$student->id][$term->id] ?? $reportCardService->getAttendanceSummary($student, $term, $academicYear);
+        $subTermAttendance = $reportCardService->calculateSubTermAttendance($student, $quarters, $semesters, $isSemester, $isYearly, $academicYear, $batchAttendance);
+
         return [
             'student' => $student,
             'term' => $term,
@@ -206,6 +214,8 @@ class GenerateSectionReportCards implements ShouldQueue
             'semesterTotals' => $semesterTotals,
             'semesterAverages' => $semesterAverages,
             'semesterRanks' => $semesterRanks,
+            'attendance' => $attendance,
+            'subTermAttendance' => $subTermAttendance,
         ];
     }
 }

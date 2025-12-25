@@ -8,14 +8,111 @@
         <title>{{ config('app.name', 'Laravel') }}</title>
 
         <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+        <style>
+            :root {
+                --font-heading: 'Outfit', sans-serif;
+                --font-body: 'Inter', sans-serif;
+                --brand-indigo: #4f46e5;
+                --brand-blue: #3b82f6;
+                --brand-emerald: #10b981;
+                --brand-amber: #f59e0b;
+                --brand-rose: #f43f5e;
+                --brand-purple: #8b5cf6;
+            }
+            body { 
+                font-family: var(--font-body); 
+                background-attachment: fixed;
+            }
+            h1, h2, h3, h4, h5, h6 { font-family: var(--font-heading); }
+            
+            .glass-card {
+                background: rgba(255, 255, 255, 0.75);
+                backdrop-filter: blur(20px) saturate(180%);
+                -webkit-backdrop-filter: blur(20px) saturate(180%);
+                border: 1px solid rgba(255, 255, 255, 0.5);
+                box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+            }
+            
+            .glass-nav {
+                background: rgba(255, 255, 255, 0.8);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            }
+
+            .mesh-gradient {
+                background-color: #f8fafc;
+                background-image: 
+                    radial-gradient(at 0% 0%, hsla(253,16%,93%,1) 0, transparent 50%), 
+                    radial-gradient(at 50% 0%, hsla(225,39%,90%,1) 0, transparent 50%), 
+                    radial-gradient(at 100% 0%, hsla(339,49%,90%,1) 0, transparent 50%),
+                    radial-gradient(at 0% 100%, hsla(208,100%,92%,1) 0, transparent 50%),
+                    radial-gradient(at 100% 100%, hsla(240,100%,92%,1) 0, transparent 50%);
+            }
+
+            .premium-card {
+                background: white;
+                border: 1px solid #f1f5f9;
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+                transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            }
+
+            .premium-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 25px 30px -5px rgba(0, 0, 0, 0.08);
+            }
+
+            .vibrant-gradient-blue { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
+            .vibrant-gradient-emerald { background: linear-gradient(135deg, #10b981 0%, #047857 100%); }
+            .vibrant-gradient-amber { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+            .vibrant-gradient-purple { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); }
+            .vibrant-gradient-rose { background: linear-gradient(135deg, #f43f5e 0%, #be123c 100%); }
+            .vibrant-gradient-slate { background: linear-gradient(135deg, #334155 0%, #1e293b 100%); }
+
+            .hero-heading {
+                background: linear-gradient(to right, #0f172a, #334155);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                letter-spacing: -0.04em;
+            }
+
+            .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+            .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+            .custom-scrollbar::-webkit-scrollbar-thumb {
+                background: rgba(79, 70, 229, 0.2);
+                border-radius: 10px;
+            }
+
+            @keyframes pulse-intense {
+                0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.2); }
+                50% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+            }
+            .animate-alert { animation: pulse-intense 2s infinite; }
+
+            /* Robust Selection Styles */
+            input[type="radio"]:checked + .selection-indicator {
+                transform: scaleX(1) !important;
+            }
+            input[type="radio"]:checked ~ .relative .vibrant-icon {
+                transform: scale(1.1) rotate(5deg);
+                box-shadow: 0 10px 20px -5px rgba(0,0,0,0.2);
+            }
+            .premium-card:has(input[type="radio"]:checked) {
+                border-color: #4f46e5;
+                background: white;
+                box-shadow: 0 20px 25px -5px rgba(79, 70, 229, 0.1);
+            }
+        </style>
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="font-sans antialiased">
-        <div class="min-h-screen bg-gray-100">
+    <body class="antialiased mesh-gradient min-h-screen">
+        <div class="min-h-screen">
             @include('layouts.navigation')
 
             <!-- Page Heading -->
@@ -51,7 +148,7 @@
             </div>
 
             <!-- Page Content -->
-            <main>
+            <main class="relative z-10">
                 {{ $slot }}
             </main>
         </div>

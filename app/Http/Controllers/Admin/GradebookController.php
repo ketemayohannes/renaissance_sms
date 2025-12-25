@@ -186,12 +186,17 @@ class GradebookController extends Controller
             $errors = [];
             
             $upsertData = [];
+            $deleteData = []; // Track scores to delete (cleared by user)
             $now = now();
             
             foreach ($request->marks as $studentId => $components) {
                 foreach ($components as $templateId => $data) {
-                    // Skip if score is empty (not entered)
+                    // If score is empty, add to delete list (user cleared the grade)
                     if (!isset($data['score']) || $data['score'] === '') {
+                        $deleteData[] = [
+                            'student_id' => $studentId,
+                            'assessment_template_id' => $templateId,
+                        ];
                         continue;
                     }
 
@@ -218,6 +223,16 @@ class GradebookController extends Controller
                         'updated_at' => $now,
                     ];
                 }
+            }
+            
+            // Delete cleared grades
+            foreach ($deleteData as $toDelete) {
+                StudentMark::where('student_id', $toDelete['student_id'])
+                    ->where('assessment_template_id', $toDelete['assessment_template_id'])
+                    ->where('subject_id', $request->subject_id)
+                    ->where('term_id', $request->term_id)
+                    ->where('academic_year_id', $request->academic_year_id)
+                    ->delete();
             }
 
             if (!empty($upsertData)) {
@@ -484,7 +499,17 @@ class GradebookController extends Controller
             DB::commit();
             fclose($file);
             
-            $message = "Imported grades for $successCount students.";
+            // Check if any grades were actually imported
+            if (empty($upsertData)) {
+                $message = 'No grades were imported.';
+                if ($successCount == 0) {
+                    return back()->with('warning', $message . ' The file appears to be empty or contains no valid data.');
+                } else {
+                    return back()->with('warning', $message . ' All score fields were empty for ' . $successCount . ' students.');
+                }
+            }
+            
+            $message = "Imported " . count($upsertData) . " grades for $successCount students.";
             if (!empty($errors)) {
                 return back()->with('warning', $message . ' Errors: ' . implode('; ', array_slice($errors, 0, 5)) . (count($errors) > 5 ? '...' : ''));
             }

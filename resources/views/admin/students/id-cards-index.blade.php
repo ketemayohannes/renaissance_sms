@@ -1,19 +1,14 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Student ID Card Generation') }}
-        </h2>
-    </x-slot>
+<x-admin-layout>
+    <x-slot name="header">Student ID Card Generation</x-slot>
 
-    <div class="py-12">
-        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
-            <!-- Breadcrumb -->
-            <x-breadcrumb :items="[
-                ['label' => 'ID Card Generation', 'url' => '#']
-            ]" />
-            
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900">
+    <div class="space-y-6">
+        <!-- Breadcrumb -->
+        <x-breadcrumb :items="[
+            ['label' => 'ID Card Generation', 'url' => '#']
+        ]" />
+        
+        <div class="card overflow-hidden">
+            <div class="p-6">
                     <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
                         <h3 class="font-bold text-blue-800 mb-2">📋 Instructions</h3>
                         <p class="text-blue-700 text-sm">
@@ -45,5 +40,5 @@
                 </div>
             </div>
         </div>
-    </div>
-</x-app-layout>
+        </div>
+</x-admin-layout>

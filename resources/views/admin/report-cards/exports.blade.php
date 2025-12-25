@@ -1,22 +1,17 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Background Exports ✨') }}
-        </h2>
-    </x-slot>
+<x-admin-layout>
+    <x-slot name="header">Background Exports ✨</x-slot>
 
-    <div class="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
-        <!-- Header -->
-        <div class="sm:flex sm:justify-between sm:items-center mb-8">
+    <div class="space-y-6">
+        <div class="sm:flex sm:justify-between sm:items-center">
             <div class="mb-4 sm:mb-0">
                 <h1 class="text-2xl md:text-3xl text-slate-800 font-bold">Background Exports ✨</h1>
                 <p class="mt-1 text-sm text-slate-500">Monitor and download your bulk report card exports.</p>
             </div>
             
             <div class="grid grid-flow-col sm:auto-cols-max justify-start sm:justify-end gap-2">
-                <a href="{{ route('admin.section-grades.index') }}" class="btn bg-white border-slate-200 hover:border-slate-300 text-slate-600">
-                    <svg class="w-4 h-4 fill-current text-slate-400 shrink-0 mr-2" viewBox="0 0 16 16">
-                        <path d="M9.4 13.4l1.4-1.4-4-4 4-4-1.4-1.4L4 8z" />
+                <a href="{{ route('admin.section-grades.index') }}" class="btn-secondary">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
                     Back to Grade Entry
                 </a>
@@ -121,4 +116,5 @@
     </script>
     @endif
     @endpush
-</x-app-layout>
+    </div>
+</x-admin-layout>

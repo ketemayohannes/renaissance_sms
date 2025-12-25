@@ -1,30 +1,26 @@
-<x-app-layout>
-    <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                {{ __('Assessment Types') }}
-            </h2>
-            <a href="{{ route('admin.assessment-types.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+<x-admin-layout>
+    <x-slot name="header">Assessment Types</x-slot>
+
+    <div class="space-y-6">
+        <div class="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+            <div>
+                <h2 class="text-lg font-bold text-slate-800">Assessment Types</h2>
+                <p class="text-sm text-slate-500">Define categories for student assessments (e.g., Quiz, Mid-Term, Final).</p>
+            </div>
+            <a href="{{ route('admin.assessment-types.create') }}" class="btn-primary">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
                 Add New Type
             </a>
         </div>
-    </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <!-- Breadcrumb -->
-            <x-breadcrumb :items="[
-                ['label' => 'Assessment Types', 'url' => '#']
-            ]" />
+        <x-breadcrumb :items="[
+            ['label' => 'Assessment Types', 'url' => '#']
+        ]" />
 
-            @if(session('success'))
-                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
-                    {{ session('success') }}
-                </div>
-            @endif
-
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900">
+        <div class="card overflow-hidden">
+            <div class="p-6">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
@@ -70,4 +66,4 @@
             </div>
         </div>
     </div>
-</x-app-layout>
+</x-admin-layout>

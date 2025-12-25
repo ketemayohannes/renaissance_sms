@@ -3,84 +3,64 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreStudentRequest;
+use App\Http\Requests\UpdateStudentRequest;
 use App\Models\Student;
 use App\Models\User;
 use App\Models\Section;
 use App\Models\AcademicYear;
-use App\Models\StudentEnrollment;
-use App\Models\StudentGuardian;
-use App\Models\StudentMedicalInfo;
-use App\Models\StudentTransportation;
+use App\Services\StudentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Validation\Rule;
 
 class StudentController extends Controller
 {
+    protected $studentService;
+
+    public function __construct(StudentService $studentService)
+    {
+        $this->studentService = $studentService;
+    }
     public function index(Request $request)
     {
         $query = Student::with(['user', 'enrollments.section.gradeLevel', 'enrollments.academicYear']);
 
-        // Search Filter
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($request) {
-                $search = $request->search;
-                
-                // Prioritize exact match for IDs to use indexes efficiently
-                $q->where('student_id', $search)
-                  ->orWhere('admission_number', $search)
-                  // Use prefix matching for names to utilize the compound index
-                  ->orWhere('first_name', 'like', "{$search}%")
-                  ->orWhere('father_name', 'like', "{$search}%")
-                  ->orWhere('grandfather_name', 'like', "{$search}%")
-                  ->orWhere('last_name', 'like', "{$search}%")
-                  // Fallback to substring match for IDs if no exact/prefix match (optional, but keeping it for flexibility)
-                  ->orWhere('student_id', 'like', "{$search}%") 
-                  ->orWhere('admission_number', 'like', "{$search}%");
-            });
-        }
+        // Search Filter - Using scope
+        $query->search($request->search);
 
-        // Gender Filter
-        if ($request->filled('gender')) {
-            $query->where('gender', $request->gender);
-        }
+        // Gender Filter - Using scope
+        $query->byGender($request->gender);
 
         // Status Filter
         if ($request->filled('status')) {
             if ($request->status == 'blocked') {
-                $query->where('is_active', false);
+                $query->inactive();
             } elseif ($request->status == 'active') {
-                $query->where('is_active', true);
+                $query->active();
+            } elseif ($request->status == 'trashed') {
+                $query->onlyTrashed();
             }
         }
 
-        // Grade & Section Filter
+        // Grade & Section Filter - Using scopes
         if ($request->filled('grade_id') || $request->filled('section_name')) {
             if ($request->section_name === 'unassigned') {
-                // Filter for students who do NOT have an active enrollment
-                $query->whereDoesntHave('enrollments', function($q) {
-                    $q->whereNull('end_date');
-                });
+                $query->unassigned();
             } else {
-                $query->whereHas('enrollments', function($q) use ($request) {
-                    // We typically want to filter based on CURRENT enrollment
-                    $q->whereNull('end_date'); 
-                    
-                    $q->whereHas('section', function($sq) use ($request) {
-                        if ($request->filled('grade_id')) {
-                            $sq->where('grade_level_id', $request->grade_id);
-                        }
-                        if ($request->filled('section_name')) {
-                            $sq->where('name', $request->section_name);
-                        }
+                if ($request->filled('grade_id')) {
+                    $query->inGrade($request->grade_id);
+                }
+                if ($request->filled('section_name')) {
+                    $query->whereHas('enrollments', function($q) use ($request) {
+                        $q->whereNull('end_date')
+                          ->whereHas('section', fn($sq) => $sq->where('name', $request->section_name));
                     });
-                });
+                }
             }
         }
+
 
         // Advanced Filters
         // Age Range
@@ -148,198 +128,20 @@ class StudentController extends Controller
         return view('admin.students.create', compact('sections', 'activeYear'));
     }
 
-    public function store(Request $request)
+    public function store(StoreStudentRequest $request)
     {
-        $request->validate([
-            // Personal Info
-            'first_name' => 'required|string|max:255',
-            'father_name' => 'required|string|max:255',
-            'grandfather_name' => 'required|string|max:255',
-            'middle_name' => 'nullable|string|max:255',
-            'last_name' => 'nullable|string|max:255',
-            'gender' => 'required|in:M,F',
-            'date_of_birth' => 'required|date',
-            'birth_country' => 'nullable|string|max:255',
-            'birth_city' => 'nullable|string|max:255',
-            'nationality' => 'nullable|string|max:255',
-            'language_spoken' => 'nullable|string|max:255',
-            'student_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            
-            // Address
-            'subcity' => 'nullable|string|in:Addis Ketema,Akaki Kality,Arada,Bole,Gullele,Kirkos,Kolfe Keranio,Lideta,Nifas Silk-Lafto,Yeka,Lemi Kura',
-            'woreda' => 'nullable|string|max:255',
-            'house_number' => 'nullable|string|max:255',
-            'address' => 'nullable|string',
-            
-            // Admission
-            'admission_number' => 'required|string|unique:students,admission_number',
-            'admission_date' => 'required|date',
-            'section_id' => 'required|exists:sections,id',
-            'email' => 'nullable|email|unique:users,email',
-            'phone' => 'nullable|string|max:20',
-            
-            // Guardians
-            'guardians' => 'required|array|min:1',
-            'guardians.*.first_name' => 'required|string|max:255',
-            'guardians.*.father_name' => 'required|string|max:255',
-            'guardians.*.grandfather_name' => 'required|string|max:255',
-            'guardians.*.phone' => 'required|string|max:20',
-            'guardians.*.email' => 'nullable|email',
-            'guardians.*.relationship' => 'required|string',
-            'guardians.*.communication_preferences' => 'nullable|array',
-            'guardians.*.is_emergency_contact' => 'nullable|boolean',
-            'guardians.*.photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            
-            // Medical Info
-            'blood_group' => 'nullable|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
-            'medical_issues' => 'nullable|string',
-            'current_medication' => 'nullable|string',
-            'allergies' => 'nullable|string',
-            'emergency_contact' => 'nullable|string|max:20',
-            
-            // Transportation (Optional)
-            'driver_id' => 'nullable|string|max:255',
-            'driver_first_name' => 'nullable|string|max:255',
-            'driver_father_name' => 'nullable|string|max:255',
-            'driver_grandfather_name' => 'nullable|string|max:255',
-            'license_number' => 'nullable|string|max:255',
-            'vehicle_plate' => 'nullable|string|max:255',
-            'route' => 'nullable|string|max:255',
-            'driver_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-        ]);
-
-        // Check Section Capacity
-        $section = Section::withCount(['students' => function($q) {
-            $q->whereNull('end_date');
-        }])->findOrFail($request->section_id);
-
-        if ($section->students_count >= $section->capacity) {
-            return back()->withInput()->with('error', "Section {$section->name} is full (Capacity: {$section->capacity}). Please select another section.");
-        }
-
         try {
-            DB::beginTransaction();
-
-            // 1. Create User Account
-            $email = $request->email ?? $request->admission_number . '@renaissance.edu.et';
-            $password = Hash::make('student123'); // Default password
-
-            $user = User::create([
-                'name' => $request->first_name . ' ' . $request->father_name . ' ' . $request->grandfather_name,
-                'email' => $email,
-                'password' => $password,
-            ]);
-
-            $user->assignRole('Student');
-
-            // 2. Handle Student Photo Upload
-            $studentPhotoPath = null;
-            if ($request->hasFile('student_photo')) {
-                $studentPhotoPath = $request->file('student_photo')->store('students/photos', 'public');
-            }
-
-            // 3. Create Student Record
-            $nextValue = \App\Models\SystemCounter::next('student_id_sequence', Student::count());
-            $studentId = 'STU-' . date('Y') . '-' . str_pad($nextValue, 4, '0', STR_PAD_LEFT);
-
-            $student = Student::create([
-                'user_id' => $user->id,
-                'student_id' => $studentId,
-                'first_name' => $request->first_name,
-                'father_name' => $request->father_name,
-                'grandfather_name' => $request->grandfather_name,
-                'middle_name' => $request->middle_name,
-                'last_name' => $request->last_name ?? $request->grandfather_name,
-                'gender' => $request->gender,
-                'date_of_birth' => $request->date_of_birth,
-                'birth_country' => $request->birth_country,
-                'birth_city' => $request->birth_city,
-                'nationality' => $request->nationality ?? 'Ethiopian',
-                'language_spoken' => $request->language_spoken,
-                'admission_number' => $request->admission_number,
-                'admission_date' => $request->admission_date,
-                'photo' => $studentPhotoPath,
-                'phone' => $request->phone,
-                'address' => $request->address,
-                'subcity' => $request->subcity,
-                'woreda' => $request->woreda,
-                'house_number' => $request->house_number,
-                'email' => $email,
-            ]);
-
-            // 4. Create Guardians
-            foreach ($request->guardians as $index => $guardianData) {
-                $guardianPhotoPath = null;
-                // Handle file upload correctly for array input
-                if ($request->hasFile("guardians.{$index}.photo")) {
-                    $guardianPhotoPath = $request->file("guardians.{$index}.photo")->store('guardians/photos', 'public');
-                }
-
-                $guardian = StudentGuardian::create([
-                    'student_id' => $student->id,
-                    'guardian_type' => $index === 0 ? 'primary' : 'secondary', // Keep simplified type for backward compat
-                    'photo' => $guardianPhotoPath,
-                    'first_name' => $guardianData['first_name'],
-                    'father_name' => $guardianData['father_name'],
-                    'grandfather_name' => $guardianData['grandfather_name'],
-                    'phone' => $guardianData['phone'],
-                    'email' => $guardianData['email'] ?? null,
-                    'relationship' => $guardianData['relationship'],
-                    'is_emergency_contact' => isset($guardianData['is_emergency_contact']) && $guardianData['is_emergency_contact'] == '1' ? true : false,
-                    'communication_preferences' => $guardianData['communication_preferences'] ?? [],
-                ]);
-                
-                // If email provided, optionally create user or invite (skipped for now as per plan focus on structure first)
-            }
-
-            // 6. Create Medical Info
-            StudentMedicalInfo::create([
-                'student_id' => $student->id,
-                'blood_group' => $request->blood_group,
-                'medical_issues' => $request->medical_issues,
-                'current_medication' => $request->current_medication,
-                'allergies' => $request->allergies,
-                'emergency_contact' => $request->emergency_contact,
-            ]);
-
-            // 7. Create Transportation Info (if provided)
-            if ($request->filled('driver_first_name')) {
-                $driverPhotoPath = null;
-                if ($request->hasFile('driver_photo')) {
-                    $driverPhotoPath = $request->file('driver_photo')->store('drivers/photos', 'public');
-                }
-
-                StudentTransportation::create([
-                    'student_id' => $student->id,
-                    'driver_id' => $request->driver_id,
-                    'driver_photo' => $driverPhotoPath,
-                    'driver_first_name' => $request->driver_first_name,
-                    'driver_father_name' => $request->driver_father_name,
-                    'driver_grandfather_name' => $request->driver_grandfather_name,
-                    'license_number' => $request->license_number,
-                    'vehicle_plate' => $request->vehicle_plate,
-                    'route' => $request->route,
-                ]);
-            }
-
-            // 8. Create Enrollment
-            $section = Section::find($request->section_id);
-            
-            StudentEnrollment::create([
-                'student_id' => $student->id,
-                'section_id' => $section->id,
-                'academic_year_id' => $section->academic_year_id,
-                'enrollment_date' => $request->admission_date,
-                'status' => 'active',
-            ]);
-
-            DB::commit();
+            $student = $this->studentService->createStudent(
+                $request->validated(),
+                $request->file('student_photo'),
+                $request->file('guardians') ?? [],
+                $request->file('driver_photo')
+            );
 
             return redirect()->route('admin.students.index')
-                ->with('success', 'Student registered successfully. Student ID: ' . $studentId);
+                ->with('success', 'Student registered successfully. Student ID: ' . $student->student_id);
 
         } catch (\Exception $e) {
-            DB::rollBack();
             return back()->with('error', 'Error registering student: ' . $e->getMessage())->withInput();
         }
     }
@@ -348,19 +150,82 @@ class StudentController extends Controller
     {
         $student->load([
             'user', 
-            'guardians',
-            'medicalInfo',
-            'transportation',
-            'siblings.enrollments.section.gradeLevel' // Load siblings with their current section info
+            'guardians', 
+            'medicalInfo', 
+            'transportation', 
+            'siblings.enrollments.section.gradeLevel',
+            'documents'
         ]);
         
-        // Load all enrollments (including historical) ordered by date
         $enrollments = $student->enrollments()
             ->with(['section.gradeLevel', 'academicYear'])
             ->orderBy('enrollment_date', 'desc')
             ->get();
+
+        // Attendance Stats
+        $academicYear = \App\Models\AcademicYear::where('is_active', true)->first();
+        $attendanceStats = [
+            'present' => 0, 'absent' => 0, 'late' => 0, 'excused' => 0, 'total' => 0, 'percentage' => 0
+        ];
         
-        return view('admin.students.show', compact('student', 'enrollments'));
+        if ($academicYear) {
+             $stats = $student->attendance()
+                ->whereBetween('attendance_date', [$academicYear->start_date, $academicYear->end_date])
+                ->selectRaw('status, count(*) as count')
+                ->groupBy('status')
+                ->pluck('count', 'status')
+                ->toArray();
+            
+            $attendanceStats['present'] = $stats['present'] ?? 0;
+            $attendanceStats['late'] = $stats['late'] ?? 0;
+            $attendanceStats['absent'] = $stats['absent'] ?? 0;
+            $attendanceStats['excused'] = $stats['excused'] ?? 0;
+            
+            $attendanceStats['total'] = array_sum($attendanceStats);
+            // Don't double count total if percentage is added key (it is not yet)
+            
+             if ($attendanceStats['total'] > 0) {
+                $attendanceStats['percentage'] = round((($attendanceStats['present'] + $attendanceStats['late']) / $attendanceStats['total']) * 100, 1);
+            }
+        }
+        
+        // Recent Attendance Log (last 15 entries)
+        $recentAttendance = $student->attendance()
+            ->with(['section.gradeLevel'])
+            ->latest('attendance_date')
+            ->take(15)
+            ->get();
+        
+        // Disciplinary
+        $disciplinaryRecords = $student->disciplinaryRecords()->with(['reporter', 'academicYear'])->latest('incident_date')->take(10)->get();
+        
+        // Academic History (Grouped by Academic Year -> Term)
+        $academicRecords = $student->marks()
+            ->with(['subject', 'assessmentTemplate', 'term', 'academicYear'])
+            ->get()
+            ->groupBy(function($mark) {
+                return $mark->academicYear->name;
+            })
+            ->map(function($yearMarks) {
+                return $yearMarks->groupBy(function($mark) {
+                    return $mark->term->name;
+                });
+            });
+
+        // Also fetch Term Summaries (Report Card Records) to display Avg/Rank alongside the marks
+        $termRecords = \App\Models\StudentTermRecord::where('student_id', $student->id)
+            ->with(['term', 'academicYear'])
+            ->get()
+            ->groupBy(function($record) {
+                return $record->academicYear->name;
+            })
+            ->map(function($yearRecords) {
+                return $yearRecords->keyBy(function($record) {
+                    return $record->term->name;
+                });
+            });
+
+        return view('admin.students.show', compact('student', 'enrollments', 'attendanceStats', 'recentAttendance', 'disciplinaryRecords', 'academicRecords', 'termRecords'));
     }
 
     public function linkSibling(Request $request, Student $student)
@@ -396,194 +261,21 @@ class StudentController extends Controller
         return view('admin.students.edit', compact('student', 'sections', 'activeYear'));
     }
 
-    public function update(Request $request, Student $student)
+    public function update(UpdateStudentRequest $request, Student $student)
     {
-        $request->validate([
-            // Personal Info
-            'first_name' => 'required|string|max:255',
-            'father_name' => 'required|string|max:255',
-            'grandfather_name' => 'required|string|max:255',
-            'middle_name' => 'nullable|string|max:255',
-            'gender' => 'required|in:M,F',
-            'date_of_birth' => 'required|date',
-            'birth_country' => 'nullable|string|max:255',
-            'birth_city' => 'nullable|string|max:255',
-            'nationality' => 'nullable|string|max:255',
-            'language_spoken' => 'nullable|string|max:255',
-            
-            // Admission Info
-            'admission_number' => 'required|string|unique:students,admission_number,' . $student->id,
-            'admission_date' => 'required|date',
-            'photo' => 'nullable|image|max:2048',
-            
-            // Address
-            'subcity' => 'nullable|in:Addis Ketema,Akaki Kality,Arada,Bole,Gullele,Kirkos,Kolfe Keranio,Lideta,Nifas Silk-Lafto,Yeka,Lemi Kura',
-            'woreda' => 'nullable|string|max:50',
-            'house_number' => 'nullable|string|max:50',
-            'phone' => 'nullable|string|max:20',
-            
-            // Guardians
-            'guardians' => 'nullable|array',
-            'guardians.*.id' => 'nullable|exists:student_guardians,id',
-            'guardians.*.first_name' => 'required_with:guardians|string|max:255',
-            'guardians.*.father_name' => 'required_with:guardians|string|max:255',
-            'guardians.*.grandfather_name' => 'required_with:guardians|string|max:255',
-            'guardians.*.phone' => 'required_with:guardians|string|max:20',
-            'guardians.*.email' => 'nullable|email|max:255',
-            'guardians.*.relationship' => 'required_with:guardians|string',
-            'guardians.*.photo' => 'nullable|image|max:2048',
-            'guardians.*.communication_preferences' => 'nullable|array',
-            'guardians.*.is_emergency_contact' => 'nullable|boolean',
-            
-            // Medical
-            'blood_type' => 'nullable|string|max:10',
-            'allergies' => 'nullable|string',
-            'medical_conditions' => 'nullable|string',
-            'emergency_contact_name' => 'nullable|string|max:255',
-            'emergency_contact_phone' => 'nullable|string|max:20',
-            
-            // Transportation
-            'uses_school_transport' => 'nullable|boolean',
-            'transport_route' => 'nullable|string|max:255',
-            'pickup_location' => 'nullable|string|max:255',
-            'driver_name' => 'nullable|string|max:255',
-            'driver_phone' => 'nullable|string|max:20',
-            'driver_photo' => 'nullable|image|max:2048',
-        ]);
-
-        DB::beginTransaction();
         try {
-            // Handle student photo
-            $photoPath = $student->photo;
-            if ($request->hasFile('photo')) {
-                if ($student->photo) {
-                    Storage::disk('public')->delete($student->photo);
-                }
-                $photoPath = $request->file('photo')->store('students', 'public');
-            }
+            $this->studentService->updateStudent(
+                $student,
+                $request->validated(),
+                $request->file('photo'),
+                $request->file('guardians') ?? [],
+                $request->file('driver_photo')
+            );
 
-            // Update student
-            $student->update([
-                'first_name' => $request->first_name,
-                'father_name' => $request->father_name,
-                'grandfather_name' => $request->grandfather_name,
-                'middle_name' => $request->middle_name,
-                'last_name' => $request->last_name ?? $request->grandfather_name,
-                'gender' => $request->gender,
-                'date_of_birth' => $request->date_of_birth,
-                'birth_country' => $request->birth_country,
-                'birth_city' => $request->birth_city,
-                'nationality' => $request->nationality,
-                'language_spoken' => $request->language_spoken,
-                'admission_number' => $request->admission_number,
-                'admission_date' => $request->admission_date,
-                'photo' => $photoPath,
-                'subcity' => $request->subcity,
-                'woreda' => $request->woreda,
-                'house_number' => $request->house_number,
-                'phone' => $request->phone,
-            ]);
-
-            // Update user name
-            $student->user->update([
-                'name' => $request->first_name . ' ' . $request->father_name . ' ' . $request->grandfather_name
-            ]);
-
-            // Update Guardians
-            if ($request->has('guardians')) {
-                // Get existing guardian IDs to identify deletions if we wanted that (optional for now, let's just update/create)
-                // Actually, let's sync. If ID is present, update. If not, create. 
-                // Any existing guardian NOT in the request ID list should arguably be DELETED, 
-                // but let's be careful. The UI sends all guardians. So yes, deletions are implied if missing.
-                
-                $incomingIds = collect($request->guardians)->pluck('id')->filter()->toArray();
-                $student->guardians()->whereNotIn('id', $incomingIds)->delete();
-
-                foreach ($request->guardians as $index => $guardianData) {
-                    $guardianPhotoPath = null;
-                    if ($request->hasFile("guardians.{$index}.photo")) {
-                        $guardianPhotoPath = $request->file("guardians.{$index}.photo")->store('guardians/photos', 'public');
-                    }
-
-                    $dataToUpdate = [
-                        'first_name' => $guardianData['first_name'],
-                        'father_name' => $guardianData['father_name'],
-                        'grandfather_name' => $guardianData['grandfather_name'],
-                        'phone' => $guardianData['phone'],
-                        'email' => $guardianData['email'] ?? null,
-                        'relationship' => $guardianData['relationship'],
-                        'guardian_type' => $index === 0 ? 'primary' : 'secondary', // Maintain primitive type for now
-                        'is_emergency_contact' => isset($guardianData['is_emergency_contact']) && $guardianData['is_emergency_contact'] == '1' ? true : false,
-                        'communication_preferences' => $guardianData['communication_preferences'] ?? [],
-                    ];
-
-                    if ($guardianPhotoPath) {
-                        $dataToUpdate['photo'] = $guardianPhotoPath;
-                    }
-
-                    if (isset($guardianData['id']) && $guardianData['id']) {
-                        $guardian = StudentGuardian::find($guardianData['id']);
-                        if ($guardian) {
-                            $guardian->update($dataToUpdate);
-                        }
-                    } else {
-                        // Create new
-                        $dataToUpdate['student_id'] = $student->id;
-                        StudentGuardian::create($dataToUpdate);
-                    }
-                }
-            }
-
-            // Update Medical Info
-            if ($request->filled(['blood_type', 'allergies', 'medical_conditions'])) {
-                $student->medicalInfo()->updateOrCreate(
-                    ['student_id' => $student->id],
-                    [
-                        'blood_group' => $request->blood_type,
-                        'allergies' => $request->allergies,
-                        'medical_issues' => $request->medical_conditions,
-                        'current_medication' => $request->current_medication,
-                        'emergency_contact' => $request->emergency_contact_name . ($request->emergency_contact_phone ? ' - ' . $request->emergency_contact_phone : ''),
-                    ]
-                );
-            }
-
-            // Update Transportation
-            if ($request->filled('uses_school_transport')) {
-                $transportation = $student->transportation;
-                
-                $driverPhotoPath = $transportation->driver_photo ?? null;
-                if ($request->hasFile('driver_photo')) {
-                    if ($transportation && $transportation->driver_photo) {
-                        Storage::disk('public')->delete($transportation->driver_photo);
-                    }
-                    $driverPhotoPath = $request->file('driver_photo')->store('drivers', 'public');
-                }
-
-                // Parse driver name into Ethiopian name parts
-                $driverNameParts = explode(' ', $request->driver_name ?? '');
-                $driverFirstName = $driverNameParts[0] ?? null;
-                $driverFatherName = $driverNameParts[1] ?? null;
-                $driverGrandfatherName = $driverNameParts[2] ?? null;
-
-                $student->transportation()->updateOrCreate(
-                    ['student_id' => $student->id],
-                    [
-                        'driver_first_name' => $driverFirstName,
-                        'driver_father_name' => $driverFatherName,
-                        'driver_grandfather_name' => $driverGrandfatherName,
-                        'route' => $request->transport_route,
-                        'driver_photo' => $driverPhotoPath,
-                    ]
-                );
-            }
-
-            DB::commit();
             return redirect()->route('admin.students.show', $student)
                 ->with('success', 'Student updated successfully.');
 
         } catch (\Exception $e) {
-            DB::rollBack();
             return back()->withInput()->with('error', 'Update failed: ' . $e->getMessage());
         }
     }
@@ -829,27 +521,13 @@ class StudentController extends Controller
 
     public function destroy(Student $student)
     {
-        // Delete photos if they exist
-        if ($student->photo) {
-            Storage::disk('public')->delete($student->photo);
+        try {
+            $this->studentService->deleteStudent($student);
+            return redirect()->route('admin.students.index')
+                ->with('success', 'Student deleted successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error deleting student: ' . $e->getMessage());
         }
-
-        // Delete guardian photos
-        foreach ($student->guardians as $guardian) {
-            if ($guardian->photo) {
-                Storage::disk('public')->delete($guardian->photo);
-            }
-        }
-
-        // Delete driver photo
-        if ($student->transportation && $student->transportation->driver_photo) {
-            Storage::disk('public')->delete($student->transportation->driver_photo);
-        }
-
-        $student->user->delete(); // This will cascade delete student
-        
-        return redirect()->route('admin.students.index')
-            ->with('success', 'Student deleted successfully.');
     }
     public function import()
     {
@@ -901,264 +579,64 @@ class StudentController extends Controller
 
     public function upload(Request $request)
     {
-        $request->validate([
-            'file' => 'required|file|mimes:csv,txt|max:2048',
-        ]);
+        $request->validate(['file' => 'required|file|mimes:csv,txt|max:2048']);
 
-        // Fix for MAC/Legacy line endings
+        $activeYear = AcademicYear::where('is_active', true)->first();
+        if (!$activeYear) return back()->with('error', 'No active academic year found.');
+
         ini_set('auto_detect_line_endings', true);
+        $lines = file($request->file('file')->getRealPath(), FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        if (empty($lines)) return back()->with('error', 'The file is empty.');
 
-        $file = $request->file('file');
-        $path = $file->getRealPath();
-        
-        // Read file content
-        $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        
-        // Check for sep= line
-        if (isset($lines[0]) && strpos($lines[0], 'sep=') === 0) {
-            array_shift($lines);
-        }
-        
-        if (empty($lines)) {
-            return back()->with('error', 'The file is empty.');
-        }
+        if (strpos($lines[0], 'sep=') === 0) array_shift($lines);
+        $delimiter = strpos($lines[0], ';') !== false ? ';' : ',';
+        if (strpos($lines[0], "\xEF\xBB\xBF") === 0) $lines[0] = substr($lines[0], 3);
 
-        // Detect delimiter
-        $firstLine = $lines[0];
-        $delimiter = ',';
-        if (strpos($firstLine, ';') !== false) {
-            $delimiter = ';';
-        }
-
-        // Remove BOM if present
-        $bom = "\xEF\xBB\xBF";
-        if (strpos($lines[0], $bom) === 0) {
-            $lines[0] = substr($lines[0], 3);
-        }
-
-        // Parse CSV
-        $data = array_map(function($line) use ($delimiter) {
-            return str_getcsv($line, $delimiter);
-        }, $lines);
-
-        $header = array_shift($data);
-        
-        // Map header to index
-        $header = array_map('trim', $header); // Trim all headers
+        $data = array_map(fn($line) => str_getcsv($line, $delimiter), $lines);
+        $header = array_map('trim', array_shift($data));
         $headerMap = array_flip($header);
+
+        $rows = array_map(function($row) use ($headerMap) {
+            $val = fn($key) => isset($headerMap[$key]) && isset($row[$headerMap[$key]]) ? trim($row[$headerMap[$key]]) : null;
+            return [
+                'first_name' => $val('first_name'),
+                'father_name' => $val('father_name'),
+                'grandfather_name' => $val('grandfather_name'),
+                'gender' => $val('gender'),
+                'date_of_birth' => $val('date_of_birth'),
+                'birth_country' => $val('birth_country'),
+                'birth_city' => $val('birth_city'),
+                'nationality' => $val('nationality'),
+                'language_spoken' => $val('language_spoken'),
+                'admission_number' => $val('admission_number'),
+                'admission_date' => $val('admission_date'),
+                'grade_level' => $val('grade_level'),
+                'section_name' => $val('section_name'),
+                'phone' => $val('phone'),
+                'subcity' => $val('subcity'),
+                'woreda' => $val('woreda'),
+                'house_number' => $val('house_number'),
+                'email' => $val('email'),
+                'student_id' => $val('student_id'),
+                'primary_guardian_first_name' => $val('primary_guardian_first_name'),
+                'primary_guardian_father_name' => $val('primary_guardian_father_name'),
+                'primary_guardian_grandfather_name' => $val('primary_guardian_grandfather_name'),
+                'primary_guardian_phone' => $val('primary_guardian_phone'),
+                'primary_guardian_email' => $val('primary_guardian_email'),
+                'primary_guardian_relationship' => $val('primary_guardian_relationship'),
+            ];
+        }, $data);
+
+        $result = $this->studentService->bulkImport($rows, $activeYear);
+
+        $message = "Import completed. Success: {$result['success']}, Skipped: {$result['skipped']}.";
+        $redirect = redirect()->route('admin.students.index')->with('success', $message);
         
-        // Required columns check
-        $required = ['first_name', 'father_name', 'grandfather_name', 'gender', 'date_of_birth', 'admission_number', 'admission_date', 'grade_level', 'section_name', 'primary_guardian_first_name', 'primary_guardian_phone', 'primary_guardian_relationship'];
-        foreach ($required as $col) {
-            if (!isset($headerMap[$col])) {
-                return back()->with('error', "Missing required column: $col. Found columns: " . implode(', ', $header));
-            }
+        if (count($result['errors']) > 0) {
+            $redirect->with('import_errors', $result['errors']);
         }
 
-        $successCount = 0;
-        $skippedCount = 0;
-        $errors = [];
-
-        // Cache active year
-        $activeYear = \App\Models\AcademicYear::where('is_active', true)->first();
-        if (!$activeYear) {
-            return back()->with('error', 'No active academic year found.');
-        }
-
-        // Increase time limit for large imports
-        set_time_limit(300); // 5 minutes
-        
-        // Pre-hash password for performance
-        $defaultPassword = Hash::make('student123');
-
-        // Prepare student ID generation
-        $year = date('Y');
-        $lastStudent = Student::where('student_id', 'like', "STU-{$year}-%")
-            ->orderBy('student_id', 'desc')
-            ->first();
-        
-        $nextIdSeq = 1;
-        if ($lastStudent) {
-            $parts = explode('-', $lastStudent->student_id);
-            $nextIdSeq = (int)end($parts) + 1;
-        }
-
-        $rowNum = 1; // Header was row 1
-        foreach ($data as $row) {
-            $rowNum++;
-
-            // Helper to get value by column name
-            $val = function($key) use ($row, $headerMap) {
-                return isset($headerMap[$key]) && isset($row[$headerMap[$key]]) ? trim($row[$headerMap[$key]]) : null;
-            };
-
-
-            // Skip if row is entirely empty
-            if (empty(array_filter($row))) {
-                continue;
-            }
-
-            // Basic validation
-            if (empty($val('first_name')) || empty($val('admission_number'))) {
-                $skippedCount++;
-                $errors[] = "Row $rowNum Skipped: Missing first name or admission number.";
-                continue; 
-            }
-
-            // 1. Validate Section (Do this first)
-            $gradeLevelName = $val('grade_level');
-            $sectionName = $val('section_name');
-            
-            $section = \App\Models\Section::where('name', $sectionName)
-                ->whereHas('gradeLevel', function($q) use ($gradeLevelName) {
-                    $q->where('name', $gradeLevelName);
-                })
-                ->where('academic_year_id', $activeYear->id)
-                ->first();
-
-            if (!$section) {
-                $skippedCount++;
-                $errors[] = "Row $rowNum: Section '$sectionName' (Grade $gradeLevelName) not found in active year.";
-                continue;
-            }
-
-            // Helper to parse dates
-            $dateVal = function($col) use ($val) {
-                $d = $val($col);
-                if (empty($d)) return null;
-                try {
-                    return \Carbon\Carbon::parse($d)->format('Y-m-d');
-                } catch (\Exception $e) {
-                     throw new \Exception("Invalid date format for $col. Expected YYYY-MM-DD (e.g., 2024-09-11).");
-                }
-            };
-
-            // 2. Check if Student Exists
-            $existingStudent = Student::where('admission_number', $val('admission_number'))->first();
-
-            if ($existingStudent) {
-                // ENTRY POINT: Existing Student -> Enroll if needed
-                try {
-                    DB::beginTransaction();
-                    
-                    // Check if already enrolled in THIS section for THIS year
-                    $exists = $existingStudent->enrollments()
-                        ->where('section_id', $section->id)
-                        ->where('academic_year_id', $activeYear->id)
-                        ->exists();
-
-                    if (!$exists) {
-                        $existingStudent->enrollments()->create([
-                            'section_id' => $section->id,
-                            'academic_year_id' => $activeYear->id,
-                            'status' => 'active',
-                            'enrollment_date' => $dateVal('admission_date') ?? now(),
-                        ]);
-                        $successCount++;
-                        DB::commit();
-                    } else {
-                        $skippedCount++;
-                        $errors[] = "Row $rowNum Skipped: Student already enrolled in this section for this academic year.";
-                        DB::rollBack(); // Nothing to commit
-                    }
-                } catch (\Exception $e) {
-                    DB::rollBack();
-                    $errors[] = "Row $rowNum (Update): " . $e->getMessage();
-                }
-                continue; // Done with this row
-            }
-
-            // 3. New Student Logic
-            try {
-                DB::beginTransaction();
-
-                // Check User Email
-                $email = $val('email');
-                if (empty($email)) {
-                    $email = $val('admission_number') . '@student.renaissance.com'; // Default email format
-                }
-                
-                if (User::where('email', $email)->exists()) {
-                    $skippedCount++;
-                    $errors[] = "Row $rowNum Skipped: User/Email '$email' already exists.";
-                    DB::rollBack(); 
-                    continue; 
-                }
-
-                // Create User
-                $user = User::create([
-                    'name' => $val('first_name') . ' ' . $val('father_name') . ' ' . $val('grandfather_name'),
-                    'email' => $email,
-                    'password' => $defaultPassword,
-                ]);
-                $user->assignRole('Student');
-
-                // Generate Student ID
-                $studentId = 'STU-' . $year . '-' . str_pad($nextIdSeq++, 4, '0', STR_PAD_LEFT);
-
-                // Create Student
-                $student = Student::create([
-                    'user_id' => $user->id,
-                    'student_id' => $val('student_id') ?: $studentId,
-                    'first_name' => $val('first_name'),
-                    'father_name' => $val('father_name'),
-                    'grandfather_name' => $val('grandfather_name'),
-                    'last_name' => $val('grandfather_name'),
-                    'gender' => $val('gender'),
-                    'date_of_birth' => $dateVal('date_of_birth'),
-                    'birth_country' => $val('birth_country'),
-                    'birth_city' => $val('birth_city'),
-                    'nationality' => $val('nationality') ?? 'Ethiopian',
-                    'language_spoken' => $val('language_spoken'),
-                    'admission_number' => $val('admission_number'),
-                    'admission_date' => $dateVal('admission_date'),
-                    'phone' => $val('phone'),
-                    'subcity' => $val('subcity'),
-                    'woreda' => $val('woreda'),
-                    'house_number' => $val('house_number'),
-                    'is_active' => true,
-                ]);
-
-                // Enroll
-                $student->enrollments()->create([
-                    'section_id' => $section->id,
-                    'academic_year_id' => $activeYear->id,
-                    'status' => 'active',
-                    'enrollment_date' => $dateVal('admission_date'),
-                ]);
-
-                // Guardians
-                if ($val('primary_guardian_first_name')) {
-                    $student->guardians()->create([
-                        'first_name' => $val('primary_guardian_first_name'),
-                        'father_name' => $val('primary_guardian_father_name'),
-                        'grandfather_name' => $val('primary_guardian_grandfather_name'),
-                        'phone' => $val('primary_guardian_phone'),
-                        'email' => $val('primary_guardian_email'),
-                        'relationship' => $val('primary_guardian_relationship'),
-                        'guardian_type' => 'primary',
-                        'is_primary' => true,
-                    ]);
-                }
-
-                DB::commit();
-                $successCount++;
-
-            } catch (\Exception $e) {
-                DB::rollBack();
-                $errors[] = "Row $rowNum: " . $e->getMessage();
-            }
-        }
-
-        $message = "Import completed. Success: $successCount, Skipped: $skippedCount.";
-        
-        if (count($errors) > 0) {
-            return redirect()->route('admin.students.index')
-                ->with('success', $message) // Still show success count
-                ->with('import_errors', $errors); // Pass all errors
-        }
-
-        return redirect()->route('admin.students.index')->with('success', $message);
+        return $redirect;
     }
     public function bulkDestroy(Request $request)
     {
@@ -1167,40 +645,10 @@ class StudentController extends Controller
             'ids.*' => 'exists:students,id',
         ]);
 
-        $ids = $request->ids;
-        $count = count($ids);
-
         try {
-            DB::beginTransaction();
-
-            foreach ($ids as $id) {
-                $student = Student::findOrFail($id);
-                
-                // Delete User Account
-                if ($student->user) {
-                    $student->user->delete();
-                }
-
-                // Delete Photo
-                if ($student->photo) {
-                    \Storage::disk('public')->delete($student->photo);
-                }
-                
-                // Delete Guardians and their photos
-                foreach ($student->guardians as $guardian) {
-                     if ($guardian->photo) {
-                        \Storage::disk('public')->delete($guardian->photo);
-                     }
-                }
-
-                $student->delete();
-            }
-
-            DB::commit();
+            $count = $this->studentService->bulkDeleteStudents($request->ids);
             return redirect()->route('admin.students.index')->with('success', "$count students deleted successfully.");
-
         } catch (\Exception $e) {
-            DB::rollBack();
             return back()->with('error', 'Error deleting students: ' . $e->getMessage());
         }
     }
@@ -1366,6 +814,81 @@ class StudentController extends Controller
         ]);
 
         return back()->with('success', 'Password reset successfully. New Password: ' . $password);
+    }
+    public function restore(string $id)
+    {
+        $student = Student::withTrashed()->findOrFail($id);
+        $student->restore();
+        
+        // Optionally restore user account if needed, but keeping it simple for now
+        
+        return redirect()->back()->with('success', 'Student restored successfully.');
+    }
+
+    public function storeDocument(Request $request, Student $student)
+    {
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'document_type' => 'required|string|in:standard,medical,legal,other',
+            'file' => 'required|file|max:10240', // 10MB max
+            'notes' => 'nullable|string',
+        ]);
+
+        $path = $request->file('file')->store('students/documents', 'public');
+
+        $student->documents()->create([
+            'title' => $request->title,
+            'document_type' => $request->document_type,
+            'file_path' => $path,
+            'notes' => $request->notes,
+        ]);
+
+        return back()->with('success', 'Document uploaded successfully.');
+    }
+
+    public function deleteDocument(Student $student, StudentDocument $document)
+    {
+        // Add auth check if needed
+        if ($document->student_id !== $student->id) {
+            abort(403);
+        }
+
+        if (Storage::disk('public')->exists($document->file_path)) {
+            Storage::disk('public')->delete($document->file_path);
+        }
+
+        $document->delete();
+
+        return back()->with('success', 'Document deleted successfully.');
+    }
+
+    public function bulkIdCardsSelected(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'exists:students,id',
+        ]);
+
+        $students = Student::whereIn('id', $request->ids)
+            ->with(['currentEnrollment.section.gradeLevel', 'primaryGuardian'])
+            ->orderBy('first_name')
+            ->get();
+
+        $academicYear = \App\Models\AcademicYear::where('is_active', true)->first();
+        $settings = \App\Models\ReportCardSetting::first();
+        
+        // We can reuse the bulk PDF view but pass students directly
+        // The existing view expects $students and $section (for title)
+        // We'll pass a dummy section or adjust the view to handle mixed sections
+        
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.students.id-cards-bulk-pdf', [
+            'students' => $students,
+            'section' => null, // View should handle null section
+            'academicYear' => $academicYear,
+            'settings' => $settings
+        ])->setPaper([0, 0, 243.78, 153.07], 'landscape');
+
+        return $pdf->stream('selected-students-id-cards.pdf');
     }
 }
 
