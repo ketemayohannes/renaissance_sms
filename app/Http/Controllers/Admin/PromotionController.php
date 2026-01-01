@@ -23,7 +23,7 @@ class PromotionController extends Controller
         $promotionRules = PromotionRule::with(['fromGradeLevel', 'toGradeLevel'])
             ->where('academic_year_id', $academicYear->id)
             ->get();
-        $gradeLevels = GradeLevel::orderBy('order')->get();
+        $gradeLevels = GradeLevel::orderBy('sort_order')->get();
         
         return view('admin.promotions.index', compact('promotionRules', 'gradeLevels', 'academicYear'));
     }
@@ -72,7 +72,7 @@ class PromotionController extends Controller
         $nextAcademicYear = AcademicYear::where('start_date', '>', $academicYear->end_date)
             ->orderBy('start_date')
             ->first();
-        $gradeLevels = GradeLevel::with('sections')->orderBy('order')->get();
+        $gradeLevels = GradeLevel::with('sections')->orderBy('sort_order')->get();
 
         return view('admin.promotions.process', compact('academicYear', 'nextAcademicYear', 'gradeLevels'));
     }
@@ -141,8 +141,8 @@ class PromotionController extends Controller
         $nextAcademicYear = AcademicYear::where('start_date', '>', $academicYear->end_date)
             ->orderBy('start_date')
             ->first();
-        $nextGradeLevel = GradeLevel::where('order', '>', $section->gradeLevel->order)
-            ->orderBy('order')
+        $nextGradeLevel = GradeLevel::where('sort_order', '>', $section->gradeLevel->sort_order)
+            ->orderBy('sort_order')
             ->first();
 
         return view('admin.promotions.preview', compact(
@@ -161,8 +161,8 @@ class PromotionController extends Controller
         $section = Section::with('gradeLevel')->findOrFail($request->section_id);
         $academicYear = AcademicYear::where('is_active', true)->first();
         $nextAcademicYear = AcademicYear::findOrFail($request->next_academic_year_id);
-        $nextGradeLevel = GradeLevel::where('order', '>', $section->gradeLevel->order)
-            ->orderBy('order')
+        $nextGradeLevel = GradeLevel::where('sort_order', '>', $section->gradeLevel->sort_order)
+            ->orderBy('sort_order')
             ->first();
 
         $promotedCount = 0;
