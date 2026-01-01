@@ -23,8 +23,11 @@ class RoleController extends Controller
      */
     public function create()
     {
-        $permissions = Permission::all()->groupBy(function($data) {
-            return explode(' ', $data->name)[1] ?? 'Other';
+        // PERFORMANCE: Cache grouped permissions
+        $permissions = \Illuminate\Support\Facades\Cache::remember('grouped_permissions_by_name', 3600, function() {
+            return Permission::all()->groupBy(function($data) {
+                return explode(' ', $data->name)[1] ?? 'Other';
+            });
         });
         return view('admin.roles.create', compact('permissions'));
     }
@@ -54,8 +57,11 @@ class RoleController extends Controller
     public function edit(string $id)
     {
         $role = Role::findById($id);
-        $permissions = Permission::all()->groupBy(function($data) {
-            return explode(' ', $data->name)[1] ?? 'Other';
+        // PERFORMANCE: Cache grouped permissions
+        $permissions = \Illuminate\Support\Facades\Cache::remember('grouped_permissions_by_name', 3600, function() {
+            return Permission::all()->groupBy(function($data) {
+                return explode(' ', $data->name)[1] ?? 'Other';
+            });
         });
         $rolePermissions = $role->permissions->pluck('name')->toArray();
 

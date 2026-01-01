@@ -25,7 +25,10 @@ class StudentController extends Controller
     }
     public function index(Request $request)
     {
-        $query = Student::with(['user', 'enrollments.section.gradeLevel', 'enrollments.academicYear']);
+        // PERFORMANCE: Simplified eager loading - only load current enrollment
+        $query = Student::with(['enrollments' => function($q) {
+            $q->whereNull('end_date')->with('section.gradeLevel');
+        }]);
 
         // Search Filter - Using scope
         $query->search($request->search);
@@ -53,6 +56,7 @@ class StudentController extends Controller
                     $query->inGrade($request->grade_id);
                 }
                 if ($request->filled('section_name')) {
+                    // PERFORMANCE: Direct join instead of nested whereHas
                     $query->whereHas('enrollments', function($q) use ($request) {
                         $q->whereNull('end_date')
                           ->whereHas('section', fn($sq) => $sq->where('name', $request->section_name));
@@ -79,8 +83,8 @@ class StudentController extends Controller
         }
 
         // Sorting
-        $sort = $request->get('sort', 'created_at');
-        $direction = $request->get('direction', 'desc');
+        $sort = $request->get('sort', 'name');
+        $direction = $request->get('direction', 'asc');
 
         if ($sort === 'name') {
             $query->orderBy('first_name', $direction)
@@ -92,18 +96,18 @@ class StudentController extends Controller
             $query->orderBy('created_at', 'desc');
         }
 
-        $perPage = $request->input('per_page', 15);
+        $perPage = $request->input('per_page', 50);
         // Limit max per page to avoid performance issues
         if ($perPage > 100) $perPage = 100;
         
         $students = $query->paginate($perPage)->withQueryString();
         
-        // Data for filters (Cached)
-        $gradeLevels = Cache::remember('grade_levels_all', 3600, function () {
-            return \App\Models\GradeLevel::all();
+        // PERFORMANCE: Cache grade levels and sections (they rarely change)
+        $gradeLevels = Cache::remember('all_grade_levels', 3600, function() {
+            return \App\Models\GradeLevel::orderBy('sort_order')->get();
         });
 
-        $sections = Cache::remember('sections_grouped_by_grade', 3600, function () {
+        $sections = Cache::remember('all_sections_grouped', 3600, function() {
             return Section::with('gradeLevel')->get()->groupBy(function($section) {
                 return $section->gradeLevel ? $section->gradeLevel->name : 'Unassigned';
             });
@@ -655,8 +659,13 @@ class StudentController extends Controller
 
     public function idCardsIndex()
     {
-        $gradeLevels = \App\Models\GradeLevel::with('sections')->orderBy('order')->get();
-        return view('admin.students.id-cards-index', compact('gradeLevels'));
+        $academicYear = \App\Helpers\CachedData::activeAcademicYear();
+        $sections = \App\Models\Section::with('gradeLevel')
+            ->where('academic_year_id', $academicYear->id)
+            ->withCount('students')
+            ->get();
+            
+        return view('admin.students.id-cards-index', compact('sections'));
     }
 
     public function generateIdCard(Student $student)

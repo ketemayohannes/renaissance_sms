@@ -15,8 +15,9 @@ class ElectiveController extends Controller
 {
     public function bulkAssignForm()
     {
-        $academicYears = AcademicYear::latest()->get();
-        $gradeLevels = GradeLevel::all();
+        // PERFORMANCE: Use cached data
+        $academicYears = \App\Helpers\CachedData::academicYears();
+        $gradeLevels = \App\Helpers\CachedData::gradeLevels();
         
         return view('admin.electives.bulk-assign', compact('academicYears', 'gradeLevels'));
     }
@@ -63,26 +64,26 @@ class ElectiveController extends Controller
             'academic_year_id' => 'required|exists:academic_years,id',
         ]);
 
-        // Fetch students enrolled in ANY section of this grade level for this academic year
-        // Fetch students enrolled in ANY section of this grade level for this academic year
+        // PERFORMANCE: Simplified query - only joined to enrollment to check grade level
         $students = Student::where('is_active', true)
         ->whereHas('enrollments', function($q) use ($request) {
             $q->where('academic_year_id', $request->academic_year_id)
               ->whereHas('section', function($sq) use ($request) {
                   $sq->where('grade_level_id', $request->grade_level_id);
               })
-              ->whereNull('end_date'); // Active enrollment
+              ->whereNull('end_date');
         })
         ->orderBy('first_name')
-        ->get(['id', 'first_name', 'father_name', 'grandfather_name', 'student_id'])
-        ->map(function($student) {
+        ->get(['id', 'first_name', 'father_name', 'grandfather_name', 'student_id']);
+        
+        $data = $students->map(function($student) {
             return [
                 'id' => $student->id,
-                'name' => $student->full_name . ' (' . $student->student_id . ')',
+                'name' => "{$student->first_name} {$student->father_name} {$student->grandfather_name} ({$student->student_id})",
             ];
         });
 
-        return response()->json($students);
+        return response()->json($data);
     }
 
     public function storeBulkAssign(Request $request)

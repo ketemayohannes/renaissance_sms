@@ -1,96 +1,118 @@
 <x-admin-layout>
     <x-slot name="header">Gradebook Management</x-slot>
 
-    <div class="space-y-6">
-            <!-- Breadcrumb -->
-            <nav class="flex mb-4" aria-label="Breadcrumb">
-                <ol class="inline-flex items-center space-x-1 md:space-x-3">
-                    <li class="inline-flex items-center">
-                        <a href="{{ route('admin.dashboard') }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
-                            <svg class="w-3 h-3 mr-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="m19.707 9.293-2-2-7-7a1 1 0 0 0-1.414 0l-7 7-2 2a1 1 0 0 0 1.414 1.414L2 10.414V18a2 2 0 0 0 2 2h3a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h3a2 2 0 0 0 2-2v-7.586l.293.293a1 1 0 0 0 1.414-1.414Z"/>
-                            </svg>
-                            Dashboard
-                        </a>
-                    </li>
-                    <li>
-                        <div class="flex items-center">
-                            <svg class="w-3 h-3 text-gray-400 mx-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
-                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4"/>
-                            </svg>
-                            <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Gradebook</span>
-                        </div>
-                    </li>
-                </ol>
-            </nav>
-
-        <div class="card overflow-hidden">
-            <div class="p-6">
-                    <div class="flex justify-between items-center border-b pb-2 mb-4">
-                        <h3 class="text-lg font-medium text-gray-900">Select Criteria to Enter Marks</h3>
-                        <a href="{{ route('admin.section-grades.index') }}" class="text-sm text-blue-600 hover:text-blue-900 font-semibold">
-                            Switch to Master Sheet Entry &rarr;
-                        </a>
+    <div class="space-y-8">
+        <!-- Breadcrumb & Header -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+                <x-breadcrumb :items="[
+                    ['label' => 'Gradebook', 'url' => '#']
+                ]" />
+                <h1 class="text-4xl font-black text-slate-900 tracking-tight mt-2">Gradebook</h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="px-4 py-2 bg-indigo-50 rounded-2xl border border-indigo-100 flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     </div>
-                    
-                    <form action="{{ route('admin.gradebook.entry') }}" method="GET">
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <!-- Academic Year -->
-                            <div>
-                                <label for="academic_year_id" class="block text-sm font-medium text-gray-700">Academic Year</label>
-                                <select name="academic_year_id" id="academic_year_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
-                                    <option value="">Select Year</option>
-                                    @foreach($academicYears as $year)
-                                        <option value="{{ $year->id }}" {{ $year->is_active ? 'selected' : '' }}>{{ $year->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
+                    <div>
+                        <span class="block text-[10px] font-black text-indigo-900 uppercase tracking-widest">Active System</span>
+                        <span class="block text-xs font-bold text-indigo-600/80 mt-0.5">Automated Calculation On</span>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-                            <!-- Term -->
-                            <div>
-                                <label for="term_id" class="block text-sm font-medium text-gray-700">Term (Semester/Quarter)</label>
-                                <select name="term_id" id="term_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
-                                    <option value="">Select Term</option>
-                                    <!-- Populated via AJAX -->
-                                </select>
-                            </div>
+        <!-- Selection Panel -->
+        <div class="bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-xl shadow-slate-200/50 p-10">
+            <div class="w-full">
+                <div class="text-center mb-10">
+                    <div class="w-20 h-20 bg-slate-900 rounded-[2rem] flex items-center justify-center text-white mx-auto mb-6 shadow-2xl shadow-slate-200">
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                    </div>
+                    <h2 class="text-3xl font-black text-slate-900 tracking-tight">Access Gradebook</h2>
+                    <p class="text-slate-500 font-semibold mt-2">Select the academic parameters to begin entering or viewing grades.</p>
+                </div>
 
-                            <!-- Grade Level -->
-                            <div>
-                                <label for="grade_level_id" class="block text-sm font-medium text-gray-700">Grade Level</label>
-                                <select name="grade_level_id" id="grade_level_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
-                                    <option value="">Select Grade Level</option>
-                                    @foreach($gradeLevels as $grade)
-                                        <option value="{{ $grade->id }}">{{ $grade->name }} ({{ $grade->division->name }})</option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <!-- Section -->
-                            <div>
-                                <label for="section_id" class="block text-sm font-medium text-gray-700">Section</label>
-                                <select name="section_id" id="section_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
-                                    <option value="">Select Section</option>
-                                    <!-- Populated via AJAX -->
-                                </select>
-                            </div>
-
-                            <!-- Subject -->
-                            <div>
-                                <label for="subject_id" class="block text-sm font-medium text-gray-700">Subject</label>
-                                <select name="subject_id" id="subject_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
-                                    <option value="">Select Subject</option>
-                                    <!-- Populated via AJAX -->
-                                </select>
-                            </div>
+                <form action="{{ route('admin.gradebook.entry') }}" method="GET" class="space-y-8">
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-6 items-end">
+                        <div class="space-y-2">
+                            <label for="academic_year_id" class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Academic Year</label>
+                            <select name="academic_year_id" id="academic_year_id" required class="w-full bg-white/50 border-slate-200 rounded-2xl focus:ring-indigo-500 focus:border-indigo-500 font-bold text-sm py-4 px-6 transition-all appearance-none cursor-pointer">
+                                @foreach($academicYears as $year)
+                                    <option value="{{ $year->id }}" {{ $year->is_current ? 'selected' : '' }}>{{ $year->name }}</option>
+                                @endforeach
+                            </select>
                         </div>
-
-                        <div class="mt-6 flex justify-end">
-                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150 ease-in-out">
-                                Load Gradebook
-                            </button>
+                        <div class="space-y-2">
+                            <label for="term_id" class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Academic Term</label>
+                            <select name="term_id" id="term_id" required class="w-full bg-white/50 border-slate-200 rounded-2xl focus:ring-indigo-500 focus:border-indigo-500 font-bold text-sm py-4 px-6 transition-all appearance-none cursor-pointer">
+                                @foreach($terms as $term)
+                                    <option value="{{ $term->id }}" {{ $term->is_current ? 'selected' : '' }}>{{ $term->name }}</option>
+                                @endforeach
+                            </select>
                         </div>
-                    </form>
+                        <div class="space-y-2">
+                            <label for="grade_level_id" class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Grade Level</label>
+                            <select name="grade_level_id" id="grade_level_id" required class="w-full bg-white/50 border-slate-200 rounded-2xl focus:ring-indigo-500 focus:border-indigo-500 font-bold text-sm py-4 px-6 transition-all appearance-none cursor-pointer">
+                                <option value="">Select Grade</option>
+                                @foreach($gradeLevels as $grade)
+                                    <option value="{{ $grade->id }}">{{ $grade->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <label for="section_id" class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Class Section</label>
+                            <select name="section_id" id="section_id" required class="w-full bg-white/50 border-slate-200 rounded-2xl focus:ring-indigo-500 focus:border-indigo-500 font-bold text-sm py-4 px-6 transition-all appearance-none cursor-pointer">
+                                <option value="">Select Section</option>
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <label for="subject_id" class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Subject</label>
+                            <select name="subject_id" id="subject_id" required class="w-full bg-white/50 border-slate-200 rounded-2xl focus:ring-indigo-500 focus:border-indigo-500 font-bold text-sm py-4 px-6 transition-all appearance-none cursor-pointer">
+                                <option value="">Select Subject</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-center pt-4">
+                        <button type="submit" class="w-full max-w-md py-5 bg-slate-900 text-white font-black text-sm uppercase tracking-[0.2em] rounded-2xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3 group">
+                            Initialize Gradebook
+                            <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Quick Info Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-white/80 backdrop-blur-xl rounded-[2rem] p-8 border border-white shadow-xl shadow-slate-200/50 flex items-start gap-6 group hover:scale-[1.02] transition-transform">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0 shadow-sm border border-emerald-100 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>
+                </div>
+                <div>
+                    <h3 class="font-black text-slate-900 uppercase tracking-widest text-[10px]">Auto-Calibration</h3>
+                    <p class="text-xs text-slate-500 font-semibold mt-1 leading-relaxed">System automatically applies pre-configured weights based on templates.</p>
+                </div>
+            </div>
+            <div class="bg-white/80 backdrop-blur-xl rounded-[2rem] p-8 border border-white shadow-xl shadow-slate-200/50 flex items-start gap-6 group hover:scale-[1.02] transition-transform">
+                <div class="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0 shadow-sm border border-indigo-100 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                </div>
+                <div>
+                    <h3 class="font-black text-slate-900 uppercase tracking-widest text-[10px]">Real-Time Pulse</h3>
+                    <p class="text-xs text-slate-500 font-semibold mt-1 leading-relaxed">Grades are processed instantly, updating class averages and student rankings.</p>
+                </div>
+            </div>
+            <div class="bg-white/80 backdrop-blur-xl rounded-[2rem] p-8 border border-white shadow-xl shadow-slate-200/50 flex items-start gap-6 group hover:scale-[1.02] transition-transform">
+                <div class="w-12 h-12 rounded-2xl bg-violet-50 flex items-center justify-center text-violet-600 shrink-0 shadow-sm border border-violet-100 group-hover:bg-violet-600 group-hover:text-white transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                </div>
+                <div>
+                    <h3 class="font-black text-slate-900 uppercase tracking-widest text-[10px]">Audit Logs</h3>
+                    <p class="text-xs text-slate-500 font-semibold mt-1 leading-relaxed">Every grade change is tracked and attributed to the specific faculty member.</p>
+                </div>
             </div>
         </div>
     </div>
@@ -99,33 +121,15 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const yearSelect = document.getElementById('academic_year_id');
-            const gradeSelect = document.getElementById('grade_level_id');
             const termSelect = document.getElementById('term_id');
+            const gradeSelect = document.getElementById('grade_level_id');
             const sectionSelect = document.getElementById('section_id');
             const subjectSelect = document.getElementById('subject_id');
 
-            // Initial load of terms if year is selected
-            if(yearSelect.value) {
-                loadTerms(yearSelect.value);
-            }
-
             yearSelect.addEventListener('change', function() {
-                loadTerms(this.value);
-                resetDependentDropdowns();
-            });
-
-            gradeSelect.addEventListener('change', function() {
-                if(this.value && yearSelect.value) {
-                    loadSections(yearSelect.value, this.value);
-                    loadSubjects(yearSelect.value, this.value);
-                } else {
-                    sectionSelect.innerHTML = '<option value="">Select Section</option>';
-                    subjectSelect.innerHTML = '<option value="">Select Subject</option>';
-                }
-            });
-
-            function loadTerms(yearId) {
-                if(!yearId) return;
+                const yearId = this.value;
+                if (!yearId) return;
+                
                 fetch(`{{ route('admin.gradebook.get-terms') }}?academic_year_id=${yearId}`)
                     .then(response => response.json())
                     .then(data => {
@@ -134,56 +138,37 @@
                             termSelect.innerHTML += `<option value="${term.id}">${term.name}</option>`;
                         });
                     });
-            }
+                
+                resetDependentDropdowns();
+            });
 
-            function loadSections(yearId, gradeId) {
-                console.log('Loading sections for year:', yearId, 'grade:', gradeId);
+            gradeSelect.addEventListener('change', function() {
+                const gradeId = this.value;
+                const yearId = yearSelect.value;
+                if (!gradeId || !yearId) return;
+
+                // Load Sections
                 fetch(`{{ route('admin.gradebook.get-sections') }}?academic_year_id=${yearId}&grade_level_id=${gradeId}`)
-                    .then(response => {
-                        if (!response.ok) throw new Error('Network response was not ok');
-                        return response.json();
-                    })
+                    .then(response => response.json())
                     .then(data => {
-                        console.log('Sections loaded:', data);
                         sectionSelect.innerHTML = '<option value="">Select Section</option>';
-                        if (data.length === 0) {
-                            sectionSelect.innerHTML += '<option value="" disabled>No sections found</option>';
-                        }
                         data.forEach(section => {
                             sectionSelect.innerHTML += `<option value="${section.id}">${section.name}</option>`;
                         });
-                    })
-                    .catch(error => {
-                        console.error('Error loading sections:', error);
-                        sectionSelect.innerHTML = '<option value="">Error loading sections</option>';
                     });
-            }
-
-            function loadSubjects(yearId, gradeId) {
-                console.log('Loading subjects for year:', yearId, 'grade:', gradeId);
+                
+                // Load Subjects
                 fetch(`{{ route('admin.gradebook.get-subjects') }}?academic_year_id=${yearId}&grade_level_id=${gradeId}`)
-                    .then(response => {
-                        if (!response.ok) throw new Error('Network response was not ok');
-                        return response.json();
-                    })
+                    .then(response => response.json())
                     .then(data => {
-                        console.log('Subjects loaded:', data);
                         subjectSelect.innerHTML = '<option value="">Select Subject</option>';
-                        if (data.length === 0) {
-                            subjectSelect.innerHTML += '<option value="" disabled>No subjects found</option>';
-                        }
                         data.forEach(subject => {
-                            subjectSelect.innerHTML += `<option value="${subject.id}">${subject.name} (${subject.code})</option>`;
+                            subjectSelect.innerHTML += `<option value="${subject.id}">${subject.name}</option>`;
                         });
-                    })
-                    .catch(error => {
-                        console.error('Error loading subjects:', error);
-                        subjectSelect.innerHTML = '<option value="">Error loading subjects</option>';
                     });
-            }
+            });
 
             function resetDependentDropdowns() {
-                gradeSelect.value = '';
                 sectionSelect.innerHTML = '<option value="">Select Section</option>';
                 subjectSelect.innerHTML = '<option value="">Select Subject</option>';
             }

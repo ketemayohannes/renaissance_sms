@@ -19,11 +19,6 @@
             ['label' => 'Grade Components', 'url' => '#']
         ]" />
 
-            @if(session('success'))
-                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
-                    {{ session('success') }}
-                </div>
-            @endif
 
             @if($weightTotals->isNotEmpty())
                 <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
@@ -35,144 +30,170 @@
                         </div>
                         <div class="ml-3">
                             <h3 class="text-sm font-medium text-yellow-800">Weight Validation Warnings</h3>
-                            <div class="mt-2 text-sm text-yellow-700">
-                                <p class="mb-2">The following grade/subject combinations do not have weights totaling 100%:</p>
-                                <ul class="list-disc list-inside space-y-1">
-                                    @foreach($weightTotals as $total)
-                                        <li>
-                                            <strong>{{ $total['academic_year'] }}</strong> - {{ $total['term'] }} - 
-                                            <strong>{{ $total['grade_level'] }}</strong> - {{ $total['subject'] }}: 
-                                            <span class="font-semibold {{ $total['total'] > 100 ? 'text-red-600' : 'text-yellow-600' }}">
-                                                {{ $total['total'] }}%
-                                            </span>
-                                            @if($total['total'] > 100)
-                                                <span class="text-red-600">(Exceeds 100%!)</span>
-                                            @elseif($total['total'] < 100)
-                                                <span class="text-yellow-600">({{ 100 - $total['total'] }}% remaining)</span>
-                                            @endif
-                                        </li>
-                                    @endforeach
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            @endif
-
-            <!-- Filters -->
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
-                <div class="p-6 text-gray-900">
-                    <form action="{{ route('admin.grade-components.index') }}" method="GET" class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-                        <div>
-                            <label for="academic_year_id" class="block text-sm font-medium text-gray-700">Academic Year</label>
-                            <select name="academic_year_id" id="academic_year_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                <option value="">All Years</option>
-                                @foreach($academicYears as $year)
-                                    <option value="{{ $year->id }}" {{ request('academic_year_id') == $year->id ? 'selected' : '' }}>{{ $year->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div>
-                            <label for="grade_level_id" class="block text-sm font-medium text-gray-700">Grade Level</label>
-                            <select name="grade_level_id" id="grade_level_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                <option value="">All Grades</option>
-                                @foreach($gradeLevels as $grade)
-                                    <option value="{{ $grade->id }}" {{ request('grade_level_id') == $grade->id ? 'selected' : '' }}>{{ $grade->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div>
-                            <label for="subject_id" class="block text-sm font-medium text-gray-700">Subject</label>
-                            <select name="subject_id" id="subject_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                <option value="">All Subjects</option>
-                                @foreach($subjects as $subject)
-                                    <option value="{{ $subject->id }}" {{ request('subject_id') == $subject->id ? 'selected' : '' }}>{{ $subject->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div>
-                            <label for="term_id" class="block text-sm font-medium text-gray-700">Term</label>
-                            <select name="term_id" id="term_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                <option value="">All Terms</option>
-                                @foreach($terms as $term)
-                                    <option value="{{ $term->id }}" {{ request('term_id') == $term->id ? 'selected' : '' }}>{{ $term->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div>
-                            <button type="submit" class="w-full bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
-                                Filter
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                <x-breadcrumb :items="[
+                    ['label' => 'Grade Components', 'url' => '#']
+                ]" />
+                <h1 class="text-4xl font-black text-slate-900 tracking-tight mt-2">Grade Components</h1>
             </div>
-
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Academic Year / Term</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assessment Name</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade Levels</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subjects</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Weight</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                @forelse($groupedComponents as $group)
-                                    <tr class="hover:bg-gray-50">
-                                        <td class="px-6 py-4">
-                                            <div class="text-sm font-medium text-gray-900">{{ $group['academic_year']->name }}</div>
-                                            <div class="text-xs text-gray-500">{{ $group['term']->name ?? 'All Terms' }}</div>
-                                        </td>
-                                        <td class="px-6 py-4">
-                                            <div class="text-sm font-medium text-gray-900">{{ $group['name'] }}</div>
-                                            <div class="text-xs text-gray-500">{{ $group['count'] }} assignment(s)</div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                                                {{ $group['assessment_type']->name }}
-                                            </span>
-                                        </td>
-                                        <td class="px-6 py-4">
-                                            <div class="text-sm text-gray-900">
-                                                {{ $group['grade_levels']->pluck('name')->join(', ') }}
-                                            </div>
-                                        </td>
-                                        <td class="px-6 py-4">
-                                            <div class="text-sm text-gray-900">
-                                                {{ $group['subjects']->pluck('name')->join(', ') }}
-                                            </div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm font-medium text-gray-900">{{ $group['weight'] }}%</div>
-                                            <div class="text-xs text-gray-500">Max: {{ $group['max_score'] }}</div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <a href="{{ route('admin.grade-components.edit', $group['id']) }}" class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</a>
-                                            <form action="{{ route('admin.grade-components.destroy', $group['id']) }}" method="POST" class="inline-block delete-form" data-confirm-message="Are you sure you want to delete this grade component group ({{ $group['count'] }} assignment(s))?">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="7" class="px-6 py-4 text-center text-gray-500">No grade components found.</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+            <div class="flex items-center gap-3">
+                <a href="{{ route('admin.grade-components.create') }}" class="px-6 py-3 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-indigo-600 transition-all shadow-lg shadow-slate-200 flex items-center gap-2 group">
+                    <svg class="w-4 h-4 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Add Component
+                </a>
             </div>
         </div>
-    </div>
+
+        @if($weightWarnings->isNotEmpty())
+            <div class="bg-amber-50/50 backdrop-blur-xl border border-amber-100 rounded-[2rem] p-6 flex flex-col md:flex-row gap-6 items-start">
+                <div class="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600 shrink-0 shadow-sm">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                </div>
+                <div>
+                    <h3 class="text-sm font-black text-amber-900 uppercase tracking-widest">Weight Selection Logic Integrity</h3>
+                    <p class="text-xs text-amber-700/80 mt-1 font-semibold">The following subject mappings have component weights that do not total 100%. Master calculations may be inconsistent.</p>
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        @foreach($weightWarnings as $warning)
+                            <span class="px-3 py-1 bg-white/50 border border-amber-200/50 rounded-lg text-[9px] font-black {{ $warning['total'] > 100 ? 'text-rose-600' : 'text-amber-600' }} uppercase tracking-widest">
+                                {{ $warning['subject'] }} ({{ $warning['section'] }}): {{ $warning['total'] }}%
+                            </span>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        <!-- Filter Panel -->
+        <div class="bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-xl shadow-slate-200/50 p-8">
+            <form action="{{ route('admin.grade-components.index') }}" method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+                <div class="space-y-2">
+                    <label for="academic_year_id" class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Academic Year</label>
+                    <select name="academic_year_id" id="academic_year_id" class="w-full bg-white/50 border-slate-200 rounded-2xl focus:ring-indigo-500 focus:border-indigo-500 font-bold text-sm py-3 px-4 transition-all">
+                        <option value="">All Years</option>
+                        @foreach($academicYears as $year)
+                            <option value="{{ $year->id }}" {{ request('academic_year_id') == $year->id ? 'selected' : '' }}>{{ $year->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label for="term_id" class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Academic Term</label>
+                    <select name="term_id" id="term_id" class="w-full bg-white/50 border-slate-200 rounded-2xl focus:ring-indigo-500 focus:border-indigo-500 font-bold text-sm py-3 px-4 transition-all">
+                        <option value="">All Terms</option>
+                        @foreach($terms as $term)
+                            <option value="{{ $term->id }}" {{ request('term_id') == $term->id ? 'selected' : '' }}>{{ $term->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label for="section_id" class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Class Section</label>
+                    <select name="section_id" id="section_id" class="w-full bg-white/50 border-slate-200 rounded-2xl focus:ring-indigo-500 focus:border-indigo-500 font-bold text-sm py-3 px-4 transition-all">
+                        <option value="">All Sections</option>
+                        @foreach($sections as $section)
+                            <option value="{{ $section->id }}" {{ request('section_id') == $section->id ? 'selected' : '' }}>{{ $section->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <button type="submit" class="bg-white hover:bg-slate-50 text-slate-700 font-black text-[10px] uppercase tracking-widest py-4 rounded-2xl border border-slate-200 shadow-sm transition-all flex items-center justify-center gap-2 group">
+                    <svg class="w-4 h-4 text-slate-400 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                    Sync Gradebook
+                </button>
+            </form>
+        </div>
+
+        <!-- Table Panel -->
+        <div class="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-xl shadow-slate-200/50 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-separate border-spacing-0">
+                    <thead>
+                        <tr>
+                            <th class="px-8 py-6 bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Scope</th>
+                            <th class="px-8 py-6 bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Component Logic</th>
+                            <th class="px-8 py-6 bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Category</th>
+                            <th class="px-8 py-6 bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-center">Weight</th>
+                            <th class="px-8 py-6 bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-50">
+                        @forelse($groupedComponents as $key => $group)
+                            @php
+                                $first = $group->first();
+                            @endphp
+                            <tr class="group hover:bg-slate-50/50 transition-all">
+                                <td class="px-8 py-6">
+                                    <div class="flex flex-col">
+                                        <span class="font-bold text-slate-700">{{ $first->section->name }}</span>
+                                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider mt-0.5">{{ $first->subject->name }}</span>
+                                    </div>
+                                </td>
+                                <td class="px-8 py-6">
+                                    <div class="flex flex-col gap-2">
+                                        @foreach($group as $component)
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 font-black text-[10px] shadow-sm border border-indigo-100/50">
+                                                    {{ substr($component->name, 0, 1) }}
+                                                </div>
+                                                <div class="flex flex-col">
+                                                    <span class="text-sm font-semibold text-slate-700">{{ $component->name }}</span>
+                                                    <span class="text-[9px] font-bold text-slate-400">{{ $component->assessmentType->name }}</span>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </td>
+                                <td class="px-8 py-6">
+                                    <div class="flex flex-col gap-2">
+                                        @foreach($group as $component)
+                                            <div class="h-8 flex items-center">
+                                                <span class="px-2 py-0.5 bg-slate-100 rounded text-[9px] font-black text-slate-500 uppercase tracking-widest border border-slate-200/50">
+                                                    {{ $component->assessmentType->name }}
+                                                </span>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </td>
+                                <td class="px-8 py-6 text-center">
+                                    <div class="flex flex-col gap-2 items-center">
+                                        @foreach($group as $component)
+                                            <div class="h-8 flex flex-col items-center justify-center">
+                                                <span class="text-sm font-black text-slate-800 tracking-tighter">{{ $component->weight }}%</span>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </td>
+                                <td class="px-8 py-6 text-right">
+                                    <div class="flex flex-col gap-2 items-end">
+                                        @foreach($group as $component)
+                                            <div class="h-8 flex items-center gap-1">
+                                                <a href="{{ route('admin.grade-components.edit', $component) }}" class="p-1.5 text-slate-300 hover:text-indigo-600 transition-colors">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                                </a>
+                                                <form action="{{ route('admin.grade-components.destroy', $component) }}" method="POST" class="inline delete-form" data-confirm-message="Are you sure?">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="p-1.5 text-slate-200 hover:text-rose-500 transition-colors">
+                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="px-8 py-20 text-center">
+                                    <div class="flex flex-col items-center">
+                                        <div class="w-20 h-20 bg-slate-50 rounded-[2rem] flex items-center justify-center text-slate-200 mb-4">
+                                            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                        </div>
+                                        <p class="text-slate-400 font-bold tracking-tight">No grade components configured</p>
+                                        <p class="text-slate-300 text-xs mt-1">Foundational data required for operation.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </x-admin-layout>

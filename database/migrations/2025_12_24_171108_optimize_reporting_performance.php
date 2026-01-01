@@ -29,14 +29,14 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasIndex('student_attendances', 'sa_student_date_idx')) {
-            Schema::table('student_attendances', function (Blueprint $table) {
+        if (!Schema::hasIndex('student_attendance', 'sa_student_date_idx')) {
+            Schema::table('student_attendance', function (Blueprint $table) {
                 $table->index(['student_id', 'attendance_date'], 'sa_student_date_idx');
             });
         }
 
-        if (!Schema::hasIndex('student_attendances', 'sa_section_date_idx')) {
-            Schema::table('student_attendances', function (Blueprint $table) {
+        if (!Schema::hasIndex('student_attendance', 'sa_section_date_idx')) {
+            Schema::table('student_attendance', function (Blueprint $table) {
                 $table->index(['section_id', 'attendance_date'], 'sa_section_date_idx');
             });
         }
@@ -68,7 +68,7 @@ return new class extends Migration
             $table->dropIndex('str_student_term_academic_idx');
         });
 
-        Schema::table('student_attendances', function (Blueprint $table) {
+        Schema::table('student_attendance', function (Blueprint $table) {
             $table->dropIndex('sa_student_date_idx');
             $table->dropIndex('sa_section_date_idx');
         });

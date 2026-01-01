@@ -24,6 +24,8 @@ class StudentTermRecord extends Model
 
     protected $casts = [
         'behavior_traits' => 'array',
+        'total_score' => 'decimal:2',
+        'average_score' => 'decimal:2',
     ];
 
     public function student()

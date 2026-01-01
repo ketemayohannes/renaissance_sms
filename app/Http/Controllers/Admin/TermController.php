@@ -11,7 +11,8 @@ class TermController extends Controller
 {
     public function index()
     {
-        $academicYears = AcademicYear::latest()->get();
+        // PERFORMANCE: Use cached data
+        $academicYears = \App\Helpers\CachedData::academicYears();
         $terms = Term::with(['academicYear', 'quarters', 'semester'])
             ->orderBy('academic_year_id', 'desc')
             ->orderBy('start_date')
@@ -103,7 +104,8 @@ class TermController extends Controller
 
     public function edit(Term $term)
     {
-        $academicYears = AcademicYear::all();
+        // PERFORMANCE: Use cached data
+        $academicYears = \App\Helpers\CachedData::academicYears();
         $term->load('quarters');
         return view('admin.terms.edit', compact('term', 'academicYears'));
     }

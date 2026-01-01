@@ -1,282 +1,241 @@
 <x-admin-layout>
     <x-slot name="header">Grade Entry</x-slot>
 
-    <div class="space-y-6">
-        <!-- Breadcrumb -->
-        <x-breadcrumb :items="[
-            ['label' => 'Gradebook', 'url' => route('admin.gradebook.index')],
-            ['label' => 'Grade Entry', 'url' => '#']
-        ]" />
-
-            <!-- Selection Summary -->
+    <div class="space-y-8" x-data="gradebookState()">
+        <!-- Header & Navigation -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+                <x-breadcrumb :items="[
+                    ['label' => 'Gradebook', 'url' => route('admin.gradebook.index')],
+                    ['label' => 'Score Entry', 'url' => '#']
+                ]" />
+                <h1 class="text-4xl font-black text-slate-900 tracking-tight mt-2">Score Entry</h1>
+                <p class="text-slate-500 font-semibold mt-1">
+                    {{ $subject->name }} ({{ $subject->code }}) &bull; {{ $section->gradeLevel->name }} {{ $section->name }}
+                </p>
+            </div>
             
-            @if(!$term->is_grading_open)
-                <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
-                    <p class="font-bold">Grading Disabled</p>
-                    <p>Subject grading is currently closed for this term.</p>
-                </div>
-            @endif
+            <div class="flex items-center gap-3">
+                <a href="{{ route('admin.gradebook.export-template', ['academic_year_id' => $academicYear->id, 'term_id' => $term->id, 'section_id' => $section->id, 'subject_id' => $subject->id]) }}" 
+                   class="px-6 py-3 bg-white text-slate-700 font-black text-[10px] uppercase tracking-widest rounded-2xl border border-slate-200 hover:bg-slate-50 shadow-sm transition-all flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Export Template
+                </a>
+            </div>
+        </div>
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6" x-data="gradebookState()">
-                <div class="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
-                    <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
-                        <div>
-                            <h3 class="text-lg font-semibold text-gray-900 mb-3">Grade Entry Details</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                <div>
-                                    <p class="text-sm text-gray-600">Academic Year</p>
-                                    <p class="font-semibold text-gray-900">{{ $academicYear->name }}</p>
+        @if(!$term->is_grading_open)
+            <div class="bg-red-50/50 backdrop-blur-md border border-red-100 p-6 rounded-[2rem] flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                <div class="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center text-red-600 shadow-sm">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                </div>
+                <div>
+                    <h3 class="text-red-900 font-black text-sm uppercase tracking-widest">Grading Disabled</h3>
+                    <p class="text-red-700 text-xs font-semibold mt-0.5">Subject grading is currently closed for this term. Records are in read-only mode.</p>
+                </div>
+            </div>
+        @endif
+
+        @php
+            $totalStudents = $students->count();
+            $gradedStudents = 0;
+            foreach($students as $student) {
+                $studentMarks = $existingMarks->get($student->id);
+                if($studentMarks && $studentMarks->count() > 0) $gradedStudents++;
+            }
+            $progressPercent = $totalStudents > 0 ? round(($gradedStudents / $totalStudents) * 100) : 0;
+        @endphp
+
+        <!-- Progress and Actions Panel -->
+        <div class="bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-xl shadow-slate-200/50 p-8 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+            <div class="flex-1 max-w-2xl">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Grading Progress</span>
+                    </div>
+                    <span class="text-xs font-black text-slate-900">{{ $gradedStudents }} <span class="text-slate-400">/ {{ $totalStudents }}</span></span>
+                </div>
+                <div class="w-full bg-slate-200/50 rounded-full h-3 p-0.5 overflow-hidden">
+                    <div class="h-full rounded-full transition-all duration-1000 ease-out {{ $progressPercent == 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-indigo-500 to-indigo-600' }}" 
+                         style="width: {{ $progressPercent }}%"></div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button type="button" @if($term->is_grading_open) onclick="document.getElementById('importModal').classList.remove('hidden')" @endif
+                        class="px-8 py-3.5 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 shadow-xl shadow-slate-200 transition-all flex items-center gap-3 group @if(!$term->is_grading_open) opacity-50 cursor-not-allowed @endif">
+                    <svg class="w-4 h-4 text-white group-hover:-translate-y-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    Batch Import
+                </button>
+            </div>
+        </div>
+
+        <!-- Import Modal -->
+        <div id="importModal" class="fixed z-[60] inset-0 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" aria-hidden="true" onclick="document.getElementById('importModal').classList.add('hidden')"></div>
+                <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+                <div class="inline-block align-bottom bg-white rounded-[2rem] text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-white">
+                    <form action="{{ route('admin.gradebook.import') }}" method="POST" enctype="multipart/form-data">
+                        @csrf
+                        <input type="hidden" name="academic_year_id" value="{{ $academicYear->id }}">
+                        <input type="hidden" name="term_id" value="{{ $term->id }}">
+                        <input type="hidden" name="section_id" value="{{ $section->id }}">
+                        <input type="hidden" name="subject_id" value="{{ $subject->id }}">
+                        
+                        <div class="bg-white px-8 pt-8 pb-6">
+                            <div class="flex items-center gap-4 mb-6">
+                                <div class="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600 shadow-sm transition-transform hover:scale-110">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                                 </div>
                                 <div>
-                                    <p class="text-sm text-gray-600">Term</p>
-                                    <p class="font-semibold text-gray-900">{{ $term->name }}</p>
+                                    <h3 class="text-xl font-black text-slate-900 tracking-tight" id="modal-title">Batch Import</h3>
+                                    <p class="text-slate-500 font-semibold text-xs mt-0.5">Upload the filled CSV template</p>
                                 </div>
-                                <div>
-                                    <p class="text-sm text-gray-600">Grade & Section</p>
-                                    <p class="font-semibold text-gray-900">{{ $section->gradeLevel->name }} - {{ $section->name }}</p>
+                            </div>
+                            
+                            <div class="space-y-4">
+                                <div class="bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center transition-colors hover:border-indigo-400 group relative">
+                                    <input type="file" name="file" accept=".csv,.txt" required class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                                    <div class="space-y-2">
+                                        <svg class="w-8 h-8 text-slate-400 mx-auto group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                        <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Drop file here or click to browse</div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p class="text-sm text-gray-600">Subject</p>
-                                    <p class="font-semibold text-gray-900">{{ $subject->name }} ({{ $subject->code }})</p>
-                                </div>
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center px-4 leading-relaxed">Ensure Student IDs match exactly with the system records to avoid validation failures.</p>
                             </div>
                         </div>
-                        <div class="flex flex-col space-y-2">
-                            <!-- Unsaved Changes Warning -->
-                            <div x-show="hasUnsavedChanges" x-cloak class="flex items-center text-amber-600 bg-amber-50 px-3 py-2 rounded-lg text-sm font-medium">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                                Unsaved changes
-                            </div>
-                            <a href="{{ route('admin.gradebook.export-template', ['academic_year_id' => $academicYear->id, 'term_id' => $term->id, 'section_id' => $section->id, 'subject_id' => $subject->id]) }}" 
-                               class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                <svg class="-ml-1 mr-2 h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                </svg>
-                                Export Template
-                            </a>
-                            <button type="button" @if($term->is_grading_open) onclick="document.getElementById('importModal').classList.remove('hidden')" @endif
-                                    class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 @if(!$term->is_grading_open) opacity-50 cursor-not-allowed @endif"
-                                    @if(!$term->is_grading_open) disabled @endif>
-                                <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                                </svg>
-                                Import Grades
+
+                        <div class="bg-slate-50 px-8 py-6 flex items-center justify-end gap-3 border-t border-slate-100">
+                            <button type="button" onclick="document.getElementById('importModal').classList.add('hidden')" 
+                                    class="px-6 py-2.5 text-slate-500 font-black text-[10px] uppercase tracking-widest hover:text-slate-900 transition-colors">
+                                Cancel
+                            </button>
+                            <button type="submit" class="px-8 py-3 bg-emerald-600 text-white font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all">
+                                Execute Import
                             </button>
                         </div>
-                    </div>
-                    
-                    <!-- Progress Bar -->
-                    @php
-                        $totalStudents = $students->count();
-                        $gradedStudents = 0;
-                        foreach($students as $student) {
-                            $studentMarks = $existingMarks->get($student->id);
-                            $hasAnyGrade = $studentMarks && $studentMarks->count() > 0;
-                            if($hasAnyGrade) $gradedStudents++;
-                        }
-                        $progressPercent = $totalStudents > 0 ? round(($gradedStudents / $totalStudents) * 100) : 0;
-                    @endphp
-                    <div class="mt-4 pt-4 border-t border-blue-100">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-medium text-gray-700">Grading Progress</span>
-                            <span class="text-sm font-bold text-gray-900">{{ $gradedStudents }} / {{ $totalStudents }} students</span>
-                        </div>
-                        <div class="w-full bg-gray-200 rounded-full h-2.5">
-                            <div class="h-2.5 rounded-full transition-all {{ $progressPercent == 100 ? 'bg-green-500' : 'bg-blue-500' }}" style="width: {{ $progressPercent }}%"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Import Modal -->
-            <div id="importModal" class="fixed z-10 inset-0 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-                <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onclick="document.getElementById('importModal').classList.add('hidden')"></div>
-                    <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-                    <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                        <form action="{{ route('admin.gradebook.import') }}" method="POST" enctype="multipart/form-data">
-                            @csrf
-                            <input type="hidden" name="academic_year_id" value="{{ $academicYear->id }}">
-                            <input type="hidden" name="term_id" value="{{ $term->id }}">
-                            <input type="hidden" name="section_id" value="{{ $section->id }}">
-                            <input type="hidden" name="subject_id" value="{{ $subject->id }}">
-                            
-                            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                                <div class="sm:flex sm:items-start">
-                                    <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-green-100 sm:mx-0 sm:h-10 sm:w-10">
-                                        <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                        </svg>
-                                    </div>
-                                    <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                                        <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">Import Grades</h3>
-                                        <div class="mt-2">
-                                            <p class="text-sm text-gray-500 mb-4">Upload the filled CSV template. Ensure Student IDs match.</p>
-                                            <input type="file" name="file" accept=".csv,.txt" class="w-full border border-gray-300 rounded-md p-2">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                                <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm">
-                                    Import
-                                </button>
-                                <button type="button" onclick="document.getElementById('importModal').classList.add('hidden')" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
-                                    Cancel
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            @if(session('success'))
-                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
-                    {{ session('success') }}
-                </div>
-            @endif
-
-            @if(session('warning'))
-                <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded relative mb-4">
-                    {{ session('warning') }}
-                </div>
-            @endif
-
-            @if(session('error'))
-                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
-                    {{ session('error') }}
-                </div>
-            @endif
-
-            <!-- Grade Entry Form -->
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6">
-                    @if($gradeComponents->isEmpty())
-                        <div class="text-center py-8">
-                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
-                            <h3 class="mt-2 text-sm font-medium text-gray-900">No Assessment Templates Defined</h3>
-                            <p class="mt-1 text-sm text-gray-500">You need to define assessment templates for this subject and grade level before entering marks.</p>
-                            <div class="mt-6">
-                                <a href="{{ route('admin.assessment-templates.create') }}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                    Create Assessment Template
-                                </a>
-                            </div>
-                        </div>
-                    @else
-                        <form action="{{ route('admin.gradebook.store') }}" method="POST">
-                            @csrf
-                            <input type="hidden" name="academic_year_id" value="{{ $academicYear->id }}">
-                            <input type="hidden" name="section_id" value="{{ $section->id }}">
-                            <input type="hidden" name="subject_id" value="{{ $subject->id }}">
-                            <input type="hidden" name="term_id" value="{{ $term->id }}">
-
-                            <div class="overflow-x-auto">
-                                <table class="min-w-full divide-y divide-gray-200 border border-gray-300">
-                                    <thead class="bg-gray-50">
-                                        <tr>
-                                            <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider sticky left-0 bg-gray-50 z-10 border-r border-gray-300">
-                                                Student ID
-                                            </th>
-                                            <th scope="col" class="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider sticky left-24 bg-gray-50 z-10 border-r border-gray-300">
-                                                Full Name
-                                            </th>
-                                            <th scope="col" class="px-2 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider border-r border-gray-300">
-                                                Gender
-                                            </th>
-                                            @foreach($gradeComponents as $component)
-                                                <th scope="col" class="px-4 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider border-r border-gray-300">
-                                                    <div>{{ $component->name }}</div>
-                                                    <div class="text-xs text-gray-500">({{ $component->weight }}%)</div>
-                                                </th>
-                                            @endforeach
-                                            <th scope="col" class="px-4 py-3 text-center text-xs font-bold text-gray-900 uppercase tracking-wider bg-gray-100 border-r border-gray-300">
-                                                Class Assessment<br>(60%)
-                                            </th>
-                                            <th scope="col" class="px-4 py-3 text-center text-xs font-bold text-gray-900 uppercase tracking-wider bg-gray-100">
-                                                Total<br>(100%)
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="bg-white divide-y divide-gray-200">
-                                        @forelse($students as $student)
-                                            <tr class="hover:bg-gray-50">
-                                                <td class="px-4 py-2 whitespace-nowrap sticky left-0 bg-white z-10 border-r border-gray-200 text-sm text-gray-900">
-                                                    {{ $student->student_id }}
-                                                </td>
-                                                <td class="px-4 py-2 whitespace-nowrap sticky left-24 bg-white z-10 border-r border-gray-200 text-sm font-medium text-gray-900">
-                                                    {{ $student->full_name }}
-                                                </td>
-                                                <td class="px-2 py-2 whitespace-nowrap text-center border-r border-gray-200 text-sm text-gray-900">
-                                                    {{ $student->gender ?? 'M' }}
-                                                </td>
-                                                @php
-                                                    $totalScore = 0;
-                                                    $classAssessmentScore = 0;
-                                                @endphp
-                                                @foreach($gradeComponents as $component)
-                                                    @php
-                                                        // Note: using assessment_template_id now
-                                                        $mark = $existingMarks->get($student->id)?->firstWhere('assessment_template_id', $component->id);
-                                                        $score = $mark ? $mark->score : 0;
-                                                        $totalScore += $score;
-                                                        
-                                                        // Simple logic for class assessment vs final
-                                                        if (!str_contains(strtolower($component->name), 'final')) {
-                                                            $classAssessmentScore += $score;
-                                                        }
-                                                    @endphp
-                                                    <td class="px-4 py-2 whitespace-nowrap text-center border-r border-gray-200">
-                                                        <input type="number" 
-                                                               name="marks[{{ $student->id }}][{{ $component->id }}][score]" 
-                                                               value="{{ $mark?->score }}"
-                                                               min="0" 
-                                                               max="{{ $component->max_score }}" 
-                                                               step="0.01"
-                                                               class="w-20 text-center rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm disabled:bg-gray-100 disabled:text-gray-500"
-                                                               onchange="calculateTotals(this)"
-                                                               @if(!$term->is_grading_open) disabled @endif>
-                                                    </td>
-                                                @endforeach
-                                                <td class="px-4 py-2 whitespace-nowrap text-center font-bold text-gray-900 bg-gray-50 border-r border-gray-200 class-assessment-total">
-                                                    {{ $classAssessmentScore }}
-                                                </td>
-                                                <td class="px-4 py-2 whitespace-nowrap text-center font-bold text-gray-900 bg-gray-50 total-score">
-                                                    {{ $totalScore }}
-                                                </td>
-                                            </tr>
-                                        @empty
-                                            <tr>
-                                                <td colspan="{{ $gradeComponents->count() + 5 }}" class="px-6 py-4 text-center text-gray-500">
-                                                    No students found in this section.
-                                                </td>
-                                            </tr>
-                                        @endforelse
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            @if($students->count() > 0)
-                                <div class="mt-6 flex justify-between items-center">
-                                    <a href="{{ route('admin.gradebook.index') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded">
-                                        Back to Selection
-                                    </a>
-                                    @if($term->is_grading_open)
-                                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-                                            Save Grades
-                                        </button>
-                                    @endif
-                                </div>
-                            @endif
-                        </form>
-                    @endif
+                    </form>
                 </div>
             </div>
         </div>
+
+        <!-- Grade Entry Table -->
+        <div class="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-2xl shadow-slate-200/50 overflow-hidden relative">
+            <form action="{{ route('admin.gradebook.store') }}" method="POST" id="gradeForm">
+                @csrf
+                <input type="hidden" name="academic_year_id" value="{{ $academicYear->id }}">
+                <input type="hidden" name="section_id" value="{{ $section->id }}">
+                <input type="hidden" name="subject_id" value="{{ $subject->id }}">
+                <input type="hidden" name="term_id" value="{{ $term->id }}">
+
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left border-separate border-spacing-0">
+                        <thead class="sticky top-0 z-30">
+                            <tr>
+                                <th class="px-4 py-6 bg-slate-50/90 backdrop-blur-md border-b border-r border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center min-w-[50px]">No</th>
+                                <th class="px-6 py-6 bg-slate-50/90 backdrop-blur-md border-b border-r border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest sticky left-0 z-40">Student INFO</th>
+                                <th class="px-4 py-6 bg-slate-50/90 backdrop-blur-md border-b border-r border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center min-w-[60px]">Gender</th>
+                                
+                                @foreach($gradeComponents as $component)
+                                    <th class="px-4 py-6 bg-white border-b border-r border-slate-100 text-center min-w-[120px] whitespace-normal">
+                                        <div class="text-[10px] font-black text-slate-600 uppercase tracking-widest leading-tight">
+                                            {{ $component->name }}
+                                        </div>
+                                        <div class="text-[8px] font-black text-indigo-500 uppercase mt-1 tracking-tighter">
+                                            Max: {{ $component->max_score }} &bull; {{ $component->weight }}%
+                                        </div>
+                                    </th>
+                                @endforeach
+
+                                <th class="px-6 py-6 bg-indigo-900 border-b border-slate-800 text-center font-black text-white text-[11px] uppercase tracking-widest shadow-lg min-w-[100px] whitespace-normal">Total</th>
+                                <th class="px-6 py-6 bg-indigo-950 border-b border-slate-900 text-center font-black text-indigo-300 text-[11px] uppercase tracking-widest shadow-lg min-w-[100px] whitespace-normal">Average</th>
+                                <th class="px-6 py-6 bg-emerald-600 border-b border-emerald-700 text-center font-black text-white text-[11px] uppercase tracking-widest shadow-lg rounded-tr-[2rem] min-w-[100px] whitespace-normal">Rank</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @forelse($students as $index => $student)
+                                <tr class="group hover:bg-indigo-50/30 transition-all student-row" data-student-id="{{ $student->id }}">
+                                    <td class="px-4 py-4 border-r border-slate-100 text-[10px] font-black text-slate-400 text-center bg-slate-50/30">{{ $index + 1 }}</td>
+                                    <td class="px-6 py-4 border-r border-slate-100 sticky left-0 bg-white/95 backdrop-blur-sm z-20 group-hover:bg-indigo-50 transition-colors shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                                        <div class="flex flex-col">
+                                            <span class="text-sm font-bold text-slate-900">{{ $student->full_name }}</span>
+                                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">{{ $student->student_id }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-4 border-r border-slate-100 text-[10px] font-black text-slate-500 text-center uppercase">{{ $student->gender ?? 'M' }}</td>
+                                    
+                                    @php
+                                        $totalScore = 0;
+                                    @endphp
+                                    @foreach($gradeComponents as $component)
+                                        @php
+                                            $mark = $existingMarks->get($student->id)?->firstWhere('assessment_template_id', $component->id);
+                                            $score = $mark ? $mark->score : 0;
+                                            $totalScore += $score;
+                                        @endphp
+                                        <td class="p-0 border-r border-slate-100 text-center relative group/cell">
+                                            <input type="number" 
+                                                   name="marks[{{ $student->id }}][{{ $component->id }}][score]" 
+                                                   value="{{ $mark?->score }}" 
+                                                   min="0" 
+                                                   max="{{ $component->max_score }}" 
+                                                   step="0.01"
+                                                   class="w-full h-12 text-center text-sm font-black border-0 focus:ring-0 focus:bg-indigo-50/50 bg-transparent transition-all hover:bg-slate-50/50 disabled:bg-slate-100/50 disabled:text-slate-400 mark-input"
+                                                   onchange="calculateRow(this.closest('tr'))"
+                                                   @if(!$term->is_grading_open) disabled @endif>
+                                            @if($term->is_grading_open)
+                                                <div class="absolute inset-0 border-b-2 border-transparent group-focus-within/cell:border-indigo-600 transition-all pointer-events-none"></div>
+                                            @endif
+                                        </td>
+                                    @endforeach
+
+                                    <td class="px-4 py-4 border-r border-indigo-200 text-center font-black bg-indigo-50/50 text-indigo-900 student-total">{{ $totalScore }}</td>
+                                    <td class="px-4 py-4 border-r border-indigo-200 text-center font-black bg-indigo-100/50 text-indigo-900 student-average">{{ number_format($totalScore, 2) }}</td>
+                                    <td class="px-4 py-4 bg-emerald-50/50 text-center font-black text-emerald-700 student-rank font-mono text-lg">-</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="{{ $gradeComponents->count() + 5 }}" class="px-12 py-20 text-center">
+                                        <div class="w-20 h-20 bg-slate-50 rounded-[2rem] flex items-center justify-center text-slate-300 mx-auto mb-6">
+                                            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354l1.1 3.392a1 1 0 00.95.69h3.462a1 1 0 01.59 1.807l-2.8 2.034a1 1 0 00-.36 1.118l1.07 3.292a1 1 0 01-1.537 1.117l-2.8-2.034a1 1 0 00-1.176 0l-2.8 2.034a1 1 0 01-1.537-1.117l1.07-3.292a1 1 0 00-.36-1.118l-2.8-2.034a1 1 0 01.59-1.807h3.462a1 1 0 00.95-.69L12 4.354z"></path></svg>
+                                        </div>
+                                        <h3 class="text-xl font-black text-slate-900 tracking-tight">No students found</h3>
+                                        <p class="text-slate-500 font-semibold mt-1 text-sm">Please verify the section enrollment for this academic period.</p>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Floating Bottom Command Bar -->
+                <div class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 transform flex items-center gap-3 p-3 bg-slate-900/90 backdrop-blur-2xl rounded-[2.5rem] border border-white/20 shadow-2xl animate-in slide-in-from-bottom-12 duration-500">
+                    <div class="flex items-center gap-2 px-4 border-r border-white/10">
+                        <div class="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 text-sm font-black">
+                            <span x-text="hasUnsavedChanges ? '!' : '✓'"></span>
+                        </div>
+                        <div class="hidden sm:block">
+                            <span class="block text-[8px] font-black text-slate-400 uppercase tracking-widest" x-text="hasUnsavedChanges ? 'Changes Detected' : 'All Syncronized'"></span>
+                            <span class="block text-xs font-black text-white" x-text="hasUnsavedChanges ? 'Unsaved Record Data' : 'Cloud Synchronized'"></span>
+                        </div>
+                    </div>
+
+                    <a href="{{ route('admin.gradebook.index') }}" class="px-6 py-3 text-slate-300 font-black text-[10px] uppercase tracking-widest hover:text-white transition-colors">
+                        Discard
+                    </a>
+                    
+                    @if($term->is_grading_open)
+                        <button type="submit" class="px-8 py-3 bg-indigo-600 text-white font-black text-[10px] uppercase tracking-widest rounded-full hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-900/40 flex items-center gap-2 group">
+                            Commit Score Data
+                            <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                        </button>
+                    @endif
+                </div>
+            </form>
+        </div>
     </div>
-
-
 
     @push('scripts')
     <script>
@@ -289,19 +248,23 @@
                 init() {
                     // Track changes on all inputs
                     this.$nextTick(() => {
-                        const form = document.querySelector('form');
+                        const form = document.getElementById('gradeForm');
                         if (form) {
                             form.querySelectorAll('input[type="number"]').forEach(input => {
                                 input.addEventListener('change', () => {
                                     this.hasUnsavedChanges = true;
                                 });
                             });
+
+                            form.addEventListener('submit', () => {
+                                this.isSaving = true;
+                            });
                         }
                     });
                     
                     // Warn before leaving with unsaved changes
                     window.addEventListener('beforeunload', (e) => {
-                        if (this.hasUnsavedChanges) {
+                        if (this.hasUnsavedChanges && !this.isSaving) {
                             e.preventDefault();
                             e.returnValue = '';
                         }
@@ -310,56 +273,70 @@
             }
         }
         
-        function calculateTotals(input) {
-            // Mark as unsaved
-            if (window.Alpine) {
-                const component = Alpine.$data(document.querySelector('[x-data]'));
-                if (component) component.hasUnsavedChanges = true;
-            }
+        function calculateRow(row) {
+            let total = 0;
+            const inputs = row.querySelectorAll('.mark-input');
             
-            // Validate score doesn't exceed max
-            const maxScore = parseFloat(input.getAttribute('max'));
-            const enteredScore = parseFloat(input.value);
-            
-            if (enteredScore > maxScore) {
-                const event = new CustomEvent('confirm-action', {
-                    bubbles: true,
-                    detail: {
-                        type: 'danger',
-                        title: 'Invalid Score',
-                        message: `Score ${enteredScore} exceeds the maximum allowed score of ${maxScore}. Please enter a valid score.`,
-                        showCancel: false,
-                        buttonText: 'OK'
-                    }
-                });
-                window.dispatchEvent(event);
-                input.value = maxScore;
-            }
-            
-            const row = input.closest('tr');
-            const inputs = row.querySelectorAll('input[type="number"]');
-            let totalScore = 0;
-            let classAssessmentScore = 0;
-
-            inputs.forEach(inp => {
-                const val = parseFloat(inp.value) || 0;
-                totalScore += val;
+            inputs.forEach(input => {
+                const max = parseFloat(input.getAttribute('max'));
+                let val = parseFloat(input.value) || 0;
                 
-                const cellIndex = inp.closest('td').cellIndex;
-                const headerCell = input.closest('table').tHead.rows[0].cells[cellIndex];
-                const headerText = headerCell ? headerCell.innerText.toLowerCase() : '';
-                
-                if (!headerText.includes('final')) {
-                    classAssessmentScore += val;
+                if (val > max) {
+                    val = max;
+                    input.value = max;
                 }
+                if (val < 0) {
+                    val = 0;
+                    input.value = 0;
+                }
+                
+                total += val;
             });
+            
+            row.querySelector('.student-total').innerText = total.toFixed(2);
+            row.querySelector('.student-average').innerText = total.toFixed(2); // Out of 100
+            
+            // Mark as unsaved
+            const rootElement = document.querySelector('.space-y-8');
+            if (rootElement && window.Alpine) {
+                const data = Alpine.$data(rootElement);
+                if (data) data.hasUnsavedChanges = true;
+            }
 
-            row.querySelector('.total-score').innerText = totalScore.toFixed(2);
-            row.querySelector('.class-assessment-total').innerText = classAssessmentScore.toFixed(2);
+            calculateAllRanks();
+        }
+
+        function calculateAllRanks() {
+            const rows = Array.from(document.querySelectorAll('.student-row'));
+            const studentData = rows.map(row => ({
+                row: row,
+                total: parseFloat(row.querySelector('.student-total').innerText) || 0
+            }));
+
+            studentData.sort((a, b) => b.total - a.total);
+
+            let currentRank = 1;
+            for (let i = 0; i < studentData.length; i++) {
+                if (i > 0 && studentData[i].total < studentData[i-1].total) {
+                    currentRank = i + 1;
+                }
+                studentData[i].row.querySelector('.student-rank').innerText = currentRank;
+            }
         }
         
         // Keyboard navigation
         document.addEventListener('DOMContentLoaded', function() {
+            // Initial calculation
+            document.querySelectorAll('.student-row').forEach(row => {
+                let total = 0;
+                row.querySelectorAll('.mark-input').forEach(input => {
+                    total += parseFloat(input.value) || 0;
+                });
+                row.querySelector('.student-total').innerText = total.toFixed(2);
+                row.querySelector('.student-average').innerText = total.toFixed(2);
+            });
+            calculateAllRanks();
+
             const table = document.querySelector('table');
             if (!table) return;
             
@@ -368,38 +345,35 @@
                 
                 const cell = e.target.closest('td');
                 const row = cell.closest('tr');
-                const rows = Array.from(table.querySelectorAll('tbody tr'));
+                const rows = Array.from(table.querySelectorAll('tbody tr.student-row'));
                 const rowIndex = rows.indexOf(row);
                 const cells = Array.from(row.querySelectorAll('td'));
                 const cellIndex = cells.indexOf(cell);
                 
                 let nextInput = null;
                 
-                // Enter key: move to next row (same column)
-                if (e.key === 'Enter') {
+                if (e.key === 'Enter' || e.key === 'ArrowDown') {
                     e.preventDefault();
                     const nextRow = rows[rowIndex + 1];
                     if (nextRow) {
                         nextInput = nextRow.querySelectorAll('td')[cellIndex]?.querySelector('input');
                     }
-                }
-                
-                // Arrow down: move to next row
-                if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    const nextRow = rows[rowIndex + 1];
-                    if (nextRow) {
-                        nextInput = nextRow.querySelectorAll('td')[cellIndex]?.querySelector('input');
-                    }
-                }
-                
-                // Arrow up: move to previous row
-                if (e.key === 'ArrowUp') {
+                } else if (e.key === 'ArrowUp') {
                     e.preventDefault();
                     const prevRow = rows[rowIndex - 1];
                     if (prevRow) {
                         nextInput = prevRow.querySelectorAll('td')[cellIndex]?.querySelector('input');
                     }
+                } else if (e.key === 'ArrowRight' && e.target.selectionEnd === e.target.value.length) {
+                    const rowInputs = Array.from(row.querySelectorAll('.mark-input'));
+                    const inputIndex = rowInputs.indexOf(e.target);
+                    nextInput = rowInputs[inputIndex + 1];
+                    if (nextInput) e.preventDefault();
+                } else if (e.key === 'ArrowLeft' && e.target.selectionStart === 0) {
+                    const rowInputs = Array.from(row.querySelectorAll('.mark-input'));
+                    const inputIndex = rowInputs.indexOf(e.target);
+                    nextInput = rowInputs[inputIndex - 1];
+                    if (nextInput) e.preventDefault();
                 }
                 
                 if (nextInput) {
@@ -410,5 +384,4 @@
         });
     </script>
     @endpush
-    </div>
 </x-admin-layout>

@@ -14,9 +14,10 @@ class SectionController extends Controller
 {
     public function index()
     {
+        // PERFORMANCE: Use pagination instead of loading all sections
         $sections = Section::with(['gradeLevel.division', 'academicYear', 'homeroomTeacher'])
             ->orderBy('academic_year_id', 'desc')
-            ->get();
+            ->paginate(50);
         return view('admin.sections.index', compact('sections'));
     }
 

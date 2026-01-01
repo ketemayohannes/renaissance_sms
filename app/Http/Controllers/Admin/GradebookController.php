@@ -17,10 +17,18 @@ class GradebookController extends Controller
 {
     public function index()
     {
-        $academicYears = AcademicYear::latest()->get();
-        $gradeLevels = GradeLevel::all();
+        // PERFORMANCE: Use cached data
+        $academicYears = \App\Helpers\CachedData::academicYears();
+        $gradeLevels = \App\Helpers\CachedData::gradeLevels();
         
-        return view('admin.gradebook.index', compact('academicYears', 'gradeLevels'));
+        $currentYear = \App\Helpers\CachedData::activeAcademicYear() ?? $academicYears->first();
+        $terms = $currentYear ? Term::where('academic_year_id', $currentYear->id)->get() : collect();
+        
+        // Initial state for dependent dropdowns
+        $sections = collect();
+        $subjects = collect();
+        
+        return view('admin.gradebook.index', compact('academicYears', 'gradeLevels', 'terms', 'sections', 'subjects'));
     }
 
     public function entry(Request $request)
@@ -39,14 +47,19 @@ class GradebookController extends Controller
         
         
         // Fetch assessment templates for this context
+        // IMPORTANT: Exclude TERM_TOTAL type - it's a calculated value, not an editable assessment
+        $termTotalType = \App\Models\AssessmentType::where('code', 'TERM_TOTAL')->first();
+        
         $gradeComponents = \App\Models\AssessmentTemplate::where('academic_year_id', $academicYear->id)
             ->where('term_id', $term->id)
             ->where('is_active', true)
+            ->when($termTotalType, function($query) use ($termTotalType) {
+                $query->where('assessment_type_id', '!=', $termTotalType->id);
+            })
             ->whereHas('assignments', function($query) use ($section, $subject) {
                 $query->where('grade_level_id', $section->grade_level_id)
                       ->where('subject_id', $subject->id);
             })
-            ->orderBy('order')
             ->orderBy('order')
             ->get();
 
@@ -284,11 +297,16 @@ class GradebookController extends Controller
         // Fetch students
         $students = $section->students()->orderBy('first_name')->get();
         
-        // Fetch assessment templates
+        // Fetch assessment templates (excluding TERM_TOTAL - it's a calculated value)
+        $termTotalType = \App\Models\AssessmentType::where('code', 'TERM_TOTAL')->first();
+        
         $templates = \App\Models\AssessmentTemplate::forGradeSubject($section->grade_level_id, $subject->id)
             ->where('academic_year_id', $request->academic_year_id)
             ->where('term_id', $term->id)
             ->where('is_active', true)
+            ->when($termTotalType, function($query) use ($termTotalType) {
+                $query->where('assessment_type_id', '!=', $termTotalType->id);
+            })
             ->orderBy('order')
             ->get();
 
@@ -362,11 +380,16 @@ class GradebookController extends Controller
         $section = Section::findOrFail($request->section_id);
         $subject = Subject::findOrFail($request->subject_id);
         
-        // Fetch assessment templates
+        // Fetch assessment templates (excluding TERM_TOTAL - it's a calculated value)
+        $termTotalType = \App\Models\AssessmentType::where('code', 'TERM_TOTAL')->first();
+        
         $templates = \App\Models\AssessmentTemplate::forGradeSubject($section->grade_level_id, $subject->id)
             ->where('academic_year_id', $request->academic_year_id)
             ->where('term_id', $request->term_id)
             ->where('is_active', true)
+            ->when($termTotalType, function($query) use ($termTotalType) {
+                $query->where('assessment_type_id', '!=', $termTotalType->id);
+            })
             ->get();
 
         $path = $request->file('file')->getRealPath();

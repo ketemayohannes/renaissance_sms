@@ -1,26 +1,46 @@
 <x-admin-layout>
-    <x-slot name="header">Academic Report: {{ $section->gradeLevel->name }} - {{ $section->name }} - {{ $term->name }}</x-slot>
+    <x-slot name="header">Academic Roster: {{ $section->name }}</x-slot>
 
-    <div class="space-y-6">
-        <div class="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm border border-slate-200 no-print">
+    <div class="space-y-8 pb-12">
+        <!-- Modern Header & Actions (No-Print) -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
             <div>
-                <h2 class="text-lg font-bold text-slate-800">Academic Roster Report</h2>
-                <p class="text-sm text-slate-500">{{ $section->gradeLevel->name }} - {{ $section->name }} - {{ $term->name }}</p>
+                <x-breadcrumb :items="[
+                    ['label' => 'Academic Reports', 'url' => route('admin.academic-reports.index')],
+                    ['label' => 'Roster Evidence', 'url' => '#']
+                ]" />
+                <h1 class="text-4xl font-black text-slate-900 tracking-tight mt-2 flex items-center gap-3">
+                    <span class="w-1.5 h-8 bg-indigo-600 rounded-full shadow-[0_0_15px_rgba(79,70,229,0.4)]"></span>
+                    Term Roster
+                </h1>
+                <p class="text-slate-500 font-semibold mt-1 uppercase text-[10px] tracking-[0.3em] italic">{{ $section->gradeLevel->name }} — {{ $section->name }} | {{ $term->name }}</p>
             </div>
-            <button onclick="window.print()" class="btn-primary">
-                Print Report
-            </button>
+            
+            <div class="flex items-center gap-3">
+                <form action="{{ route('admin.academic-reports.recalculate') }}" method="POST" class="inline">
+                    @csrf
+                    <input type="hidden" name="academic_year_id" value="{{ $academicYear->id }}">
+                    <input type="hidden" name="term_id" value="{{ $term->id }}">
+                    <input type="hidden" name="section_id" value="{{ $section->id }}">
+                    <button type="submit" class="px-6 py-4 bg-white/80 backdrop-blur-xl border border-slate-200 text-slate-600 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-indigo-50 hover:text-indigo-600 shadow-xl shadow-slate-200/50 transition-all flex items-center gap-3 active:scale-95 group">
+                        <div class="w-8 h-8 rounded-xl bg-indigo-50 group-hover:bg-indigo-100 flex items-center justify-center transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        </div>
+                        Sync Stats
+                    </button>
+                </form>
+
+                <button onclick="window.print()" class="px-8 py-4 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-indigo-600 shadow-xl shadow-slate-200 transition-all flex items-center gap-3 active:scale-95 group">
+                    <div class="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center group-hover:rotate-12 transition-transform">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                    </div>
+                    Print Certified Roster
+                </button>
+            </div>
         </div>
 
-        <x-breadcrumb :items="[
-            ['label' => 'Academic Reports', 'url' => route('admin.academic-reports.index')],
-            ['label' => 'View Report', 'url' => '#']
-        ]" class="no-print" />
-
-
-        <div class="max-w-[100%] mx-auto bg-white p-4 sm:p-8 shadow-sm print:shadow-none print:p-0 print-container">
-
-
+        <!-- Roster Document Container -->
+        <div class="max-w-[100%] mx-auto bg-white p-4 sm:p-12 shadow-2xl rounded-[3rem] border border-slate-100 print:shadow-none print:p-0 print:border-0 print:rounded-none print-container">
             @php
                 $isSem = $term->isSemester();
                 $isYearly = ($term->type === 'yearly');
@@ -30,7 +50,6 @@
                 $subjectWidth = ($subjectCount > 0) ? (100 - $fixedWidth) / $subjectCount : 0;
                 
                 // Chunking logic for robust multi-page printing
-                // Increased p1Size slightly as we have more vertical space now
                 if ($isSem) {
                     $p1Size = 5;
                     $otherSize = 5;
@@ -57,8 +76,8 @@
             @if(count($pageReports) > 0)
             <div class="roster-page-chunk" style="{{ $loop->last ? '' : 'page-break-after: always;' }} margin-bottom: 5px; clear: both; display: block; width: 100%;">
                 
-                <!-- STABLE TABLE-BASED HEADER (Repeated) -->
-                <table class="w-full header-info-table" style="border: none !important; margin-bottom: 8px; width: 100%; border-collapse: collapse;">
+                <!-- STABLE TABLE-BASED HEADER -->
+                <table class="w-full header-info-table" style="border: none !important; margin-bottom: 20px; width: 100%; border-collapse: collapse;">
                     <tr style="border: none !important;">
                         <td style="width: 25%; border: none !important; vertical-align: middle; text-align: left; padding: 5px;">
                             @if($settings && $settings->roster_logo_path)
@@ -72,25 +91,27 @@
                             @endif
                         </td>
                         <td style="width: 50%; border: none !important; text-align: center; vertical-align: middle; padding: 2px;">
-                            <h1 style="font-family: serif; font-weight: 800; font-size: 19pt; margin: 0; color: black; text-transform: uppercase; line-height: 1.0;">
+                            <h1 style="font-family: serif; font-weight: 800; font-size: 22pt; margin: 0; color: black; text-transform: uppercase; line-height: 1.0;">
                                 {{ $settings->school_name ?? ($generalSettings->school_name ?? 'RENAISSANCE SCHOOL') }}
                             </h1>
-                            <h2 style="font-family: serif; font-size: 14pt; margin: 2px 0 0 0; color: black; font-weight: normal;">
-                                {{ $term->name }} Roster Report
+                            <h2 style="font-family: serif; font-size: 15pt; margin: 5px 0 0 0; color: black; font-weight: normal; font-style: italic;">
+                                {{ $term->name }} Academic Roster
                             </h2>
                         </td>
                         <td style="width: 25%; border: none !important; vertical-align: middle; text-align: right; padding: 5px;">
-                            <!-- Empty right column to keep school name perfectly centered -->
+                             <div style="font-family: serif; font-size: 9pt; color: #666;">
+                                Generated on {{ date('M d, Y') }}
+                             </div>
                         </td>
                     </tr>
                     <tr style="border: none !important;">
-                        <td colspan="3" style="border: none !important; padding-top: 5px;">
-                            <table style="width: 100%; border: none !important;">
+                        <td colspan="3" style="border: none !important; padding-top: 15px;">
+                            <table style="width: 100%; border: none !important; border-top: 1.5pt solid black; border-bottom: 1.5pt solid black; padding: 10px 0;">
                                 <tr style="border: none !important;">
-                                    <td style="width: 25%; border: none !important; text-align: left; font-size: 12pt; font-family: serif;">Grade: {{ str_replace('Grade ', '', $section->gradeLevel->name) }}</td>
-                                    <td style="width: 50%; border: none !important; text-align: center; font-size: 12pt; font-family: serif;">Section: {{ $section->name }}</td>
-                                    <td style="width: 25%; border: none !important; text-align: right; font-size: 12pt; font-family: serif; white-space: nowrap;">
-                                        Academic Year: {{ $academicYear->name }} G.C {{ \App\Helpers\EthiopianDateHelper::fromGregorian($academicYear->start_date)->format('Y') }} E.C
+                                    <td style="width: 30%; border: none !important; text-align: left; font-size: 13pt; font-family: serif; font-weight: bold;">Grade: {{ str_replace('Grade ', '', $section->gradeLevel->name) }}</td>
+                                    <td style="width: 40%; border: none !important; text-align: center; font-size: 13pt; font-family: serif; font-weight: bold;">Section: {{ $section->name }}</td>
+                                    <td style="width: 30%; border: none !important; text-align: right; font-size: 13pt; font-family: serif; font-weight: bold; white-space: nowrap;">
+                                        Year: {{ $academicYear->name }} G.C
                                     </td>
                                 </tr>
                             </table>
@@ -119,13 +140,13 @@
                         <thead>
                             <tr class="header-row">
                                 <th class="p-0 text-center"><div class="vertical-text">S.no</div></th>
-                                <th class="p-1 text-center font-bold text-sm bg-white" style="width: 32% !important;">Student Full Name</th>
-                                <th class="p-0 text-center"><div class="vertical-text">Gender</div></th>
+                                <th class="p-2 text-center font-bold text-sm bg-gray-100" style="width: 32% !important;">Full Name of the Student</th>
+                                <th class="p-0 text-center"><div class="vertical-text">Sex</div></th>
                                 @if($isSem || $isYearly)
                                 <th class="p-0 text-center"><div class="vertical-text">Term</div></th>
                                 @endif
                                 @foreach($subjects as $subject)
-                                    <th class="p-0 h-24 relative text-center align-bottom pb-2">
+                                    <th class="p-0 h-28 relative text-center align-bottom pb-3">
                                         <div class="vertical-text">{{ $subject->name }}</div>
                                     </th>
                                 @endforeach
@@ -141,87 +162,87 @@
                                 @php $globalIndex++; @endphp
                                 @if($isSem)
                                     @foreach(['q1', 'q2', 'avg'] as $rowIndex => $type)
-                                        <tr class="h-6">
+                                        <tr class="h-8">
                                             @if($rowIndex === 0)
-                                                <td rowspan="3" class="p-0.5 text-center align-middle border-b-[1.5pt] border-black text-sm font-bold">{{ $globalIndex }}</td>
-                                                <td rowspan="3" class="p-0.5 px-2 uppercase text-[11px] whitespace-normal leading-[1.1] break-words font-bold text-center align-middle border-b-[1.5pt] border-black">{{ $report['student']->full_name }}</td>
-                                                <td rowspan="3" class="p-0.5 text-center align-middle border-b-[1.5pt] border-black text-sm font-bold">{{ substr($report['student']->gender, 0, 1) }}</td>
+                                                <td rowspan="3" class="p-0.5 text-center align-middle border-b-[2pt] border-black text-[12px] font-black">{{ $globalIndex }}</td>
+                                                <td rowspan="3" class="p-1 px-4 uppercase text-[12px] whitespace-normal leading-[1.2] break-words font-black text-left align-middle border-b-[2pt] border-black">{{ $report['student']->full_name }}</td>
+                                                <td rowspan="3" class="p-0.5 text-center align-middle border-b-[2pt] border-black text-[12px] font-black">{{ substr($report['student']->gender, 0, 1) }}</td>
                                             @endif
-                                            <td class="p-0.5 text-center text-[9px] font-semibold {{ $rowIndex === 2 ? 'border-b-[1.5pt] border-black bg-[#eee] font-bold' : '' }}">
+                                            <td class="p-0.5 text-center text-[10px] font-bold {{ $rowIndex === 2 ? 'border-b-[2pt] border-black bg-gray-200 font-black' : '' }}">
                                                 {{ $report['rows'][$type]['label'] ?? '' }}
                                             </td>
                                             @foreach($subjects as $subject)
-                                                <td class="p-0.5 text-center {{ $rowIndex === 2 ? 'border-b-[1.5pt] border-black bg-[#eee] font-bold' : '' }}">
+                                                <td class="p-0.5 text-center text-[11px] {{ $rowIndex === 2 ? 'border-b-[2pt] border-black bg-gray-200 font-black' : '' }}">
                                                     @php $sM = ($report['rows'][$type]['marks'] ?? null) ? ($report['rows'][$type]['marks'][$subject->id] ?? null) : null; @endphp
                                                     {{ \App\Helpers\NumberFormatter::format($sM) }}
                                                 </td>
                                             @endforeach
-                                            <td class="p-0.5 text-center font-bold {{ $rowIndex === 2 ? 'border-b-[1.5pt] border-black bg-[#eee]' : '' }}">{{ \App\Helpers\NumberFormatter::format($report['rows'][$type]['total'] ?? 0) }}</td>
-                                            <td class="p-0.5 text-center font-bold {{ $rowIndex === 2 ? 'border-b-[1.5pt] border-black bg-[#eee]' : '' }}">{{ \App\Helpers\NumberFormatter::format($report['rows'][$type]['average'] ?? 0) }}</td>
-                                            <td class="p-0.5 text-center {{ $rowIndex === 2 ? 'border-b-[1.5pt] border-black bg-[#eee]' : '' }}">{{ $report['rows'][$type]['conduct'] ?? '' }}</td>
-                                            <td class="p-0.5 text-center {{ $rowIndex === 2 ? 'border-b-[1.5pt] border-black bg-[#eee]' : '' }}">{{ $report['rows'][$type]['absence'] ?? '_' }}</td>
-                                            <td class="p-0.5 text-center font-bold {{ $rowIndex === 2 ? 'border-b-[1.5pt] border-black bg-[#eee]' : '' }}">{{ $report['rows'][$type]['rank'] ?? '-' }}</td>
+                                            <td class="p-0.5 text-center text-[11px] font-black {{ $rowIndex === 2 ? 'border-b-[2pt] border-black bg-gray-200' : '' }}">{{ \App\Helpers\NumberFormatter::format($report['rows'][$type]['total'] ?? 0) }}</td>
+                                            <td class="p-0.5 text-center text-[11px] font-black {{ $rowIndex === 2 ? 'border-b-[2pt] border-black bg-gray-200' : '' }}">{{ \App\Helpers\NumberFormatter::format($report['rows'][$type]['average'] ?? 0) }}</td>
+                                            <td class="p-0.5 text-center text-[11px] font-bold {{ $rowIndex === 2 ? 'border-b-[2pt] border-black bg-gray-200' : '' }}">{{ $report['rows'][$type]['conduct'] ?? '' }}</td>
+                                            <td class="p-0.5 text-center text-[11px] {{ $rowIndex === 2 ? 'border-b-[2pt] border-black bg-gray-200 font-bold' : '' }}">{{ $report['rows'][$type]['absence'] ?? '_' }}</td>
+                                            <td class="p-0.5 text-center text-[11px] font-black {{ $rowIndex === 2 ? 'border-b-[2pt] border-black bg-gray-200' : '' }}">{{ $report['rows'][$type]['rank'] ?? '-' }}</td>
                                         </tr>
                                     @endforeach
                                 @elseif($isYearly)
                                     @foreach(['q1', 'q2', 's1', 'q3', 'q4', 's2', 'avg'] as $rowIndex => $type)
                                         @php $isSemM = in_array($type, ['s1', 's2']); $isAyp = ($type === 'avg'); @endphp
-                                        <tr class="h-5">
+                                        <tr class="h-6">
                                             @if($rowIndex === 0)
-                                                <td rowspan="7" class="p-0.5 text-center align-middle border-b-[1.5pt] border-black text-sm font-bold">{{ $globalIndex }}</td>
-                                                <td rowspan="7" class="p-0.5 px-2 uppercase text-[10px] whitespace-normal leading-[1.1] break-words font-bold text-center align-middle border-b-[1.5pt] border-black">{{ $report['student']->full_name }}</td>
-                                                <td rowspan="7" class="p-0.5 text-center align-middle border-b-[1.5pt] border-black text-sm font-bold">{{ substr($report['student']->gender, 0, 1) }}</td>
+                                                <td rowspan="7" class="p-0.5 text-center align-middle border-b-[2pt] border-black text-sm font-black">{{ $globalIndex }}</td>
+                                                <td rowspan="7" class="p-1 px-4 uppercase text-[11px] whitespace-normal leading-[1.1] break-words font-black text-left align-middle border-b-[2pt] border-black">{{ $report['student']->full_name }}</td>
+                                                <td rowspan="7" class="p-0.5 text-center align-middle border-b-[2pt] border-black text-sm font-black">{{ substr($report['student']->gender, 0, 1) }}</td>
                                             @endif
-                                            <td class="p-0.5 text-center text-[8px] font-semibold {{ $isSemM ? 'bg-[#ddd]' : '' }} {{ $isAyp ? 'border-b-[1.5pt] border-black bg-[#bbb] font-bold' : '' }}">{{ $report['rows'][$type]['label'] ?? $type }}</td>
+                                            <td class="p-0.5 text-center text-[9px] font-bold {{ $isSemM ? 'bg-gray-100' : '' }} {{ $isAyp ? 'border-b-[2pt] border-black bg-gray-300 font-black' : '' }}">{{ $report['rows'][$type]['label'] ?? $type }}</td>
                                             @foreach($subjects as $subject)
-                                                <td class="p-0.5 text-center {{ $isSemM ? 'bg-[#ddd]' : '' }} {{ $isAyp ? 'border-b-[1.5pt] border-black bg-[#bbb] font-bold' : '' }}">
+                                                <td class="p-0.5 text-center text-[10px] {{ $isSemM ? 'bg-gray-100 font-bold' : '' }} {{ $isAyp ? 'border-b-[2pt] border-black bg-gray-300 font-black' : '' }}">
                                                     @php $sM = ($report['rows'][$type]['marks'] ?? null) ? ($report['rows'][$type]['marks'][$subject->id] ?? null) : null; @endphp
                                                     {{ \App\Helpers\NumberFormatter::format($sM) }}
                                                 </td>
                                             @endforeach
-                                            <td class="p-0.5 text-center font-bold {{ $isSemM ? 'bg-[#ddd]' : '' }} {{ $isAyp ? 'border-b-[1.5pt] border-black bg-[#bbb]' : '' }}">{{ \App\Helpers\NumberFormatter::format($report['rows'][$type]['total'] ?? 0) }}</td>
-                                            <td class="p-0.5 text-center font-bold {{ $isSemM ? 'bg-[#ddd]' : '' }} {{ $isAyp ? 'border-b-[1.5pt] border-black bg-[#bbb]' : '' }}">{{ \App\Helpers\NumberFormatter::format($report['rows'][$type]['average'] ?? 0) }}</td>
-                                            <td class="p-0.5 text-center {{ $isSemM ? 'bg-[#ddd]' : '' }} {{ $isAyp ? 'border-b-[1.5pt] border-black bg-[#bbb]' : '' }}">{{ $report['rows'][$type]['conduct'] ?? '' }}</td>
-                                            <td class="p-0.5 text-center {{ $isSemM ? 'bg-[#ddd]' : '' }} {{ $isAyp ? 'border-b-[1.5pt] border-black bg-[#bbb]' : '' }}">{{ $report['rows'][$type]['absence'] ?? '_' }}</td>
-                                            <td class="p-0.5 text-center font-bold {{ $isSemM ? 'bg-[#ddd]' : '' }} {{ $isAyp ? 'border-b-[1.5pt] border-black bg-[#bbb]' : '' }}">{{ $report['rows'][$type]['rank'] ?? '-' }}</td>
+                                            <td class="p-0.5 text-center font-black text-[10px] {{ $isSemM ? 'bg-gray-100' : '' }} {{ $isAyp ? 'border-b-[2pt] border-black bg-gray-300' : '' }}">{{ \App\Helpers\NumberFormatter::format($report['rows'][$type]['total'] ?? 0) }}</td>
+                                            <td class="p-0.5 text-center font-black text-[10px] {{ $isSemM ? 'bg-gray-100' : '' }} {{ $isAyp ? 'border-b-[2pt] border-black bg-gray-300' : '' }}">{{ \App\Helpers\NumberFormatter::format($report['rows'][$type]['average'] ?? 0) }}</td>
+                                            <td class="p-0.5 text-center font-bold text-[10px] {{ $isSemM ? 'bg-gray-100' : '' }} {{ $isAyp ? 'border-b-[2pt] border-black bg-gray-300' : '' }}">{{ $report['rows'][$type]['conduct'] ?? '' }}</td>
+                                            <td class="p-0.5 text-center text-[10px] {{ $isSemM ? 'bg-gray-100' : '' }} {{ $isAyp ? 'border-b-[2pt] border-black bg-gray-300' : '' }}">{{ $report['rows'][$type]['absence'] ?? '_' }}</td>
+                                            <td class="p-0.5 text-center font-black text-[10px] {{ $isSemM ? 'bg-gray-100' : '' }} {{ $isAyp ? 'border-b-[2pt] border-black bg-gray-300' : '' }}">{{ $report['rows'][$type]['rank'] ?? '-' }}</td>
                                         </tr>
                                     @endforeach
                                 @else
-                                    <tr class="h-7 text-xs">
-                                        <td class="p-1 text-center border-b border-gray-300 font-bold">{{ $globalIndex }}</td>
-                                        <td class="p-1 px-2 uppercase text-[11px] whitespace-normal leading-tight font-semibold border-b border-gray-300">{{ $report['student']->full_name }}</td>
-                                        <td class="p-1 text-center border-b border-gray-300">{{ substr($report['student']->gender, 0, 1) }}</td>
+                                    <tr class="h-10 text-[13px]">
+                                        <td class="p-1 text-center border-b border-black font-black">{{ $globalIndex }}</td>
+                                        <td class="p-1 px-4 uppercase whitespace-normal leading-tight font-black border-b border-black text-left">{{ $report['student']->full_name }}</td>
+                                        <td class="p-1 text-center border-b border-black font-black">{{ substr($report['student']->gender, 0, 1) }}</td>
                                         @foreach($subjects as $subject)
-                                            <td class="p-1 text-center border-b border-gray-300">
+                                            <td class="p-1 text-center border-b border-black font-bold">
                                                 @php $sM = $report['marks'][$subject->id] ?? null; @endphp
                                                 {{ \App\Helpers\NumberFormatter::format($sM) }}
                                             </td>
                                         @endforeach
-                                        <td class="p-1 text-center font-bold border-b border-gray-300">{{ \App\Helpers\NumberFormatter::format($report['total']) }}</td>
-                                        <td class="p-1 text-center font-bold border-b border-gray-300">{{ \App\Helpers\NumberFormatter::format($report['average']) }}</td>
-                                        <td class="p-1 text-center border-b border-gray-300">{{ $report['conduct'] }}</td>
-                                        <td class="p-1 text-center border-b border-gray-300">{{ $report['absence'] }}</td>
-                                        <td class="p-1 text-center font-bold border-b border-gray-300">{{ $report['rank'] }}</td>
+                                        <td class="p-1 text-center font-black border-b border-black">{{ \App\Helpers\NumberFormatter::format($report['total']) }}</td>
+                                        <td class="p-1 text-center font-black border-b border-black">{{ \App\Helpers\NumberFormatter::format($report['average']) }}</td>
+                                        <td class="p-1 text-center border-b border-black font-bold">{{ $report['conduct'] }}</td>
+                                        <td class="p-1 text-center border-b border-black">{{ $report['absence'] }}</td>
+                                        <td class="p-1 text-center font-black border-b border-black">{{ $report['rank'] }}</td>
                                     </tr>
                                 @endif
                             @endforeach
                         </tbody>
                         <tfoot>
                             <tr class="print-footer-row" style="page-break-inside: avoid !important; border: none !important;">
-                                <td colspan="{{ $totalCols }}" style="border: none !important; padding-top: 30px !important;">
+                                <td colspan="{{ $totalCols }}" style="border: none !important; padding-top: 50px !important;">
                                     <table style="width: 100%; border-collapse: collapse; border: none !important;">
                                         <tr style="border: none !important;">
-                                            <td style="width: 33%; text-align: left; border: none !important; font-size: 15.5px; font-style: italic; vertical-align: top; color: black !important; padding: 0;">
-                                                <p>Homeroom Teacher's Name: ____________________</p>
-                                                <p style="margin-top: 10px;">Signature: __________________</p>
+                                            <td style="width: 33%; text-align: left; border: none !important; font-size: 15px; font-style: italic; vertical-align: top; color: black !important; padding: 0;">
+                                                <p style="margin-bottom: 20px;">Homeroom Teacher's Name: ____________________</p>
+                                                <p>Signature: __________________</p>
                                             </td>
-                                            <td style="width: 33%; text-align: center; border: none !important; font-size: 15.5px; font-style: italic; vertical-align: top; color: black !important; padding: 0;">
-                                                <p>Principal's Name: ____________________</p>
-                                                <p style="margin-top: 10px;">Signature: __________________</p>
+                                            <td style="width: 33%; text-align: center; border: none !important; font-size: 15px; font-style: italic; vertical-align: top; color: black !important; padding: 0;">
+                                                <p style="margin-bottom: 20px;">Principal's Name: ____________________</p>
+                                                <p>Signature: __________________</p>
                                             </td>
-                                            <td style="width: 33%; text-align: right; border: none !important; font-size: 15.5px; font-style: italic; vertical-align: top; color: black !important; padding: 0;">
-                                                <p>Record Officer's Name: ____________________</p>
-                                                <p style="margin-top: 10px;">Signature: __________________</p>
+                                            <td style="width: 33%; text-align: right; border: none !important; font-size: 15px; font-style: italic; vertical-align: top; color: black !important; padding: 0;">
+                                                <p style="margin-bottom: 20px;">Record Officer's Name: ____________________</p>
+                                                <p>Signature: __________________</p>
                                             </td>
                                         </tr>
                                     </table>
@@ -242,29 +263,32 @@
             border-collapse: collapse !important;
             border-spacing: 0 !important;
             width: 100%;
-            border: none !important;
+            border: 2pt solid black !important;
             table-layout: fixed;
         }
         .roster-table th, .roster-table td {
-            border: 1px solid black !important;
+            border: 1pt solid black !important;
             box-sizing: border-box !important;
             background-clip: padding-box !important;
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .header-row {
-            background-color: #eee !important;
+        .header-row th {
+            border-bottom: 2pt solid black !important;
         }
         .vertical-text {
             writing-mode: vertical-rl;
             transform: rotate(180deg);
             white-space: nowrap;
             display: inline-block;
-            font-weight: bold;
+            font-weight: 900;
             font-size: 11px;
             margin: 0 auto;
             text-align: left;
             max-height: 120px;
+            color: black;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
         @media print {
             * { overflow: visible !important; scrollbar-width: none !important; -ms-overflow-style: none !important; }
@@ -299,12 +323,11 @@
                 padding: 0 !important;
                 clear: both !important;
             }
-            .header-info-table h1 { font-size: 18pt !important; }
+            .header-info-table h1 { font-size: 20pt !important; }
             .header-info-table h2 { font-size: 14pt !important; }
-            .header-row { background-color: #ddd !important; }
-            .roster-table th, .roster-table td { font-size: 8.5px !important; padding: 1px !important; }
-            .vertical-text { font-size: 8px !important; max-height: 90px !important; }
-            .roster-table th { height: 95px !important; }
+            .roster-table th, .roster-table td { font-size: 10px !important; padding: 2px !important; color: black !important; }
+            .vertical-text { font-size: 9px !important; max-height: 100px !important; }
+            .roster-table th { height: 110px !important; }
             .roster-scroll-wrapper { overflow: visible !important; width: 100% !important; }
         }
         .roster-scroll-wrapper {

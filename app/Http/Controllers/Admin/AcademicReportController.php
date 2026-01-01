@@ -9,29 +9,35 @@ use App\Models\Section;
 use App\Models\Term;
 use App\Models\Subject;
 use App\Services\AcademicReportService;
+use App\Services\GradingService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 class AcademicReportController extends Controller
 {
     protected $reportService;
+    protected $gradingService;
 
-    public function __construct(AcademicReportService $reportService)
+    public function __construct(AcademicReportService $reportService, GradingService $gradingService)
     {
         $this->reportService = $reportService;
+        $this->gradingService = $gradingService;
     }
     public function index()
     {
-        $academicYears = AcademicYear::latest()->get();
-        $gradeLevels = GradeLevel::orderBy('sort_order')->get();
-        $divisions = \App\Models\Division::orderBy('name')->get();
+        // PERFORMANCE: Use cached data
+        $academicYears = \App\Models\AcademicYear::latest()->get(); // Usually few years, but could cache if needed
+        $gradeLevels = \App\Helpers\CachedData::gradeLevels();
+        $divisions = \App\Helpers\CachedData::divisions();
         return view('admin.academic-reports.index', compact('academicYears', 'gradeLevels', 'divisions'));
     }
 
     public function settings()
     {
         $settings = \App\Models\AcademicReportSetting::firstOrNew();
-        $subjects = \App\Models\Subject::with('gradeLevels')->where('is_active', true)->orderBy('name')->get();
-        $gradeLevels = \App\Models\GradeLevel::orderBy('sort_order')->get();
+        // PERFORMANCE: Use cached data
+        $subjects = \App\Helpers\CachedData::subjects();
+        $gradeLevels = \App\Helpers\CachedData::gradeLevels();
         return view('admin.academic-reports.settings', compact('settings', 'subjects', 'gradeLevels'));
     }
 
@@ -177,6 +183,33 @@ class AcademicReportController extends Controller
         $params = $this->reportService->prepareGradeMatrixData($academicYear, $term, $gradeLevels);
 
         return view('admin.academic-reports.grade-matrix', $params);
+    }
+
+    public function recalculate(Request $request)
+    {
+        $request->validate([
+            'academic_year_id' => 'required|exists:academic_years,id',
+            'term_id' => 'required',
+            'section_id' => 'required|exists:sections,id',
+        ]);
+
+        $academicYear = AcademicYear::findOrFail($request->academic_year_id);
+        $termId = $request->term_id;
+        $section = Section::findOrFail($request->section_id);
+
+        if ($termId === 'yearly') {
+            $term = new Term(['type' => 'yearly', 'academic_year_id' => $academicYear->id]);
+            $term->id = 'yearly';
+        } else {
+            $term = Term::findOrFail($termId);
+        }
+
+        $this->gradingService->recalculateSectionStatistics($section, $term, $academicYear);
+        
+        // Clear roster cache since data changed
+        \Illuminate\Support\Facades\Cache::forget("roster_data_{$section->id}_{$termId}_{$academicYear->id}");
+
+        return back()->with('success', 'Statistics recalculated successfully.');
     }
 
 }

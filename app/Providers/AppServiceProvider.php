@@ -35,5 +35,15 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('configure-report-settings', [ReportPolicy::class, 'configureSettings']);
         Gate::define('view-subject-analysis', [ReportPolicy::class, 'viewSubjectAnalysis']);
         Gate::define('bulk-print-reports', [ReportPolicy::class, 'bulkPrint']);
+
+        // PERFORMANCE PROFILING: Log queries
+        if (config('app.debug')) {
+            \Illuminate\Support\Facades\DB::listen(function($query) {
+                \Illuminate\Support\Facades\File::append(
+                    storage_path('logs/query_profile.log'),
+                    "[" . now() . "] ({$query->time}ms) {$query->sql} [" . implode(',', $query->bindings) . "]\n"
+                );
+            });
+        }
     }
 }

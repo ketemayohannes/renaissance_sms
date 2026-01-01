@@ -140,21 +140,21 @@
         }
         .school-header-box-new {
             border: 1px solid black;
-            padding: 2px 15px;
-            margin-bottom: 5px;
+            padding: 8px 15px;
+            margin-bottom: 12px;
             text-align: center;
         }
         .school-name-large-new {
-            font-size: 24pt;
+            font-size: 28pt;
             font-weight: bold;
-            margin-bottom: 1px;
+            margin-bottom: 4px;
             letter-spacing: 1px;
         }
         .logo-img-new {
-            height: 180px;
+            height: 150px;
             width: auto;
             display: inline-block;
-            margin: 0;
+            margin: 2px 0;
         }
         .header-details-table {
             width: 100%;
@@ -164,8 +164,8 @@
         
         .student-details-box-new {
             border: 1px solid black;
-            padding: 2px 25px;
-            margin-bottom: 5px;
+            padding: 10px 25px;
+            margin-bottom: 10px;
         }
         .card-title-new {
             text-align: center;
@@ -177,7 +177,7 @@
         .details-grid-new {
             width: 100%;
             font-size: 11pt;
-            line-height: 1.6;
+            line-height: 2.0;
         }
         .underlined-val-new {
             border-bottom: 1px solid black;
@@ -187,10 +187,10 @@
         
         .signature-box-new {
             border: 1px solid black;
-            margin-top: 2px;
+            margin-top: 8px;
         }
         .sig-header-new {
-            padding: 4px 12px;
+            padding: 6px 12px;
             font-weight: normal;
             font-size: 11pt;
             border-bottom: 1px solid black;
@@ -201,9 +201,9 @@
         }
         .sig-table-new th, .sig-table-new td {
             border: 1px solid black;
-            padding: 2px 5px;
+            padding: 5px 5px;
             text-align: center;
-            font-size: 9pt;
+            font-size: 9.5pt;
         }
         .sig-table-new th { font-weight: bold; }
         .sig-table-new td:first-child { text-align: left; padding-left: 10px; }
@@ -481,7 +481,7 @@
             </div>
 
             <!-- Box 3: Repeated Header -->
-            <div class="school-header-box-new" style="margin-top: 2px;">
+            <div class="school-header-box-new" style="margin-top: 8px;">
                 <div class="school-name-large-new">{{ strtoupper($settings->school_name ?? 'RENAISSANCE SCHOOL') }}</div>
                 <div style="text-align: center; margin: 10px 0;">
                      @if($logoBase64)

@@ -101,20 +101,22 @@ class GradeComponentController extends Controller
             return $item !== null && $item['total'] != 100; // Only show incomplete ones with valid assignments
         })->values();
 
-        $academicYears = AcademicYear::latest()->get();
-        $gradeLevels = GradeLevel::all();
-        $subjects = Subject::all();
-        $terms = Term::all();
+        // PERFORMANCE: Use cached data
+        $academicYears = \App\Helpers\CachedData::academicYears();
+        $gradeLevels = \App\Helpers\CachedData::gradeLevels();
+        $subjects = \App\Helpers\CachedData::subjects();
+        $terms = \App\Helpers\CachedData::terms();
 
         return view('admin.grade-components.index', compact('groupedComponents', 'weightTotals', 'academicYears', 'gradeLevels', 'subjects', 'terms'));
     }
 
     public function create()
     {
-        $academicYears = AcademicYear::where('is_active', true)->get();
-        $gradeLevels = GradeLevel::all();
-        $subjects = Subject::where('is_active', true)->get();
-        $assessmentTypes = AssessmentType::where('is_active', true)->get();
+        // PERFORMANCE: Use cached data
+        $academicYears = \App\Helpers\CachedData::academicYears(); // Although we filter it below, let's keep it consistent
+        $gradeLevels = \App\Helpers\CachedData::gradeLevels();
+        $subjects = \App\Helpers\CachedData::subjects();
+        $assessmentTypes = \App\Helpers\CachedData::assessmentTypes();
         
         return view('admin.grade-components.create', compact('academicYears', 'gradeLevels', 'subjects', 'assessmentTypes'));
     }
@@ -191,10 +193,11 @@ class GradeComponentController extends Controller
 
     public function edit(GradeComponent $gradeComponent)
     {
-        $academicYears = AcademicYear::all();
-        $gradeLevels = GradeLevel::all();
-        $subjects = Subject::all();
-        $assessmentTypes = AssessmentType::all();
+        // PERFORMANCE: Use cached data
+        $academicYears = \App\Helpers\CachedData::academicYears();
+        $gradeLevels = \App\Helpers\CachedData::gradeLevels();
+        $subjects = \App\Helpers\CachedData::subjects();
+        $assessmentTypes = \App\Helpers\CachedData::assessmentTypes();
         $terms = Term::where('academic_year_id', $gradeComponent->academic_year_id)->get();
 
         return view('admin.grade-components.edit', compact('gradeComponent', 'academicYears', 'gradeLevels', 'subjects', 'assessmentTypes', 'terms'));

@@ -14,8 +14,14 @@ class User extends Authenticatable
 
     protected static function booted()
     {
-        static::saved(fn() => \Illuminate\Support\Facades\Cache::forget('admin_dashboard_stats'));
-        static::deleted(fn() => \Illuminate\Support\Facades\Cache::forget('admin_dashboard_stats'));
+        static::saved(function() {
+            \Illuminate\Support\Facades\Cache::forget('admin_dashboard_stats');
+            \Illuminate\Support\Facades\Cache::forget('employee_stats_summary');
+        });
+        static::deleted(function() {
+            \Illuminate\Support\Facades\Cache::forget('admin_dashboard_stats');
+            \Illuminate\Support\Facades\Cache::forget('employee_stats_summary');
+        });
     }
 
     /**

@@ -2,6 +2,10 @@
     <x-slot name="header">Create Section</x-slot>
 
     <div class="space-y-6">
+        <x-breadcrumb :items="[
+            ['label' => 'Sections', 'url' => route('admin.sections.index')],
+            ['label' => 'Create', 'url' => '#']
+        ]" />
         <div class="max-w-2xl">
         <div class="card overflow-hidden">
             <div class="p-6">

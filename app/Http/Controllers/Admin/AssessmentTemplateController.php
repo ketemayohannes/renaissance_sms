@@ -19,6 +19,11 @@ class AssessmentTemplateController extends Controller
     {
         $query = AssessmentTemplate::with(['academicYear', 'term', 'assessmentType', 'assignments.gradeLevel', 'assignments.subject']);
 
+        // Exclude TERM_TOTAL - it's auto-created by master sheet and is not a real assessment template
+        $query->whereHas('assessmentType', function($q) {
+            $q->where('code', '!=', 'TERM_TOTAL');
+        });
+
         // Apply filters
         if ($request->academic_year_id) {
             $query->where('academic_year_id', $request->academic_year_id);
@@ -32,29 +37,37 @@ class AssessmentTemplateController extends Controller
             ->orderBy('order')
             ->get();
 
-        // Group assignments by template
-        $groupedTemplates = $templates->map(function ($template) {
+        // Group templates by settings (excluding term)
+        $groupedTemplates = $templates->groupBy(function($t) {
+            return $t->academic_year_id . '-' . $t->assessment_type_id . '-' . $t->name . '-' . $t->weight . '-' . $t->max_score . '-' . $t->order;
+        })->map(function ($group) {
+            $first = $group->first();
             return [
-                'id' => $template->id,
-                'name' => $template->name,
-                'academic_year' => $template->academicYear,
-                'term' => $template->term,
-                'assessment_type' => $template->assessmentType,
-                'weight' => $template->weight,
-                'max_score' => $template->max_score,
-                'order' => $template->order,
-                'is_active' => $template->is_active,
-                'grade_levels' => $template->assignments->pluck('gradeLevel')->unique('id')->sortBy('name'),
-                'subjects' => $template->assignments->pluck('subject')->unique('id')->sortBy('name'),
-                'assignment_count' => $template->assignments->count(),
+                'ids' => $group->pluck('id'), // Multiple IDs for the group (one per term)
+                'academic_year' => $first->academicYear,
+                'name' => $first->name,
+                'weight' => $first->weight,
+                'max_score' => $first->max_score,
+                'order' => $first->order,
+                'is_active' => $first->is_active,
+                'assessment_type' => $first->assessmentType,
+                'terms' => $group->map(fn($t) => [
+                    'id' => $t->id,
+                    'name' => $t->term ? $t->term->name : 'All Terms',
+                    'term_number' => $t->term ? $t->term->term_number : 0
+                ])->sortBy('term_number')->values(),
+                'grade_levels' => $group->flatMap(fn($t) => $t->assignments->pluck('gradeLevel'))->unique('id')->sortBy('name'),
+                'subjects' => $group->flatMap(fn($t) => $t->assignments->pluck('subject'))->unique('id')->sortBy('name'),
+                'assignment_count' => $group->sum(fn($t) => $t->assignments->count()),
             ];
         });
 
         // Calculate weight totals and warnings
         $weightWarnings = $this->calculateWeightWarnings($templates);
 
-        $academicYears = AcademicYear::latest()->get();
-        $terms = Term::all();
+        // PERFORMANCE: Use cached data
+        $academicYears = \App\Helpers\CachedData::academicYears();
+        $terms = \App\Helpers\CachedData::terms();
 
         return view('admin.assessment-templates.index', compact('groupedTemplates', 'weightWarnings', 'academicYears', 'terms'));
     }

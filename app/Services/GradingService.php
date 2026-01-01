@@ -59,8 +59,8 @@ class GradingService
             $now = now();
 
             foreach ($students as $student) {
-                $total = $studentTotals[$student->id];
-                $avg = $studentAverages[$student->id];
+                $total = round($studentTotals[$student->id], 2);
+                $avg = round($studentAverages[$student->id], 2);
                 $rank = $sortedTotals->filter(fn($score) => $score > $total)->count() + 1;
 
                 $sectionCache[$student->id] = [
@@ -153,8 +153,8 @@ class GradingService
         $now = now();
 
         foreach ($students as $student) {
-            $total = $studentTotals[$student->id] ?? 0;
-            $avg = $batchResults[$student->id]['average'] ?? 0;
+            $total = round($studentTotals[$student->id] ?? 0, 2);
+            $avg = round($batchResults[$student->id]['average'] ?? 0, 2);
             $rank = $sortedTotals->filter(fn($score) => $score > $total)->count() + 1;
 
             $upsertData[] = [
@@ -220,38 +220,48 @@ class GradingService
                         $subjectScores[$subject->id] = $score;
                     }
                 }
-                $average = $subjects->count() > 0 ? $total / $subjects->count() : 0;
-                $results[$student->id] = ['total' => $total, 'average' => $average, 'marks' => $subjectScores];
+                $average = $subjects->count() > 0 ? round($total / $subjects->count(), 2) : 0;
+                $results[$student->id] = ['total' => round($total, 2), 'average' => $average, 'marks' => $subjectScores];
             }
         } elseif ($term->type === 'yearly' || $term->id === 'yearly') {
+            // PERFORMANCE: Non-recursive yearly calculation
             $semesters = Term::where('academic_year_id', $academicYear->id)
                 ->where('type', 'semester')
+                ->with('quarters')
                 ->get();
             
-            $semesterResults = [];
-            foreach ($semesters as $sem) {
-                $semesterResults[$sem->id] = $this->calculateSectionTotals($students, $sem, $academicYear, $subjects);
-            }
+            $allChildTermIds = $semesters->pluck('id')->concat($semesters->flatMap->quarters->pluck('id'))->unique();
+            
+            $allMarks = StudentMark::whereIn('student_id', $studentIds)
+                ->whereIn('term_id', $allChildTermIds)
+                ->whereIn('subject_id', $subjectIds)
+                ->get()
+                ->groupBy('student_id');
 
             foreach ($students as $student) {
-                $total = 0;
+                $studentMarks = $allMarks->get($student->id, collect());
                 $subjectScores = [];
+                $totalYearlyAvg = 0;
+
                 foreach ($subjects as $subject) {
-                    $subSemAverages = [];
+                    $semAverages = [];
                     foreach ($semesters as $sem) {
-                        $stats = $semesterResults[$sem->id][$student->id] ?? null;
-                        if ($stats && isset($stats['marks'][$subject->id]) && $stats['marks'][$subject->id] !== null) {
-                            $subSemAverages[] = $stats['marks'][$subject->id];
+                        $qIds = $sem->quarters->pluck('id');
+                        $semMarks = $studentMarks->where('subject_id', $subject->id)->whereIn('term_id', $qIds);
+                        if ($semMarks->isNotEmpty()) {
+                            $semAverages[] = $semMarks->avg('score');
                         }
                     }
-                    if (!empty($subSemAverages)) {
-                        $score = array_sum($subSemAverages) / count($subSemAverages);
-                        $total += $score;
-                        $subjectScores[$subject->id] = $score;
+
+                    if (!empty($semAverages)) {
+                        $yearlySubAvg = array_sum($semAverages) / count($semAverages);
+                        $subjectScores[$subject->id] = $yearlySubAvg;
+                        $totalYearlyAvg += $yearlySubAvg;
                     }
                 }
-                $average = $subjects->count() > 0 ? $total / $subjects->count() : 0;
-                $results[$student->id] = ['total' => $total, 'average' => $average, 'marks' => $subjectScores];
+
+                $average = $subjects->count() > 0 ? round($totalYearlyAvg / $subjects->count(), 2) : 0;
+                $results[$student->id] = ['total' => round($totalYearlyAvg, 2), 'average' => $average, 'marks' => $subjectScores];
             }
         } else {
             $allMarks = StudentMark::whereIn('student_id', $studentIds)
@@ -264,8 +274,8 @@ class GradingService
                 $studentMarks = $allMarks->get($student->id, collect());
                 $total = $studentMarks->sum('score');
                 $subjectScores = $studentMarks->pluck('score', 'subject_id')->toArray();
-                $average = $subjects->count() > 0 ? $total / $subjects->count() : 0;
-                $results[$student->id] = ['total' => $total, 'average' => $average, 'marks' => $subjectScores];
+                $average = $subjects->count() > 0 ? round($total / $subjects->count(), 2) : 0;
+                $results[$student->id] = ['total' => round($total, 2), 'average' => $average, 'marks' => $subjectScores];
             }
         }
 
@@ -300,7 +310,8 @@ class GradingService
                     $subjectScores[$subject->id] = $score;
                 }
             }
-            $average = count($subjects) > 0 ? $total / count($subjects) : 0;
+            $average = count($subjects) > 0 ? round($total / count($subjects), 2) : 0;
+            return ['total' => round($total, 2), 'average' => $average, 'marks' => $subjectScores];
         } elseif ($term->type === 'yearly') {
             $semesters = Term::where('academic_year_id', $academicYear->id)
                 ->where('type', 'semester')
@@ -323,7 +334,8 @@ class GradingService
                     $subjectScores[$subject->id] = $score;
                 }
             }
-            $average = count($subjects) > 0 ? $total / count($subjects) : 0;
+            $average = count($subjects) > 0 ? round($total / count($subjects), 2) : 0;
+            return ['total' => round($total, 2), 'average' => $average, 'marks' => $subjectScores];
 
         } else {
             $marks = StudentMark::where('student_id', $student->id)
@@ -331,10 +343,10 @@ class GradingService
                 ->get();
             $total = $marks->sum('score');
             $subjectScores = $marks->pluck('score', 'subject_id')->toArray();
-            $average = count($subjects) > 0 ? $total / count($subjects) : 0;
+            $average = count($subjects) > 0 ? round($total / count($subjects), 2) : 0;
         }
 
-        return ['total' => $total, 'average' => $average, 'marks' => $subjectScores];
+        return ['total' => round($total, 2), 'average' => $average, 'marks' => $subjectScores];
     }
 
     /**
@@ -426,10 +438,21 @@ class GradingService
                 $rank = $record->rank ?? '-';
                 $rankOutOf = $record->rank_out_of ?? '-';
             } else {
-                $totalScore = $record->total_score;
-                $average = $record->average_score;
-                $rank = $record->rank;
-                $rankOutOf = $record->rank_out_of;
+                // DEFENSIVE: If record has total > 0 but marks were pre-fetched and found 0, 
+                // we should trust the marks more (or recalculate).
+                // This fixed the "ghost 6.7%" stat when grades were deleted but records remained.
+                if ($record->total_score > 0 && $preFetchedMarks && $preFetchedMarks->isEmpty()) {
+                    $stats = $this->calculateStudentTotals($student, $term, $academicYear, $subjects);
+                    $totalScore = $stats['total'];
+                    $average = $stats['average'];
+                    $rank = $record->rank;
+                    $rankOutOf = $record->rank_out_of;
+                } else {
+                    $totalScore = $record->total_score;
+                    $average = $record->average_score;
+                    $rank = $record->rank;
+                    $rankOutOf = $record->rank_out_of;
+                }
             }
         }
 
@@ -502,7 +525,32 @@ class GradingService
             $stats = $this->calculateStudentTotals($student, $term, $academicYear, $subjects);
             $marks = collect($stats['marks']);
         } else {
-            $marks = $preFetchedMarks ? $preFetchedMarks->where('term_id', $term->id)->pluck('score', 'subject_id') : StudentMark::where('student_id', $student->id)->where('term_id', $term->id)->get()->pluck('score', 'subject_id');
+            $rawMarks = $preFetchedMarks ? $preFetchedMarks->where('term_id', $term->id) : StudentMark::where('student_id', $student->id)->where('term_id', $term->id)->get();
+            
+            // Check for Term Total Templates first
+            $termTotalTypeId = \App\Models\AssessmentType::where('code', 'TERM_TOTAL')->value('id');
+            $marks = collect();
+            
+            // First pass: Explicit Term Totals
+            foreach ($rawMarks as $mark) {
+                if ($mark->assessmentTemplate && $mark->assessmentTemplate->assessment_type_id == $termTotalTypeId) {
+                    $marks[$mark->subject_id] = $mark->score;
+                }
+            }
+            
+            // Second pass: Sum components if no Term Total
+            $components = [];
+            foreach ($rawMarks as $mark) {
+                if (!isset($marks[$mark->subject_id])) {
+                    if (!isset($components[$mark->subject_id])) $components[$mark->subject_id] = 0;
+                    $components[$mark->subject_id] += $mark->score;
+                }
+            }
+            
+            // Merge components
+            foreach ($components as $subId => $total) {
+                $marks[$subId] = $total;
+            }
         }
 
         return [

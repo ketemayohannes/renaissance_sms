@@ -53,113 +53,115 @@ class AcademicReportService
 
     /**
      * Prepare data for section roster report.
+     * NOTE: Recalculation removed for performance. Data is read-only here.
+     * Grades should be recalculated when marks are saved, not on every view.
      */
     public function prepareRosterData(Section $section, $term, AcademicYear $academicYear): array
     {
-        $this->gradingService->recalculateSectionStatistics($section, $term, $academicYear);
+        // PERFORMANCE FIX: Cache roster data for 5 minutes
+        $cacheKey = "roster_data_{$section->id}_{$term->id}_{$academicYear->id}";
         
-        $gradeLevel = $section->gradeLevel;
-        $subjects = $gradeLevel->subjects()->orderByPivot('sort_order')->get();
-        $settings = \App\Models\AcademicReportSetting::first();
+        return \Illuminate\Support\Facades\Cache::remember($cacheKey, 300, function() use ($section, $term, $academicYear) {
+            $gradeLevel = $section->gradeLevel;
+            $subjects = $gradeLevel->subjects()->orderByPivot('sort_order')->get();
+            $settings = \App\Models\AcademicReportSetting::first();
 
-        // Enforce Subject Ordering: Prioritize UI Settings, Fallback to Fixed List
-        if ($settings && isset($settings->display_options['subject_order'])) {
-            $orderMap = $settings->display_options['subject_order'];
-            $subjects = $subjects->sort(function ($a, $b) use ($orderMap) {
-                $posA = $orderMap[$a->id] ?? 999;
-                $posB = $orderMap[$b->id] ?? 999;
-                return $posA <=> $posB;
-            })->values();
-        } else {
-            // Hardcoded Fallback (User Requested Step 162)
-            $fixedOrder = [
-                'Amharic',
-                'Mathematics',
-                'Oromo',
-                'English',
-                'Afan',
-                'Physics',
-                'Chemistry',
-                'Biology',
-                'History',
-                'Geography',
-                'Citizenship',
-                'Economics',
-                'Information Technology',
-                'Information Technolog',
-                'Physical Education',
-                'Physical Educathin'
-            ];
-
-            $subjects = $subjects->sort(function ($a, $b) use ($fixedOrder) {
-                $getPos = function($name) use ($fixedOrder) {
-                    $pos = array_search($name, $fixedOrder);
-                    if ($pos !== false) return $pos;
-                    foreach ($fixedOrder as $index => $orderedName) {
-                        if (stripos($name, $orderedName) !== false) return $index;
-                    }
-                    return 999;
-                };
-                return $getPos($a->name) <=> $getPos($b->name);
-            })->values();
-        }
-
-        $students = $section->students()
-            ->wherePivot('academic_year_id', $academicYear->id)
-            ->where('is_active', true)
-            ->orderBy('first_name')
-            ->get();
-        $sectionReportData = $this->gradingService->getSectionReportData($students, $section, $term, $academicYear);
-
-        $targetTermsForAttendance = collect([$term]);
-        if ($term->isSemester()) {
-            $targetTermsForAttendance = $targetTermsForAttendance->concat($term->quarters()->get());
-        } elseif ($term->type === 'yearly') {
-            $targetTermsForAttendance = $targetTermsForAttendance->concat(
-                Term::where('academic_year_id', $academicYear->id)->whereIn('type', ['quarter', 'semester'])->get()
-            );
-        }
-        $batchAttendance = $this->getBatchAttendance($students, $targetTermsForAttendance, $academicYear);
-
-        $reports = [];
-        foreach ($students as $student) {
-            $studentData = $sectionReportData[$student->id] ?? null;
-            if ($studentData) {
-                $reports[] = $this->prepareStudentRosterRow($student, $term, $academicYear, $subjects, $studentData, $batchAttendance[$student->id] ?? []);
+            // Enforce Subject Ordering: Prioritize UI Settings, Fallback to Fixed List
+            if ($settings && isset($settings->display_options['subject_order'])) {
+                $orderMap = $settings->display_options['subject_order'];
+                $subjects = $subjects->sort(function ($a, $b) use ($orderMap) {
+                    $posA = $orderMap[$a->id] ?? 999;
+                    $posB = $orderMap[$b->id] ?? 999;
+                    return $posA <=> $posB;
+                })->values();
             } else {
-                // Include student with empty data if missing from grading service
-                $absRaw = $batchAttendance[$student->id][$term->id]['absent'] ?? 0;
-                $reports[] = [
-                    'student' => $student,
-                    'gender' => $student->gender,
-                    'marks' => [],
-                    'total' => 0,
-                    'average' => 0,
-                    'rank' => '-',
-                    'conduct' => 'A',
-                    'absence' => ($absRaw == 0) ? '_' : $absRaw,
-                    'rows' => []
+                // Hardcoded Fallback (User Requested Step 162)
+                $fixedOrder = [
+                    'Amharic',
+                    'Mathematics',
+                    'Oromo',
+                    'English',
+                    'Afan',
+                    'Physics',
+                    'Chemistry',
+                    'Biology',
+                    'History',
+                    'Geography',
+                    'Citizenship',
+                    'Economics',
+                    'Information Technology',
+                    'Information Technolog',
+                    'Physical Education',
+                    'Physical Educathin'
                 ];
+
+                $subjects = $subjects->sort(function ($a, $b) use ($fixedOrder) {
+                    $getPos = function($name) use ($fixedOrder) {
+                        $pos = array_search($name, $fixedOrder);
+                        if ($pos !== false) return $pos;
+                        foreach ($fixedOrder as $index => $orderedName) {
+                            if (stripos($name, $orderedName) !== false) return $index;
+                        }
+                        return 999;
+                    };
+                    return $getPos($a->name) <=> $getPos($b->name);
+                })->values();
             }
-        }
 
-        // Calculate yearly ranks if applicable
-        if ($term->type === 'yearly') {
-            $reports = $this->calculateYearlyRanks($reports);
-        }
+            $students = $section->students()
+                ->wherePivot('academic_year_id', $academicYear->id)
+                ->where('is_active', true)
+                ->orderBy('first_name')
+                ->get();
+            $sectionReportData = $this->gradingService->getSectionReportData($students, $section, $term, $academicYear);
 
-        // DO NOT filter empty subjects anymore to keep columns fixed as requested
-        // $subjects = $this->filterEmptySubjects($subjects, $reports);
+            $targetTermsForAttendance = collect([$term]);
+            if ($term->isSemester()) {
+                $targetTermsForAttendance = $targetTermsForAttendance->concat($term->quarters()->get());
+            } elseif ($term->type === 'yearly') {
+                $targetTermsForAttendance = $targetTermsForAttendance->concat(
+                    Term::where('academic_year_id', $academicYear->id)->whereIn('type', ['quarter', 'semester'])->get()
+                );
+            }
+            $batchAttendance = $this->getBatchAttendance($students, $targetTermsForAttendance, $academicYear);
 
-        return [
-            'academicYear' => $academicYear,
-            'term' => $term,
-            'section' => $section,
-            'subjects' => $subjects,
-            'reports' => $reports,
-            'settings' => $settings,
-            'generalSettings' => \App\Models\ReportCardSetting::first(),
-        ];
+            $reports = [];
+            foreach ($students as $student) {
+                $studentData = $sectionReportData[$student->id] ?? null;
+                if ($studentData) {
+                    $reports[] = $this->prepareStudentRosterRow($student, $term, $academicYear, $subjects, $studentData, $batchAttendance[$student->id] ?? []);
+                } else {
+                    // Include student with empty data if missing from grading service
+                    $absRaw = $batchAttendance[$student->id][$term->id]['absent'] ?? 0;
+                    $reports[] = [
+                        'student' => $student,
+                        'gender' => $student->gender,
+                        'marks' => [],
+                        'total' => 0,
+                        'average' => 0,
+                        'rank' => '-',
+                        'conduct' => 'A',
+                        'absence' => ($absRaw == 0) ? '_' : $absRaw,
+                        'rows' => []
+                    ];
+                }
+            }
+
+            // Calculate yearly ranks if applicable
+            if ($term->type === 'yearly') {
+                $reports = $this->calculateYearlyRanks($reports);
+            }
+
+            return [
+                'academicYear' => $academicYear,
+                'term' => $term,
+                'section' => $section,
+                'subjects' => $subjects,
+                'reports' => $reports,
+                'settings' => $settings,
+                'generalSettings' => \App\Models\ReportCardSetting::first(),
+            ];
+        });
     }
 
     private function prepareStudentRosterRow($student, $term, $academicYear, $subjects, array $reportData, array $studentAttendance = []): array
@@ -286,8 +288,14 @@ class AcademicReportService
         $studentIds = $students->pluck('id')->toArray();
         $termIds = $terms->pluck('id')->filter(fn($id) => is_numeric($id))->toArray();
 
+        // PERFORMANCE FIX: Pre-fetch section IDs instead of using whereHas
+        // whereHas creates a slow subquery per row; this uses a simple IN clause
+        $validSectionIds = \App\Models\Section::where('academic_year_id', $academicYear->id)
+            ->pluck('id')
+            ->toArray();
+
         $allAttendance = StudentAttendance::whereIn('student_id', $studentIds)
-            ->whereHas('section', fn($q) => $q->where('academic_year_id', $academicYear->id))
+            ->whereIn('section_id', $validSectionIds)
             ->get(['student_id', 'attendance_date', 'status']);
 
         $results = [];

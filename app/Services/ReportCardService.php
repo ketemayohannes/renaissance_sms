@@ -291,7 +291,7 @@ class ReportCardService
         return $exportRequest;
     }
 
-    private function prepareSubTermData(array $subTerms, int $totalStudents): array
+    private function prepareSubTermData(array $subTerms, $totalStudents): array
     {
         $data = ['marks' => [], 'totals' => [], 'averages' => [], 'ranks' => [], 'records' => []];
 

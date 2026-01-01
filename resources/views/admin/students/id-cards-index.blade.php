@@ -1,44 +1,67 @@
 <x-admin-layout>
-    <x-slot name="header">Student ID Card Generation</x-slot>
+    <x-slot name="header">ID Card Generation</x-slot>
 
-    <div class="space-y-6">
-        <!-- Breadcrumb -->
-        <x-breadcrumb :items="[
-            ['label' => 'ID Card Generation', 'url' => '#']
-        ]" />
-        
-        <div class="card overflow-hidden">
-            <div class="p-6">
-                    <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                        <h3 class="font-bold text-blue-800 mb-2">📋 Instructions</h3>
-                        <p class="text-blue-700 text-sm">
-                            Select a section below to generate ID cards for all students in that section. 
-                            Cards are formatted for standard ID card size (86mm × 54mm).
-                        </p>
+    <div class="space-y-8">
+        <!-- Breadcrumb & Header -->
+        <div class="flex flex-col32. - **Impact**: The Promotion module is now stable and matches the premium design language.
+33. 
+34. ### 🪪 ID Card Generation Repair
+35. Fixed an `Undefined variable $sections` crash on the ID Cards page. The controller was passing the wrong data, and the view had duplicated layout blocks.
+36. - **Fix**: Corrected the route from `id-cards-print` to `bulk-id-cards` and synchronized the data flow.
+ md:flex-row md:items-center justify-between gap-6">
+            <div>
+                <x-breadcrumb :items="[
+                    ['label' => 'ID Cards', 'url' => '#']
+                ]" />
+                <h1 class="text-4xl font-black text-slate-900 tracking-tight mt-2">ID Card Issuance</h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="px-4 py-2 bg-indigo-50 rounded-2xl border border-indigo-100 flex items-center gap-3 shadow-sm shadow-indigo-100/50">
+                    <div class="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
                     </div>
-
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Select Section</h3>
-                    
-                    <div class="space-y-4">
-                        @foreach($gradeLevels as $gradeLevel)
-                            <div class="border rounded-lg p-4">
-                                <h4 class="font-bold text-gray-800 mb-3">{{ $gradeLevel->name }}</h4>
-                                <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-                                    @forelse($gradeLevel->sections as $section)
-                                        <a href="{{ route('admin.sections.bulk-id-cards', $section) }}" 
-                                           class="block p-3 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg text-center transition">
-                                            <span class="font-semibold text-green-800">{{ $section->name }}</span>
-                                            <span class="block text-xs text-green-600 mt-1">Generate Cards</span>
-                                        </a>
-                                    @empty
-                                        <p class="text-gray-500 italic text-sm col-span-4">No sections for this grade</p>
-                                    @endforelse
-                                </div>
-                            </div>
-                        @endforeach
+                    <div>
+                        <span class="block text-[10px] font-black text-indigo-900 uppercase tracking-widest">Printer Ready</span>
+                        <span class="block text-xs font-bold text-indigo-600/80 mt-0.5">Automated Formatting</span>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Section Selection Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            @foreach($sections as $section)
+                <a href="{{ route('admin.sections.bulk-id-cards', $section) }}" target="_blank" class="group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-8 border border-white shadow-xl shadow-slate-200/50 hover:bg-slate-900 transition-all hover:-translate-y-2">
+                    <!-- Icon/Indicator -->
+                    <div class="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 mb-6 group-hover:bg-white/10 group-hover:text-white transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5L12 4l-2 2z"></path></svg>
+                    </div>
+
+                    <!-- Content -->
+                    <h3 class="text-2xl font-black text-slate-900 tracking-tight group-hover:text-white transition-colors">{{ $section->name }}</h3>
+                    <p class="text-xs font-black text-indigo-500 uppercase tracking-widest mt-1 group-hover:text-indigo-300 transition-colors">{{ $section->gradeLevel->name }}</p>
+                    
+                    <div class="mt-8 flex items-center justify-between">
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-500 transition-colors">{{ $section->students_count ?? '0' }} Students</span>
+                        <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all transform group-hover:rotate-45">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        </div>
+                    </div>
+
+                    <!-- Decorative Gradient (Hover) -->
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-500/10 to-transparent rounded-bl-[100px] pointer-events-none group-hover:opacity-0 transition-opacity"></div>
+                </a>
+            @endforeach
         </div>
+
+        @if($sections->isEmpty())
+            <div class="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-xl shadow-slate-200/50 p-20 text-center">
+                <div class="w-20 h-20 bg-slate-50 rounded-[2rem] flex items-center justify-center text-slate-200 mx-auto mb-6">
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                </div>
+                <h2 class="text-2xl font-black text-slate-900 tracking-tight">No Sections Assigned</h2>
+                <p class="text-slate-500 font-semibold mt-2">Active academic sections are required for ID card generation.</p>
+            </div>
+        @endif
+    </div>
 </x-admin-layout>

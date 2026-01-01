@@ -29,7 +29,7 @@
              x-transition:leave="ease-in duration-200"
              x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
              x-transition:leave-end="opacity-0 translate-y-8 sm:translate-y-0 sm:scale-95"
-             class="inline-block align-bottom bg-white/95 backdrop-blur-xl rounded-[2.5rem] text-left overflow-hidden shadow-2xl border border-white transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full p-10">
+             class="inline-block align-bottom vibrant-glass-surface rounded-[2.5rem] text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-xl sm:w-full p-12">
             
             <div class="text-center sm:text-left">
                 <div class="flex flex-col sm:flex-row items-center sm:items-start gap-6">

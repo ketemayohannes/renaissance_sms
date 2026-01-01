@@ -15,14 +15,17 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $academicYear = AcademicYear::where('is_active', true)->first();
+        $start = microtime(true);
+        // PERFORMANCE: Use cached active academic year
+        $academicYear = \App\Helpers\CachedData::activeAcademicYear();
         $cacheTtl = 3600; // 1 hour
         
         // Key Metrics (Cached)
         $stats = \Illuminate\Support\Facades\Cache::remember('admin_dashboard_stats', $cacheTtl, function() {
+            // PERFORMANCE: Efficient count
             return [
-                'total_students' => Student::where('is_active', true)->count(),
-                'total_staff' => User::whereHas('roles', fn($q) => $q->whereNotIn('name', ['Student', 'Guardian', 'Parent']))->count(),
+                'total_students' => \App\Models\Student::where('is_active', true)->count(),
+                'total_staff' => \App\Models\User::role(['Super Admin', 'Principal', 'Teacher', 'Accountant', 'HR Manager', 'Librarian', 'Staff'])->count(),
                 'today_attendance' => 0,
                 'pending_actions' => 0,
             ];
@@ -67,6 +70,7 @@ class DashboardController extends Controller
         
         // Sections without attendance marked today (Cached short-term)
         $sectionsMissingAttendance = \Illuminate\Support\Facades\Cache::remember('admin_dashboard_missing_attendance', 300, function() use ($academicYear) {
+            // PERFORMANCE: Use cached data for total active sections
             $allActiveSections = \App\Models\Section::where('is_active', true)
                 ->when($academicYear, fn($q) => $q->where('academic_year_id', $academicYear->id))
                 ->count();
@@ -75,7 +79,7 @@ class DashboardController extends Controller
                 ->distinct('section_id')
                 ->count('section_id');
             
-            return $allActiveSections - $sectionsWithAttendance;
+            return max(0, $allActiveSections - $sectionsWithAttendance);
         });
         
         // Gender breakdown (Cached)
@@ -87,6 +91,9 @@ class DashboardController extends Controller
                 ->toArray();
         });
         
-        return view('admin.dashboard', compact('stats', 'recentActivity', 'studentsByGrade', 'sectionsMissingAttendance', 'genderBreakdown', 'academicYear'));
+        $executionTime = round(microtime(true) - $start, 4);
+        \Illuminate\Support\Facades\Log::info("Dashboard load time: {$executionTime}s");
+        
+        return view('admin.dashboard', compact('stats', 'recentActivity', 'studentsByGrade', 'sectionsMissingAttendance', 'genderBreakdown', 'academicYear', 'executionTime'));
     }
 }

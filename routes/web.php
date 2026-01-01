@@ -41,6 +41,7 @@ Route::middleware('auth')->group(function () {
     // Admin Routes
     Route::middleware(['role:Super Admin|Principal'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/search', [App\Http\Controllers\Admin\GlobalSearchController::class, 'search'])->name('global-search');
         
         // Role Management
         Route::resource('roles', App\Http\Controllers\Admin\RoleController::class);
@@ -64,6 +65,11 @@ Route::middleware('auth')->group(function () {
         // Subject Ordering
         Route::get('subjects/reorder', [App\Http\Controllers\Admin\SubjectController::class, 'reorder'])->name('subjects.reorder');
         Route::post('subjects/reorder', [App\Http\Controllers\Admin\SubjectController::class, 'updateOrder'])->name('subjects.update-order');
+        
+        // Subject Import
+        Route::get('subjects/import', [App\Http\Controllers\Admin\SubjectController::class, 'import'])->name('subjects.import');
+        Route::post('subjects/upload', [App\Http\Controllers\Admin\SubjectController::class, 'upload'])->name('subjects.upload');
+        Route::get('subjects/template', [App\Http\Controllers\Admin\SubjectController::class, 'downloadTemplate'])->name('subjects.template');
         
         Route::resource('subjects', App\Http\Controllers\Admin\SubjectController::class)->except(['show']);
         
@@ -152,6 +158,7 @@ Route::middleware('auth')->group(function () {
         Route::get('academic-reports/show', [App\Http\Controllers\Admin\AcademicReportController::class, 'show'])->name('academic-reports.show');
         Route::get('academic-reports/subject-analysis', [App\Http\Controllers\Admin\AcademicReportController::class, 'subjectAnalysis'])->name('academic-reports.subject-analysis');
         Route::get('academic-reports/grade-matrix', [App\Http\Controllers\Admin\AcademicReportController::class, 'gradeMatrix'])->name('academic-reports.grade-matrix');
+        Route::post('academic-reports/recalculate', [App\Http\Controllers\Admin\AcademicReportController::class, 'recalculate'])->name('academic-reports.recalculate');
 
         Route::get('section-grades/{section}/report-card-details', [App\Http\Controllers\Admin\ReportCardController::class, 'entry'])->name('section-grades.report-card-entry');
         Route::post('section-grades/{section}/report-card-details', [App\Http\Controllers\Admin\ReportCardController::class, 'storeEntry'])->name('section-grades.store-report-card-entry');
@@ -194,6 +201,12 @@ Route::middleware('auth')->group(function () {
         Route::post('guardians/{guardian}/create-user', [App\Http\Controllers\Admin\StudentController::class, 'createGuardianUser'])->name('guardians.create-user');
         Route::post('students/{student}/create-user', [App\Http\Controllers\Admin\StudentController::class, 'createStudentUser'])->name('students.create-user');
         Route::post('students/{student}/reset-password', [App\Http\Controllers\Admin\StudentController::class, 'resetStudentPassword'])->name('students.reset-password');
+
+        // Human Resources
+        Route::get('employees/import', [App\Http\Controllers\Admin\EmployeeController::class, 'import'])->name('employees.import');
+        Route::post('employees/import', [App\Http\Controllers\Admin\EmployeeController::class, 'upload'])->name('employees.upload');
+        Route::get('employees/download-template', [App\Http\Controllers\Admin\EmployeeController::class, 'downloadTemplate'])->name('employees.download-template');
+        Route::resource('employees', App\Http\Controllers\Admin\EmployeeController::class);
 
         Route::resource('students', App\Http\Controllers\Admin\StudentController::class);
     });

@@ -32,7 +32,7 @@ class GradeLevelController extends Controller
 
         GradeLevel::create($request->all());
 
-        return redirect()->route('admin.grade-levels.index')
+        return redirect()->route('admin.grade-levels.create')
             ->with('success', 'Grade Level created successfully.');
     }
 

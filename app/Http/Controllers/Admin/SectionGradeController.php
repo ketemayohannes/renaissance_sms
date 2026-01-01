@@ -18,10 +18,18 @@ class SectionGradeController extends Controller
 {
     public function index()
     {
-        $academicYears = AcademicYear::latest()->get();
-        $gradeLevels = GradeLevel::all();
+        // PERFORMANCE: Use cached data
+        $academicYears = \App\Helpers\CachedData::academicYears();
+        $gradeLevels = \App\Helpers\CachedData::gradeLevels();
         
-        return view('admin.section-grades.index', compact('academicYears', 'gradeLevels'));
+        $currentYear = \App\Helpers\CachedData::activeAcademicYear() ?? $academicYears->first();
+        $terms = $currentYear ? Term::where('academic_year_id', $currentYear->id)->get() : collect();
+        
+        // Initial state for dependent dropdowns
+        $sections = collect();
+        $subjects = collect();
+        
+        return view('admin.section-grades.index', compact('academicYears', 'gradeLevels', 'terms', 'sections', 'subjects'));
     }
 
     public function entry(Request $request)

@@ -24,7 +24,14 @@ class AttendanceController extends Controller
     {
         $academicYear = AcademicYear::where('is_active', true)->first();
         $sections = $this->attendanceService->getActiveSectionsSummary($academicYear);
-        $gradeLevels = GradeLevel::orderBy('sort_order')->get();
+        
+        // Eager load sections for grade levels, filtered by active academic year
+        $gradeLevels = GradeLevel::with(['sections' => function($query) use ($academicYear) {
+            $query->where('academic_year_id', $academicYear?->id)
+                  ->where('is_active', true)
+                  ->orderBy('name');
+        }])->orderBy('sort_order')->get();
+        
         $today = now()->format('Y-m-d');
         
         return view('admin.attendance.index', compact('gradeLevels', 'academicYear', 'sections', 'today'));

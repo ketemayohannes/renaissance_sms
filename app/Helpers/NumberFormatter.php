@@ -2,6 +2,8 @@
 
 namespace App\Helpers;
 
+use Illuminate\Support\Facades\Log;
+
 class NumberFormatter
 {
     /**
@@ -24,15 +26,11 @@ class NumberFormatter
         
         $number = (float) $number;
         
-        // Check if it's a whole number
-        if (floor($number) == $number) {
-            return number_format($number, 0);
-        }
+        // Format with absolute decimal points and no grouping to avoid locale issues
+        // We use a high precision temporarily to avoid premature rounding by number_format itself
+        $formatted = number_format($number, $maxDecimals, '.', '');
         
-        // Format with max decimals and remove trailing zeros
-        $formatted = number_format($number, $maxDecimals);
-        
-        // Remove trailing zeros after decimal point
+        // Remove trailing zeros and the decimal point if it becomes unnecessary
         if (strpos($formatted, '.') !== false) {
             $formatted = rtrim($formatted, '0');
             $formatted = rtrim($formatted, '.');
