@@ -7,64 +7,44 @@ use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
-    private function indexExists($table, $indexName): bool
-    {
-        $driver = DB::getDriverName();
-        if ($driver === 'sqlite') {
-            $indices = DB::select("PRAGMA index_list({$table})");
-            foreach ($indices as $index) {
-                if ($index->name === $indexName) {
-                    return true;
-                }
-            }
-            return false;
-        }
-        
-        $result = DB::select("SHOW INDEX FROM {$table} WHERE Key_name = ?", [$indexName]);
-        return count($result) > 0;
-    }
-
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::table('student_marks', function (Blueprint $table) {
-            if (!$this->indexExists('student_marks', 'student_marks_academic_year_id_index')) {
-                $table->index('academic_year_id');
+            if (!Schema::hasIndex('student_marks', 'student_marks_academic_year_id_index')) {
+                $table->index('academic_year_id', 'student_marks_academic_year_id_index');
             }
-            if (!$this->indexExists('student_marks', 'student_marks_term_id_index')) {
-                $table->index('term_id');
+            if (!Schema::hasIndex('student_marks', 'student_marks_term_id_index')) {
+                $table->index('term_id', 'student_marks_term_id_index');
             }
-            if (!$this->indexExists('student_marks', 'student_marks_subject_id_index')) {
-                $table->index('subject_id');
+            if (!Schema::hasIndex('student_marks', 'student_marks_subject_id_index')) {
+                $table->index('subject_id', 'student_marks_subject_id_index');
             }
-            if (!$this->indexExists('student_marks', 'student_marks_section_id_index')) {
-                $table->index('section_id');
+            if (!Schema::hasIndex('student_marks', 'student_marks_section_id_index')) {
+                $table->index('section_id', 'student_marks_section_id_index');
             }
-            if (!$this->indexExists('student_marks', 'sm_student_template_idx')) {
+            if (!Schema::hasIndex('student_marks', 'sm_student_template_idx')) {
                 $table->index(['student_id', 'assessment_template_id'], 'sm_student_template_idx');
             }
         });
 
         Schema::table('student_enrollments', function (Blueprint $table) {
-            if (!$this->indexExists('student_enrollments', 'student_enrollments_academic_year_id_index')) {
-                $table->index('academic_year_id');
+            if (!Schema::hasIndex('student_enrollments', 'student_enrollments_academic_year_id_index')) {
+                $table->index('academic_year_id', 'student_enrollments_academic_year_id_index');
             }
-            if (!$this->indexExists('student_enrollments', 'student_enrollments_section_id_index')) {
-                $table->index('section_id');
+            if (!Schema::hasIndex('student_enrollments', 'student_enrollments_section_id_index')) {
+                $table->index('section_id', 'student_enrollments_section_id_index');
             }
-            if (!$this->indexExists('student_enrollments', 'student_enrollments_status_index')) {
-                $table->index('status');
+            if (!Schema::hasIndex('student_enrollments', 'student_enrollments_status_index')) {
+                $table->index('status', 'student_enrollments_status_index');
             }
         });
 
         Schema::table('grade_level_subjects', function (Blueprint $table) {
-            if (!$this->indexExists('grade_level_subjects', 'grade_level_subjects_academic_year_id_index')) {
-                $table->index('academic_year_id');
+            if (!Schema::hasIndex('grade_level_subjects', 'grade_level_subjects_academic_year_id_index')) {
+                $table->index('academic_year_id', 'grade_level_subjects_academic_year_id_index');
             }
-            if (!$this->indexExists('grade_level_subjects', 'grade_level_subjects_sort_order_index')) {
-                $table->index('sort_order');
+            if (!Schema::hasIndex('grade_level_subjects', 'grade_level_subjects_sort_order_index')) {
+                $table->index('sort_order', 'grade_level_subjects_sort_order_index');
             }
         });
     }
