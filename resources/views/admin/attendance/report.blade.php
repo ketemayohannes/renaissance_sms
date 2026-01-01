@@ -29,7 +29,7 @@
         <div class="premium-card p-8">
             <!-- Summary Statistics Logic -->
             @php
-                $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+                $daysInMonth = date('t', mktime(0, 0, 0, $month, 1, $year));
                 $schoolDays = 0;
                 $totalPresent = 0;
                 $totalAbsent = 0;
