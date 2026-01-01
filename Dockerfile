@@ -10,6 +10,10 @@ RUN apt-get update && apt-get install -y \
     curl \
     && docker-php-ext-install pdo_mysql pdo_pgsql zip
 
+# Install Node.js (Required for Vite build)
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs
+
 # Configure Apache Document Root to point to /public
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
@@ -32,6 +36,10 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local
 
 # Install PHP Dependencies (Optimize for production)
 RUN composer install --no-dev --optimize-autoloader
+
+# Install NPM dependencies and Build Assets
+RUN npm install
+RUN npm run build
 
 # Set permissions for Laravel cache/storage
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
