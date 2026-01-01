@@ -3,11 +3,12 @@ FROM php:8.2-apache
 # Install dependencies including zip/unzip and standard PHP extensions
 RUN apt-get update && apt-get install -y \
     libzip-dev \
+    libpq-dev \
     zip \
     unzip \
     git \
     curl \
-    && docker-php-ext-install pdo_mysql zip
+    && docker-php-ext-install pdo_mysql pdo_pgsql zip
 
 # Configure Apache Document Root to point to /public
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
