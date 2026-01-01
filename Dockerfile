@@ -35,3 +35,6 @@ RUN composer install --no-dev --optimize-autoloader
 
 # Set permissions for Laravel cache/storage
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+
+# Run migrations and start Apache
+CMD bash -c "php artisan migrate --force && apache2-foreground"
