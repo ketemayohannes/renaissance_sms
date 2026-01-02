@@ -42,11 +42,10 @@
         window.addEventListener('load', () => window.perfData.fullLoad = performance.now());
     </script>
 </head>
-<body class="font-sans antialiased bg-slate-50" x-data="{ sidebarOpen: false }">
+<body class="font-sans antialiased bg-slate-50" x-data>
     <div class="min-h-screen flex">
         <!-- Sidebar -->
-        <div x-data="{ mobileOpen: $store.sidebar?.open || false }" 
-             x-init="$watch('mobileOpen', val => { if(window.$store && window.$store.sidebar) window.$store.sidebar.open = val })">
+        <div x-data :class="$store.ui.sidebarOpen ? 'translate-x-0' : '-translate-x-full'" class="lg:translate-x-0">
             @php $t = microtime(true); @endphp
             @include('layouts.partials.admin-sidebar')
             @php \Illuminate\Support\Facades\Log::info('Sidebar rendering took ' . (microtime(true) - $t)*1000 . 'ms'); @endphp
@@ -59,7 +58,7 @@
                 <!-- Left: Mobile menu + Page Title -->
                 <div class="flex items-center gap-4">
                     <!-- Mobile menu button -->
-                    <button @click="sidebarOpen = !sidebarOpen; $dispatch('toggle-sidebar')" 
+                    <button @click="$store.ui.toggleSidebar()" 
                             class="lg:hidden p-2 rounded-lg hover:bg-slate-100 text-slate-500">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
@@ -98,20 +97,21 @@
                                 this.loading = false;
                             }
                         }
-                     }">
+                      }" x-init="query = ''">
                     <div class="relative">
                         <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                         </svg>
                         <input type="text" 
                                x-model.debounce.300ms="query"
-                               @input="performSearch()"
+                               @input.stop="performSearch()"
                                @keydown.down.prevent="selectedIndex = (selectedIndex + 1) % results.length"
                                @keydown.up.prevent="selectedIndex = (selectedIndex - 1 + results.length) % results.length"
                                @keydown.enter.prevent="if(selectedIndex >= 0) window.location.href = results[selectedIndex].url"
                                @focus="showDropdown = query.trim().length >= 2"
                                @click.outside="showDropdown = false"
                                placeholder="Search students, sections..." 
+                               autocomplete="off"
                                class="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 border-0 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:bg-white placeholder-slate-400 transition-colors">
 
                         <!-- Search Results Dropdown -->
@@ -267,15 +267,16 @@
     <!-- Mobile sidebar toggle script -->
     <script>
         document.addEventListener('alpine:init', () => {
-            Alpine.store('sidebar', { open: false });
-        });
-        
-        document.addEventListener('toggle-sidebar', () => {
-            const sidebar = document.querySelector('aside');
-            if (sidebar) {
-                const mobileOpen = sidebar.__x.$data.mobileOpen;
-                sidebar.__x.$data.mobileOpen = !mobileOpen;
-            }
+            // Global UI Store
+            Alpine.store('ui', {
+                sidebarOpen: false,
+                modal: {
+                    sibling: false
+                },
+                openModal(name) { this.modal[name] = true },
+                closeModal(name) { this.modal[name] = false },
+                toggleSidebar() { this.sidebarOpen = !this.sidebarOpen }
+            });
         });
     </script>
     

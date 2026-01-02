@@ -1,7 +1,29 @@
 <x-admin-layout>
     <x-slot name="header">Student Profile: {{ $student->full_name }}</x-slot>
 
-    <div class="space-y-6">
+    <div class="space-y-6" x-data="{ 
+        tab: 'overview', 
+        searchQuery: '',
+        searchResults: [],
+        loading: false,
+        async searchStudents() {
+            const query = this.searchQuery.trim();
+            if (query.length < 2) {
+                this.searchResults = [];
+                return;
+            }
+            this.loading = true;
+            try {
+                const resp = await fetch(`/admin/search?q=${encodeURIComponent(query)}`);
+                const data = await resp.json();
+                this.searchResults = data.filter(r => r.type === 'Student' && r.id != '{{ $student->id }}');
+            } catch (e) {
+                console.error('Search error:', e);
+            } finally {
+                this.loading = false;
+            }
+        }
+    }" @open-sibling-modal.window="siblingModalOpen = true">
             <!-- Breadcrumb -->
             <x-breadcrumb :items="[
                 ['label' => 'Students', 'url' => route('admin.students.index')],
@@ -9,7 +31,7 @@
             ]" />
             
     <!-- Profile Header Section -->
-    <div class="relative mb-12">
+    <div class="relative mb-12 z-[50]">
         <!-- Background Banner Decorative Element -->
         <div class="absolute inset-0 h-48 bg-gradient-to-r from-indigo-600 to-violet-600 rounded-[3rem] opacity-10 blur-3xl -z-10"></div>
         
@@ -33,7 +55,7 @@
 
                 <!-- Info and Actions -->
                 <div class="flex-grow">
-                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-30">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-[60]">
                         <div>
                             <h1 class="text-4xl font-black text-slate-900 tracking-tight mb-2">{{ $student->full_name }}</h1>
                             <div class="flex flex-wrap items-center gap-4 text-slate-500">
@@ -55,55 +77,54 @@
                                 Edit Profile
                             </a>
                             <div class="relative z-50" x-data="{ open: false }">
-                                <button @click="open = !open" class="px-6 py-3 bg-white text-slate-700 font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-50 transition-all border border-slate-200 shadow-sm flex items-center gap-2">
+                                <button @click.stop="open = !open" class="px-6 py-3 bg-white text-slate-700 font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-50 transition-all border border-slate-200 shadow-sm flex items-center gap-2">
                                     Quick Actions
                                     <svg class="w-4 h-4 transition-transform" :class="{'rotate-180': open}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                 </button>
                                 <div x-show="open" @click.away="open = false" x-transition class="absolute right-0 mt-3 w-64 bg-white border border-slate-100 rounded-[2rem] shadow-2xl p-3 z-[100]">
-                                    <!-- Print & Academic -->
-                                    <div class="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">Academic & Print</div>
-                                    <a href="{{ route('admin.students.id-card', $student) }}" target="_blank" class="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-slate-50 text-slate-700 transition-all font-semibold text-xs">
-                                        <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                                    <a href="{{ route('admin.students.id-card', $student) }}" target="_blank" class="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-slate-50 text-slate-700 transition-all font-semibold text-xs group/item">
+                                        <svg class="w-4 h-4 text-indigo-500 group-hover/item:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
                                         Print ID Card
                                     </a>
-                                    <a href="{{ route('admin.report-cards.pdf', $student) }}" target="_blank" class="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-slate-50 text-slate-700 transition-all font-semibold text-xs">
-                                        <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    <a href="{{ route('admin.report-cards.pdf', $student) }}" target="_blank" class="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-slate-50 text-slate-700 transition-all font-semibold text-xs group/item">
+                                        <svg class="w-4 h-4 text-emerald-500 group-hover/item:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                                         Report Card PDF
                                     </a>
-                                    <a href="{{ route('admin.students.assign-electives', $student) }}" class="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-slate-50 text-slate-700 transition-all font-semibold text-xs">
-                                        <svg class="w-4 h-4 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                                    <a href="{{ route('admin.students.assign-electives', $student) }}" class="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-slate-50 text-slate-700 transition-all font-semibold text-xs group/item">
+                                        <svg class="w-4 h-4 text-violet-500 group-hover/item:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.247 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
                                         Assign Electives
                                     </a>
 
-                                    <div class="my-2 border-t border-slate-100/50"></div>
+                                    <div class="my-2 border-t border-slate-100/50 mx-2"></div>
                                     
                                     <!-- Behavior & Admin -->
-                                    <div class="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">Behavior & Admin</div>
-                                    <a href="{{ route('admin.disciplinary.create', $student) }}" class="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-slate-50 text-slate-700 transition-all font-semibold text-xs">
-                                        <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                    <div class="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Behavior & Admin</div>
+                                    <a href="{{ route('admin.disciplinary.create', $student) }}" class="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-slate-50 text-slate-700 transition-all font-semibold text-xs group/item">
+                                        <svg class="w-4 h-4 text-rose-500 group-hover/item:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                                         Record Incident
                                     </a>
-                                    <a href="{{ route('admin.students.transfer', $student) }}" class="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-slate-50 text-slate-700 transition-all font-semibold text-xs">
-                                        <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                                    <a href="{{ route('admin.students.transfer', $student) }}" class="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-slate-50 text-slate-700 transition-all font-semibold text-xs group/item">
+                                        <svg class="w-4 h-4 text-amber-500 group-hover/item:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
                                         Transfer Student
                                     </a>
-                                    <a href="{{ route('admin.students.withdraw', $student) }}" class="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-slate-50 text-rose-600 transition-all font-semibold text-xs">
-                                        <svg class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                                        Withdrawal
+                                    <a href="{{ route('admin.students.withdraw', $student) }}" class="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-slate-50 text-rose-600 transition-all font-semibold text-xs group/item">
+                                        <svg class="w-4 h-4 text-rose-400 group-hover/item:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                                        Withdraw Student
                                     </a>
-                                    <a href="{{ route('admin.students.status-history', $student) }}" class="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-slate-50 text-slate-700 transition-all font-semibold text-xs">
-                                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    <a href="{{ route('admin.students.status-history', $student) }}" class="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-slate-50 text-slate-700 transition-all font-semibold text-xs group/item">
+                                        <svg class="w-4 h-4 text-slate-400 group-hover/item:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                         Status History
                                     </a>
-                                    <button @click="tab = 'enrollment'; open = false" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-slate-50 text-slate-700 transition-all font-semibold text-xs text-left">
-                                        <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                                    <button type="button" @click.stop="$store.ui.openModal('sibling'); open = false" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-slate-50 text-slate-700 transition-all font-semibold text-xs text-left group/item">
+                                        <svg class="w-4 h-4 text-indigo-400 group-hover/item:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                                         Link Siblings
                                     </button>
 
-                                    <div class="my-2 border-t border-slate-100/50"></div>
+                                    <div class="my-2 border-t border-slate-100/50 mx-2"></div>
 
                                     <!-- Status & Account -->
-                                    <div class="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status & Account</div>
+                                    <div class="px-3 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Status & Account</div>
+
                                     <form action="{{ route('admin.students.toggle-block', $student) }}" method="POST" class="w-full">
                                         @csrf
                                         <button type="submit" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-slate-50 {{ $student->is_active ? 'text-rose-600' : 'text-emerald-600' }} transition-all font-semibold text-xs">
@@ -163,7 +184,7 @@
     </div>
 
     <!-- Main Content Tabs -->
-    <div x-data="{ tab: 'overview' }" class="space-y-8">
+    <div class="space-y-8">
         <!-- Modern Tabs Navigation -->
         <div class="sticky top-4 z-40 bg-white/60 backdrop-blur-xl border border-white rounded-[2rem] shadow-xl shadow-slate-200/50 p-2 overflow-x-auto no-scrollbar">
             <nav class="flex gap-1 min-w-max">
@@ -560,9 +581,12 @@
                                     <div class="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-100/50">
                                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                                     </div>
-                                    <div>
-                                        <h3 class="text-xl font-bold text-slate-900">Family Members</h3>
-                                        <p class="text-slate-500 text-sm">Siblings enrolled in the school.</p>
+                                    <div class="flex items-center justify-between gap-4 mb-8">
+                                        <div>
+                                            <h3 class="text-xl font-bold text-slate-900">Family Members</h3>
+                                            <p class="text-slate-500 text-sm">Siblings enrolled in the school.</p>
+                                        </div>
+                                        <button @click="siblingModalOpen = true" class="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all">Link Sibling</button>
                                     </div>
                                 </div>
 
@@ -919,5 +943,66 @@
                 </div>
             </div>
         </div>
+    <!-- Link Sibling Modal -->
+    <template x-teleport="body">
+        <div x-show="$store.ui.modal.sibling" 
+             x-transition.opacity
+             class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+             style="display: none;" @keydown.escape.window="$store.ui.closeModal('sibling')">
+            <div @click.away="$store.ui.closeModal('sibling')" 
+                 class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh] pointer-events-auto">
+                <div class="p-8 border-b border-slate-100">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-2xl font-black text-slate-900">Link Sibling</h3>
+                        <button @click="$store.ui.closeModal('sibling')" class="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
+                    
+                    <div class="relative">
+                        <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        <input type="text" 
+                               x-model.debounce.300ms="searchQuery" 
+                               @input.stop="searchStudents()"
+                               placeholder="Search student by name or ID..." 
+                               autocomplete="off"
+                               class="w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 border-0 focus:ring-2 focus:ring-indigo-500 font-semibold text-slate-700">
+                    </div>
+                </div>
+
+                <div class="flex-grow overflow-y-auto p-8 bg-slate-50/30 no-scrollbar">
+                    <div x-show="loading" class="flex flex-col items-center justify-center py-12">
+                        <div class="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+                        <p class="text-slate-500 font-bold text-sm uppercase tracking-widest">Searching Database...</p>
+                    </div>
+
+                    <div x-show="!loading && searchResults.length === 0 && searchQuery.length >= 2" class="text-center py-12">
+                        <p class="text-slate-400 font-bold">No students found matching your search.</p>
+                    </div>
+
+                    <div x-show="!loading && searchResults.length > 0" class="space-y-4">
+                        <template x-for="result in searchResults" :key="result.id">
+                            <div class="flex items-center justify-between p-4 bg-white rounded-2xl border border-white shadow-sm hover:shadow-md transition-all group">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 text-sm font-black ring-1 ring-indigo-100">
+                                        <span x-text="result.title.substring(0, 1)"></span>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-black text-slate-900 leading-tight" x-text="result.title"></h4>
+                                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest" x-text="result.subtitle"></p>
+                                    </div>
+                                </div>
+                                <form :action="'{{ route('admin.students.siblings.link', $student) }}'" method="POST">
+                                    @csrf
+                                    <input type="hidden" name="sibling_id" :value="result.id">
+                                    <button type="submit" class="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all">Link Now</button>
+                                </form>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
     </div>
 </x-admin-layout>

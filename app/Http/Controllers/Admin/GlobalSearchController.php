@@ -26,6 +26,7 @@ class GlobalSearchController extends Controller
             ->get()
             ->map(function ($student) {
                 return [
+                    'id' => $student->id,
                     'title' => $student->full_name,
                     'subtitle' => "ID: {$student->student_id}",
                     'url' => route('admin.students.show', $student),

@@ -1,6 +1,6 @@
-<aside x-data="{ mobileOpen: false }" 
+<aside x-data 
        class="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 flex flex-col transform transition-transform duration-300 lg:translate-x-0 lg:static lg:inset-auto"
-       :class="mobileOpen ? 'translate-x-0' : '-translate-x-full'">
+       :class="$store.ui.sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
     
     <!-- Logo -->
     <div class="h-16 flex items-center justify-between px-6 border-b border-slate-200 flex-shrink-0">
@@ -11,7 +11,7 @@
             <span class="font-heading font-bold text-slate-900 text-lg">Renaissance</span>
         </a>
         <!-- Mobile close button -->
-        <button @click="mobileOpen = false" class="lg:hidden p-1 rounded-lg hover:bg-slate-100">
+        <button @click="$store.ui.sidebarOpen = false" class="lg:hidden p-1 rounded-lg hover:bg-slate-100">
             <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
             </svg>
