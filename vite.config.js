@@ -9,23 +9,9 @@ export default defineConfig({
         }),
     ],
     server: {
-        host: '127.0.0.1',
+        host: 'localhost',
         hmr: {
-            host: '127.0.0.1',
+            host: 'localhost',
         },
-    },
-    build: {
-        rollupOptions: {
-            output: {
-                manualChunks(id) {
-                    if (id.includes('node_modules')) {
-                        return 'vendor';
-                    }
-                },
-            },
-        },
-        chunkSizeWarningLimit: 1000,
-        sourcemap: false,
-        minify: 'esbuild',
     },
 });
