@@ -106,6 +106,10 @@
                         <span class="text-xs font-bold text-white tracking-wide">Batch Grade Entry</span>
                         <svg class="w-4 h-4 text-emerald-400 group-hover/item:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                     </a>
+                    <a href="{{ route('admin.employees.create') }}" class="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all group/item">
+                        <span class="text-xs font-bold text-white tracking-wide">Onboard New Staff</span>
+                        <svg class="w-4 h-4 text-amber-400 group-hover/item:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    </a>
                 </div>
             </div>
         </div>
@@ -150,6 +154,42 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- System Status -->
+            <div class="glass-panel p-8">
+                <h3 class="text-xl font-black text-slate-900 uppercase tracking-tight mb-8">System Health</h3>
+                <div class="space-y-4">
+                    @php
+                        $statusColors = [
+                            'Online' => 'bg-emerald-500',
+                            'Idle' => 'bg-emerald-500',
+                            'Warm' => 'bg-emerald-500',
+                            'Offline' => 'bg-rose-500',
+                        ];
+                    @endphp
+                    <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <div class="flex items-center gap-3">
+                            <div class="w-2 h-2 rounded-full {{ $statusColors[$systemHealth['database']] ?? 'bg-slate-400' }}"></div>
+                            <span class="text-xs font-black text-slate-500 uppercase tracking-widest">Database</span>
+                        </div>
+                        <span class="text-sm font-black text-slate-900">{{ $systemHealth['database'] }}</span>
+                    </div>
+                    <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <div class="flex items-center gap-3">
+                            <div class="w-2 h-2 rounded-full {{ $statusColors[$systemHealth['queue']] ?? 'bg-slate-400' }}"></div>
+                            <span class="text-xs font-black text-slate-500 uppercase tracking-widest">Queue</span>
+                        </div>
+                        <span class="text-sm font-black text-slate-900">{{ $systemHealth['queue'] }}</span>
+                    </div>
+                    <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <div class="flex items-center gap-3">
+                            <div class="w-2 h-2 rounded-full {{ $statusColors[$systemHealth['cache']] ?? 'bg-slate-400' }}"></div>
+                            <span class="text-xs font-black text-slate-500 uppercase tracking-widest">Cache</span>
+                        </div>
+                        <span class="text-sm font-black text-slate-900">{{ $systemHealth['cache'] }}</span>
+                    </div>
+                </div>
+            </div>
+
             <!-- Timeline of Activity -->
             <div class="glass-panel p-8 lg:col-span-2">
                 <div class="flex items-center justify-between mb-8">

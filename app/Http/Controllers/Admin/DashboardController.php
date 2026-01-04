@@ -94,6 +94,41 @@ class DashboardController extends Controller
         $executionTime = round(microtime(true) - $start, 4);
         \Illuminate\Support\Facades\Log::info("Dashboard load time: {$executionTime}s");
         
-        return view('admin.dashboard', compact('stats', 'recentActivity', 'studentsByGrade', 'sectionsMissingAttendance', 'genderBreakdown', 'academicYear', 'executionTime'));
+        // System Health (Live, but with very short cache to prevent abuse)
+        $systemHealth = \Illuminate\Support\Facades\Cache::remember('system_health_status', 10, function() {
+            try {
+                \Illuminate\Support\Facades\DB::connection()->getPdo();
+                $dbStatus = 'Online';
+            } catch (\Exception $e) {
+                $dbStatus = 'Offline';
+            }
+
+            $queueDriver = config('queue.default');
+            $queueStatus = 'Online';
+            if ($queueDriver !== 'sync') {
+                try {
+                    // This is a more robust check for database-like queues.
+                    // For Redis, you'd check the Redis connection.
+                    \Illuminate\Support\Facades\Queue::connection()->size();
+                } catch (\Exception $e) {
+                    $queueStatus = 'Offline';
+                }
+            }
+
+            try {
+                \Illuminate\Support\Facades\Cache::put('health_check', 'ok', 1);
+                $cacheStatus = \Illuminate\Support\Facades\Cache::get('health_check') === 'ok' ? 'Online' : 'Offline';
+            } catch (\Exception $e) {
+                $cacheStatus = 'Offline';
+            }
+
+            return [
+                'database' => $dbStatus,
+                'queue' => $queueStatus,
+                'cache' => $cacheStatus,
+            ];
+        });
+
+        return view('admin.dashboard', compact('stats', 'recentActivity', 'studentsByGrade', 'sectionsMissingAttendance', 'genderBreakdown', 'academicYear', 'executionTime', 'systemHealth'));
     }
 }
