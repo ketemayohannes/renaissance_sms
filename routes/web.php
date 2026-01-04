@@ -251,6 +251,13 @@ Route::middleware('auth')->group(function () {
     // Teacher Portal Routes
     Route::middleware(['auth', 'role:Teacher'])->prefix('teacher')->name('teacher.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Teacher\DashboardController::class, 'index'])->name('dashboard');
+        
+        // My Classes
+        Route::get('/classes', [App\Http\Controllers\Teacher\ClassController::class, 'index'])->name('classes.index');
+        Route::get('/classes/{id}', [App\Http\Controllers\Teacher\ClassController::class, 'show'])->name('classes.show');
+
+        // My Schedule
+        Route::get('/schedule', [App\Http\Controllers\Teacher\ScheduleController::class, 'index'])->name('schedule.index');
     });
 });
 
