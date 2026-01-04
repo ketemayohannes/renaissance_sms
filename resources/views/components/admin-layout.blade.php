@@ -1,8 +1,6 @@
 @props(['header' => null])
 
 @php
-    $layoutStart = microtime(true);
-    \Illuminate\Support\Facades\Log::info('AdminLayout rendering started');
     $academicYear = \App\Helpers\CachedData::activeAcademicYear();
 @endphp
 
@@ -41,20 +39,33 @@
         window.addEventListener('DOMContentLoaded', () => window.perfData.domInteractive = performance.now());
         window.addEventListener('load', () => window.perfData.fullLoad = performance.now());
     </script>
+    
+    <!-- Alpine Store Initialization (MUST be in head before body renders) -->
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.store('ui', {
+                sidebarOpen: false,
+                modal: {
+                    sibling: false,
+                    reportCard: false
+                },
+                openModal(name) { this.modal[name] = true; },
+                closeModal(name) { this.modal[name] = false; },
+                toggleSidebar() { this.sidebarOpen = !this.sidebarOpen; }
+            });
+        });
+    </script>
 </head>
-<body class="font-sans antialiased bg-slate-50" x-data>
+<body class="font-sans antialiased bg-slate-50" x-data="{ sidebarCollapsed: localStorage.getItem('sidebarCollapsed') === 'true' }">
     <div class="min-h-screen flex">
         <!-- Sidebar -->
-        <div x-data :class="$store.ui.sidebarOpen ? 'translate-x-0' : '-translate-x-full'" class="lg:translate-x-0">
-            @php $t = microtime(true); @endphp
-            @include('layouts.partials.admin-sidebar')
-            @php \Illuminate\Support\Facades\Log::info('Sidebar rendering took ' . (microtime(true) - $t)*1000 . 'ms'); @endphp
-        </div>
+        @include('layouts.partials.admin-sidebar')
         
         <!-- Main Content Area -->
-        <div class="flex-1 flex flex-col min-w-0 lg:ml-0">
+        <div class="flex-1 flex flex-col min-w-0 transition-all duration-300"
+             :class="sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'">
             <!-- Top Header -->
-            <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30">
+            <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-[90]">
                 <!-- Left: Mobile menu + Page Title -->
                 <div class="flex items-center gap-4">
                     <!-- Mobile menu button -->
@@ -115,11 +126,11 @@
                                class="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 border-0 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:bg-white placeholder-slate-400 transition-colors">
 
                         <!-- Search Results Dropdown -->
-                        <div x-show="showDropdown && (results.length > 0 || loading || (query.length >= 2 && !loading))"
+                        <div x-cloak x-show="showDropdown && (results.length > 0 || loading || (query.length >= 2 && !loading))"
                              x-transition:enter="transition ease-out duration-200"
                              x-transition:enter-start="opacity-0 translate-y-1"
                              x-transition:enter-end="opacity-100 translate-y-0"
-                             class="absolute top-full left-0 w-full mt-2 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50">
+                             class="absolute top-full left-0 w-full mt-2 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-[100]">
                             
                             <div x-show="loading" class="p-4 text-center">
                                 <div class="inline-block animate-spin w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full mr-2"></div>
@@ -263,63 +274,9 @@
     
     <!-- Confirmation Modal -->
     <x-confirm-modal />
-    
-    <!-- Mobile sidebar toggle script -->
-    <script>
-        document.addEventListener('alpine:init', () => {
-            // Global UI Store
-            Alpine.store('ui', {
-                sidebarOpen: false,
-                modal: {
-                    sibling: false
-                },
-                openModal(name) { this.modal[name] = true },
-                closeModal(name) { this.modal[name] = false },
-                toggleSidebar() { this.sidebarOpen = !this.sidebarOpen }
-            });
-        });
-    </script>
-    
-    @php
-        \Illuminate\Support\Facades\Log::info('Profile/Badge rendering took ' . (microtime(true) - $t)*1000 . 'ms');
-        $executionTime = (microtime(true) - LARAVEL_START) * 1000;
-        \Illuminate\Support\Facades\Log::info('AdminLayout rendering finished', ['execution_time' => $executionTime]);
-    @endphp
 
-    <!-- High-Precision Diagnostics Floating Badge -->
-    <div class="fixed bottom-4 right-4 z-[9999] flex flex-col gap-1 items-end pointer-events-none" x-data="{ 
-        expanded: false,
-        metrics: {
-            render: '{{ number_format($executionTime, 1) }}ms',
-            interactive: '0ms',
-            total: '0ms'
-        }
-    }" x-init="
-        window.addEventListener('load', () => {
-            setTimeout(() => {
-                metrics.interactive = Math.round(window.perfData.domInteractive).toLocaleString() + 'ms';
-                metrics.total = Math.round(window.perfData.fullLoad).toLocaleString() + 'ms';
-            }, 100);
-        });
-    ">
-        <div class="px-4 py-2 bg-slate-900/95 text-[10px] font-black text-white rounded-xl shadow-2xl backdrop-blur-md border border-white/10 flex items-center gap-3 transition-all">
-            <span class="flex items-center gap-1.5" title="Server-side PHP Generation">
-                <span class="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse"></span>
-                PHP: <span x-text="metrics.render"></span>
-            </span>
-            <span class="w-px h-3 bg-white/20"></span>
-            <span class="flex items-center gap-1.5" title="Time to DOM Interactive">
-                <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                UX: <span x-text="metrics.interactive"></span>
-            </span>
-            <span class="w-px h-3 bg-white/20"></span>
-            <span class="flex items-center gap-1.5" title="Total page load including assets">
-                <span class="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
-                Load: <span x-text="metrics.total"></span>
-            </span>
-        </div>
-        <div class="px-3 py-1 bg-white/10 text-[8px] font-bold text-slate-400 uppercase tracking-widest rounded-full">Optimization Engine Active</div>
-    </div>
+    <!-- Page-specific modals -->
+    @stack('modals')
 
     <!-- Page-specific scripts -->
     @stack('scripts')

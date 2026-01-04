@@ -147,6 +147,42 @@ window.confirmUI = function(options) {
         detail: options
     }));
 };
+
+document.addEventListener('DOMContentLoaded', () => {
+    function attachConfirmHandlers() {
+        document.querySelectorAll('.confirm-form:not([data-confirm-initialized])').forEach(form => {
+            const handler = (e) => {
+                e.preventDefault();
+                window.dispatchEvent(new CustomEvent('confirm-action', {
+                    detail: {
+                        form: form,
+                        message: form.dataset.confirmMessage,
+                        title: form.dataset.confirmTitle,
+                        type: form.dataset.confirmType,
+                        buttonText: form.dataset.confirmButton
+                    }
+                }));
+            };
+            
+            form.addEventListener('submit', handler);
+            form._confirmHandler = handler; // Store reference for removal
+            form.setAttribute('data-confirm-initialized', 'true');
+        });
+    }
+
+    // Initial attach
+    attachConfirmHandlers();
+
+    // Re-attach on dynamic content changes (optional, but good for SPA-like feel)
+    const observer = new MutationObserver((mutations) => {
+        attachConfirmHandlers();
+    });
+    
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+});
 </script>
 
 <style>

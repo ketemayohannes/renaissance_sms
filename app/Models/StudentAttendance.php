@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Traits\HasDivisionRestriction;
 use Illuminate\Database\Eloquent\Model;
 
 class StudentAttendance extends Model
 {
+    use HasDivisionRestriction;
     protected $table = 'student_attendance';
 
     protected static function booted()

@@ -53,21 +53,27 @@ class RolePermissionSeeder extends Seeder
             'send notifications', 'manage notice board',
             'access chat', // Basic chat access
             'create group chats',
+
+            // Health Records
+            'view health', 'manage health',
+
+            // Inventory
+            'view inventory', 'manage inventory',
         ];
 
         foreach ($permissions as $permission) {
-            Permission::create(['name' => $permission]);
+            Permission::firstOrCreate(['name' => $permission]);
         }
 
         // 2. Create Roles and Assign Permissions
 
         // Super Admin
-        $superAdmin = Role::create(['name' => 'Super Admin']);
-        $superAdmin->givePermissionTo(Permission::all());
+        $superAdmin = Role::firstOrCreate(['name' => 'Super Admin']);
+        $superAdmin->syncPermissions(Permission::all());
 
         // Principal / Admin
-        $principal = Role::create(['name' => 'Principal']);
-        $principal->givePermissionTo([
+        $principal = Role::firstOrCreate(['name' => 'Principal']);
+        $principal->syncPermissions([
             'view users', 'view students', 'view employees',
             'view divisions', 'view grade levels', 'view sections', 'view subjects',
             'view marks', 'publish results', 'generate report cards', 'generate transcripts',
@@ -76,56 +82,82 @@ class RolePermissionSeeder extends Seeder
             'send notifications', 'manage notice board', 'access chat'
         ]);
 
-        // Teacher
-        $teacher = Role::create(['name' => 'Teacher']);
-        $teacher->givePermissionTo([
-            'view students', // Only assigned students (handled by policy)
-            'view subjects',
-            'view marks', 'enter marks',
-            'view library',
-            'access chat'
+        // Vice Principal
+        $vicePrincipal = Role::firstOrCreate(['name' => 'Vice Principal']);
+        $vicePrincipal->syncPermissions($principal->permissions);
+
+        // Supervisor
+        $supervisor = Role::firstOrCreate(['name' => 'Supervisor']);
+        $supervisor->syncPermissions([
+            'view students', 'view grade levels', 'view sections', 'view subjects',
+            'view marks', 'generate report cards', 'access chat', 'manage notice board'
         ]);
 
-        // Accountant
-        $accountant = Role::create(['name' => 'Accountant']);
-        $accountant->givePermissionTo([
-            'view students',
-            'view fees', 'manage fees', 'collect payments', 'view financial reports',
-            'view payroll', 'process payroll', // Often accountants handle payroll too
-            'access chat'
+        // Teacher
+        $teacher = Role::firstOrCreate(['name' => 'Teacher']);
+        $teacher->syncPermissions([
+            'view students', 'view subjects', 'view marks', 'enter marks', 'view library', 'access chat'
+        ]);
+
+        // Assistant Teacher
+        $asstTeacher = Role::firstOrCreate(['name' => 'Assistant Teacher']);
+        $asstTeacher->syncPermissions([
+            'view students', 'view subjects', 'view marks', 'enter marks', 'access chat'
+        ]);
+
+        // Senior Finance Officer
+        $srFinance = Role::firstOrCreate(['name' => 'Senior Finance Officer']);
+        $srFinance->syncPermissions([
+            'view students', 'view fees', 'manage fees', 'collect payments', 'view financial reports',
+            'view payroll', 'process payroll', 'access chat'
+        ]);
+
+        // Junior Finance Officer
+        $jrFinance = Role::firstOrCreate(['name' => 'Junior Finance Officer']);
+        $jrFinance->syncPermissions([
+            'view students', 'view fees', 'collect payments', 'access chat'
+        ]);
+
+        // Secretary
+        $secretary = Role::firstOrCreate(['name' => 'Secretary']);
+        $secretary->syncPermissions([
+            'view students', 'view employees', 'send notifications', 'manage notice board', 'access chat'
+        ]);
+
+        // School Nurse
+        $nurse = Role::firstOrCreate(['name' => 'School Nurse']);
+        $nurse->syncPermissions([
+            'view students', 'view health', 'manage health', 'access chat'
+        ]);
+
+        // Inventory Manager
+        $inventory = Role::firstOrCreate(['name' => 'Inventory Manager']);
+        $inventory->syncPermissions([
+            'view inventory', 'manage inventory', 'access chat'
         ]);
 
         // HR Manager
-        $hr = Role::create(['name' => 'HR Manager']);
-        $hr->givePermissionTo([
-            'view employees', 'manage employees',
-            'view payroll', 'process payroll',
-            'manage attendance',
-            'access chat'
+        $hr = Role::firstOrCreate(['name' => 'HR Manager']);
+        $hr->syncPermissions([
+            'view employees', 'manage employees', 'view payroll', 'process payroll', 'manage attendance', 'access chat'
         ]);
 
         // Librarian
-        $librarian = Role::create(['name' => 'Librarian']);
-        $librarian->givePermissionTo([
-            'view students', 'view employees',
-            'view library', 'manage books', 'issue books', 'return books',
-            'access chat', 'manage notice board'
+        $librarian = Role::firstOrCreate(['name' => 'Librarian']);
+        $librarian->syncPermissions([
+            'view students', 'view employees', 'view library', 'manage books', 'issue books', 'return books', 'access chat', 'manage notice board'
         ]);
+
+        // Support Staff (No permissions assigned here, but roles created)
+        Role::firstOrCreate(['name' => 'Janitor']);
+        Role::firstOrCreate(['name' => 'Guard']);
 
         // Parent
-        $parent = Role::create(['name' => 'Parent']);
-        $parent->givePermissionTo([
-            'view marks', // Own child only
-            'view fees', // Own child only
-            'access chat'
-        ]);
+        $parent = Role::firstOrCreate(['name' => 'Parent']);
+        $parent->syncPermissions(['access chat']); // Basic, additional handled by custom logic
 
         // Student
-        $student = Role::create(['name' => 'Student']);
-        $student->givePermissionTo([
-            'view marks', // Own only
-            'view library',
-            'access chat'
-        ]);
+        $student = Role::firstOrCreate(['name' => 'Student']);
+        $student->syncPermissions(['access chat', 'view library']);
     }
 }

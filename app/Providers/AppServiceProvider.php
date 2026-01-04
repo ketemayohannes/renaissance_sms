@@ -41,6 +41,10 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('view-subject-analysis', [ReportPolicy::class, 'viewSubjectAnalysis']);
         Gate::define('bulk-print-reports', [ReportPolicy::class, 'bulkPrint']);
 
+        // Global bypass for administrative roles
+        Gate::before(function ($user, $capability) {
+            return $user->hasRole(['Super Admin', 'IT / System Admin', 'Registrar', 'General Manager']) ? true : null;
+        });
 
     }
 }

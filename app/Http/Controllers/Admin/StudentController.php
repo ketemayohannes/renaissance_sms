@@ -229,17 +229,47 @@ class StudentController extends Controller
                 });
             });
 
-        return view('admin.students.show', compact('student', 'enrollments', 'attendanceStats', 'recentAttendance', 'disciplinaryRecords', 'academicRecords', 'termRecords'));
+        // For Report Card Modal
+        $availableYears = \App\Models\AcademicYear::orderBy('start_date', 'desc')->get();
+        $availableTerms = \App\Models\Term::with('academicYear')
+            ->orderBy('academic_year_id', 'desc')
+            ->orderBy('term_number', 'asc')
+            ->get();
+
+        return view('admin.students.show', compact(
+            'student', 
+            'enrollments', 
+            'attendanceStats', 
+            'recentAttendance', 
+            'disciplinaryRecords', 
+            'academicRecords', 
+            'termRecords',
+            'availableYears',
+            'availableTerms',
+            'academicYear'
+        ));
     }
 
     public function linkSibling(Request $request, Student $student)
     {
         $request->validate([
-            'sibling_id' => 'required|exists:students,id|different:student_id',
+            'sibling_id' => [
+                'required',
+                'exists:students,id',
+                function ($attribute, $value, $fail) use ($student) {
+                    if ($value == $student->id) {
+                        $fail('A student cannot be their own sibling.');
+                    }
+                },
+            ],
         ]);
 
         $sibling = Student::findOrFail($request->sibling_id);
         $student->addSibling($sibling);
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Sibling linked successfully.']);
+        }
 
         return back()->with('success', 'Sibling linked successfully.');
     }
@@ -247,6 +277,11 @@ class StudentController extends Controller
     public function unlinkSibling(Student $student, Student $sibling)
     {
         $student->removeSibling($sibling);
+
+        if (request()->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Sibling unlinked successfully.']);
+        }
+
         return back()->with('success', 'Sibling unlinked successfully.');
     }
 
@@ -389,10 +424,18 @@ class StudentController extends Controller
         $currentEnrollment = $student->enrollments()->whereNull('end_date')->first();
         
         $activeYear = AcademicYear::where('is_active', true)->first();
+        
+        // Get current grade level ID if available
+        $currentGradeLevelId = $currentEnrollment?->section?->grade_level_id;
+
         $sections = Section::with('gradeLevel.division')
             ->where('is_active', true)
             ->when($activeYear, function($q) use ($activeYear) {
                 return $q->where('academic_year_id', $activeYear->id);
+            })
+            ->when($currentGradeLevelId, function($q) use ($currentGradeLevelId) {
+                // Restrict to same grade level
+                return $q->where('grade_level_id', $currentGradeLevelId);
             })
             ->get();
 
@@ -418,6 +461,12 @@ class StudentController extends Controller
 
             if ($currentEnrollment->section_id == $request->new_section_id) {
                 return back()->with('error', 'Student is already in this section.');
+            }
+
+            // Validate that the new section is in the same grade level
+            $newSection = Section::findOrFail($request->new_section_id);
+            if ($newSection->grade_level_id != $currentEnrollment->section->grade_level_id) {
+                return back()->with('error', 'Transfers are only allowed within the same grade level.');
             }
 
             $currentEnrollment->update([
@@ -673,9 +722,11 @@ class StudentController extends Controller
         $student->load(['currentEnrollment.section.gradeLevel', 'primaryGuardian']);
         $academicYear = \App\Models\AcademicYear::where('is_active', true)->first();
         $settings = \App\Models\ReportCardSetting::first();
+        $idSettings = \App\Models\IdCardSetting::first();
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.students.id-card-pdf', compact('student', 'academicYear', 'settings'))
-            ->setPaper([0, 0, 243.78, 153.07], 'landscape'); // 86mm x 54mm in points
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.students.id-card-pdf', compact('student', 'academicYear', 'settings', 'idSettings'))
+            ->setPaper([0, 0, 242.65, 153.07], 'landscape'); // 8.56cm x 5.40cm in points
+
 
         return $pdf->stream("id-card-{$student->student_id}.pdf");
     }
@@ -690,9 +741,11 @@ class StudentController extends Controller
         })->with(['currentEnrollment.section.gradeLevel', 'primaryGuardian'])->orderBy('first_name')->get();
 
         $settings = \App\Models\ReportCardSetting::first();
+        $idSettings = \App\Models\IdCardSetting::first();
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.students.id-cards-bulk-pdf', compact('students', 'section', 'academicYear', 'settings'))
-            ->setPaper([0, 0, 243.78, 153.07], 'landscape');
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.students.id-cards-bulk-pdf', compact('students', 'section', 'academicYear', 'settings', 'idSettings'))
+            ->setPaper([0, 0, 242.65, 153.07], 'landscape');
+
 
         return $pdf->stream("id-cards-{$section->name}.pdf");
     }
@@ -798,6 +851,7 @@ class StudentController extends Controller
                     'name' => $student->full_name,
                     'email' => $email,
                     'password' => Hash::make($password),
+                    'temp_password' => $password,
                 ]);
 
                 $user->assignRole('Student');
@@ -820,6 +874,7 @@ class StudentController extends Controller
         $password = \Illuminate\Support\Str::random(10);
         $student->user->update([
             'password' => Hash::make($password),
+            'temp_password' => $password,
         ]);
 
         return back()->with('success', 'Password reset successfully. New Password: ' . $password);

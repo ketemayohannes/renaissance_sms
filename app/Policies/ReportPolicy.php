@@ -18,7 +18,7 @@ class ReportPolicy
     public function before(User $user, string $ability): ?bool
     {
         // Super Admin has unrestricted access
-        if ($user->hasRole('Super Admin')) {
+        if ($user->hasRole(['Super Admin', 'IT / System Admin', 'Registrar', 'General Manager'])) {
             return true;
         }
 

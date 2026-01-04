@@ -76,7 +76,7 @@ class StudentService
                         $guardianPhotoPath = $guardianPhotos[$index]->store('guardians/photos', 'public');
                     }
 
-                    StudentGuardian::create([
+                    $guardian = StudentGuardian::create([
                         'student_id' => $student->id,
                         'guardian_type' => $index === 0 ? 'primary' : 'secondary',
                         'photo' => $guardianPhotoPath,
@@ -89,6 +89,8 @@ class StudentService
                         'is_emergency_contact' => isset($guardianData['is_emergency_contact']) && $guardianData['is_emergency_contact'] == '1',
                         'communication_preferences' => $guardianData['communication_preferences'] ?? [],
                     ]);
+
+                    $this->syncGuardianUser($guardian);
                 }
             }
 
@@ -183,11 +185,43 @@ class StudentService
                                 Storage::disk('public')->delete($guardian->photo);
                             }
                             $guardian->update($updateData);
+                            $this->syncGuardianUser($guardian);
                         }
                     } else {
                         $updateData['student_id'] = $student->id;
                         $updateData['guardian_type'] = $index === 0 ? 'primary' : 'secondary';
-                        StudentGuardian::create($updateData);
+                        $guardian = StudentGuardian::create($updateData);
+                        $this->syncGuardianUser($guardian);
+                    }
+                }
+
+                // Sibling Synchronization Logic
+                if (isset($data['sync_siblings']) && $data['sync_siblings'] == '1') {
+                    $siblings = $student->siblings;
+                    foreach ($siblings as $sibling) {
+                        // For synchronization, we replace sibling guardians with clones of current student's guardians
+                        // but keeping the sibling's existing user_id if they have portal access
+                        
+                        // Delete existing guardians for sibling (careful with user accounts)
+                        $sibling->guardians()->delete();
+
+                        foreach ($student->guardians as $guardian) {
+                            $newGuardian = $sibling->guardians()->create([
+                                'guardian_type' => $guardian->guardian_type,
+                                'photo' => $guardian->photo,
+                                'first_name' => $guardian->first_name,
+                                'father_name' => $guardian->father_name,
+                                'grandfather_name' => $guardian->grandfather_name,
+                                'phone' => $guardian->phone,
+                                'email' => $guardian->email,
+                                'relationship' => $guardian->relationship, // Note: may need adjustment if relationship differs, but usually same
+                                'communication_preferences' => $guardian->communication_preferences,
+                                'is_emergency_contact' => $guardian->is_emergency_contact,
+                                'user_id' => $guardian->user_id, // Link to same portal user if exists
+                            ]);
+
+                            $this->syncGuardianUser($newGuardian);
+                        }
                     }
                 }
             }
@@ -425,6 +459,35 @@ class StudentService
             'status' => 'active',
             'enrollment_date' => $this->parseDate($date) ?? now(),
         ]);
+    }
+
+    /**
+     * Create or link a user account for a guardian and propagate to all siblings.
+     */
+    public function syncGuardianUser(StudentGuardian $guardian, ?string $password = null): void
+    {
+        if (empty($guardian->email)) {
+            return;
+        }
+
+        $user = User::where('email', $guardian->email)->first();
+
+        if (!$user) {
+            $password = $password ?? 'guardian123'; // Default password
+            $user = User::create([
+                'name' => "{$guardian->first_name} {$guardian->father_name}",
+                'email' => $guardian->email,
+                'password' => Hash::make($password),
+                'temp_password' => $password,
+            ]);
+            $user->assignRole('Parent');
+        }
+
+        // Link all matching guardian records (siblings) to this user account
+        StudentGuardian::where(function($q) use ($guardian) {
+            if ($guardian->phone) $q->where('phone', $guardian->phone);
+            if ($guardian->email) $q->orWhere('email', $guardian->email);
+        })->update(['user_id' => $user->id]);
     }
 
     private function parseDate(?string $date): ?string

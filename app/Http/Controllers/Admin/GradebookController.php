@@ -60,6 +60,7 @@ class GradebookController extends Controller
                 $query->where('grade_level_id', $section->grade_level_id)
                       ->where('subject_id', $subject->id);
             })
+            ->with('assessmentType')
             ->orderBy('order')
             ->get();
 
@@ -95,7 +96,40 @@ class GradebookController extends Controller
             ->get()
             ->groupBy('student_id');
 
-        return view('admin.gradebook.entry', compact('section', 'subject', 'academicYear', 'term', 'students', 'gradeComponents', 'existingMarks'));
+        // Calculate Statistics
+        $componentIds = $gradeComponents->pluck('id');
+        $studentTotals = collect();
+        foreach ($students as $student) {
+            $studentMarks = $existingMarks->get($student->id);
+            if ($studentMarks && $studentMarks->count() > 0) {
+                // IMPORTANT: Only sum marks that belong to the components currently being viewed
+                // This prevents double counting if a 'TERM_TOTAL' mark exists from the master sheet
+                $totalScore = $studentMarks->whereIn('assessment_template_id', $componentIds)->sum('score');
+                
+                if ($totalScore > 0) {
+                    $studentTotals->push([
+                        'student' => $student,
+                        'total' => $totalScore
+                    ]);
+                }
+            }
+        }
+
+        // 1. Graded Average: (Sum of all scores) / (Number of Graded Students)
+        $gradedAverage = $studentTotals->count() > 0 ? $studentTotals->avg('total') : 0;
+        
+        // 2. Section Average: (Sum of all scores) / (Total Students in Section)
+        $totalScoreSum = $studentTotals->sum('total');
+        $totalStudentCount = $students->count();
+        $classAverage = $totalStudentCount > 0 ? $totalScoreSum / $totalStudentCount : 0;
+
+        $top3Students = $studentTotals->sortByDesc('total')->take(3);
+        $bottom3Students = $studentTotals->sortBy('total')->take(3);
+
+        return view('admin.gradebook.entry', compact(
+            'section', 'subject', 'academicYear', 'term', 'students', 'gradeComponents', 
+            'existingMarks', 'gradedAverage', 'classAverage', 'top3Students', 'bottom3Students'
+        ));
     }
 
     public function getSections(Request $request)
@@ -248,6 +282,12 @@ class GradebookController extends Controller
                     ->delete();
             }
 
+            if (!empty($errors)) {
+                // STRICT MODE: If any error exists, fail the whole batch
+                DB::rollBack();
+                return back()->with('error', 'Validation failed. No changes were saved. ' . implode('; ', $errors));
+            }
+
             if (!empty($upsertData)) {
                 StudentMark::upsert(
                     $upsertData,
@@ -269,10 +309,6 @@ class GradebookController extends Controller
             }
             
             DB::commit();
-            
-            if (!empty($errors)) {
-                return back()->with('warning', 'Marks saved with warnings: ' . implode('; ', $errors));
-            }
             
             return back()->with('success', 'Marks saved successfully.');
         } catch (\Exception $e) {

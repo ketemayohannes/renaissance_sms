@@ -5,14 +5,36 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
+use App\Traits\HasDivisionRestriction;
+
 class Employee extends Model
 {
-    use HasFactory;
+    use HasFactory, HasDivisionRestriction;
+
+    protected $with = ['user', 'academicDetails', 'administrativeDetails'];
+
+    const DESIGNATIONS = [
+        'Principal' => 'Principal',
+        'General Manager' => 'General Manager',
+        'Vice principal' => 'Vice Principal',
+        'Supervisor' => 'Supervisor',
+        'Teacher' => 'Teacher',
+        'Assistant Teacher' => 'Assistant Teacher',
+        'Janitor' => 'Janitor',
+        'Guard' => 'Guard',
+        'School Nurse' => 'School Nurse',
+        'Senior finance officer' => 'Senior Finance Officer',
+        'Junior finance officer' => 'Junior Finance Officer',
+        'Secretary' => 'Secretary',
+        'Inventory manager' => 'Inventory Manager',
+        'HR Manager' => 'HR Manager',
+        'Librarian' => 'Librarian',
+    ];
     
     protected static function booted()
     {
-        static::saved(fn() => \App\Helpers\CachedData::clearAll());
-        static::deleted(fn() => \App\Helpers\CachedData::clearAll());
+        static::saved(fn() => \App\Helpers\CachedData::flushEmployeeCache());
+        static::deleted(fn() => \App\Helpers\CachedData::flushEmployeeCache());
     }
 
     protected $fillable = [
@@ -33,6 +55,7 @@ class Employee extends Model
         'national_id',
         'tin',
         'pension_number',
+        'division_id',
         'designation',
         'department',
         'staff_category',
@@ -45,10 +68,6 @@ class Employee extends Model
         'account_number',
         'photo',
         'employment_type',
-        'teacher_rank',
-        'qualification_level',
-        'specialization',
-        'periods_per_week',
         'status',
     ];
 
@@ -64,14 +83,54 @@ class Employee extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function division()
+    {
+        return $this->belongsTo(Division::class);
+    }
+
     public function getFullNameAttribute()
     {
-        return trim("{$this->first_name} {$this->middle_name} {$this->last_name}");
+        return mb_strtoupper(trim("{$this->first_name} {$this->middle_name} {$this->last_name}"));
+    }
+
+    public function getFirstNameAttribute($value)
+    {
+        return mb_strtoupper($value);
+    }
+
+    public function getMiddleNameAttribute($value)
+    {
+        return mb_strtoupper($value);
+    }
+
+    public function getLastNameAttribute($value)
+    {
+        return mb_strtoupper($value);
+    }
+
+    public function getIsActiveAttribute()
+    {
+        return $this->status === 'active';
     }
 
     public function teacherAssignments()
     {
         return $this->hasMany(TeacherAssignment::class, 'teacher_id', 'user_id');
+    }
+
+    public function academicDetails()
+    {
+        return $this->hasOne(AcademicStaffDetail::class);
+    }
+
+    public function administrativeDetails()
+    {
+        return $this->hasOne(AdministrativeStaffDetail::class);
+    }
+
+    public function documents()
+    {
+        return $this->hasMany(EmployeeDocument::class);
     }
 
     public function scopeActive($query)
@@ -82,5 +141,19 @@ class Employee extends Model
     public function scopeTeachers($query)
     {
         return $query->where('designation', 'Teacher');
+    }
+
+    public function scopeAcademic($query)
+    {
+        return $query->whereHas('user.roles', function($q) {
+            $q->where('category', 'academic');
+        });
+    }
+
+    public function scopeAdministrative($query)
+    {
+        return $query->whereHas('user.roles', function($q) {
+            $q->where('category', 'administrative');
+        });
     }
 }

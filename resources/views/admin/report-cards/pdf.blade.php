@@ -189,8 +189,11 @@
 
         /* Print Styles */
         @media print {
-            .no-print-bar, .spacer {
+            .no-print, .no-print-bar, .spacer {
                 display: none !important;
+                height: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
             body {
                 margin: 0;
@@ -232,8 +235,15 @@
 </head>
 <body>
 
+    <!-- No-Print Bar -->
+    <div class="no-print-bar">
+        <button onclick="window.print()" class="print-btn">
+            Print Report Card
+        </button>
+    </div>
+
     <!-- Spacer for fixed header -->
-    <div class="spacer" style="height: 20px;"></div>
+    <div class="spacer"></div>
 
     <div class="report-container">
         <div class="header">

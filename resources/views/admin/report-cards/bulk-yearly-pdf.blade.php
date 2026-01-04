@@ -30,7 +30,12 @@
             border-bottom: 1px solid #ccc;
         }
         @media print {
-            .no-print-bar, .no-print { display: none !important; }
+            .no-print-bar, .no-print, .spacer { 
+                display: none !important; 
+                height: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
             body { background: white; }
             .page-container { margin: 0 !important; padding: 0 !important; border: none !important; }
             .page { margin-bottom: 0 !important; padding-top: 2mm !important; }

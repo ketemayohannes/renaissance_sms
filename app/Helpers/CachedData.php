@@ -119,6 +119,23 @@ class CachedData
         Cache::forget('employee_stats_summary');
     }
 
+    /**
+     * Alias for flush() to prevent missing method errors.
+     */
+    public static function clearAll()
+    {
+        self::flush();
+    }
+
+    /**
+     * Clear employee-related cached data.
+     */
+    public static function flushEmployeeCache()
+    {
+        Cache::forget('employee_stats_summary');
+        \Illuminate\Support\Facades\Log::info('Employee cache flushed');
+    }
+
     public static function employeeStats()
     {
         return Cache::remember('employee_stats_summary', 3600, function() {

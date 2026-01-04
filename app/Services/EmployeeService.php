@@ -8,111 +8,199 @@ use App\Models\SystemCounter;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
+use App\Models\AcademicStaffDetail;
+use App\Models\AdministrativeStaffDetail;
 use Carbon\Carbon;
+use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\Validator;
 
 class EmployeeService
 {
     /**
-     * Bulk import employees from structured data.
+     * Centralized method to create an employee and their user account.
+     */
+    public function createEmployee(array $data): Employee
+    {
+        return DB::transaction(function () use ($data) {
+            // 1. Auto-generate email if missing
+            $email = (!empty($data['email'])) ? $data['email'] : $this->generateEmail($data['first_name'], $data['last_name']);
+
+            // 2. Create User
+            $firstName = $data['first_name'];
+            $middleName = $data['middle_name'] ?? '';
+            $lastName = $data['last_name'];
+            $fullName = trim("{$firstName} {$middleName} {$lastName}");
+
+            $user = User::create([
+                'name' => $fullName,
+                'email' => $email,
+                'password' => Hash::make($data['password'] ?? 'staff1234'),
+            ]);
+
+            // 3. Assign Role
+            $roleName = $data['role'] ?? $this->determineRole($data);
+            $user->assignRole($roleName);
+
+            // 4. Generate Employee ID if not provided
+            $employeeId = $data['employee_id'] ?? $this->generateEmployeeId();
+
+            // 5. Create Employee
+            $employee = Employee::create(array_merge($data, [
+                'user_id' => $user->id,
+                'employee_id' => $employeeId,
+                'email' => $email,
+                'gender' => $data['gender'] ?? 'M',
+                'designation' => $data['designation'] ?? $roleName, // Use roleName for backward compatibility
+                'basic_salary' => $data['basic_salary'] ?? 0,
+                'joining_date' => $this->parseDate($data['joining_date'] ?? null) ?? now(),
+                'date_of_birth' => $this->parseDate($data['date_of_birth'] ?? null),
+                'status' => $data['status'] ?? 'active',
+            ]));
+
+            // 6. Handle Category-Specific Details
+            $role = Role::where('name', $roleName)->first();
+            $category = $role->category ?? $data['staff_category'] ?? null;
+
+            if ($category === 'academic') {
+                AcademicStaffDetail::create([
+                    'employee_id' => $employee->id,
+                    'teacher_rank' => $data['teacher_rank'] ?? null,
+                    'qualification_level' => $data['qualification_level'] ?? null,
+                    'specialization' => $data['specialization'] ?? null,
+                    'periods_per_week' => $data['periods_per_week'] ?? null,
+                    'secondary_responsibilities' => $data['secondary_responsibilities'] ?? null,
+                    'institution' => $data['institution'] ?? null,
+                    'graduation_year' => $data['graduation_year'] ?? null,
+                    'last_degree' => $data['last_degree'] ?? null,
+                ]);
+            } elseif ($category === 'administrative') {
+                AdministrativeStaffDetail::create([
+                    'employee_id' => $employee->id,
+                    'system_access_roles' => $data['system_access_roles'] ?? null,
+                    'qualification_level' => $data['qualification_level'] ?? null,
+                    'specialization' => $data['specialization'] ?? null,
+                    'institution' => $data['institution'] ?? null,
+                    'graduation_year' => $data['graduation_year'] ?? null,
+                    'last_degree' => $data['last_degree'] ?? null,
+                ]);
+            }
+
+            // 7. Handle Documents
+            if (isset($data['documents']) && is_array($data['documents'])) {
+                $this->uploadDocuments($employee, $data['documents']);
+            }
+
+            return $employee;
+        });
+    }
+
+    /**
+     * Centralized method to update an employee.
+     */
+    public function updateEmployee(Employee $employee, array $data): bool
+    {
+        return DB::transaction(function () use ($employee, $data) {
+            // Update User record
+            if (isset($data['first_name']) || isset($data['last_name']) || isset($data['email'])) {
+                $userUpdate = [];
+                if (isset($data['first_name']) || isset($data['last_name'])) {
+                    $userUpdate['name'] = trim(($data['first_name'] ?? $employee->first_name) . " " . ($data['middle_name'] ?? $employee->middle_name) . " " . ($data['last_name'] ?? $employee->last_name));
+                }
+                if (isset($data['email'])) {
+                    $userUpdate['email'] = $data['email'];
+                }
+                $employee->user->update($userUpdate);
+            }
+
+            // Handle role update
+            if (isset($data['role']) && $data['role'] !== $employee->user->roles->first()->name) {
+                $employee->user->syncRoles([$data['role']]);
+            }
+
+            // Update Details
+            $role = $employee->user->roles->first();
+            if ($role && $role->category === 'academic') {
+                $academicFields = [
+                    'teacher_rank', 'qualification_level', 'specialization', 'periods_per_week', 
+                    'secondary_responsibilities', 'institution', 'graduation_year', 'last_degree'
+                ];
+                $academicData = [];
+                foreach ($academicFields as $field) {
+                    if (array_key_exists($field, $data)) {
+                        $academicData[$field] = $data[$field];
+                    }
+                }
+                if (!empty($academicData)) {
+                    $employee->academicDetails()->updateOrCreate(['employee_id' => $employee->id], $academicData);
+                }
+            } elseif ($role && $role->category === 'administrative') {
+                $adminFields = [
+                    'system_access_roles', 'qualification_level', 'specialization', 
+                    'institution', 'graduation_year', 'last_degree'
+                ];
+                $adminData = [];
+                foreach ($adminFields as $field) {
+                    if (array_key_exists($field, $data)) {
+                        $adminData[$field] = $data[$field];
+                    }
+                }
+                if (!empty($adminData)) {
+                    $employee->administrativeDetails()->updateOrCreate(['employee_id' => $employee->id], $adminData);
+                }
+            }
+
+            // Handle Documents
+            if (isset($data['documents']) && is_array($data['documents'])) {
+                $this->uploadDocuments($employee, $data['documents']);
+            }
+
+            // Parse dates
+            if (isset($data['joining_date'])) $data['joining_date'] = $this->parseDate($data['joining_date']);
+            if (isset($data['date_of_birth'])) $data['date_of_birth'] = $this->parseDate($data['date_of_birth']);
+            if (isset($data['leaving_date'])) $data['leaving_date'] = $this->parseDate($data['leaving_date']);
+
+            return $employee->update($data);
+        });
+    }
+
+    /**
+     * Optimized bulk import with batching and centralized logic.
      */
     public function bulkImport(array $rows): array
     {
         $successCount = 0;
         $skippedCount = 0;
         $errors = [];
-        
-        $defaultPassword = Hash::make('staff1234');
-        $year = date('Y');
 
         foreach ($rows as $index => $row) {
-            $rowNum = $index + 2; // +1 for header, +1 for 0-indexing
+            $rowNum = $index + 2;
 
             try {
-                // Basic validation for required fields
-                if (empty($row['first_name']) || empty($row['last_name'])) {
-                    throw new \Exception("First Name and Last Name/Grandfather's Name are required.");
+                // Validation
+                $validator = Validator::make($row, [
+                    'first_name' => 'required|string|max:255',
+                    'last_name' => 'required|string|max:255',
+                    'email' => 'nullable|email|unique:users,email|unique:employees,email',
+                ]);
+
+                if ($validator->fails()) {
+                    throw new \Exception(implode(' ', $validator->errors()->all()));
                 }
 
-                if (empty($row['email'])) {
-                    throw new \Exception("Email is required for staff account creation.");
-                }
-
-                DB::beginTransaction();
-
-                // 1. Check Existence (by Email or Employee ID if provided)
-                if (User::where('email', $row['email'])->exists() || Employee::where('email', $row['email'])->exists()) {
-                    throw new \Exception("User or Employee with email '{$row['email']}' already exists.");
-                }
-
+                // Check for Employee ID uniqueness if provided
                 if (!empty($row['employee_id']) && Employee::where('employee_id', $row['employee_id'])->exists()) {
                     throw new \Exception("Employee ID '{$row['employee_id']}' already exists.");
                 }
 
-                // 2. Create User
-                $fullName = trim("{$row['first_name']} {$row['middle_name']} {$row['last_name']}");
-                $user = User::create([
-                    'name' => $fullName,
-                    'email' => $row['email'],
-                    'password' => $defaultPassword,
-                ]);
-
-                // Assign role based on staff category
-                $role = 'Staff';
-                if ($row['staff_category'] === 'academic') {
-                    $role = 'Teacher';
-                }
-                $user->assignRole($role);
-
-                // 3. Generate Employee ID if not provided
-                $employeeId = $row['employee_id'];
-                if (empty($employeeId)) {
-                    $nextValue = SystemCounter::next('employee_id_sequence', Employee::count());
-                    $employeeId = 'EMP-' . $year . '-' . str_pad($nextValue, 4, '0', STR_PAD_LEFT);
-                }
-
-                // 4. Create Employee
-                Employee::create([
-                    'user_id' => $user->id,
-                    'employee_id' => $employeeId,
-                    'first_name' => $row['first_name'],
-                    'middle_name' => $row['middle_name'],
-                    'last_name' => $row['last_name'],
-                    'gender' => $row['gender'] ?? 'M',
-                    'date_of_birth' => $this->parseDate($row['date_of_birth']),
-                    'marital_status' => $row['marital_status'] ?? 'single',
-                    'phone' => $row['phone'],
-                    'email' => $row['email'],
-                    'address' => $row['address'],
-                    'region' => $row['region'],
-                    'zone' => $row['zone'],
-                    'woreda' => $row['woreda'],
-                    'national_id' => $row['national_id'],
-                    'tin' => $row['tin'],
-                    'pension_number' => $row['pension_number'],
-                    'designation' => $row['designation'] ?? 'Staff',
-                    'department' => $row['department'],
-                    'staff_category' => $row['staff_category'] ?? 'administrative',
-                    'joining_date' => $this->parseDate($row['joining_date']) ?? now(),
-                    'basic_salary' => $row['basic_salary'] ?? 0,
-                    'employment_type' => $row['employment_type'] ?? 'full_time',
-                    'emergency_contact_name' => $row['emergency_contact_name'],
-                    'emergency_contact_phone' => $row['emergency_contact_phone'],
-                    'bank_name' => $row['bank_name'],
-                    'account_number' => $row['account_number'],
-                    'teacher_rank' => $row['teacher_rank'],
-                    'qualification_level' => $row['qualification_level'],
-                    'specialization' => $row['specialization'],
-                    'periods_per_week' => $row['periods_per_week'],
-                    'status' => 'active',
-                ]);
-
-                DB::commit();
+                $this->createEmployee($row);
                 $successCount++;
 
             } catch (\Exception $e) {
-                DB::rollBack();
                 $skippedCount++;
                 $errors[] = "Row $rowNum: " . $e->getMessage();
+                Log::error("Import error at row $rowNum: " . $e->getMessage());
             }
         }
 
@@ -123,6 +211,36 @@ class EmployeeService
         ];
     }
 
+    /**
+     * Determine role based on designation or category.
+     */
+    private function determineRole(array $data): string
+    {
+        if (!empty($data['designation'])) {
+            return $data['designation']; // Use directly if provided as specific role name
+        }
+
+        return ($data['staff_category'] ?? '') === 'academic' ? 'Teacher' : 'Secretary';
+    }
+
+    public function getRolesByCategory(): array
+    {
+        return [
+            'academic' => Role::where('category', 'academic')->orderBy('name')->pluck('name'),
+            'administrative' => Role::where('category', 'administrative')->orderBy('name')->pluck('name'),
+        ];
+    }
+
+    /**
+     * Generate a unique Employee ID.
+     */
+    private function generateEmployeeId(): string
+    {
+        $year = date('Y');
+        $nextValue = SystemCounter::next('employee_id_sequence', Employee::count());
+        return 'EMP-' . $year . '-' . str_pad($nextValue, 4, '0', STR_PAD_LEFT);
+    }
+
     private function parseDate(?string $date): ?string
     {
         if (empty($date)) return null;
@@ -131,5 +249,44 @@ class EmployeeService
         } catch (\Exception $e) {
             throw new \Exception("Invalid date format: '$date'. Expected YYYY-MM-DD.");
         }
+    }
+
+    public function uploadDocuments(Employee $employee, array $files): void
+    {
+        foreach ($files as $type => $file) {
+            if (!$file instanceof \Illuminate\Http\UploadedFile) continue;
+
+            // Delete old document of same type if exists
+            $existing = $employee->documents()->where('type', $type)->first();
+            if ($existing) {
+                Storage::disk('public')->delete($existing->file_path);
+                $existing->delete();
+            }
+
+            $path = $file->store("employees/documents/{$employee->employee_id}", 'public');
+            
+            $employee->documents()->create([
+                'type' => $type,
+                'name' => $file->getClientOriginalName(),
+                'file_path' => $path,
+                'file_extension' => $file->getClientOriginalExtension(),
+                'file_size' => $file->getSize(),
+            ]);
+        }
+    }
+
+    private function generateEmail(string $firstName, string $lastName): string
+    {
+        $base = strtolower(Str::slug($firstName) . '.' . Str::slug($lastName));
+        $domain = '@renaissance.edu.et';
+        $email = $base . $domain;
+        
+        $counter = 1;
+        while (User::where('email', $email)->exists() || Employee::where('email', $email)->exists()) {
+            $counter++;
+            $email = $base . $counter . $domain;
+        }
+        
+        return $email;
     }
 }

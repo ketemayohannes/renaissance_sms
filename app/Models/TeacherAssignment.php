@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\HasDivisionRestriction;
 
 class TeacherAssignment extends Model
 {
+    use HasDivisionRestriction;
     protected $fillable = [
         'teacher_id',
         'section_id',
@@ -31,5 +33,10 @@ class TeacherAssignment extends Model
     public function academicYear()
     {
         return $this->belongsTo(AcademicYear::class);
+    }
+
+    public function activities()
+    {
+        return $this->hasMany(AcademicActivity::class);
     }
 }

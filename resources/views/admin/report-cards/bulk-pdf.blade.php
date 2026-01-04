@@ -44,8 +44,11 @@
              height: 80px;
         }
         @media print {
-            .no-print-bar, .spacer {
+            .no-print-bar, .spacer, .no-print {
                 display: none !important;
+                height: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
         }
         .print-btn {

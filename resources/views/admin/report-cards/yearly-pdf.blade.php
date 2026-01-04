@@ -217,9 +217,61 @@
 
         /* Print Fixes */
         .no-break { page-break-inside: avoid; }
+
+        @media print {
+            .no-print-bar, .spacer, .no-print {
+                display: none !important;
+                height: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            body {
+                margin: 0;
+                padding: 0;
+            }
+        }
+        
+        .no-print-bar {
+            text-align: center;
+            padding: 15px;
+            background: #f8fafc;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 2147483647;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .print-btn {
+            background-color: #4f46e5;
+            color: white;
+            padding: 10px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 700;
+            font-family: sans-serif;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s;
+        }
+        .print-btn:hover {
+            background-color: #4338ca;
+            transform: translateY(-1px);
+        }
+        .spacer {
+             height: 70px;
+        }
     </style>
 </head>
-<body>
+<body x-data>
+    <!-- No-Print Bar -->
+    <div class="no-print-bar">
+        <button onclick="window.print()" class="print-btn">
+            Print Yearly Report Card
+        </button>
+    </div>
+    <div class="spacer no-print"></div>
     @php
         $config = $settings->yearly_config ?? [];
         // Helper to safely get data

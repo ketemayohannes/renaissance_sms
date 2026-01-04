@@ -233,7 +233,36 @@
                     }
                 }
             }" class="space-y-6">
-                <div class="flex items-center justify-between mb-4 px-4 mt-12">
+                <div class="flex flex-col md:flex-row md:items-center justify-between mb-4 px-4 mt-12 gap-4" 
+                     x-data="{ 
+                        searchQuery: '', 
+                        searchResults: [], 
+                        isSearching: false,
+                        showSearch: false,
+                        async performSearch() {
+                            if (this.searchQuery.length < 3) return;
+                            this.isSearching = true;
+                            try {
+                                const response = await fetch(`{{ route('admin.guardians.search') }}?q=${encodeURIComponent(this.searchQuery)}`);
+                                this.searchResults = await response.json();
+                            } catch (e) {
+                                console.error('Search failed', e);
+                            } finally {
+                                this.isSearching = false;
+                            }
+                        },
+                        selectGuardian(guardian, targetIndex) {
+                            // Map existing guardian data to the form
+                            this.guardians[targetIndex].first_name = guardian.first_name;
+                            this.guardians[targetIndex].father_name = guardian.father_name;
+                            this.guardians[targetIndex].grandfather_name = guardian.grandfather_name;
+                            this.guardians[targetIndex].phone = guardian.phone;
+                            this.guardians[targetIndex].email = guardian.email;
+                            this.guardians[targetIndex].relationship = guardian.relationship;
+                            this.showSearch = false;
+                            this.searchQuery = '';
+                        }
+                     }">
                      <div class="flex items-center gap-4">
                         <div class="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100/50">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
@@ -243,10 +272,46 @@
                             <p class="text-slate-500 text-sm">Main caretakers and emergency contacts for the student.</p>
                         </div>
                     </div>
-                    <button type="button" @click="addGuardian()" class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-100 transition-all gap-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                        Add Guardian
-                    </button>
+                    
+                    <div class="flex items-center gap-3">
+                        <div class="relative">
+                            <button type="button" @click="showSearch = !showSearch" class="px-4 py-2 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                Find Existing Parent
+                            </button>
+                            
+                            <!-- Search Modal/Dropdown -->
+                            <div x-show="showSearch" @click.away="showSearch = false" class="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 p-4 z-50">
+                                <div class="space-y-4">
+                                    <div class="relative">
+                                        <input type="text" x-model="searchQuery" @input.debounce.500ms="performSearch()" placeholder="Name, Phone or Email..." 
+                                            class="w-full pl-10 pr-4 py-2 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-indigo-500">
+                                        <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                    </div>
+                                    
+                                    <div class="max-h-60 overflow-y-auto space-y-1">
+                                        <template x-if="isSearching">
+                                            <div class="py-4 text-center text-xs text-slate-400">Searching...</div>
+                                        </template>
+                                        <template x-for="result in searchResults" :key="result.id">
+                                            <button type="button" @click="selectGuardian(result, 0)" class="w-full text-left p-3 hover:bg-indigo-50 rounded-xl transition-all group">
+                                                <div class="font-bold text-slate-700 text-xs group-hover:text-indigo-600 transition-colors" x-text="result.first_name + ' ' + result.father_name"></div>
+                                                <div class="text-[10px] text-slate-400" x-text="result.phone"></div>
+                                            </button>
+                                        </template>
+                                        <template x-if="searchResults.length === 0 && searchQuery.length >= 3 && !isSearching">
+                                            <div class="py-4 text-center text-xs text-slate-400 italic">No results found</div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="button" @click="addGuardian()" class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-100 transition-all gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            Add Guardian
+                        </button>
+                    </div>
                 </div>
 
                 <template x-for="(guardian, index) in guardians" :key="index">

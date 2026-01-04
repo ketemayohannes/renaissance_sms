@@ -232,7 +232,7 @@
                     }
                 }
             }" class="space-y-6">
-                <div class="flex items-center justify-between px-8">
+                <div class="flex flex-col md:flex-row md:items-center justify-between px-8 gap-4">
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100/50">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
@@ -242,11 +242,28 @@
                             <p class="text-slate-500 text-sm">Manage parents and legal guardians.</p>
                         </div>
                     </div>
-                    <button type="button" @click="addGuardian()" 
-                            class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition-all gap-2 shadow-lg shadow-indigo-200">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-                        Add Guardian
-                    </button>
+                    
+                    <div class="flex flex-wrap items-center gap-4">
+                        @if($student->siblings->count() > 0)
+                        <label class="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-indigo-100 cursor-pointer hover:bg-indigo-50 transition-all group shadow-sm">
+                            <div class="relative flex items-center">
+                                <input type="checkbox" name="sync_siblings" value="1" 
+                                       class="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-indigo-200 checked:bg-indigo-600 checked:border-indigo-600 transition-all">
+                                <svg class="absolute w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 pointer-events-none left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Sibling Sync</span>
+                                <span class="text-[9px] text-slate-400 font-bold uppercase">Apply to {{ $student->siblings->count() }} siblings</span>
+                            </div>
+                        </label>
+                        @endif
+
+                        <button type="button" @click="addGuardian()" 
+                                class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition-all gap-2 shadow-lg shadow-indigo-200">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                            Add Guardian
+                        </button>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 px-4">

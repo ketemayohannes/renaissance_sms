@@ -23,7 +23,7 @@
                 this.loading = false;
             }
         }
-    }" @open-sibling-modal.window="siblingModalOpen = true">
+    }" @open-sibling-modal.window="$store.ui.openModal('sibling')">
             <!-- Breadcrumb -->
             <x-breadcrumb :items="[
                 ['label' => 'Students', 'url' => route('admin.students.index')],
@@ -81,15 +81,15 @@
                                     Quick Actions
                                     <svg class="w-4 h-4 transition-transform" :class="{'rotate-180': open}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                 </button>
-                                <div x-show="open" @click.away="open = false" x-transition class="absolute right-0 mt-3 w-64 bg-white border border-slate-100 rounded-[2rem] shadow-2xl p-3 z-[100]">
+                                <div x-cloak x-show="open" @click.away="open = false" x-transition class="absolute right-0 mt-3 w-64 bg-white border border-slate-100 rounded-[2rem] shadow-2xl p-3 z-[100]">
                                     <a href="{{ route('admin.students.id-card', $student) }}" target="_blank" class="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-slate-50 text-slate-700 transition-all font-semibold text-xs group/item">
                                         <svg class="w-4 h-4 text-indigo-500 group-hover/item:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
                                         Print ID Card
                                     </a>
-                                    <a href="{{ route('admin.report-cards.pdf', $student) }}" target="_blank" class="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-slate-50 text-slate-700 transition-all font-semibold text-xs group/item">
+                                    <button @click.stop="$store.ui.openModal('reportCard'); open = false" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-slate-50 text-slate-700 transition-all font-semibold text-xs group/item text-left">
                                         <svg class="w-4 h-4 text-emerald-500 group-hover/item:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                                         Report Card PDF
-                                    </a>
+                                    </button>
                                     <a href="{{ route('admin.students.assign-electives', $student) }}" class="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-slate-50 text-slate-700 transition-all font-semibold text-xs group/item">
                                         <svg class="w-4 h-4 text-violet-500 group-hover/item:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.247 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
                                         Assign Electives
@@ -326,10 +326,19 @@
                                     
                                     @if($student->user_id)
                                         <div class="flex items-center justify-between gap-4">
-                                            <div>
+                                            <div class="flex-grow">
                                                 <p class="text-indigo-100 text-xs font-semibold uppercase tracking-widest mb-1">Registered Email</p>
                                                 <p class="font-bold text-lg leading-tight break-all">{{ $student->user->email }}</p>
                                             </div>
+                                            @if($student->user->temp_password)
+                                            <div class="flex-grow">
+                                                <p class="text-indigo-100 text-xs font-semibold uppercase tracking-widest mb-1">Initial Password</p>
+                                                <div class="flex items-center gap-2">
+                                                    <p class="font-black text-lg leading-tight tracking-wider">{{ $student->user->temp_password }}</p>
+                                                    <button onclick="navigator.clipboard.writeText('{{ $student->user->temp_password }}')" class="p-1 px-2 bg-white/10 hover:bg-white/20 rounded-lg text-[10px] font-black uppercase tracking-tighter border border-white/20 transition-all">Copy</button>
+                                                </div>
+                                            </div>
+                                            @endif
                                             <form action="{{ route('admin.students.reset-password', $student) }}" method="POST" class="confirm-form" data-confirm-message="Reset password for this student?" data-confirm-title="Reset Password" data-confirm-type="warning" data-confirm-button="Reset">
                                                 @csrf
                                                 <button type="submit" class="p-3 bg-white/20 hover:bg-white/30 rounded-2xl transition-all border border-white/30 group/btn">
@@ -379,7 +388,9 @@
 
                                         <div class="flex-grow">
                                             <div class="flex items-center justify-between mb-2">
-                                                <h4 class="text-xl font-bold text-slate-900 leading-tight">{{ $guardian->full_name }}</h4>
+                                                <a href="{{ route('admin.guardians.show', $guardian) }}" class="group/gname">
+                                                    <h4 class="text-xl font-bold text-slate-900 leading-tight group-hover/gname:text-indigo-600 transition-colors">{{ $guardian->full_name }}</h4>
+                                                </a>
                                                 <span class="px-3 py-1 rounded-lg bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase tracking-widest ring-1 ring-indigo-100">{{ $guardian->relationship }}</span>
                                             </div>
                                             <p class="text-slate-500 text-sm font-semibold mb-4">{{ ucfirst($guardian->guardian_type) }}</p>
@@ -586,25 +597,25 @@
                                             <h3 class="text-xl font-bold text-slate-900">Family Members</h3>
                                             <p class="text-slate-500 text-sm">Siblings enrolled in the school.</p>
                                         </div>
-                                        <button @click="siblingModalOpen = true" class="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all">Link Sibling</button>
+                                        <button @click="$store.ui.openModal('sibling')" class="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all">Link Sibling</button>
                                     </div>
                                 </div>
 
                                 @if($student->siblings->count() > 0)
                                     <div class="space-y-4">
                                         @foreach($student->siblings as $sibling)
-                                            <div class="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-slate-100/50 group hover:bg-white transition-all">
-                                                <div class="flex items-center gap-4">
-                                                    <div class="w-12 h-12 rounded-xl border-2 border-white shadow-sm overflow-hidden bg-slate-200">
+                                            <div class="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-slate-100/50 group hover:bg-white hover:border-indigo-100 hover:shadow-md transition-all">
+                                                <a href="{{ route('admin.students.show', $sibling) }}" class="flex items-center gap-4 flex-grow group/sib">
+                                                    <div class="w-12 h-12 rounded-xl border-2 border-white shadow-sm overflow-hidden bg-slate-200 group-hover/sib:border-indigo-200 transition-all">
                                                         @if($sibling->photo)
                                                             <img src="{{ asset('storage/' . $sibling->photo) }}" class="w-full h-full object-cover">
                                                         @endif
                                                     </div>
                                                     <div>
-                                                        <h4 class="font-black text-slate-800">{{ $sibling->full_name }}</h4>
+                                                        <h4 class="font-black text-slate-800 group-hover/sib:text-indigo-600 transition-colors">{{ $sibling->full_name }}</h4>
                                                         <p class="text-xs text-gray-500">{{ $sibling->student_id }}</p>
                                                     </div>
-                                                </div>
+                                                </a>
                                                 <form action="{{ route('admin.students.siblings.unlink', ['student' => $student, 'sibling' => $sibling]) }}" method="POST" class="confirm-form" data-confirm-message="Are you sure you want to unlink these siblings?" data-confirm-title="Unlink Siblings" data-confirm-type="danger" data-confirm-button="Unlink">
                                                     @csrf
                                                     @method('DELETE')
@@ -677,36 +688,68 @@
 
                                                 <div x-show="termOpen" x-collapse x-cloak>
                                                     <div class="px-6 pb-6">
-                                                        <table class="w-full text-left border-separate border-spacing-y-2">
-                                                            <thead>
-                                                                <tr class="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">
-                                                                    <th class="pb-2 pl-4">Subject</th>
-                                                                    <th class="pb-2">Assessment</th>
-                                                                    <th class="pb-2">Score</th>
-                                                                    <th class="pb-2 text-right pr-4">Date</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                @foreach($marks as $mark)
-                                                                    <tr class="group">
-                                                                        <td class="py-3 pl-4 bg-white/50 rounded-l-xl border-y border-l border-slate-100 font-bold text-slate-700 text-sm">
-                                                                            {{ $mark->subject->name }}
-                                                                        </td>
-                                                                        <td class="py-3 bg-white/50 border-y border-slate-100 text-xs font-semibold text-slate-500">
-                                                                            {{ $mark->assessmentTemplate->name }}
-                                                                        </td>
-                                                                        <td class="py-3 bg-white/50 border-y border-slate-100">
-                                                                            <span class="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-black">
-                                                                                {{ $mark->score }} / {{ $mark->assessmentTemplate->max_score }}
-                                                                            </span>
-                                                                        </td>
-                                                                        <td class="py-3 pr-4 bg-white/50 rounded-r-xl border-y border-r border-slate-100 text-right text-[10px] font-bold text-slate-400 uppercase">
-                                                                            {{ $mark->created_at->format('M d, Y') }}
-                                                                        </td>
+                                                        @php
+                                                            $pivotedMarks = $marks->groupBy('subject_id');
+                                                            $assessmentTemplates = $marks->pluck('assessmentTemplate')->unique('id')->sortBy('order');
+                                                            $caTemplates = $assessmentTemplates->filter(fn($t) => stripos($t->name, 'Final') === false);
+                                                            $finalTemplate = $assessmentTemplates->first(fn($t) => stripos($t->name, 'Final') !== false);
+                                                        @endphp
+                                                        <div class="overflow-x-auto">
+                                                            <table class="w-full text-left border-collapse">
+                                                                <thead>
+                                                                    <tr class="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                                                                        <th class="pb-4 pl-4 min-w-[150px]">Subject</th>
+                                                                        @foreach($caTemplates as $template)
+                                                                            <th class="pb-4 text-center">{{ $template->name }} <br><span class="text-[8px] opacity-60">({{ (int)$template->max_score }})</span></th>
+                                                                        @endforeach
+                                                                        @if($finalTemplate)
+                                                                            <th class="pb-4 text-center">{{ $finalTemplate->name }} <br><span class="text-[8px] opacity-60">({{ (int)$finalTemplate->max_score }})</span></th>
+                                                                        @endif
+                                                                        <th class="pb-4 text-center bg-indigo-50/30 text-indigo-500">C.A. (60%)</th>
+                                                                        <th class="pb-4 text-center bg-emerald-50/30 text-emerald-600 pr-4">Total (100%)</th>
                                                                     </tr>
-                                                                @endforeach
-                                                            </tbody>
-                                                        </table>
+                                                                </thead>
+                                                                <tbody class="divide-y divide-slate-50">
+                                                                    @foreach($pivotedMarks as $subjectId => $subjectMarks)
+                                                                        @php
+                                                                            $subject = $subjectMarks->first()->subject;
+                                                                            $caTotal = 0;
+                                                                            $finalScore = 0;
+                                                                        @endphp
+                                                                        <tr class="group hover:bg-slate-50/50 transition-colors">
+                                                                            <td class="py-4 pl-4 font-bold text-slate-700 text-sm">
+                                                                                {{ $subject->name }}
+                                                                            </td>
+                                                                            @foreach($caTemplates as $template)
+                                                                                @php
+                                                                                    $mark = $subjectMarks->firstWhere('assessment_template_id', $template->id);
+                                                                                    $score = $mark ? $mark->score : 0;
+                                                                                    $caTotal += $score;
+                                                                                @endphp
+                                                                                <td class="py-4 text-center text-xs font-semibold text-slate-500">
+                                                                                    {{ $mark ? number_format($score, 1) : '-' }}
+                                                                                </td>
+                                                                            @endforeach
+                                                                            @if($finalTemplate)
+                                                                                @php
+                                                                                    $mark = $subjectMarks->firstWhere('assessment_template_id', $finalTemplate->id);
+                                                                                    $finalScore = $mark ? $mark->score : 0;
+                                                                                @endphp
+                                                                                <td class="py-4 text-center text-xs font-semibold text-slate-500">
+                                                                                    {{ $mark ? number_format($finalScore, 1) : '-' }}
+                                                                                </td>
+                                                                            @endif
+                                                                            <td class="py-4 text-center bg-indigo-50/30 font-black text-indigo-600 text-xs">
+                                                                                {{ number_format($caTotal, 1) }}
+                                                                            </td>
+                                                                            <td class="py-4 text-center bg-emerald-50/30 font-black text-emerald-600 text-xs pr-4">
+                                                                                {{ number_format($caTotal + $finalScore, 1) }}
+                                                                            </td>
+                                                                        </tr>
+                                                                    @endforeach
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -945,16 +988,85 @@
         </div>
     <!-- Link Sibling Modal -->
     <template x-teleport="body">
-        <div x-show="$store.ui.modal.sibling" 
+        <div x-cloak x-show="$store.ui.modal.sibling" 
              x-transition.opacity
              class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
-             style="display: none;" @keydown.escape.window="$store.ui.closeModal('sibling')">
+             @keydown.escape.window="$store.ui.closeModal('sibling')">
             <div @click.away="$store.ui.closeModal('sibling')" 
+                 x-data="{
+                    searchQuery: '',
+                    searchResults: [],
+                    loading: false,
+                    allLinkedSiblings: {{ $student->siblings->pluck('id')->toJson() }},
+                    sessionChanges: 0,
+                    async searchStudents() {
+                        const query = this.searchQuery.trim();
+                        if (query.length < 2) {
+                            this.searchResults = [];
+                            return;
+                        }
+                        this.loading = true;
+                        try {
+                            const resp = await fetch('/admin/search?q=' + encodeURIComponent(query));
+                            const data = await resp.json();
+                            this.searchResults = data.filter(r => r.type === 'Student' && r.id != '{{ $student->id }}');
+                        } catch (e) {
+                            console.error('Search error:', e);
+                        } finally {
+                            this.loading = false;
+                        }
+                    },
+                    async linkSibling(siblingId) {
+                        try {
+                            const resp = await fetch('{{ route('admin.students.siblings.link', $student) }}', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                    'Accept': 'application/json'
+                                },
+                                body: JSON.stringify({ sibling_id: siblingId })
+                            });
+                            
+                            if (resp.ok) {
+                                this.allLinkedSiblings.push(parseInt(siblingId));
+                                this.sessionChanges++;
+                            } else {
+                                console.error('Failed to link sibling');
+                            }
+                        } catch (e) {
+                            console.error('Link error:', e);
+                        }
+                    },
+                    async unlinkSibling(siblingId) {
+                        try {
+                            const resp = await fetch(`/admin/students/{{ $student->id }}/siblings/${siblingId}`, {
+                                method: 'DELETE',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                    'Accept': 'application/json'
+                                }
+                            });
+                            if (resp.ok) {
+                                this.allLinkedSiblings = this.allLinkedSiblings.filter(id => id != siblingId);
+                                this.sessionChanges++;
+                            } else {
+                                console.error('Failed to unlink sibling');
+                            }
+                        } catch (e) {
+                            console.error('Unlink error:', e);
+                        }
+                    },
+                    isLinked(id) {
+                        return this.allLinkedSiblings.some(linkedId => linkedId == id);
+                    }
+                 }"
                  class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh] pointer-events-auto">
                 <div class="p-8 border-b border-slate-100">
                     <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-2xl font-black text-slate-900">Link Sibling</h3>
-                        <button @click="$store.ui.closeModal('sibling')" class="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400">
+                        <h3 class="text-2xl font-black text-slate-900">Manage Siblings</h3>
+                        <button @click="$store.ui.closeModal('sibling'); if(sessionChanges > 0) location.reload();" class="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                         </button>
                     </div>
@@ -967,6 +1079,10 @@
                                placeholder="Search student by name or ID..." 
                                autocomplete="off"
                                class="w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 border-0 focus:ring-2 focus:ring-indigo-500 font-semibold text-slate-700">
+                    </div>
+                    
+                    <div x-show="sessionChanges > 0" class="mt-4 p-3 bg-indigo-50 rounded-xl">
+                        <p class="text-indigo-700 font-bold text-sm"><span x-text="sessionChanges"></span> change(s) made this session. Page will refresh on close.</p>
                     </div>
                 </div>
 
@@ -982,27 +1098,113 @@
 
                     <div x-show="!loading && searchResults.length > 0" class="space-y-4">
                         <template x-for="result in searchResults" :key="result.id">
-                            <div class="flex items-center justify-between p-4 bg-white rounded-2xl border border-white shadow-sm hover:shadow-md transition-all group">
+                            <div class="flex items-center justify-between p-4 bg-white rounded-2xl border border-white shadow-sm hover:shadow-md transition-all group" :class="isLinked(result.id) ? 'ring-2 ring-emerald-500' : ''">
                                 <div class="flex items-center gap-4">
-                                    <div class="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 text-sm font-black ring-1 ring-indigo-100">
-                                        <span x-text="result.title.substring(0, 1)"></span>
+                                    <div class="w-12 h-12 rounded-xl flex items-center justify-center text-sm font-black ring-1" :class="isLinked(result.id) ? 'bg-emerald-50 text-emerald-600 ring-emerald-100' : 'bg-indigo-50 text-indigo-600 ring-indigo-100'">
+                                        <template x-if="isLinked(result.id)">
+                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                        </template>
+                                        <template x-if="!isLinked(result.id)">
+                                            <span x-text="result.title.substring(0, 1)"></span>
+                                        </template>
                                     </div>
                                     <div>
                                         <h4 class="font-black text-slate-900 leading-tight" x-text="result.title"></h4>
                                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest" x-text="result.subtitle"></p>
                                     </div>
                                 </div>
-                                <form :action="'{{ route('admin.students.siblings.link', $student) }}'" method="POST">
-                                    @csrf
-                                    <input type="hidden" name="sibling_id" :value="result.id">
-                                    <button type="submit" class="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all">Link Now</button>
-                                </form>
+                                <button 
+                                    x-show="!isLinked(result.id)"
+                                    @click="linkSibling(result.id)" 
+                                    class="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all">
+                                    Link Now
+                                </button>
+                                <button 
+                                    x-show="isLinked(result.id)"
+                                    @click="unlinkSibling(result.id)" 
+                                    class="px-4 py-2 bg-rose-50 text-rose-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all">
+                                    Unlink
+                                </button>
                             </div>
                         </template>
                     </div>
                 </div>
             </div>
+            </div>
         </div>
     </template>
     </div>
+    <!-- Report Card Modal -->
+    <template x-teleport="body">
+        <div x-show="$store.ui.modal.reportCard" 
+             class="fixed inset-0 z-[100] flex items-center justify-center p-4"
+             x-cloak>
+            <div x-show="$store.ui.modal.reportCard" 
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0"
+                 x-transition:enter-end="opacity-100"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0"
+                 class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+                 @click="$store.ui.closeModal('reportCard')"></div>
+
+            <div x-show="$store.ui.modal.reportCard" 
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+                 x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                 x-transition:leave-end="opacity-0 scale-95 translate-y-4"
+                 x-data="{ 
+                    selectedYear: '{{ $academicYear->id ?? '' }}', 
+                    selectedTerm: '{{ \App\Models\Term::where('is_active', true)->value('id') ?? '' }}',
+                    availableTerms: {{ $availableTerms->toJson() }}
+                 }"
+                 class="bg-white/90 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-2xl w-full max-w-lg overflow-hidden relative z-10">
+                
+                <div class="p-8">
+                    <div class="flex items-center justify-between mb-8">
+                        <div>
+                            <h3 class="text-2xl font-black text-slate-900 tracking-tight">Generate Report Card</h3>
+                            <p class="text-slate-500 text-sm font-semibold">Select the academic year and term.</p>
+                        </div>
+                        <button @click="$store.ui.closeModal('reportCard')" class="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
+
+                    <form action="{{ route('admin.report-cards.pdf', $student) }}" method="GET" target="_blank" class="space-y-6">
+                        <div>
+                            <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-2 ml-1">Academic Year</label>
+                            <select name="academic_year_id" x-model="selectedYear" class="w-full bg-slate-50 border-0 rounded-2xl focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700 h-14 px-4 transition-all">
+                                @foreach($availableYears as $year)
+                                    <option value="{{ $year->id }}">{{ $year->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-2 ml-1">Select Term</label>
+                            <select name="term_id" x-model="selectedTerm" class="w-full bg-slate-50 border-0 rounded-2xl focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700 h-14 px-4 transition-all">
+                                <option value="yearly">Yearly Report (Full Year)</option>
+                                <template x-for="term in availableTerms.filter(t => t.academic_year_id == selectedYear)" :key="term.id">
+                                    <option :value="term.id" x-text="term.name"></option>
+                                </template>
+                            </select>
+                        </div>
+
+                        <div class="pt-4">
+                            <button type="submit" 
+                                    @click="$store.ui.closeModal('reportCard')"
+                                    class="w-full py-4 bg-indigo-600 text-white font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-emerald-500 transition-all shadow-xl shadow-indigo-100 flex items-center justify-center gap-3">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                Generate Report Card
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </template>
 </x-admin-layout>

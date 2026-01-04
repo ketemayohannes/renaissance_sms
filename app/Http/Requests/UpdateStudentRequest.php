@@ -74,6 +74,7 @@ class UpdateStudentRequest extends FormRequest
             'driver_name' => 'nullable|string|max:255',
             'driver_phone' => 'nullable|string|max:20',
             'driver_photo' => 'nullable|image|max:2048',
+            'sync_siblings' => 'nullable|boolean',
         ];
     }
 

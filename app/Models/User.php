@@ -16,11 +16,11 @@ class User extends Authenticatable
     {
         static::saved(function() {
             \Illuminate\Support\Facades\Cache::forget('admin_dashboard_stats');
-            \Illuminate\Support\Facades\Cache::forget('employee_stats_summary');
+            \App\Helpers\CachedData::flushEmployeeCache();
         });
         static::deleted(function() {
             \Illuminate\Support\Facades\Cache::forget('admin_dashboard_stats');
-            \Illuminate\Support\Facades\Cache::forget('employee_stats_summary');
+            \App\Helpers\CachedData::flushEmployeeCache();
         });
     }
 
@@ -33,6 +33,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'temp_password',
     ];
 
     /**
@@ -43,6 +44,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'temp_password',
     ];
 
     /**
@@ -56,6 +58,11 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function getNameAttribute($value)
+    {
+        return mb_strtoupper($value);
     }
 
     public function student()

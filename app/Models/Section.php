@@ -9,9 +9,11 @@ use App\Models\GradeLevel;
 use App\Models\Student;
 use App\Models\User;
 
+use App\Traits\HasDivisionRestriction;
+
 class Section extends Model
 {
-    use HasFactory;
+    use HasFactory, HasDivisionRestriction;
 
     protected $fillable = ['grade_level_id', 'academic_year_id', 'name', 'capacity', 'homeroom_teacher_id', 'is_active'];
 

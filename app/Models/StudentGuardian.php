@@ -39,6 +39,29 @@ class StudentGuardian extends Model
     }
 
     /**
+     * Get the user account for this guardian.
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function getFirstNameAttribute($value)
+    {
+        return mb_strtoupper($value);
+    }
+
+    public function getFatherNameAttribute($value)
+    {
+        return mb_strtoupper($value);
+    }
+
+    public function getGrandfatherNameAttribute($value)
+    {
+        return mb_strtoupper($value);
+    }
+
+    /**
      * Get the full Ethiopian name.
      */
     public function getFullNameAttribute()

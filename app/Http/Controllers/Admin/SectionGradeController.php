@@ -189,8 +189,6 @@ class SectionGradeController extends Controller
         try {
             foreach ($request->marks as $studentId => $subjectMarks) {
                 foreach ($subjectMarks as $subjectId => $score) {
-                    if ($score === null || $score === '') continue;
-
                     // Find the template
                     $template = AssessmentTemplate::where('academic_year_id', $request->academic_year_id)
                         ->where('term_id', $request->term_id)
@@ -201,7 +199,26 @@ class SectionGradeController extends Controller
                         })
                         ->first();
                         
-                    if (!$template) continue; // Should not happen if entry page loaded correctly
+                    if (!$template) continue; 
+
+                    if ($score === null || $score === '') {
+                        // If score is empty, delete the existing record to clear it
+                        StudentMark::where([
+                            'student_id' => $studentId,
+                            'academic_year_id' => $request->academic_year_id,
+                            'term_id' => $request->term_id,
+                            'subject_id' => $subjectId,
+                            'assessment_template_id' => $template->id,
+                        ])->delete();
+                        continue;
+                    }
+
+                    // VALIDATION: Master Sheet scores are out of 100
+                    if ($score > 100) {
+                        $student = \App\Models\Student::find($studentId);
+                        $studentName = $student ? $student->full_name : "Student #$studentId"; // Use full_name property
+                        throw new \Exception("$studentName: Score $score exceeds maximum 100.");
+                    }
 
                     StudentMark::updateOrCreate(
                         [
@@ -212,7 +229,6 @@ class SectionGradeController extends Controller
                             'assessment_template_id' => $template->id,
                         ],
                         [
-
                             'section_id' => $request->section_id,
                             'teacher_id' => auth()->id(),
                             'score' => $score,

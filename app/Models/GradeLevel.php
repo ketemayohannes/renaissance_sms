@@ -9,9 +9,11 @@ use App\Models\Section;
 use App\Models\Subject;
 use App\Traits\Auditable;
 
+use App\Traits\HasDivisionRestriction;
+
 class GradeLevel extends Model
 {
-    use HasFactory, Auditable;
+    use HasFactory, Auditable, HasDivisionRestriction;
 
     protected $fillable = ['division_id', 'name', 'code', 'sort_order', 'is_active'];
 

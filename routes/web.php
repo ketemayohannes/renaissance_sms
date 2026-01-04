@@ -9,20 +9,9 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/dashboard', function () {
-    $user = auth()->user();
-    
-    if ($user->hasRole(['Super Admin', 'Principal'])) {
-        return redirect()->route('admin.dashboard');
-    }
-    
-    if ($user->hasRole('Student')) {
-        return redirect()->route('student.dashboard');
-    }
-    
-    // For other roles, show default dashboard for now
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', [App\Http\Controllers\Auth\RedirectController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -36,10 +25,17 @@ Route::middleware('auth')->group(function () {
         Route::get('/grades/download', [App\Http\Controllers\Student\GradeController::class, 'downloadReport'])->name('grades.download');
         Route::get('/profile', [App\Http\Controllers\Student\ProfileController::class, 'show'])->name('profile');
         Route::put('/password', [App\Http\Controllers\Student\ProfileController::class, 'updatePassword'])->name('password.update');
+
+        // Academic Activities
+        Route::get('/activities', [App\Http\Controllers\Student\ActivityController::class, 'index'])->name('activities.index');
+        Route::get('/activities/{activity}', [App\Http\Controllers\Student\ActivityController::class, 'show'])->name('activities.show');
+        Route::post('/activities/{activity}/submit', [App\Http\Controllers\Student\ActivityController::class, 'submit'])->name('activities.submit');
+        Route::get('/activities/{activity}/exam', [App\Http\Controllers\Student\ActivityController::class, 'takeExam'])->name('activities.exam');
+        Route::post('/activities/{activity}/exam', [App\Http\Controllers\Student\ActivityController::class, 'submitExam'])->name('activities.exam.submit');
     });
 
     // Admin Routes
-    Route::middleware(['role:Super Admin|Principal'])->prefix('admin')->name('admin.')->group(function () {
+    Route::middleware(['role:Super Admin|Principal|IT / System Admin|Registrar|General Manager'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
         Route::get('/search', [App\Http\Controllers\Admin\GlobalSearchController::class, 'search'])->name('global-search');
         
@@ -140,6 +136,11 @@ Route::middleware('auth')->group(function () {
         Route::resource('grade-components', App\Http\Controllers\Admin\GradeComponentController::class);
         Route::get('grade-components/get-components', [App\Http\Controllers\Admin\GradeComponentController::class, 'getComponents'])->name('grade-components.get-components');
 
+        // ID Card Settings
+        Route::get('id-card-settings', [App\Http\Controllers\Admin\IdCardSettingController::class, 'index'])->name('id-card-settings.index');
+        Route::put('id-card-settings', [App\Http\Controllers\Admin\IdCardSettingController::class, 'update'])->name('id-card-settings.update');
+
+
         // Gradebook AJAX Routes
         Route::get('gradebook/get-sections', [App\Http\Controllers\Admin\GradebookController::class, 'getSections'])->name('gradebook.get-sections');
         Route::get('gradebook/get-subjects', [App\Http\Controllers\Admin\GradebookController::class, 'getSubjects'])->name('gradebook.get-subjects');
@@ -171,6 +172,14 @@ Route::middleware('auth')->group(function () {
         Route::get('report-cards/exports', [App\Http\Controllers\Admin\ReportCardController::class, 'exports'])->name('report-cards.exports');
         Route::get('section-grades/{section}/report-card/bulk-export', [App\Http\Controllers\Admin\ReportCardController::class, 'bulkExport'])->name('section-grades.bulk-export-report-cards');
         Route::get('report-cards/exports/{exportRequest}/download', [App\Http\Controllers\Admin\ReportCardController::class, 'downloadExport'])->name('report-cards.download-export');
+
+        // Academic Activities Module
+        Route::get('activities/get-templates', [App\Http\Controllers\Admin\AcademicActivityController::class, 'getTemplates'])->name('activities.get-templates');
+        Route::get('activities/{activity}/evaluate', [App\Http\Controllers\Admin\AcademicActivityController::class, 'evaluate'])->name('activities.evaluate');
+        Route::post('activities/{activity}/evaluate', [App\Http\Controllers\Admin\AcademicActivityController::class, 'storeEvaluation'])->name('activities.evaluate.store');
+        Route::get('activities/{activity}/questions', [App\Http\Controllers\Admin\AcademicActivityController::class, 'manageQuestions'])->name('activities.questions');
+        Route::post('activities/{activity}/questions', [App\Http\Controllers\Admin\AcademicActivityController::class, 'storeQuestions'])->name('activities.questions.store');
+        Route::resource('activities', App\Http\Controllers\Admin\AcademicActivityController::class);
 
         // Attendance Management
         Route::get('attendance', [App\Http\Controllers\Admin\AttendanceController::class, 'index'])->name('attendance.index');
@@ -204,11 +213,44 @@ Route::middleware('auth')->group(function () {
 
         // Human Resources
         Route::get('employees/import', [App\Http\Controllers\Admin\EmployeeController::class, 'import'])->name('employees.import');
+        Route::get('employees/templates/academic', [App\Http\Controllers\Admin\EmployeeController::class, 'downloadAcademicTemplate'])->name('employees.academic.template');
+        Route::get('employees/templates/administrative', [App\Http\Controllers\Admin\EmployeeController::class, 'downloadAdministrativeTemplate'])->name('employees.administrative.template');
         Route::post('employees/import', [App\Http\Controllers\Admin\EmployeeController::class, 'upload'])->name('employees.upload');
-        Route::get('employees/download-template', [App\Http\Controllers\Admin\EmployeeController::class, 'downloadTemplate'])->name('employees.download-template');
+        Route::post('employees/{employee}/reset-password', [App\Http\Controllers\Admin\EmployeeController::class, 'resetPassword'])->name('employees.reset-password');
+        Route::post('employees/{employee}/toggle-status', [App\Http\Controllers\Admin\EmployeeController::class, 'toggleStatus'])->name('employees.toggle-status');
+        
+        // Document Management
+        Route::get('employees/documents/{document}/download', [App\Http\Controllers\Admin\EmployeeController::class, 'downloadDocument'])->name('employees.documents.download');
+        Route::get('employees/documents/{document}/delete', [App\Http\Controllers\Admin\EmployeeController::class, 'deleteDocument'])->name('employees.documents.delete');
+
         Route::resource('employees', App\Http\Controllers\Admin\EmployeeController::class);
+        
+        Route::resource('teacher-assignments', App\Http\Controllers\Admin\TeacherAssignmentController::class);
+
+        // Parent Management
+        Route::get('guardians/search', [App\Http\Controllers\Admin\GuardianController::class, 'search'])->name('guardians.search');
+        Route::post('guardians/{guardian}/create-account', [App\Http\Controllers\Admin\GuardianController::class, 'createUser'])->name('guardians.create-account');
+        Route::post('guardians/{guardian}/reset-password', [App\Http\Controllers\Admin\GuardianController::class, 'resetPassword'])->name('guardians.reset-password');
+        Route::resource('guardians', App\Http\Controllers\Admin\GuardianController::class);
 
         Route::resource('students', App\Http\Controllers\Admin\StudentController::class);
+
+        // Finance & Operations Portals
+        Route::prefix('finance')->name('finance.')->group(function() {
+            Route::get('fees', [App\Http\Controllers\Admin\FinanceController::class, 'fees'])->name('fees');
+            Route::get('payroll', [App\Http\Controllers\Admin\FinanceController::class, 'payroll'])->name('payroll');
+        });
+
+        // Specialized Portals
+        Route::prefix('portals')->name('portals.')->group(function() {
+            Route::get('health', [App\Http\Controllers\Admin\PortalController::class, 'health'])->name('health');
+            Route::get('inventory', [App\Http\Controllers\Admin\PortalController::class, 'inventory'])->name('inventory');
+        });
+    });
+
+    // Teacher Portal Routes
+    Route::middleware(['auth', 'role:Teacher'])->prefix('teacher')->name('teacher.')->group(function () {
+        Route::get('/dashboard', [App\Http\Controllers\Teacher\DashboardController::class, 'index'])->name('dashboard');
     });
 });
 

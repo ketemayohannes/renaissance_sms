@@ -25,7 +25,7 @@ class DashboardController extends Controller
             // PERFORMANCE: Efficient count
             return [
                 'total_students' => \App\Models\Student::where('is_active', true)->count(),
-                'total_staff' => \App\Models\User::role(['Super Admin', 'Principal', 'Teacher', 'Accountant', 'HR Manager', 'Librarian', 'Staff'])->count(),
+                'total_staff' => \App\Models\User::role(['Super Admin', 'Principal', 'Teacher', 'Accountant', 'HR Manager', 'Librarian', 'Staff', 'IT / System Admin', 'Registrar', 'General Manager'])->count(),
                 'today_attendance' => 0,
                 'pending_actions' => 0,
             ];

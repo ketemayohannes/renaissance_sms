@@ -13,9 +13,11 @@ use App\Models\StudentTransportation;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+use App\Traits\HasDivisionRestriction;
+
 class Student extends Model
 {
-    use HasFactory, Auditable, SoftDeletes;
+    use HasFactory, Auditable, SoftDeletes, HasDivisionRestriction;
     
     protected static function booted()
     {
@@ -98,6 +100,31 @@ class Student extends Model
         return $this->hasOne(StudentTransportation::class);
     }
 
+    public function getFirstNameAttribute($value)
+    {
+        return mb_strtoupper($value);
+    }
+
+    public function getFatherNameAttribute($value)
+    {
+        return mb_strtoupper($value);
+    }
+
+    public function getGrandfatherNameAttribute($value)
+    {
+        return mb_strtoupper($value);
+    }
+
+    public function getMiddleNameAttribute($value)
+    {
+        return mb_strtoupper($value);
+    }
+
+    public function getLastNameAttribute($value)
+    {
+        return mb_strtoupper($value);
+    }
+
     /**
      * Get the student's full Ethiopian name.
      */
@@ -129,7 +156,7 @@ class Student extends Model
     }
 
     /**
-     * Add a sibling to the student (bidirectional).
+     * Add a sibling to the student (transitive and bidirectional).
      */
     public function addSibling(Student $sibling)
     {
@@ -137,10 +164,27 @@ class Student extends Model
             return;
         }
 
-        if (!$this->siblings()->where('sibling_id', $sibling->id)->exists()) {
-            $this->siblings()->attach($sibling->id);
-            $sibling->siblings()->attach($this->id);
-        }
+        \Illuminate\Support\Facades\DB::transaction(function() use ($sibling) {
+            // Collect all unique IDs involved in the combined family group
+            // Qualify 'id' to avoid ambiguity with student_siblings.id
+            $mySiblings = $this->siblings()->pluck('students.id')->toArray();
+            $theirSiblings = $sibling->siblings()->pluck('students.id')->toArray();
+            
+            $allIds = array_unique(array_merge(
+                [$this->id, $sibling->id],
+                $mySiblings,
+                $theirSiblings
+            ));
+
+            // Interconnect everyone in the family group
+            foreach ($allIds as $id) {
+                $studentInGroup = Student::find($id);
+                if ($studentInGroup) {
+                    $others = array_filter($allIds, fn($otherId) => $otherId != $id);
+                    $studentInGroup->siblings()->syncWithoutDetaching($others);
+                }
+            }
+        });
     }
 
     /**
