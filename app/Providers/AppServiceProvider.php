@@ -27,24 +27,5 @@ class AppServiceProvider extends ServiceProvider
         if (config('app.env') === 'production') {
             \Illuminate\Support\Facades\URL::forceScheme('https');
         }
-
-        // Register Policies
-        Gate::policy(Student::class, StudentPolicy::class);
-
-        // Register Gates for Reports (non-model based)
-        Gate::define('view-academic-reports', [ReportPolicy::class, 'viewAcademicReports']);
-        Gate::define('generate-report-cards', [ReportPolicy::class, 'generateReportCards']);
-        Gate::define('view-attendance-reports', [ReportPolicy::class, 'viewAttendanceReports']);
-        Gate::define('view-grade-matrix', [ReportPolicy::class, 'viewGradeMatrix']);
-        Gate::define('export-reports', [ReportPolicy::class, 'exportReports']);
-        Gate::define('configure-report-settings', [ReportPolicy::class, 'configureSettings']);
-        Gate::define('view-subject-analysis', [ReportPolicy::class, 'viewSubjectAnalysis']);
-        Gate::define('bulk-print-reports', [ReportPolicy::class, 'bulkPrint']);
-
-        // Global bypass for administrative roles
-        Gate::before(function ($user, $capability) {
-            return $user->hasRole(['Super Admin', 'IT / System Admin', 'Registrar', 'General Manager']) ? true : null;
-        });
-
     }
 }
