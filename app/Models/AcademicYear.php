@@ -20,4 +20,12 @@ class AcademicYear extends Model
         'end_date' => 'date',
         'is_active' => 'boolean',
     ];
+
+    /**
+     * Scope a query to only include active academic years.
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
 }

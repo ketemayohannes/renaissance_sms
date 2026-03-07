@@ -8,11 +8,17 @@ use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
+    protected $teacherService;
+
+    public function __construct(\App\Services\TeacherService $teacherService)
+    {
+        $this->teacherService = $teacherService;
+    }
+
     public function index()
     {
-        // Placeholder for future data widgets
-        // $myClasses = Auth::user()->teacherAssignments ...
+        $metrics = $this->teacherService->getDashboardMetrics(Auth::user());
         
-        return view('teacher.dashboard');
+        return view('teacher.dashboard', compact('metrics'));
     }
 }

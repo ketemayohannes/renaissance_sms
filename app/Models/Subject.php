@@ -13,10 +13,16 @@ class Subject extends Model
         'name',
         'code',
         'description',
+        'department_id',
         'is_active',
         'is_elective',
         'sort_order',
     ];
+
+    public function department()
+    {
+        return $this->belongsTo(Department::class);
+    }
 
     protected $casts = [
         'is_active' => 'boolean',

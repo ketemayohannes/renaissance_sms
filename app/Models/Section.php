@@ -38,4 +38,17 @@ class Section extends Model
                     ->withPivot('academic_year_id', 'enrollment_date', 'status')
                     ->withTimestamps();
     }
+
+    public function enrollments()
+    {
+        return $this->hasMany(StudentEnrollment::class);
+    }
+
+    /**
+     * Scope a query to only include active sections.
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
 }

@@ -257,7 +257,20 @@ Route::middleware('auth')->group(function () {
         Route::get('/classes/{id}', [App\Http\Controllers\Teacher\ClassController::class, 'show'])->name('classes.show');
 
         // My Schedule
-        Route::get('/schedule', [App\Http\Controllers\Teacher\ScheduleController::class, 'index'])->name('schedule.index');
+        Route::get('/schedule', [\App\Http\Controllers\Teacher\ScheduleController::class, 'index'])->name('schedule.index');
+
+        // Homeroom Management
+        Route::prefix('homeroom')->name('homeroom.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Teacher\HomeroomController::class, 'index'])->name('index');
+            Route::get('/attendance', [\App\Http\Controllers\Teacher\HomeroomController::class, 'attendance'])->name('attendance');
+            Route::post('/attendance', [\App\Http\Controllers\Teacher\HomeroomController::class, 'storeAttendance'])->name('attendance.store');
+        });
+
+        // Department Head Oversight
+        Route::prefix('department')->name('department.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Teacher\DepartmentController::class, 'index'])->name('index');
+            Route::get('/{id}', [\App\Http\Controllers\Teacher\DepartmentController::class, 'show'])->name('show');
+        });
     });
 });
 

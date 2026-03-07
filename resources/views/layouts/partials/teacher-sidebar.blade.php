@@ -56,11 +56,16 @@
             <span x-show="!sidebarCollapsed" x-transition>Dashboard</span>
         </a>
         
+        @inject('teacherService', 'App\Services\TeacherService')
+        @php
+            $teacherMetrics = $teacherService->getDashboardMetrics(Auth::user());
+        @endphp
+
         <!-- Teaching -->
         <div class="sidebar-category-header flex items-center cursor-pointer group" 
              :class="sidebarCollapsed ? 'text-center px-0 justify-center w-full' : 'justify-between sticky top-0 z-10 bg-white/95 backdrop-blur-md'"
              @click="toggleCategory('teaching')">
-            <span x-show="!sidebarCollapsed" class="group-hover:text-slate-600 transition-colors">Teaching</span>
+            <span x-show="!sidebarCollapsed" class="group-hover:text-slate-600 transition-colors uppercase tracking-widest font-black text-[10px] text-slate-400">Classroom</span>
             <span x-show="!sidebarCollapsed">
                 <svg class="w-3 h-3 text-slate-400 transition-transform duration-200"
                      :class="openCategories['teaching'] ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -84,37 +89,63 @@
                 </svg>
                 <span x-show="!sidebarCollapsed" x-transition>My Schedule</span>
             </a>
-
-            <a href="#" class="sidebar-link" title="Assignments">
-                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
-                </svg>
-                <span x-show="!sidebarCollapsed" x-transition>Assignments</span>
-            </a>
         </div>
 
-        <!-- Student Performance -->
-         <div class="sidebar-category-header flex items-center cursor-pointer group" 
+        @if($teacherMetrics['has_homeroom'])
+        <!-- Homeroom Management -->
+        <div class="sidebar-category-header flex items-center cursor-pointer group mt-4" 
              :class="sidebarCollapsed ? 'text-center px-0 justify-center w-full' : 'justify-between sticky top-0 z-10 bg-white/95 backdrop-blur-md'"
-             @click="toggleCategory('students')">
-            <span x-show="!sidebarCollapsed" class="group-hover:text-slate-600 transition-colors">Students</span>
+             @click="toggleCategory('homeroom')">
+            <span x-show="!sidebarCollapsed" class="group-hover:text-indigo-600 transition-colors uppercase tracking-widest font-black text-[10px] text-indigo-400">Homeroom</span>
             <span x-show="!sidebarCollapsed">
-                <svg class="w-3 h-3 text-slate-400 transition-transform duration-200"
-                     :class="openCategories['students'] ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-3 h-3 text-indigo-300 transition-transform duration-200"
+                     :class="openCategories['homeroom'] ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                 </svg>
             </span>
             <span x-show="sidebarCollapsed">•••</span>
         </div>
         
-        <div x-show="openCategories['students'] || sidebarCollapsed" x-collapse>
-             <a href="#" class="sidebar-link" title="Student List">
+        <div x-show="openCategories['homeroom'] || sidebarCollapsed" x-collapse>
+             <a href="{{ route('teacher.homeroom.index') }}" class="sidebar-link hover:text-indigo-600 {{ request()->routeIs('teacher.homeroom.index') ? 'sidebar-link-active' : '' }}" title="Class Roster">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                 </svg>
-                <span x-show="!sidebarCollapsed" x-transition>My Students</span>
+                <span x-show="!sidebarCollapsed" x-transition>Class Roster</span>
+            </a>
+            <a href="{{ route('teacher.homeroom.attendance') }}" class="sidebar-link hover:text-indigo-600 {{ request()->routeIs('teacher.homeroom.attendance') ? 'sidebar-link-active' : '' }}" title="Daily Attendance">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                </svg>
+                <span x-show="!sidebarCollapsed" x-transition>Daily Attendance</span>
             </a>
         </div>
+        @endif
+
+        @if($teacherMetrics['is_dept_head'])
+        <!-- Academic Oversight -->
+        <div class="sidebar-category-header flex items-center cursor-pointer group mt-4" 
+             :class="sidebarCollapsed ? 'text-center px-0 justify-center w-full' : 'justify-between sticky top-0 z-10 bg-white/95 backdrop-blur-md'"
+             @click="toggleCategory('dept')">
+            <span x-show="!sidebarCollapsed" class="group-hover:text-emerald-600 transition-colors uppercase tracking-widest font-black text-[10px] text-emerald-400">Department</span>
+            <span x-show="!sidebarCollapsed">
+                <svg class="w-3 h-3 text-emerald-300 transition-transform duration-200"
+                     :class="openCategories['dept'] ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </span>
+            <span x-show="sidebarCollapsed">•••</span>
+        </div>
+        
+        <div x-show="openCategories['dept'] || sidebarCollapsed" x-collapse>
+             <a href="{{ route('teacher.department.index') }}" class="sidebar-link hover:text-emerald-600 {{ request()->routeIs('teacher.department.*') ? 'sidebar-link-active' : '' }}" title="Department Result Analysis">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+                <span x-show="!sidebarCollapsed" x-transition>Result Analysis</span>
+            </a>
+        </div>
+        @endif
     </nav>
     
     <!-- User Section -->

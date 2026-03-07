@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use App\Traits\HasDivisionRestriction;
 use Illuminate\Database\Eloquent\Model;
 
 class StudentAttendance extends Model
 {
-    use HasDivisionRestriction;
+    use HasDivisionRestriction, Auditable;
     protected $table = 'student_attendance';
 
     protected static function booted()

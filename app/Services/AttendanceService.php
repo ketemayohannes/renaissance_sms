@@ -75,4 +75,31 @@ class AttendanceService
             return ($section->gradeLevel->sort_order ?? 99) . $section->name;
         })->values();
     }
+
+    /**
+     * Bulk save attendance for a section.
+     */
+    public function saveAttendance(int $sectionId, string $date, array $attendanceData, array $remarks = []): void
+    {
+        DB::transaction(function () use ($sectionId, $date, $attendanceData, $remarks) {
+            $section = Section::findOrFail($sectionId);
+            $academicYearId = $section->academic_year_id;
+
+            foreach ($attendanceData as $studentId => $status) {
+                StudentAttendance::updateOrCreate(
+                    [
+                        'section_id' => $sectionId,
+                        'student_id' => $studentId,
+                        'attendance_date' => $date,
+                    ],
+                    [
+                        'academic_year_id' => $academicYearId,
+                        'status' => $status,
+                        'remarks' => $remarks[$studentId] ?? null,
+                        'marked_by' => auth()->id(),
+                    ]
+                );
+            }
+        });
+    }
 }

@@ -21,7 +21,18 @@ trait HasDivisionRestriction
             }
 
             // Check if user has an employee profile with a division restriction
-            $employee = $user->employee;
+            // Cache the employee profile per request to avoid redundant queries
+            static $employeeCache = null;
+            static $lastUserId = null;
+
+            if ($lastUserId !== $user->id) {
+                $employeeCache = \App\Models\Employee::withoutGlobalScopes()
+                    ->where('user_id', $user->id)
+                    ->first();
+                $lastUserId = $user->id;
+            }
+
+            $employee = $employeeCache;
             
             if ($employee && $employee->division_id) {
                 $table = (new static)->getTable();
