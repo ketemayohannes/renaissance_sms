@@ -122,7 +122,7 @@
                     <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Progress</span>
                     <p class="text-sm font-bold text-slate-900">Ensure all questions are answered before submitting.</p>
                 </div>
-                <button type="button" @click="if(confirm('Are you sure you want to finish the exam?')) autoSubmit()" 
+                <button type="button" @click="window.confirmUI({message: 'Are you sure you want to finish the exam?', title: 'Submit Exam', type: 'warning', buttonText: 'Yes, Submit', callback: () => autoSubmit()})" 
                         class="px-12 py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[2rem] font-black text-lg shadow-2xl shadow-indigo-200 transition-all transform hover:-translate-y-1 active:scale-95">
                     Finish & Submit Examination
                 </button>

@@ -35,12 +35,12 @@ Route::middleware('auth')->group(function () {
     });
 
     // Admin Routes
-    Route::middleware(['role:Super Admin|Principal|IT / System Admin|Registrar|General Manager'])->prefix('admin')->name('admin.')->group(function () {
+    Route::middleware(['role_or_permission:Super Admin|view students|view employees|view fees'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
         Route::get('/search', [App\Http\Controllers\Admin\GlobalSearchController::class, 'search'])->name('global-search');
         
         // Role Management
-        Route::resource('roles', App\Http\Controllers\Admin\RoleController::class);
+        Route::resource('roles', App\Http\Controllers\Admin\RoleController::class)->middleware('permission:manage roles');
         
         // Audit Logs
         Route::get('audit-logs', [App\Http\Controllers\Admin\AuditLogController::class, 'index'])->name('audit-logs.index');
@@ -249,7 +249,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // Teacher Portal Routes
-    Route::middleware(['auth', 'role:Teacher'])->prefix('teacher')->name('teacher.')->group(function () {
+    Route::middleware(['auth', 'role_or_permission:Teacher|enter marks'])->prefix('teacher')->name('teacher.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Teacher\DashboardController::class, 'index'])->name('dashboard');
         
         // My Classes

@@ -10,7 +10,8 @@ use App\Models\Subject;
 use App\Models\TeacherAssignment;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use App\Actions\Teachers\AssignTeacherAssignments;
+use Illuminate\Validation\ValidationException;
 
 class TeacherAssignmentController extends Controller
 {
@@ -37,35 +38,30 @@ class TeacherAssignmentController extends Controller
         return view('admin.teacher-assignments.create', compact('teachers', 'sections', 'subjects', 'activeYear'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, AssignTeacherAssignments $assignAction)
     {
         $request->validate([
             'teacher_user_id' => 'required|exists:users,id',
             'assignments' => 'required|array|min:1',
-            'assignments.*.section_id' => 'required|exists:sections,id',
+            'assignments.*.section_ids' => 'required|array|min:1',
+            'assignments.*.section_ids.*' => 'required|exists:sections,id',
             'assignments.*.subject_id' => 'required|exists:subjects,id',
         ]);
 
         $activeYear = AcademicYear::where('is_active', true)->firstOrFail();
 
-        DB::transaction(function () use ($request, $activeYear) {
-            // Option: Clear existing for this year
-            TeacherAssignment::where('teacher_id', $request->teacher_user_id)
-                ->where('academic_year_id', $activeYear->id)
-                ->delete();
-
-            foreach ($request->assignments as $assignment) {
-                TeacherAssignment::create([
-                    'teacher_id' => $request->teacher_user_id,
-                    'section_id' => $assignment['section_id'],
-                    'subject_id' => $assignment['subject_id'],
-                    'academic_year_id' => $activeYear->id,
-                ]);
-            }
-        });
+        try {
+            $assignAction->execute(
+                $request->teacher_user_id,
+                $request->assignments,
+                $activeYear
+            );
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->errors())->withInput();
+        }
 
         return redirect()->route('admin.teacher-assignments.index')
-            ->with('success', 'Assignments updated successfully.');
+            ->with('success', 'Assignments updated successfully. Roles synced dynamically.');
     }
 
     public function destroy(TeacherAssignment $teacherAssignment)

@@ -127,7 +127,7 @@
                         <div class="space-y-4">
                             @foreach([
                                 ['id' => 'show_rank', 'label' => 'Rank Visibility', 'desc' => 'Display student ranking in section'],
-                                ['id' => 'show_conduct', 'label' => 'Conduct Matrix', 'desc' => 'Include behavior assessment grid'],
+                                ['id' => 'show_conduct', 'label' => 'Conduct Section', 'desc' => 'Include behavior assessment grid'],
                                 ['id' => 'show_attendance', 'label' => 'Attendance Stats', 'desc' => 'Show term presence/absence data']
                             ] as $toggle)
                             <label class="flex items-start gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-all cursor-pointer group">
@@ -176,10 +176,10 @@
             <!-- Floating Save Bar -->
             <div class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 p-4 bg-white/80 backdrop-blur-2xl rounded-[2.5rem] border border-white shadow-2xl animate-in slide-in-from-bottom-12 duration-500">
                 <p class="hidden md:block px-6 text-[10px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-100 italic">
-                    All modifications are permanent upon commitment.
+                    All changes are saved permanently.
                 </p>
                 <button type="submit" class="px-12 py-4 bg-indigo-600 text-white font-black text-[10px] uppercase tracking-widest rounded-full hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-900/20 flex items-center gap-2 group">
-                    Commit Interface Update
+                    Save Settings
                     <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
                 </button>
             </div>

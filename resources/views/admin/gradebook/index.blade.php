@@ -111,7 +111,7 @@
                 </div>
                 <div>
                     <h3 class="font-black text-slate-900 uppercase tracking-widest text-[10px]">Audit Logs</h3>
-                    <p class="text-xs text-slate-500 font-semibold mt-1 leading-relaxed">Every grade change is tracked and attributed to the specific faculty member.</p>
+                    <p class="text-xs text-slate-500 font-semibold mt-1 leading-relaxed">Every grade change is tracked and attributed to the specific teacher.</p>
                 </div>
             </div>
         </div>

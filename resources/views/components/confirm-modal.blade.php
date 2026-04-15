@@ -150,16 +150,16 @@ window.confirmUI = function(options) {
 
 document.addEventListener('DOMContentLoaded', () => {
     function attachConfirmHandlers() {
-        document.querySelectorAll('.confirm-form:not([data-confirm-initialized])').forEach(form => {
+        document.querySelectorAll('.confirm-form:not([data-confirm-initialized]), .delete-form:not([data-confirm-initialized])').forEach(form => {
             const handler = (e) => {
                 e.preventDefault();
                 window.dispatchEvent(new CustomEvent('confirm-action', {
                     detail: {
                         form: form,
-                        message: form.dataset.confirmMessage,
+                        message: form.dataset.confirmMessage || 'Are you sure you want to delete this?',
                         title: form.dataset.confirmTitle,
-                        type: form.dataset.confirmType,
-                        buttonText: form.dataset.confirmButton
+                        type: form.dataset.confirmType || 'danger',
+                        buttonText: form.dataset.confirmButton || 'Delete'
                     }
                 }));
             };

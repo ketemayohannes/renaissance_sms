@@ -31,7 +31,7 @@
                             </div>
 
                             <div class="space-y-2">
-                                <label for="code" class="px-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">Designation Code *</label>
+                                <label for="code" class="px-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">Short Code *</label>
                                 <input type="text" name="code" id="code" value="{{ old('code') }}" 
                                     class="premium-input w-full" placeholder="e.g. PS" required>
                                 @error('code')<span class="text-rose-600 text-[10px] font-bold uppercase tracking-tight">{{ $message }}</span>@enderror

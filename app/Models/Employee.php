@@ -140,7 +140,12 @@ class Employee extends Model
 
     public function scopeTeachers($query)
     {
-        return $query->where('designation', 'Teacher');
+        return $query->where(function ($q) {
+            $q->where('designation', 'like', '%teacher%')
+              ->orWhereHas('user', function ($uq) {
+                  $uq->role('Teacher');
+              });
+        });
     }
 
     public function scopeAcademic($query)

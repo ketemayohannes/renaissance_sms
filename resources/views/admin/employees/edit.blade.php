@@ -29,7 +29,7 @@
         <!-- Breadcrumb -->
         <x-breadcrumb :items="[
             ['label' => 'Staff Management', 'url' => route('admin.employees.index')],
-            ['label' => 'Edit Personnel', 'url' => '#']
+            ['label' => 'Edit Employee', 'url' => '#']
         ]" />
 
         <form action="{{ route('admin.employees.update', $employee) }}" method="POST" enctype="multipart/form-data" class="space-y-12">
@@ -43,7 +43,7 @@
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                     </div>
                     <div>
-                        <h4 class="text-rose-900 font-bold text-sm">Validation Registry Conflict</h4>
+                        <h4 class="text-rose-900 font-bold text-sm">Please Fix the Following Errors</h4>
                         <ul class="mt-2 space-y-1">
                             @foreach ($errors->all() as $error)
                                 <li class="text-rose-600 text-xs font-semibold flex items-center gap-2">
@@ -73,7 +73,7 @@
                         <!-- Identity Visual Upload -->
                         <div class="lg:col-span-3">
                             <div x-data="{ photoPreview: '{{ $employee->photo ? Storage::url($employee->photo) : null }}' }" class="relative group/photo">
-                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 block text-center">Entity Visualization</span>
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 block text-center">Profile Photo</span>
                                 <div class="w-full aspect-square rounded-[2.5rem] bg-slate-50 border-4 border-dashed border-slate-200 flex flex-col items-center justify-center overflow-hidden transition-all group-hover/photo:border-indigo-400 shadow-inner group/preview">
                                     <template x-if="photoPreview">
                                         <img :src="photoPreview" class="w-full h-full object-cover shadow-2xl">
@@ -81,14 +81,14 @@
                                     <template x-if="!photoPreview">
                                         <div class="text-center p-6">
                                             <svg class="w-16 h-16 text-slate-200 mb-4 mx-auto group-hover/preview:scale-110 group-hover/preview:text-indigo-200 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                            <p class="text-[9px] font-black text-slate-300 uppercase tracking-widest leading-relaxed">System requires valid biometric visual</p>
+                                            <p class="text-[9px] font-black text-slate-300 uppercase tracking-widest leading-relaxed">Upload a profile photo</p>
                                         </div>
                                     </template>
                                 </div>
                                 <input type="file" name="photo" id="photo" class="hidden" 
                                        @change="photoPreview = URL.createObjectURL($event.target.files[0])">
                                 <label for="photo" class="absolute inset-0 flex items-center justify-center bg-slate-900/60 text-white rounded-[2.5rem] opacity-0 group-hover/photo:opacity-100 transition-all cursor-pointer backdrop-blur-sm mt-8">
-                                    <span class="text-[10px] font-black uppercase tracking-widest bg-white/20 px-4 py-2 rounded-full border border-white/30 text-center">REPLACE ASSET</span>
+                                    <span class="text-[10px] font-black uppercase tracking-widest bg-white/20 px-4 py-2 rounded-full border border-white/30 text-center">CHANGE PHOTO</span>
                                 </label>
                             </div>
                         </div>
@@ -102,33 +102,33 @@
                             </div>
 
                             <div class="space-y-2">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Paternal Hierarchy <span class="text-rose-500">*</span></label>
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Father's Name <span class="text-rose-500">*</span></label>
                                 <input type="text" name="middle_name" value="{{ old('middle_name', $employee->middle_name) }}" required
                                        class="w-full bg-slate-50 border-slate-100 rounded-[1.4rem] py-4 px-6 focus:ring-indigo-600 focus:border-indigo-600 text-sm font-black shadow-inner uppercase tracking-tight italic">
                             </div>
 
                             <div class="space-y-2">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Ancestral Terminal <span class="text-rose-500">*</span></label>
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Last Name <span class="text-rose-500">*</span></label>
                                 <input type="text" name="last_name" value="{{ old('last_name', $employee->last_name) }}" required
                                        class="w-full bg-slate-50 border-slate-100 rounded-[1.4rem] py-4 px-6 focus:ring-indigo-600 focus:border-indigo-600 text-sm font-black shadow-inner uppercase tracking-tight italic">
                             </div>
 
                             <div class="space-y-2">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Biological Classification <span class="text-rose-500">*</span></label>
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Gender <span class="text-rose-500">*</span></label>
                                 <select name="gender" required class="w-full bg-slate-50 border-slate-100 rounded-[1.4rem] py-4 px-6 focus:ring-indigo-600 focus:border-indigo-600 text-sm font-black appearance-none shadow-inner">
-                                    <option value="M" {{ old('gender', $employee->gender) == 'M' ? 'selected' : '' }}>MALE OPERATOR</option>
-                                    <option value="F" {{ old('gender', $employee->gender) == 'F' ? 'selected' : '' }}>FEMALE OPERATOR</option>
+                                    <option value="M" {{ old('gender', $employee->gender) == 'M' ? 'selected' : '' }}>Male</option>
+                                    <option value="F" {{ old('gender', $employee->gender) == 'F' ? 'selected' : '' }}>Female</option>
                                 </select>
                             </div>
 
                             <div class="space-y-2">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Temporal Origin (DOB) <span class="text-rose-500">*</span></label>
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Date of Birth <span class="text-rose-500">*</span></label>
                                 <input type="date" name="date_of_birth" value="{{ old('date_of_birth', $employee->date_of_birth->format('Y-m-d')) }}" required
                                        class="w-full bg-slate-50 border-slate-100 rounded-[1.4rem] py-4 px-6 focus:ring-indigo-600 focus:border-indigo-600 text-sm font-black shadow-inner">
                             </div>
 
                             <div class="space-y-2">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Social Union Stand</label>
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Marital Status</label>
                                 <select name="marital_status" class="w-full bg-slate-50 border-slate-100 rounded-[1.4rem] py-4 px-6 focus:ring-indigo-600 focus:border-indigo-600 text-sm font-black appearance-none shadow-inner">
                                     <option value="">SELECT STATUS</option>
                                     <option value="single" {{ old('marital_status', $employee->marital_status) == 'single' ? 'selected' : '' }}>SINGLE</option>
@@ -139,19 +139,19 @@
                             </div>
 
                             <div class="space-y-2">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Governance Registry (ID)</label>
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">National ID</label>
                                 <input type="text" name="national_id" value="{{ old('national_id', $employee->national_id) }}"
                                        class="w-full bg-slate-50 border-slate-100 rounded-[1.4rem] py-4 px-6 focus:ring-indigo-600 focus:border-indigo-600 text-sm font-black shadow-inner uppercase italic" placeholder="ET-000-000">
                             </div>
 
                             <div class="space-y-2">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Taxation Node (TIN)</label>
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">TIN Number</label>
                                 <input type="text" name="tin" value="{{ old('tin', $employee->tin) }}"
                                        class="w-full bg-slate-50 border-slate-100 rounded-[1.4rem] py-4 px-6 focus:ring-indigo-600 focus:border-indigo-600 text-sm font-black shadow-inner uppercase italic" placeholder="TIN-REG-000">
                             </div>
 
                             <div class="space-y-2">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Retirement Ledger No.</label>
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Pension Number</label>
                                 <input type="text" name="pension_number" value="{{ old('pension_number', $employee->pension_number) }}"
                                        class="w-full bg-slate-50 border-slate-100 rounded-[1.4rem] py-4 px-6 focus:ring-indigo-600 focus:border-indigo-600 text-sm font-black shadow-inner uppercase italic" placeholder="PEN-INIT-00">
                             </div>
@@ -385,7 +385,7 @@
                                                     <a href="{{ route('admin.employees.documents.download', $doc) }}" class="p-1.5 bg-white rounded-lg border border-slate-200 text-slate-400 hover:text-indigo-600 shadow-sm z-20">
                                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                                                     </a>
-                                                    <button type="button" @click.prevent="if(confirm('Delete document?')) window.location.href='{{ route('admin.employees.documents.delete', $doc) }}'" class="p-1.5 bg-white rounded-lg border border-slate-200 text-slate-400 hover:text-rose-600 shadow-sm z-20">
+                                                    <button type="button" @click.prevent="window.confirmUI({message: 'Delete document?', callback: () => window.location.href='{{ route('admin.employees.documents.delete', $doc) }}'})" class="p-1.5 bg-white rounded-lg border border-slate-200 text-slate-400 hover:text-rose-600 shadow-sm z-20">
                                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                                     </button>
                                                 </div>
@@ -415,13 +415,13 @@
                         </div>
                         <div>
                             <h3 class="text-xl font-bold text-slate-900">Workload & Rank</h3>
-                            <p class="text-slate-500 text-sm">Update instructional assignments and faculty status.</p>
+                            <p class="text-slate-500 text-sm">Update teaching assignments and rank.</p>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                         <div>
-                            <label for="teacher_rank" class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Faculty Rank</label>
+                            <label for="teacher_rank" class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Teacher Rank</label>
                             <input type="text" name="teacher_rank" id="teacher_rank" value="{{ old('teacher_rank', $employee->academicDetails->teacher_rank ?? '') }}" placeholder="e.g. Senior Faculty"
                                    class="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl font-semibold text-slate-700">
                         </div>
@@ -441,7 +441,7 @@
                     <div class="mt-10 border-t border-slate-100 pt-8">
                         <div class="flex items-center justify-between mb-6">
                             <div>
-                                <h4 class="text-sm font-black text-slate-800 uppercase tracking-widest">Instructional Assignment Matrix</h4>
+                                <h4 class="text-sm font-black text-slate-800 uppercase tracking-widest">Section & Subject Assignments</h4>
                                 <p class="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-tight">Map teacher to specific sections and subjects</p>
                             </div>
                             <button type="button" @click="assignments.push({section_id: '', subject_id: ''})" 

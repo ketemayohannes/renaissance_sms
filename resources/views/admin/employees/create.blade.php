@@ -28,7 +28,7 @@
         <!-- Breadcrumb -->
         <x-breadcrumb :items="[
             ['label' => 'Staff Management', 'url' => route('admin.employees.index')],
-            ['label' => 'Register Personnel', 'url' => '#']
+            ['label' => 'Add New Employee', 'url' => '#']
         ]" />
 
         <form action="{{ route('admin.employees.store') }}" method="POST" enctype="multipart/form-data" class="space-y-12">
@@ -56,7 +56,7 @@
             <!-- Step 1: Category Selection -->
             <div x-show="step === 1" x-transition class="space-y-8">
                 <div class="text-center space-y-4 mb-12">
-                    <h3 class="text-3xl font-black text-slate-900">Select Personnel Classification</h3>
+                    <h3 class="text-3xl font-black text-slate-900">Select Staff Type</h3>
                     <p class="text-slate-500 max-w-lg mx-auto">Choose the primary operational category for the new staff member to load the appropriate registration framework.</p>
                 </div>
 
@@ -70,7 +70,7 @@
                         </div>
                         <div>
                             <h4 class="text-2xl font-black text-slate-900">Academic Staff</h4>
-                            <p class="text-slate-500 text-sm mt-2 font-medium">Instructional faculty, Teachers, Principals, and Academic Management.</p>
+                            <p class="text-slate-500 text-sm mt-2 font-medium">Teachers, Principals, and Academic Staff.</p>
                         </div>
                     </div>
 
@@ -122,7 +122,7 @@
                         <!-- Identity Visual Upload -->
                         <div class="lg:col-span-3">
                             <div x-data="{ photoPreview: null }" class="relative group/photo">
-                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 block text-center">Entity Visualization</span>
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 block text-center">Profile Photo</span>
                                 <div class="w-full aspect-square rounded-[2.5rem] bg-slate-50 border-4 border-dashed border-slate-200 flex flex-col items-center justify-center overflow-hidden transition-all group-hover/photo:border-indigo-400 shadow-inner group/preview">
                                     <template x-if="photoPreview">
                                         <img :src="photoPreview" class="w-full h-full object-cover">
@@ -130,7 +130,7 @@
                                     <template x-if="!photoPreview">
                                         <div class="text-center p-6">
                                             <svg class="w-16 h-16 text-slate-200 mb-4 mx-auto group-hover/preview:scale-110 group-hover/preview:text-indigo-200 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                            <p class="text-[9px] font-black text-slate-300 uppercase tracking-widest leading-relaxed">System requires valid biometric visual</p>
+                                            <p class="text-[9px] font-black text-slate-300 uppercase tracking-widest leading-relaxed">Upload a profile photo</p>
                                         </div>
                                     </template>
                                 </div>
@@ -151,33 +151,33 @@
                             </div>
 
                             <div class="space-y-2">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Paternal Hierarchy <span class="text-rose-500">*</span></label>
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Father's Name <span class="text-rose-500">*</span></label>
                                 <input type="text" name="middle_name" value="{{ old('middle_name') }}" required
                                        class="w-full bg-slate-50 border-slate-100 rounded-[1.4rem] py-4 px-6 focus:ring-indigo-600 focus:border-indigo-600 text-sm font-bold shadow-inner uppercase tracking-tight">
                             </div>
 
                             <div class="space-y-2">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Ancestral Terminal (Grand) <span class="text-rose-500">*</span></label>
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Last Name <span class="text-rose-500">*</span></label>
                                 <input type="text" name="last_name" value="{{ old('last_name') }}" required
                                        class="w-full bg-slate-50 border-slate-100 rounded-[1.4rem] py-4 px-6 focus:ring-indigo-600 focus:border-indigo-600 text-sm font-bold shadow-inner uppercase tracking-tight">
                             </div>
 
                             <div class="space-y-2">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Biological Classification <span class="text-rose-500">*</span></label>
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Gender <span class="text-rose-500">*</span></label>
                                 <select name="gender" required class="w-full bg-slate-50 border-slate-100 rounded-[1.4rem] py-4 px-6 focus:ring-indigo-600 focus:border-indigo-600 text-sm font-black appearance-none shadow-inner">
-                                    <option value="M" {{ old('gender') == 'M' ? 'selected' : '' }}>MALE OPERATOR</option>
-                                    <option value="F" {{ old('gender') == 'F' ? 'selected' : '' }}>FEMALE OPERATOR</option>
+                                    <option value="M" {{ old('gender') == 'M' ? 'selected' : '' }}>Male</option>
+                                    <option value="F" {{ old('gender') == 'F' ? 'selected' : '' }}>Female</option>
                                 </select>
                             </div>
 
                             <div class="space-y-2">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Temporal Origin (DOB) <span class="text-rose-500">*</span></label>
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Date of Birth <span class="text-rose-500">*</span></label>
                                 <input type="date" name="date_of_birth" value="{{ old('date_of_birth') }}" required
                                        class="w-full bg-slate-50 border-slate-100 rounded-[1.4rem] py-4 px-6 focus:ring-indigo-600 focus:border-indigo-600 text-sm font-black shadow-inner">
                             </div>
 
                             <div class="space-y-2">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Social Union Stand</label>
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Marital Status</label>
                                 <select name="marital_status" class="w-full bg-slate-50 border-slate-100 rounded-[1.4rem] py-4 px-6 focus:ring-indigo-600 focus:border-indigo-600 text-sm font-black appearance-none shadow-inner">
                                     <option value="">SELECT STATUS</option>
                                     <option value="single" {{ old('marital_status') == 'single' ? 'selected' : '' }}>SINGLE</option>
@@ -188,19 +188,19 @@
                             </div>
 
                             <div class="space-y-2">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Governance Registry (ID)</label>
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">National ID</label>
                                 <input type="text" name="national_id" value="{{ old('national_id') }}"
                                        class="w-full bg-slate-50 border-slate-100 rounded-[1.4rem] py-4 px-6 focus:ring-indigo-600 focus:border-indigo-600 text-sm font-black shadow-inner uppercase italic placeholder:text-slate-300" placeholder="ET-000-000">
                             </div>
 
                             <div class="space-y-2">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Taxation Node (TIN)</label>
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">TIN Number</label>
                                 <input type="text" name="tin" value="{{ old('tin') }}"
                                        class="w-full bg-slate-50 border-slate-100 rounded-[1.4rem] py-4 px-6 focus:ring-indigo-600 focus:border-indigo-600 text-sm font-black shadow-inner uppercase italic placeholder:text-slate-300" placeholder="TIN-REG-000">
                             </div>
 
                             <div class="space-y-2">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Retirement Ledger No.</label>
+                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Pension Number</label>
                                 <input type="text" name="pension_number" value="{{ old('pension_number') }}"
                                        class="w-full bg-slate-50 border-slate-100 rounded-[1.4rem] py-4 px-6 focus:ring-indigo-600 focus:border-indigo-600 text-sm font-black shadow-inner uppercase italic placeholder:text-slate-300" placeholder="PEN-INIT-00">
                             </div>

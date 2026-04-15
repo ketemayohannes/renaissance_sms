@@ -3,7 +3,7 @@
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
                 <h2 class="font-heading font-bold text-2xl text-slate-900">Staff Management</h2>
-                <p class="text-slate-500 text-sm mt-1">Institutional personnel registry & role management.</p>
+                <p class="text-slate-500 text-sm mt-1">Manage all school staff members and their roles.</p>
             </div>
             <div class="flex items-center gap-3">
                 <a href="{{ route('admin.employees.import') }}" 
@@ -18,7 +18,7 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path>
                     </svg>
-                    Register Personnel
+                    Add New Employee
                 </a>
             </div>
         </div>
@@ -91,7 +91,7 @@
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
                 </div>
                 <div>
-                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Faculty Members</p>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Teaching Staff</p>
                     <p class="text-xl font-bold text-slate-900">{{ $stats['teachers'] }}</p>
                 </div>
             </div>
@@ -154,9 +154,9 @@
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="border-b border-slate-100">
-                                <th class="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Personnel ID & Identity</th>
-                                <th class="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Designation Meta</th>
-                                <th class="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Comm Channels</th>
+                                <th class="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Employee ID & Name</th>
+                                <th class="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Role & Division</th>
+                                <th class="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Contact</th>
                                 <th class="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
                             </tr>
                         </thead>
@@ -219,7 +219,7 @@
                                            title="Edit">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                         </a>
-                                        <form action="{{ route('admin.employees.destroy', $employee) }}" method="POST" onsubmit="return confirm('Are you sure?')">
+                                        <form action="{{ route('admin.employees.destroy', $employee) }}" method="POST" class="delete-form" data-confirm-message="Are you sure?">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all" title="Delete">
@@ -236,13 +236,13 @@
                                          <div class="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mb-6">
                                              <svg class="w-10 h-10 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                                          </div>
-                                         <h3 class="text-xl font-bold text-slate-900 text-[11px] uppercase tracking-wider">No Personnel Found</h3>
+                                         <h3 class="text-xl font-bold text-slate-900 text-[11px] uppercase tracking-wider">No Employees Found</h3>
                                          <p class="text-slate-400 text-sm mt-1">The institutional registry contains no matching records.</p>
                                          <div class="flex gap-4 mt-6">
                                             @if(request()->anyFilled(['search', 'designation', 'staff_category']))
                                                 <a href="{{ route('admin.employees.index') }}" class="px-6 py-2 bg-slate-900 text-white rounded-xl font-bold text-sm shadow-xl hover:bg-rose-600 transition-all">Reset Operations</a>
                                             @else
-                                                <a href="{{ route('admin.employees.create') }}" class="px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm shadow-xl hover:bg-indigo-700 transition-all">Register Personnel</a>
+                                                <a href="{{ route('admin.employees.create') }}" class="px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm shadow-xl hover:bg-indigo-700 transition-all">Add New Employee</a>
                                             @endif
                                          </div>
                                     </div>

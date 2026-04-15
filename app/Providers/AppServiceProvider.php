@@ -23,6 +23,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Enforce strict mode to prevent N+1 queries during local development
+        \Illuminate\Database\Eloquent\Model::preventLazyLoading(! app()->isProduction());
+        
         // Force HTTPS in production (Fix mixed content on Render)
         if (config('app.env') === 'production') {
             \Illuminate\Support\Facades\URL::forceScheme('https');

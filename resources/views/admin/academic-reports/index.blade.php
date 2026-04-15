@@ -72,7 +72,7 @@
                         </div>
 
                         <div class="space-y-2" x-show="!hideGrade" x-transition>
-                            <label class="px-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">Deployment Grade</label>
+                            <label class="px-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">Grade Level</label>
                             <select name="grade_level_id" x-model="selectedGrade" @change="loadSections(); loadSubjects()" class="w-full bg-white/50 border-slate-200 rounded-2xl focus:ring-indigo-500 focus:border-indigo-500 font-bold text-sm py-3 px-4 transition-all" :required="!hideGrade">
                                 <option value="">Select Level</option>
                                 @foreach($gradeLevels as $grade)

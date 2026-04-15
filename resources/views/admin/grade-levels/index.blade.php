@@ -33,11 +33,11 @@
                     <thead>
                         <tr class="bg-slate-50/50 border-b border-slate-100">
                             <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Level Identity</th>
-                            <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Designation Code</th>
+                            <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Short Code</th>
                             <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Division</th>
                             <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Sequence</th>
-                            <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Lifecycle</th>
-                            <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Operational Tools</th>
+                            <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Status</th>
+                            <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-50">

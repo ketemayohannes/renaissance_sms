@@ -1,10 +1,10 @@
 <x-admin-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between w-full relative z-10">
-            <h2 class="text-2xl font-black text-slate-800 uppercase tracking-tight">Instructional Matrix</h2>
+            <h2 class="text-2xl font-black text-slate-800 uppercase tracking-tight">Teacher Assignments</h2>
             <a href="{{ route('admin.teacher-assignments.create') }}" class="inline-flex items-center px-6 py-3 bg-slate-900 text-white text-xs font-black rounded-2xl hover:bg-slate-800 transition-all gap-3 shadow-xl uppercase tracking-widest">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path></svg>
-                Deploy Assignment
+                Assign Class & Subject
             </a>
         </div>
     </x-slot>
@@ -22,13 +22,13 @@
             <!-- Summary Stats -->
             <div class="lg:col-span-3 space-y-6">
                 <div class="bg-indigo-600 rounded-[2.5rem] p-8 text-white shadow-xl shadow-indigo-100">
-                    <p class="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 mb-2">Faculty Deployment</p>
+                    <p class="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 mb-2">Total Teachers</p>
                     <h3 class="text-4xl font-black">{{ $teachers->count() }}</h3>
-                    <p class="text-xs font-bold mt-2 opacity-80 leading-relaxed italic">Qualified instructional personnel active in system.</p>
+                    <p class="text-xs font-bold mt-2 opacity-80 leading-relaxed italic">Active teaching staff in the system.</p>
                 </div>
                 
                 <div class="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-xl shadow-slate-200/50">
-                    <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Matrix Health</h4>
+                    <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Assignment Overview</h4>
                     <div class="space-y-6">
                         @php
                             $totalAssignments = \App\Models\TeacherAssignment::where('academic_year_id', $activeYear->id ?? 0)->count();
@@ -44,7 +44,7 @@
                             </div>
                         </div>
                         <div class="flex items-center justify-between py-4 border-t border-slate-50 text-[10px] uppercase font-black tracking-widest text-slate-400 italic">
-                            <span>Total Links</span>
+                            <span>Total Assignments</span>
                             <span class="text-slate-900">{{ $totalAssignments }}</span>
                         </div>
                     </div>
@@ -56,8 +56,8 @@
                 <div class="glass-panel border-white shadow-2xl overflow-hidden rounded-[3rem]">
                     <div class="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
                         <div>
-                            <h3 class="text-sm font-black text-slate-900 uppercase tracking-widest">Faculty Assignment Registry</h3>
-                            <p class="text-xs text-slate-500 font-medium mt-1">Cross-referencing teachers with academic sections and subjects.</p>
+                            <h3 class="text-sm font-black text-slate-900 uppercase tracking-widest">Teacher–Section–Subject List</h3>
+                            <p class="text-xs text-slate-500 font-medium mt-1">Shows which teachers are assigned to which classes and subjects.</p>
                         </div>
                     </div>
 
@@ -88,7 +88,7 @@
                                                     <span class="text-[9px] font-black text-slate-800 uppercase tracking-tight">{{ $assignment->subject->name }}</span>
                                                     <span class="text-[8px] font-bold text-indigo-500 uppercase">{{ $assignment->section->gradeLevel->name }} - {{ $assignment->section->name }}</span>
                                                 </div>
-                                                <form action="{{ route('admin.teacher-assignments.destroy', $assignment) }}" method="POST" onsubmit="return confirm('Remove this assignment?')">
+                                                <form action="{{ route('admin.teacher-assignments.destroy', $assignment) }}" method="POST" class="delete-form" data-confirm-message="Remove this assignment?">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="p-1 text-slate-300 hover:text-rose-500 transition-colors" title="Remove Assignment">
@@ -100,7 +100,7 @@
                                     @else
                                         <div class="px-4 py-2 bg-slate-50 rounded-xl border border-dashed border-slate-200 flex items-center gap-2">
                                             <div class="w-1.5 h-1.5 rounded-full bg-slate-300 animate-pulse"></div>
-                                            <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Awaiting Deployment</span>
+                                            <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest">Not Assigned Yet</span>
                                         </div>
                                     @endif
                                 </div>
@@ -113,7 +113,7 @@
                             </div>
                         @empty
                             <div class="p-20 text-center">
-                                <p class="text-sm font-black text-slate-400 uppercase tracking-[0.2em] italic">No Faculty Operational in System</p>
+                                <p class="text-sm font-black text-slate-400 uppercase tracking-[0.2em] italic">No Teachers Found</p>
                             </div>
                         @endforelse
                     </div>

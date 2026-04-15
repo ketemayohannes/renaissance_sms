@@ -768,35 +768,10 @@ class StudentController extends Controller
             'effective_date' => 'required|date',
         ]);
 
-        DB::transaction(function() use ($request, $student) {
-            $oldStatus = $student->is_active ? 'active' : 'inactive';
-            
-            // Create status history record
-            \App\Models\StudentStatusHistory::create([
-                'student_id' => $student->id,
-                'old_status' => $oldStatus,
-                'new_status' => $request->new_status,
-                'reason' => $request->reason,
-                'notes' => $request->notes,
-                'effective_date' => $request->effective_date,
-                'changed_by' => auth()->id(),
-            ]);
-
-            // Update student status
-            $student->update(['is_active' => false]);
-
-            // Close current enrollment
-            $enrollment = $student->currentEnrollment;
-            if ($enrollment) {
-                $enrollment->update([
-                    'status' => 'completed',
-                    'end_date' => $request->effective_date,
-                ]);
-            }
-        });
+        \App\Actions\Students\ProcessStudentWithdrawal::run($student, $request->only(['new_status', 'reason', 'notes', 'effective_date']));
 
         return redirect()->route('admin.students.show', $student)
-            ->with('success', 'Student status updated to ' . ucfirst(str_replace('_', ' ', $request->new_status)) . ' hideously!');
+            ->with('success', 'Student status updated to ' . ucfirst(str_replace('_', ' ', $request->new_status)) . ' successfully!');
     }
 
     public function statusHistory(Student $student)

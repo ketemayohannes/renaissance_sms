@@ -156,38 +156,6 @@
         <!-- Confirmation Modal -->
         <x-confirm-modal />
 
-        <!-- Confirmation Form Handler Script -->
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                // Handle all confirmation forms (supports both old 'delete-form' and new 'confirm-form' classes)
-                document.querySelectorAll('.delete-form, .confirm-form').forEach(form => {
-                    const handler = function(e) {
-                        e.preventDefault();
-                        
-                        // Get configuration from data attributes
-                        const message = this.dataset.confirmMessage || 'Are you sure you want to proceed?';
-                        const type = this.dataset.confirmType || 'danger'; // danger, success, warning, info
-                        const title = this.dataset.confirmTitle || null;
-                        const buttonText = this.dataset.confirmButton || null;
-                        
-                        // Dispatch event with configuration
-                        window.dispatchEvent(new CustomEvent('confirm-action', {
-                            detail: { 
-                                message, 
-                                type,
-                                title,
-                                buttonText,
-                                form: this 
-                            }
-                        }));
-                    };
-                    
-                    // Store handler reference for later removal
-                    form._confirmHandler = handler;
-                    form.addEventListener('submit', handler);
-                });
-            });
-        </script>
 
         <!-- Page-specific scripts -->
         @stack('scripts')

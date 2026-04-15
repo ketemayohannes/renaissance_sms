@@ -4,7 +4,7 @@
             <h2 class="text-2xl font-black text-slate-800 uppercase tracking-tight">Curriculum Master</h2>
             <div class="flex items-center gap-3">
                 <a href="{{ route('admin.subjects.reorder') }}" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm">
-                    Reorder Matrix
+                    Reorder Subjects
                 </a>
                 <a href="{{ route('admin.subjects.create') }}" class="vibrant-btn-blue">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>

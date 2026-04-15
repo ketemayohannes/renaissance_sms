@@ -4,7 +4,7 @@
             <h2 class="text-2xl font-black text-slate-800 uppercase tracking-tight">Academic Distribution</h2>
             <a href="{{ route('admin.subject-assignments.bulk-assign') }}" class="vibrant-btn-blue">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                Bulk Deploy Subjects
+                Assign Subjects in Bulk
             </a>
         </div>
     </x-slot>
@@ -20,7 +20,7 @@
 
         <div class="glass-panel overflow-hidden border-white/40 shadow-2xl">
             <div class="p-8 border-b border-slate-50 bg-slate-50/30">
-                <h3 class="text-sm font-black text-slate-900 uppercase tracking-widest">Active Curriculum Matrix</h3>
+                <h3 class="text-sm font-black text-slate-900 uppercase tracking-widest">Subject Assignments</h3>
                 <p class="text-xs text-slate-500 font-medium mt-1 italic">Mapping core and elective subjects across the school architecture.</p>
             </div>
             
@@ -28,10 +28,10 @@
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-slate-50/50 border-b border-slate-100">
-                            <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Operational Level</th>
+                            <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Grade Level</th>
                             <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Parent Division</th>
-                            <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Curriculum Density</th>
-                            <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Matrix Control</th>
+                            <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Number of Subjects</th>
+                            <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-50">

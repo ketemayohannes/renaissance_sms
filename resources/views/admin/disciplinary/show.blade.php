@@ -78,7 +78,7 @@
 
                     @if($disciplinary->action_taken)
                         <div class="mt-8">
-                            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 ml-2">Tactical Interventions Deployed</h4>
+                            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 ml-2">Actions Taken</h4>
                             <div class="p-6 bg-amber-50/30 rounded-[1.5rem] border border-amber-100/50">
                                 <p class="text-slate-600 font-bold text-sm">{{ $disciplinary->action_taken }}</p>
                             </div>

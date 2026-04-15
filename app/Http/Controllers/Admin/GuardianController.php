@@ -60,7 +60,7 @@ class GuardianController extends Controller
 
         $allLinkedStudents = Student::whereHas('guardians', function($q) use ($phones, $emails) {
             $q->whereIn('phone', $phones)->orWhereIn('email', $emails);
-        })->with(['enrollments.section.gradeLevel'])->get();
+        })->with(['enrollments.section.gradeLevel', 'guardians'])->get();
 
         // Map students back to grouped guardians
         $guardians->getCollection()->transform(function($guardian) use ($allLinkedStudents) {

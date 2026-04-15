@@ -99,6 +99,18 @@ class RolePermissionSeeder extends Seeder
             'view students', 'view subjects', 'view marks', 'enter marks', 'view library', 'access chat'
         ]);
 
+        // Homeroom Teacher
+        $homeroomTeacher = Role::firstOrCreate(['name' => 'Homeroom Teacher']);
+        $homeroomTeacher->syncPermissions([
+            'view students', 'manage attendance', 'access chat'
+        ]);
+
+        // Department Head
+        $departmentHead = Role::firstOrCreate(['name' => 'Department Head']);
+        $departmentHead->syncPermissions([
+            'view employees', 'view students', 'view subjects', 'view marks', 'manage subjects', 'access chat'
+        ]);
+
         // Assistant Teacher
         $asstTeacher = Role::firstOrCreate(['name' => 'Assistant Teacher']);
         $asstTeacher->syncPermissions([

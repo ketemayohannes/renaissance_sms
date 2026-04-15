@@ -60,7 +60,7 @@
                             <div class="space-y-2">
                                 <label class="px-1 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Intervention Measures (Optional)</label>
                                 <textarea name="action_taken" rows="2" class="premium-input w-full py-4 min-h-[80px]" 
-                                          placeholder="State any immediate tactical measures deployed during the incident...">{{ old('action_taken') }}</textarea>
+                                          placeholder="Describe any immediate actions taken during the incident...">{{ old('action_taken') }}</textarea>
                             </div>
                         </div>
                     </div>
@@ -134,7 +134,7 @@
             <div class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 p-4 bg-white/80 backdrop-blur-2xl rounded-[2.5rem] border border-white shadow-2xl animate-in slide-in-from-bottom-12 duration-500">
                 <a href="{{ route('admin.disciplinary.index') }}" class="px-8 py-4 bg-slate-100 text-slate-500 font-black text-[10px] uppercase tracking-widest rounded-full hover:bg-slate-200 transition-all">Abort Log</a>
                 <button type="submit" class="px-12 py-4 bg-rose-600 text-white font-black text-[10px] uppercase tracking-widest rounded-full hover:bg-rose-700 transition-all shadow-xl shadow-rose-900/20 flex items-center gap-2 group">
-                    Commit Incident Record
+                    Save Record
                     <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
                 </button>
             </div>

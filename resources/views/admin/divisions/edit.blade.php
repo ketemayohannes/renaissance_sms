@@ -32,7 +32,7 @@
                             </div>
 
                             <div class="space-y-2">
-                                <label for="code" class="px-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">Designation Code *</label>
+                                <label for="code" class="px-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">Short Code *</label>
                                 <input type="text" name="code" id="code" value="{{ old('code', $division->code) }}" 
                                     class="premium-input w-full" required>
                                 @error('code')<span class="text-rose-600 text-[10px] font-bold uppercase tracking-tight">{{ $message }}</span>@enderror
@@ -56,7 +56,7 @@
                                 <label class="relative inline-flex items-center cursor-pointer group">
                                     <input type="checkbox" name="is_active" value="1" {{ old('is_active', $division->is_active) ? 'checked' : '' }} class="sr-only peer">
                                     <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                                    <span class="ml-3 text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">Active Lifecycle</span>
+                                    <span class="ml-3 text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-600 transition-colors">Active</span>
                                 </label>
                             </div>
                         </div>
