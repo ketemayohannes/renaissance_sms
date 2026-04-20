@@ -4,11 +4,16 @@ FROM php:8.2-apache
 RUN apt-get update && apt-get install -y \
     libzip-dev \
     libpq-dev \
+    libpng-dev \
+    libjpeg62-turbo-dev \
+    libfreetype6-dev \
     zip \
     unzip \
     git \
     curl \
-    && docker-php-ext-install pdo_mysql pdo_pgsql zip
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install pdo_mysql pdo_pgsql zip gd bcmath \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js (Required for Vite build)
 RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
@@ -45,4 +50,5 @@ RUN npm run build
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
 # Run migrations and start Apache
-CMD bash -c "php artisan migrate --force && apache2-foreground"
+CMD bash -c "php artisan migrate --force && php artisan db:seed --force && apache2-foreground"
+
