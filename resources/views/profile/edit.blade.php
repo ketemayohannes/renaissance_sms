@@ -1,4 +1,7 @@
-<x-admin-layout>
+@php
+    $layout = Auth::user() && Auth::user()->hasRole('Teacher') ? 'teacher-layout' : 'admin-layout';
+@endphp
+<x-dynamic-component :component="$layout">
     <x-slot name="header">
         <h2 class="font-black text-2xl text-slate-800 tracking-tight">
             {{ __('Profile Settings') }}
@@ -30,6 +33,7 @@
                 </div>
             </div>
 
+            @unless(Auth::user() && Auth::user()->hasRole('Teacher'))
             <!-- Delete Account -->
             <div class="p-8 bg-rose-50/50 backdrop-blur-xl border border-rose-100 shadow-xl shadow-rose-100/20 rounded-[2.5rem] relative">
                 <div class="absolute top-0 right-0 -m-16 w-64 h-64 bg-rose-100/50 rounded-full blur-3xl opacity-50"></div>
@@ -37,6 +41,7 @@
                     @include('profile.partials.delete-user-form')
                 </div>
             </div>
+            @endunless
         </div>
     </div>
-</x-admin-layout>
+</x-dynamic-component>
