@@ -27,14 +27,14 @@ class CachedData
     public static function subjects()
     {
         return Cache::remember('cached_subjects', self::TTL, function() {
-            return \App\Models\Subject::where('is_active', true)->orderBy('name')->get();
+            return \App\Models\Subject::with('gradeLevels')->where('is_active', true)->orderBy('name')->get();
         });
     }
 
     public static function allSubjects()
     {
         return Cache::remember('cached_all_subjects', self::TTL, function() {
-            return \App\Models\Subject::orderBy('name')->get();
+            return \App\Models\Subject::with('gradeLevels')->orderBy('name')->get();
         });
     }
 

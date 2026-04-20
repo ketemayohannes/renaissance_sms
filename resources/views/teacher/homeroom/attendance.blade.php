@@ -1,6 +1,6 @@
 <x-teacher-layout>
     <x-slot name="header">
-        Daily Attendance: {{ $section->name }}
+        Daily Attendance: {{ $section->gradeLevel->name }} - {{ $section->name }}
     </x-slot>
 
     <div class="space-y-6">
@@ -52,6 +52,7 @@
                     <table class="w-full text-left border-collapse">
                         <thead class="bg-slate-50/50">
                             <tr>
+                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest w-12 text-center">#</th>
                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Student</th>
                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Status</th>
                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Remarks</th>
@@ -64,6 +65,9 @@
                                 $currentStatus = $existing ? $existing->status : 'present';
                             @endphp
                             <tr class="hover:bg-slate-50/50 transition-colors group">
+                                <td class="px-6 py-4 text-xs font-black text-slate-400 text-center bg-slate-50/30">
+                                    {{ $loop->iteration }}
+                                </td>
                                 <td class="px-6 py-4">
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 font-bold text-xs">

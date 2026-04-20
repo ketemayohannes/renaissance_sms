@@ -202,9 +202,12 @@ class GradingService
 
         if ($term->isSemester()) {
             $quarterIds = $term->quarters()->pluck('id');
+            $termTotalTypeId = $this->getTermTotalTypeId();
+            
             $allMarks = StudentMark::whereIn('student_id', $studentIds)
                 ->whereIn('term_id', $quarterIds)
                 ->whereIn('subject_id', $subjectIds)
+                ->with('assessmentTemplate')
                 ->get()
                 ->groupBy('student_id');
 
@@ -212,10 +215,20 @@ class GradingService
                 $studentMarks = $allMarks->get($student->id, collect())->groupBy('subject_id');
                 $total = 0;
                 $subjectScores = [];
+                
                 foreach ($subjects as $subject) {
                     $subMarks = $studentMarks->get($subject->id);
-                    if ($subMarks) {
-                        $score = $subMarks->avg('score');
+                    if ($subMarks && $subMarks->isNotEmpty()) {
+                        // Correct Logic: Aggregate by Quarter first, then average the quarters
+                        $quarterSums = [];
+                        foreach ($subMarks->groupBy('term_id') as $termId => $termMarks) {
+                            $termTotal = $termMarks->first(fn($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
+                            $quarterSums[$termId] = $termTotal ? $termTotal->score : $termMarks->sum('score');
+                        }
+                        
+                        // We use the count of quarters that have marks to showing "progressive" average
+                        // If user wants literal division by 2 even if Q2 is empty, change to count($quarterIds)
+                        $score = array_sum($quarterSums) / count($quarterSums);
                         $total += $score;
                         $subjectScores[$subject->id] = $score;
                     }
@@ -224,17 +237,18 @@ class GradingService
                 $results[$student->id] = ['total' => round($total, 2), 'average' => $average, 'marks' => $subjectScores];
             }
         } elseif ($term->type === 'yearly' || $term->id === 'yearly') {
-            // PERFORMANCE: Non-recursive yearly calculation
             $semesters = Term::where('academic_year_id', $academicYear->id)
                 ->where('type', 'semester')
                 ->with('quarters')
                 ->get();
             
             $allChildTermIds = $semesters->pluck('id')->concat($semesters->flatMap->quarters->pluck('id'))->unique();
+            $termTotalTypeId = $this->getTermTotalTypeId();
             
             $allMarks = StudentMark::whereIn('student_id', $studentIds)
                 ->whereIn('term_id', $allChildTermIds)
                 ->whereIn('subject_id', $subjectIds)
+                ->with('assessmentTemplate')
                 ->get()
                 ->groupBy('student_id');
 
@@ -247,19 +261,25 @@ class GradingService
                     $semAverages = [];
                     foreach ($semesters as $sem) {
                         $qIds = $sem->quarters->pluck('id');
-                        $semMarks = $studentMarks->where('subject_id', $subject->id)->whereIn('term_id', $qIds);
-                        if ($semMarks->isNotEmpty()) {
-                            $semAverages[] = $semMarks->avg('score');
+                        $subSemMarks = $studentMarks->where('subject_id', $subject->id)->whereIn('term_id', $qIds);
+                        
+                        if ($subSemMarks->isNotEmpty()) {
+                            // Sum components per quarter first
+                            $quarterSums = [];
+                            foreach ($subSemMarks->groupBy('term_id') as $termId => $termMarks) {
+                                $termTotal = $termMarks->first(fn($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
+                                $quarterSums[$termId] = $termTotal ? $termTotal->score : $termMarks->sum('score');
+                            }
+                            $semAverages[] = array_sum($quarterSums) / count($quarterSums);
                         }
                     }
-
+                    
                     if (!empty($semAverages)) {
-                        $yearlySubAvg = array_sum($semAverages) / count($semAverages);
-                        $subjectScores[$subject->id] = $yearlySubAvg;
-                        $totalYearlyAvg += $yearlySubAvg;
+                        $yearlyAvg = array_sum($semAverages) / count($semAverages);
+                        $subjectScores[$subject->id] = $yearlyAvg;
+                        $totalYearlyAvg += $yearlyAvg;
                     }
                 }
-
                 $average = $subjects->count() > 0 ? round($totalYearlyAvg / $subjects->count(), 2) : 0;
                 $results[$student->id] = ['total' => round($totalYearlyAvg, 2), 'average' => $average, 'marks' => $subjectScores];
             }
@@ -293,10 +313,11 @@ class GradingService
         }
 
         if ($term->isSemester()) {
-            $quarters = $term->quarters()->get();
-            $quarterIds = $quarters->pluck('id');
+            $quarterIds = $term->quarters()->pluck('id');
+            $termTotalTypeId = $this->getTermTotalTypeId();
             $marks = StudentMark::where('student_id', $student->id)
                 ->whereIn('term_id', $quarterIds)
+                ->with('assessmentTemplate')
                 ->get()
                 ->groupBy('subject_id');
 
@@ -304,20 +325,19 @@ class GradingService
             $subjectScores = [];
             foreach ($subjects as $subject) {
                 $subMarks = $marks->get($subject->id);
-                if ($subMarks) {
-                    $score = $subMarks->avg('score');
+                if ($subMarks && $subMarks->isNotEmpty()) {
+                    $quarterSums = [];
+                    foreach ($subMarks->groupBy('term_id') as $termId => $termMarks) {
+                        $termTotal = $termMarks->first(fn($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
+                        $quarterSums[$termId] = $termTotal ? $termTotal->score : $termMarks->sum('score');
+                    }
+                    $score = array_sum($quarterSums) / count($quarterSums);
                     $total += $score;
                     $subjectScores[$subject->id] = $score;
                 }
             }
             $average = count($subjects) > 0 ? round($total / count($subjects), 2) : 0;
             return ['total' => round($total, 2), 'average' => $average, 'marks' => $subjectScores];
-        } elseif ($term->type === 'yearly') {
-            $semesters = Term::where('academic_year_id', $academicYear->id)
-                ->where('type', 'semester')
-                ->get();
-            
-            $total = 0;
             $subjectScores = [];
             foreach ($subjects as $subject) {
                 $subSemAverages = [];
@@ -394,7 +414,7 @@ class GradingService
             ->get()
             ->groupBy('student_id');
 
-        $allMarks = StudentMark::whereIn('student_id', $studentIds)
+        $allMarks = StudentMark::with('assessmentTemplate')->whereIn('student_id', $studentIds)
             ->whereIn('term_id', $targetTermsIds)
             ->get()
             ->groupBy('student_id');
@@ -468,13 +488,20 @@ class GradingService
         if ($isSemester || $isYearly) {
             $targetSemesters = $isSemester ? collect([$term]) : Term::where('academic_year_id', $academicYear->id)->where('type', 'semester')->orderBy('start_date')->get();
             $allQuarterMarks = [];
-            
+            $termTotalTypeId = $this->getTermTotalTypeId();
+        
             foreach ($targetSemesters as $sem) {
                 $quarters = $sem->quarters()->orderBy('term_number')->get();
                 foreach ($quarters as $q) {
                     $qRecord = $preFetchedRecords ? $preFetchedRecords->firstWhere('term_id', $q->id) : StudentTermRecord::where('student_id', $student->id)->where('term_id', $q->id)->first();
                     
-                    $qMarks = $preFetchedMarks ? $preFetchedMarks->where('term_id', $q->id)->pluck('score', 'subject_id') : StudentMark::where('student_id', $student->id)->where('term_id', $q->id)->get()->pluck('score', 'subject_id');
+                    $qMarksCollection = $preFetchedMarks ? $preFetchedMarks->where('term_id', $q->id) : StudentMark::where('student_id', $student->id)->where('term_id', $q->id)->get();
+                    
+                    // Correctly sum components per subject for this quarter
+                    $qMarks = $qMarksCollection->groupBy('subject_id')->map(function($subjectMarks) use ($termTotalTypeId) {
+                        $termTotal = $subjectMarks->first(fn($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
+                        return $termTotal ? $termTotal->score : $subjectMarks->sum('score');
+                    });
 
                     $quarterData[$q->id] = [
                         'term' => $q,
@@ -525,7 +552,7 @@ class GradingService
             $stats = $this->calculateStudentTotals($student, $term, $academicYear, $subjects);
             $marks = collect($stats['marks']);
         } else {
-            $rawMarks = $preFetchedMarks ? $preFetchedMarks->where('term_id', $term->id) : StudentMark::where('student_id', $student->id)->where('term_id', $term->id)->get();
+            $rawMarks = $preFetchedMarks ? $preFetchedMarks->where('term_id', $term->id) : StudentMark::with('assessmentTemplate')->where('student_id', $student->id)->where('term_id', $term->id)->get();
             
             // Check for Term Total Templates first
             $termTotalTypeId = \App\Models\AssessmentType::where('code', 'TERM_TOTAL')->value('id');

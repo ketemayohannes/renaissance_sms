@@ -17,8 +17,31 @@ class ClassController extends Controller
         
         // Fetch teacher assignments with related section, grade level, and subject
         $assignments = $user->teacherAssignments()
-            ->with(['section.gradeLevel', 'subject'])
+            ->with(['section' => function($query) {
+                $query->withCount(['enrollments' => function($q) {
+                    $q->where('status', 'active');
+                }]);
+            }, 'section.gradeLevel', 'subject'])
             ->get();
+
+        $academicYear = \App\Helpers\CachedData::activeAcademicYear();
+        $openQuarter = $academicYear ? \App\Models\Term::where('academic_year_id', $academicYear->id)
+            ->where('type', 'quarter')
+            ->where('is_grading_open', true)
+            ->orderBy('start_date')
+            ->first() : null;
+            
+        $openSemester = $academicYear ? \App\Models\Term::where('academic_year_id', $academicYear->id)
+            ->where('type', 'semester')
+            ->where('is_grading_open', true)
+            ->orderBy('start_date')
+            ->first() : null;
+
+        foreach ($assignments as $assignment) {
+            $isElective = $assignment->subject->is_elective ?? false;
+            $activeTerm = $isElective ? $openSemester : $openQuarter;
+            $assignment->grading_status = $activeTerm ? 'Grading Active: ' . $activeTerm->name : 'Grading Closed';
+        }
 
         return view('teacher.classes.index', compact('assignments'));
     }

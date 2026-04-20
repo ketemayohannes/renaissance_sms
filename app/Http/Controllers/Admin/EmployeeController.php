@@ -125,7 +125,15 @@ class EmployeeController extends Controller
 
     public function show(Employee $employee)
     {
-        $employee->load(['user', 'division']);
+        $employee->load([
+            'user.roles', 
+            'user.teacherAssignments.section.gradeLevel', 
+            'user.teacherAssignments.subject', 
+            'division', 
+            'academicDetails', 
+            'administrativeDetails', 
+            'documents'
+        ]);
         return view('admin.employees.show', compact('employee'));
     }
 
@@ -372,7 +380,7 @@ class EmployeeController extends Controller
             $header = array_map('trim', array_shift($data));
             $headerMap = array_flip($header);
             
-            $rows = array_filter(array_map(function($row) use ($headerMap) {
+            $rows = array_filter(array_map(function($row) use ($headerMap, $request) {
                 // Skip empty rows
                 if (empty(array_filter($row))) return null;
                 
@@ -425,7 +433,7 @@ class EmployeeController extends Controller
             $header = array_map('trim', array_shift($data));
             $headerMap = array_flip($header);
 
-            $rows = array_map(function($row) use ($headerMap) {
+            $rows = array_map(function($row) use ($headerMap, $request) {
                 $val = fn($key) => isset($headerMap[$key]) && isset($row[$headerMap[$key]]) ? trim($row[$headerMap[$key]]) : null;
                 return [
                     'first_name' => $val('first_name'),

@@ -145,6 +145,13 @@
                 </svg>
                 <span x-show="!sidebarCollapsed" x-transition>Attendance</span>
             </a>
+
+            <a href="{{ route('admin.timetable.index') }}" class="sidebar-link {{ request()->routeIs('admin.timetable.*') ? 'sidebar-link-active' : '' }}" title="Timetable">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <span x-show="!sidebarCollapsed" x-transition>Timetable</span>
+            </a>
             
             <a href="{{ route('admin.section-grades.index') }}" class="sidebar-link {{ request()->routeIs('admin.section-grades.*') ? 'sidebar-link-active' : '' }}" title="Gradebook (Master)">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

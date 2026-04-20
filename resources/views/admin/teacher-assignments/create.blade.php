@@ -9,7 +9,11 @@
         </div>
     </x-slot>
 
-    <div class="max-w-4xl mx-auto space-y-8" x-data="{ assignments: {{ json_encode(old('assignments', [])) }} }">
+    <div class="max-w-4xl mx-auto space-y-8" x-data="{ 
+        assignments: {{ json_encode(old('assignments', $existingAssignments)) }},
+        selectedDivision: '{{ old('division_id', '') }}',
+        sectionsData: {{ json_encode($sectionsData) }}
+    }">
         <x-breadcrumb :items="[
             ['label' => 'Teacher Assignments', 'url' => route('admin.teacher-assignments.index')],
             ['label' => 'Assign Class & Subject', 'url' => '#']
@@ -26,9 +30,21 @@
                             class="w-full bg-slate-50 border-slate-100 rounded-[1.8rem] py-5 px-8 focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 text-sm font-black shadow-inner uppercase tracking-tight">
                         <option value="">SELECT TEACHER</option>
                         @foreach($teachers as $teacher)
-                            <option value="{{ $teacher->user_id }}" {{ old('teacher_user_id') == $teacher->user_id ? 'selected' : '' }}>
+                            <option value="{{ $teacher->user_id }}" {{ old('teacher_user_id', request('teacher_user_id')) == $teacher->user_id ? 'selected' : '' }}>
                                 {{ $teacher->full_name }} ({{ $teacher->employee_id }} - {{ $teacher->specialization ?? 'General' }})
                             </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Division Selector -->
+                <div class="space-y-4">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Filter by Division (Optional)</label>
+                    <select name="division_id" x-model="selectedDivision" 
+                            class="w-full bg-slate-50 border-slate-100 rounded-[1.8rem] py-5 px-8 focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 text-sm font-black shadow-inner uppercase tracking-tight relative z-20">
+                        <option value="">ALL DIVISIONS</option>
+                        @foreach($divisions as $division)
+                            <option value="{{ $division->id }}">{{ $division->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -46,32 +62,50 @@
 
                     <div class="space-y-4">
                         <template x-for="(assignment, index) in assignments" :key="index">
-                            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100 items-end">
-                                <div class="md:col-span-5">
-                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Class / Sections</label>
-                                    <select :name="'assignments['+index+'][section_ids][]'" x-model="assignment.section_ids" multiple required
-                                            class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 text-xs shadow-sm focus:ring-4 focus:ring-indigo-600/5 transition-all h-40 custom-scrollbar">
-                                        @foreach($sections as $section)
-                                            <option value="{{ $section->id }}">{{ $section->gradeLevel->name }} - {{ $section->name }}</option>
-                                        @endforeach
-                                    </select>
-                                    <p class="text-[9px] text-slate-400 font-semibold mt-2 ml-2 tracking-wide uppercase">Hold CTRL/CMD to select multiple</p>
-                                </div>
-                                <div class="md:col-span-5">
+                            <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm relative">
+                                <!-- Delete Button -->
+                                <button type="button" @click="assignments.splice(index, 1)" 
+                                        class="absolute top-6 right-6 p-3 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-2xl transition-all" title="Remove Assignment">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+
+                                <!-- Top part: Subject Selection -->
+                                <div class="mb-8 pr-16 bg-white">
                                     <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Subject</label>
                                     <select :name="'assignments['+index+'][subject_id]'" x-model="assignment.subject_id" required
-                                            class="w-full px-5 py-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 text-xs shadow-sm focus:ring-4 focus:ring-indigo-600/5 transition-all">
+                                            class="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-700 text-sm shadow-inner focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none">
                                         <option value="">Select Subject</option>
                                         @foreach($subjects as $subject)
                                             <option value="{{ $subject->id }}">{{ $subject->name }} ({{ $subject->code }})</option>
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="md:col-span-2">
-                                    <button type="button" @click="assignments.splice(index, 1)" 
-                                            class="w-full py-4 bg-white text-rose-500 rounded-2xl hover:bg-rose-50 transition-all flex items-center justify-center border border-rose-100 shadow-sm shadow-rose-100">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                    </button>
+
+                                <!-- Bottom part: Sections List -->
+                                <div>
+                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 ml-1">Assign to Classes & Sections</label>
+                                    
+                                    <div class="space-y-6">
+                                        <template x-for="grade in [...new Set(sectionsData.filter(s => selectedDivision === '' || s.division_id == selectedDivision).map(s => s.grade_level_name))]" :key="grade">
+                                            <div class="bg-slate-50/50 p-5 rounded-3xl border border-slate-100">
+                                                <h5 class="text-xs font-black text-indigo-900 mb-4 uppercase tracking-widest" x-text="grade"></h5>
+                                                <div class="flex flex-wrap gap-4">
+                                                    <template x-for="section in sectionsData.filter(s => (selectedDivision === '' || s.division_id == selectedDivision) && s.grade_level_name === grade)" :key="section.id">
+                                                        <label class="flex items-center gap-3 pr-4 cursor-pointer group">
+                                                            <div class="relative flex items-center justify-center">
+                                                                <input type="checkbox" :name="'assignments['+index+'][section_ids][]'" :value="section.id" x-model="assignment.section_ids"
+                                                                       class="w-5 h-5 text-indigo-600 border-slate-300 rounded focus:ring-indigo-600 transition-shadow bg-white peer relative z-10 cursor-pointer">
+                                                            </div>
+                                                            <span class="text-sm font-semibold text-slate-600 peer-checked:text-indigo-800 group-hover:text-indigo-600 transition-colors" x-text="'Section ' + section.name"></span>
+                                                        </label>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                        </template>
+                                        <div x-show="sectionsData.filter(s => selectedDivision === '' || s.division_id == selectedDivision).length === 0" class="text-center py-6">
+                                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">No sections match current division</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </template>

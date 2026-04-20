@@ -37,6 +37,7 @@ class EmployeeService
                 'name' => $fullName,
                 'email' => $email,
                 'password' => Hash::make($data['password'] ?? 'staff1234'),
+                'temp_password' => $data['password'] ?? 'staff1234',
             ]);
 
             // 3. Assign Role
@@ -51,12 +52,13 @@ class EmployeeService
                 'user_id' => $user->id,
                 'employee_id' => $employeeId,
                 'email' => $email,
-                'gender' => $data['gender'] ?? 'M',
-                'designation' => $data['designation'] ?? $roleName, // Use roleName for backward compatibility
-                'basic_salary' => $data['basic_salary'] ?? 0,
+                'gender' => !empty($data['gender']) ? $data['gender'] : 'M',
+                'designation' => !empty($data['designation']) ? $data['designation'] : $roleName, // Use roleName for backward compatibility
+                'basic_salary' => !empty($data['basic_salary']) ? $data['basic_salary'] : 0,
                 'joining_date' => $this->parseDate($data['joining_date'] ?? null) ?? now(),
                 'date_of_birth' => $this->parseDate($data['date_of_birth'] ?? null),
-                'status' => $data['status'] ?? 'active',
+                'status' => !empty($data['status']) ? $data['status'] : 'active',
+                'employment_type' => !empty($data['employment_type']) ? $data['employment_type'] : 'full_time',
             ]));
 
             // 6. Handle Category-Specific Details

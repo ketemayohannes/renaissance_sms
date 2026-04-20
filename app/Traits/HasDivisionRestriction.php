@@ -65,7 +65,7 @@ trait HasDivisionRestriction
                     case 'student_marks':
                         $builder->whereHas('student.enrollments.section.gradeLevel', fn($q) => $q->where('division_id', $divisionId));
                         break;
-                    case 'student_attendances':
+                    case 'student_attendance':
                         $builder->whereHas('student.enrollments.section.gradeLevel', fn($q) => $q->where('division_id', $divisionId));
                         break;
                 }

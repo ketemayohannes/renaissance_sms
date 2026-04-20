@@ -38,7 +38,10 @@ class HomeroomController extends Controller
             return redirect()->route('teacher.dashboard')->with('error', 'You are not assigned as a Homeroom Teacher for the current academic year.');
         }
 
-        $students = $section->enrollments()->with('student.user')->where('status', 'active')->get();
+        $date = now()->format('Y-m-d');
+        $students = $section->enrollments()->with(['student.user', 'student.attendance' => function($query) use ($date, $section) {
+            $query->whereDate('attendance_date', $date)->where('section_id', $section->id);
+        }])->where('status', 'active')->get();
         $atRiskStudents = $this->alertService->getAtRiskStudents($section);
 
         return view('teacher.homeroom.index', compact('section', 'students', 'atRiskStudents'));
@@ -58,7 +61,7 @@ class HomeroomController extends Controller
 
         $date = $request->get('date', now()->format('Y-m-d'));
         $students = $section->enrollments()->with(['student.user', 'student.attendance' => function($query) use ($date, $section) {
-            $query->where('attendance_date', $date)->where('section_id', $section->id);
+            $query->whereDate('attendance_date', $date)->where('section_id', $section->id);
         }])->where('status', 'active')->get();
 
         return view('teacher.homeroom.attendance', compact('section', 'students', 'date'));

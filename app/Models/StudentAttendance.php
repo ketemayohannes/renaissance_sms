@@ -27,6 +27,7 @@ class StudentAttendance extends Model
     protected $fillable = [
         'student_id',
         'section_id',
+        'academic_year_id',
         'attendance_date',
         'status',
         'remarks',

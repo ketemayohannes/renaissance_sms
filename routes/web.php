@@ -186,6 +186,11 @@ Route::middleware('auth')->group(function () {
         Route::get('attendance/register', [App\Http\Controllers\Admin\AttendanceController::class, 'register'])->name('attendance.register');
         Route::post('attendance/store', [App\Http\Controllers\Admin\AttendanceController::class, 'store'])->name('attendance.store');
         Route::get('attendance/report', [App\Http\Controllers\Admin\AttendanceController::class, 'report'])->name('attendance.report');
+        
+        // Timetable Management
+        Route::get('timetable', [App\Http\Controllers\Admin\TimetableController::class, 'index'])->name('timetable.index');
+        Route::get('timetable/builder', [App\Http\Controllers\Admin\TimetableController::class, 'builder'])->name('timetable.builder');
+        Route::post('timetable/store', [App\Http\Controllers\Admin\TimetableController::class, 'store'])->name('timetable.store');
 
         // Promotion Management
         Route::get('promotions', [App\Http\Controllers\Admin\PromotionController::class, 'index'])->name('promotions.index');
@@ -255,6 +260,13 @@ Route::middleware('auth')->group(function () {
         // My Classes
         Route::get('/classes', [App\Http\Controllers\Teacher\ClassController::class, 'index'])->name('classes.index');
         Route::get('/classes/{id}', [App\Http\Controllers\Teacher\ClassController::class, 'show'])->name('classes.show');
+
+        // Gradebook
+        Route::get('/gradebook/{assignment}', [\App\Http\Controllers\Teacher\GradebookController::class, 'entry'])->name('gradebook.entry');
+        Route::get('/gradebook/{assignment}/export', [\App\Http\Controllers\Teacher\GradebookController::class, 'export'])->name('gradebook.export');
+        Route::get('/gradebook/{assignment}/marksheet', [\App\Http\Controllers\Teacher\GradebookController::class, 'marksheet'])->name('gradebook.marksheet');
+        Route::post('/gradebook/{assignment}/import', [\App\Http\Controllers\Teacher\GradebookController::class, 'import'])->name('gradebook.import');
+        Route::post('/gradebook/{assignment}', [\App\Http\Controllers\Teacher\GradebookController::class, 'store'])->name('gradebook.store');
 
         // My Schedule
         Route::get('/schedule', [\App\Http\Controllers\Teacher\ScheduleController::class, 'index'])->name('schedule.index');

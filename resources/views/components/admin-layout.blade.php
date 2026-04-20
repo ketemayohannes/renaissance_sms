@@ -54,6 +54,59 @@
                 toggleSidebar() { this.sidebarOpen = !this.sidebarOpen; }
             });
         });
+
+        window.copyToClipboard = function(text, el = null) {
+            console.log('copyToClipboard called with:', text);
+            const fallback = (text) => {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = "fixed";
+                textArea.style.left = "-9999px";
+                textArea.style.top = "0";
+                textArea.style.opacity = '0';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                let successful = false;
+                try {
+                    successful = document.execCommand('copy');
+                } catch (err) {
+                    console.error('Fallback copy failed', err);
+                }
+                document.body.removeChild(textArea);
+                return successful;
+            };
+
+            const doCopy = async () => {
+                if (navigator.clipboard) {
+                    try {
+                        await navigator.clipboard.writeText(text);
+                        console.log('Clipboard API success');
+                        return true;
+                    } catch (err) {
+                        console.warn('Clipboard API failed, trying fallback', err);
+                        return fallback(text);
+                    }
+                } else {
+                    console.warn('Clipboard API not available, trying fallback');
+                    return fallback(text);
+                }
+            };
+
+            doCopy().then((result) => {
+                if (result && el) {
+                    const originalText = el.innerText;
+                    el.innerText = 'Copied!';
+                    el.classList.add('bg-emerald-500', 'text-white');
+                    setTimeout(() => {
+                        el.innerText = originalText;
+                        el.classList.remove('bg-emerald-500', 'text-white');
+                    }, 2000);
+                } else if (!result) {
+                    alert('Unable to copy. Please copy manually: ' + text);
+                }
+            });
+        };
     </script>
 </head>
 <body class="font-sans antialiased bg-slate-50" x-data="{ sidebarCollapsed: localStorage.getItem('sidebarCollapsed') === 'true' }">

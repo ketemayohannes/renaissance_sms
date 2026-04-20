@@ -241,10 +241,28 @@
                                     <p class="font-bold text-lg leading-tight">{{ $employee->is_active ? 'Active' : 'Locked' }}</p>
                                 </div>
                                 @if($employee->user->temp_password)
-                                <div class="flex-grow">
-                                    <p class="text-indigo-100 text-[10px] font-black uppercase tracking-widest mb-1 opacity-70">Temp Pass</p>
-                                    <p class="font-black text-lg leading-tight tracking-wider">{{ $employee->user->temp_password }}</p>
-                                </div>
+                                    <div class="flex-grow">
+                                        <p class="text-indigo-100 text-[10px] font-black uppercase tracking-widest mb-1 opacity-70">Initial Password</p>
+                                        <div class="flex items-center gap-2">
+                                            <p class="font-black text-lg leading-tight tracking-wider">{{ $employee->user->temp_password }}</p>
+                                            <button type="button" onclick="copyToClipboard('{{ addslashes($employee->user->temp_password) }}', this)" class="p-1 px-2 bg-white/10 hover:bg-white/20 rounded-lg text-[10px] font-black uppercase tracking-tighter border border-white/20 transition-all">Copy</button>
+                                        </div>
+                                    </div>
+                                @elseif($employee->user->last_login_at)
+                                    <div class="flex-grow">
+                                        <p class="text-indigo-100 text-[10px] font-black uppercase tracking-widest mb-1 opacity-70">Last Login</p>
+                                        <p class="font-bold text-[10px] text-white/60 italic uppercase tracking-widest">{{ $employee->user->last_login_at->diffForHumans() }}</p>
+                                    </div>
+                                @else
+                                    <div class="flex-grow">
+                                        <p class="text-indigo-100 text-[10px] font-black uppercase tracking-widest mb-1 opacity-70">Password Tracking</p>
+                                        <form action="{{ route('admin.employees.reset-password', $employee) }}" method="POST" class="confirm-form" data-confirm-message="Reset password for this staff member?">
+                                            @csrf
+                                            <button type="submit" class="px-3 py-1 bg-white text-indigo-600 font-black text-[9px] uppercase tracking-widest rounded-lg hover:shadow-lg transition-all">
+                                                Reset to View
+                                            </button>
+                                        </form>
+                                    </div>
                                 @endif
                             </div>
                         @else

@@ -56,7 +56,7 @@
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
                                     </svg>
-                                    <span>12 Pending Assessments</span>
+                                    <span>{{ $assignment->grading_status }}</span>
                                 </div>
                             </div>
                         </div>
@@ -66,7 +66,7 @@
                             <a href="{{ route('teacher.classes.show', $assignment->id) }}" class="px-3 py-2 text-center text-xs font-bold text-indigo-600 bg-white border border-indigo-100 rounded-lg hover:bg-indigo-600 hover:text-white transition-all shadow-sm">
                                 View Roster
                             </a>
-                            <a href="#" class="px-3 py-2 text-center text-xs font-bold text-emerald-600 bg-white border border-emerald-100 rounded-lg hover:bg-emerald-600 hover:text-white transition-all shadow-sm">
+                            <a href="{{ route('teacher.gradebook.entry', $assignment->id) }}" class="px-3 py-2 text-center text-xs font-bold text-emerald-600 bg-white border border-emerald-100 rounded-lg hover:bg-emerald-600 hover:text-white transition-all shadow-sm">
                                 Enter Grades
                             </a>
                         </div>

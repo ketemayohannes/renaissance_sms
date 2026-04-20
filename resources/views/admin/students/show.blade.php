@@ -331,13 +331,23 @@
                                                 <p class="font-bold text-lg leading-tight break-all">{{ $student->user->email }}</p>
                                             </div>
                                             @if($student->user->temp_password)
-                                            <div class="flex-grow">
-                                                <p class="text-indigo-100 text-xs font-semibold uppercase tracking-widest mb-1">Initial Password</p>
-                                                <div class="flex items-center gap-2">
-                                                    <p class="font-black text-lg leading-tight tracking-wider">{{ $student->user->temp_password }}</p>
-                                                    <button onclick="navigator.clipboard.writeText('{{ $student->user->temp_password }}')" class="p-1 px-2 bg-white/10 hover:bg-white/20 rounded-lg text-[10px] font-black uppercase tracking-tighter border border-white/20 transition-all">Copy</button>
+                                                <div class="flex-grow">
+                                                    <p class="text-indigo-100 text-xs font-semibold uppercase tracking-widest mb-1">Initial Password</p>
+                                                    <div class="flex items-center gap-2">
+                                                        <p class="font-black text-lg leading-tight tracking-wider">{{ $student->user->temp_password }}</p>
+                                                            <button type="button" onclick="copyToClipboard('{{ addslashes($student->user->temp_password) }}', this)" class="p-1 px-2 bg-white/10 hover:bg-white/20 rounded-lg text-[10px] font-black uppercase tracking-tighter border border-white/20 transition-all">Copy</button>
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            @elseif($student->user->last_login_at)
+                                                <div class="flex-grow">
+                                                    <p class="text-indigo-100 text-xs font-semibold uppercase tracking-widest mb-1">Last Login</p>
+                                                    <p class="font-bold text-xs text-white/60 italic uppercase tracking-widest">{{ $student->user->last_login_at->diffForHumans() }}</p>
+                                                </div>
+                                            @else
+                                                <div class="flex-grow">
+                                                    <p class="text-indigo-100 text-xs font-semibold uppercase tracking-widest mb-1">Status</p>
+                                                    <p class="font-bold text-xs text-white/60 italic uppercase tracking-widest">Account Active</p>
+                                                </div>
                                             @endif
                                             <form action="{{ route('admin.students.reset-password', $student) }}" method="POST" class="confirm-form" data-confirm-message="Reset password for this student?" data-confirm-title="Reset Password" data-confirm-type="warning" data-confirm-button="Reset">
                                                 @csrf

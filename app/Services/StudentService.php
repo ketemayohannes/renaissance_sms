@@ -32,6 +32,7 @@ class StudentService
                 'name' => "{$data['first_name']} {$data['father_name']} {$data['grandfather_name']}",
                 'email' => $email,
                 'password' => $password,
+                'temp_password' => 'student123',
             ]);
 
             $user->assignRole('Student');
@@ -359,6 +360,7 @@ class StudentService
                     'name' => "{$row['first_name']} {$row['father_name']} {$row['grandfather_name']}",
                     'email' => $email,
                     'password' => $defaultPassword,
+                    'temp_password' => 'student123',
                 ]);
                 $user->assignRole('Student');
 
