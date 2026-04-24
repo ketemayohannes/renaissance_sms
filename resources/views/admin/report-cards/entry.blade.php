@@ -82,7 +82,7 @@
 
         <!-- Data Matrix -->
         <div class="bg-white/80 backdrop-blur-xl border border-white rounded-[3rem] shadow-2xl overflow-hidden group">
-            <form action="{{ route('admin.section-grades.store-report-card-entry', $section) }}" method="POST">
+            <form action="{{ route('admin.section-grades.store-report-card-entry', $section) }}" method="POST" id="reportCardForm">
                 @csrf
                 <input type="hidden" name="academic_year_id" value="{{ $academicYear->id }}">
                 <input type="hidden" name="term_id" value="{{ $term->id }}">
@@ -149,26 +149,27 @@
                     </table>
                 </div>
 
-                <!-- Command Bar -->
-                <div class="px-10 py-10 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-emerald-500 shadow-xl shadow-slate-200 border border-slate-100">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        </div>
-                        <div>
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Active Protection</p>
-                            <p class="text-xs font-bold text-slate-600 italic">Analytical data is secured within the temporal vault.</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-4">
-                         <a href="{{ route('admin.section-grades.index') }}" class="py-4 px-10 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-rose-600 transition-colors">Discard Draft</a>
-                         <button type="submit" class="py-4 px-16 bg-slate-900 text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl hover:bg-indigo-600 shadow-2xl shadow-indigo-200 transition-all active:scale-95 flex items-center gap-3 group">
-                            Save Behaviors
-                            <svg class="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
-                         </button>
-                    </div>
                 </div>
             </form>
+
+            <!-- Floating Bottom Command Bar -->
+            <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 p-1.5 bg-white/90 backdrop-blur-xl border border-slate-200 shadow-2xl shadow-slate-200/50 rounded-2xl animate-in slide-in-from-bottom-12 duration-500">
+                <div class="flex items-center gap-3 pl-4 pr-2 border-r border-slate-100">
+                    <div class="flex flex-col">
+                        <span class="text-[10px] uppercase tracking-wider font-bold text-slate-400 leading-none">Status</span>
+                        <span class="text-sm font-bold text-slate-700 leading-tight">Ready</span>
+                    </div>
+                </div>
+
+                <a href="{{ route('admin.section-grades.index') }}" class="px-5 py-2.5 text-slate-500 font-bold text-xs hover:text-slate-900 transition-colors uppercase tracking-wider">
+                    Discard
+                </a>
+                
+                <button type="submit" form="reportCardForm" class="px-6 py-2.5 bg-slate-900 text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-indigo-600 transition-all shadow-lg shadow-indigo-100 flex items-center gap-2 group">
+                    Save Behaviors
+                    <svg class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                </button>
+            </div>
         </div>
     </div>
 </x-admin-layout>

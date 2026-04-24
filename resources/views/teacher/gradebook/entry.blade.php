@@ -1,5 +1,5 @@
 <x-teacher-layout>
-    <div class="space-y-8" x-data="gradebookState()">
+    <div class="space-y-8 pb-32" x-data="gradebookState()">
         <!-- Header & Navigation -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
@@ -222,16 +222,16 @@
             </div>
         </div>
 
-        <!-- Grade Entry Table -->
-        <div class="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-2xl shadow-slate-200/50 overflow-hidden relative">
-            <form action="{{ route('teacher.gradebook.store', $assignment->id) }}" method="POST" id="gradeForm" @submit="isSaving = true">
-                @csrf
-                <input type="hidden" name="academic_year_id" value="{{ $academicYear->id }}">
-                <input type="hidden" name="section_id" value="{{ $section->id }}">
-                <input type="hidden" name="subject_id" value="{{ $subject->id }}">
-                <input type="hidden" name="term_id" value="{{ $term->id }}">
+        <form action="{{ route('teacher.gradebook.store', $assignment->id) }}" method="POST" id="gradeForm" @submit="isSaving = true">
+            @csrf
+            <input type="hidden" name="academic_year_id" value="{{ $academicYear->id }}">
+            <input type="hidden" name="section_id" value="{{ $section->id }}">
+            <input type="hidden" name="subject_id" value="{{ $subject->id }}">
+            <input type="hidden" name="term_id" value="{{ $term->id }}">
 
-                <div class="overflow-x-auto custom-scrollbar pb-28">
+            <!-- Grade Entry Table -->
+            <div class="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-2xl shadow-slate-200/50 overflow-hidden relative">
+                <div class="overflow-x-auto custom-scrollbar">
                     <table class="w-full text-left border-separate border-spacing-0">
                         <thead>
                             <tr class="bg-slate-50 border-b border-slate-200">
@@ -327,29 +327,29 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
 
-                <!-- Floating Bottom Command Bar -->
-                <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 p-1.5 bg-white/90 backdrop-blur-xl border border-slate-200 shadow-2xl shadow-slate-200/50 rounded-2xl animate-in slide-in-from-bottom-12 duration-500">
-                    <div class="flex items-center gap-3 pl-4 pr-2 border-r border-slate-100">
-                        <div class="flex flex-col">
-                            <span class="text-[10px] uppercase tracking-wider font-bold text-slate-400 leading-none" x-text="hasUnsavedChanges ? 'Unsaved' : 'Synced'">Status</span>
-                            <span class="text-sm font-bold text-slate-700 leading-tight">{{ $totalStudents - $gradedStudents }} Ungraded</span>
-                        </div>
+            <!-- Floating Bottom Command Bar -->
+            <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 p-1.5 bg-white/90 backdrop-blur-xl border border-slate-200 shadow-2xl shadow-slate-200/50 rounded-2xl animate-in slide-in-from-bottom-12 duration-500">
+                <div class="flex items-center gap-3 pl-4 pr-2 border-r border-slate-100">
+                    <div class="flex flex-col">
+                        <span class="text-[10px] uppercase tracking-wider font-bold text-slate-400 leading-none" x-text="hasUnsavedChanges ? 'Unsaved' : 'Synced'">Status</span>
+                        <span class="text-sm font-bold text-slate-700 leading-tight">{{ $totalStudents - $gradedStudents }} Ungraded</span>
                     </div>
-
-                    <a href="{{ route('teacher.classes.show', $assignment->id) }}" class="px-5 py-2.5 text-slate-500 font-bold text-xs hover:text-slate-900 transition-colors uppercase tracking-wider">
-                        Discard
-                    </a>
-                    
-                    @if($term->is_grading_open)
-                        <button type="submit" class="px-6 py-2.5 bg-indigo-600 text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center gap-2 group">
-                            Save Changes
-                            <svg class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
-                        </button>
-                    @endif
                 </div>
-            </form>
-        </div>
+
+                <a href="{{ route('teacher.classes.show', $assignment->id) }}" class="px-5 py-2.5 text-slate-500 font-bold text-xs hover:text-slate-900 transition-colors uppercase tracking-wider">
+                    Discard
+                </a>
+                
+                @if($term->is_grading_open)
+                    <button type="submit" class="px-6 py-2.5 bg-indigo-600 text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center gap-2 group">
+                        Save Changes
+                        <svg class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                    </button>
+                @endif
+            </div>
+        </form>
     </div>
 
     @push('scripts')
