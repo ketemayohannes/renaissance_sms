@@ -28,7 +28,7 @@
             <div class="p-6 border-b border-slate-100 flex items-center justify-between">
                 <h2 class="text-lg font-bold text-slate-900">Class Roster</h2>
                 <div class="relative">
-                    <input type="text" placeholder="Search students..." class="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors w-64">
+                    <input type="text" id="rosterSearch" placeholder="Search students..." class="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors w-64">
                     <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 </div>
             </div>
@@ -43,9 +43,9 @@
                             <th class="px-6 py-4 text-right">Status</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100">
+                    <tbody class="divide-y divide-slate-100" id="rosterTableBody">
                         @forelse($assignment->section->enrollments->where('status', 'active') as $enrollment)
-                            <tr class="hover:bg-slate-50/50 transition-colors">
+                            <tr class="hover:bg-slate-50/50 transition-colors roster-row" data-search="{{ strtolower($enrollment->student->student_id . ' ' . $enrollment->student->full_name) }}">
                                 <td class="px-6 py-4 font-medium text-slate-900">
                                     {{ $enrollment->student->student_id }}
                                 </td>
@@ -66,7 +66,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="px-6 py-8 text-center text-slate-500">
+                                <td colspan="4" class="px-6 py-8 text-center text-slate-500 empty-message">
                                     No active students found in this section.
                                 </td>
                             </tr>
@@ -76,4 +76,46 @@
             </div>
         </div>
     </div>
+
+    @push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('rosterSearch');
+            const rows = document.querySelectorAll('.roster-row');
+            
+            if (searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    const term = e.target.value.toLowerCase().trim();
+                    let visibleCount = 0;
+                    
+                    rows.forEach(row => {
+                        const searchableText = row.getAttribute('data-search') || '';
+                        if (searchableText.includes(term)) {
+                            row.style.display = '';
+                            visibleCount++;
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+                    
+                    // Handle empty state
+                    let emptyMsgRow = document.getElementById('searchEmptyRow');
+                    if (visibleCount === 0 && term !== '') {
+                        if (!emptyMsgRow) {
+                            const tbody = document.getElementById('rosterTableBody');
+                            const tr = document.createElement('tr');
+                            tr.id = 'searchEmptyRow';
+                            tr.innerHTML = `<td colspan="4" class="px-6 py-8 text-center text-slate-500">No students match your search.</td>`;
+                            tbody.appendChild(tr);
+                        } else {
+                            emptyMsgRow.style.display = '';
+                        }
+                    } else if (emptyMsgRow) {
+                        emptyMsgRow.style.display = 'none';
+                    }
+                });
+            }
+        });
+    </script>
+    @endpush
 </x-teacher-layout>
