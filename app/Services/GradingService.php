@@ -395,6 +395,11 @@ class GradingService
                         $score = $directSemMark->score;
                     }
 
+                    if ($score > 0 || $subMarks->isNotEmpty()) {
+                        $total += $score;
+                        $subjectScores[$subject->id] = $score;
+                    }
+                }
             }
             
             // Determine effective elective count for denominator
