@@ -181,11 +181,18 @@
                 <span x-show="!sidebarCollapsed" x-transition>Assessment Assignment</span>
             </a>
 
-            <a href="{{ route('admin.subject-assignments.index') }}" class="sidebar-link {{ request()->routeIs('admin.subject-assignments.*') || request()->routeIs('admin.electives.*') ? 'sidebar-link-active' : '' }}" title="Assignments">
+            <a href="{{ route('admin.subject-assignments.index') }}" class="sidebar-link {{ request()->routeIs('admin.subject-assignments.*') ? 'sidebar-link-active' : '' }}" title="Assignments">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
                 </svg>
                 <span x-show="!sidebarCollapsed" x-transition>Assignments</span>
+            </a>
+
+            <a href="{{ route('admin.electives.bulk-assign') }}" class="sidebar-link {{ request()->routeIs('admin.electives.*') ? 'sidebar-link-active' : '' }}" title="Assign Electives">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.247 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                </svg>
+                <span x-show="!sidebarCollapsed" x-transition>Assign Electives</span>
             </a>
 
             <a href="{{ route('admin.activities.index') }}" class="sidebar-link {{ request()->routeIs('admin.activities.*') ? 'sidebar-link-active' : '' }}" title="Activities & Exams">

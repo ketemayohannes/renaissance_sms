@@ -161,6 +161,8 @@ class RolePermissionSeeder extends Seeder
         ]);
 
         // Support Staff (No permissions assigned here, but roles created)
+        Role::firstOrCreate(['name' => 'Accountant']);
+        Role::firstOrCreate(['name' => 'Staff']);
         Role::firstOrCreate(['name' => 'Janitor']);
         Role::firstOrCreate(['name' => 'Guard']);
 

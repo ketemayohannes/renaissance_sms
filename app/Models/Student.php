@@ -304,6 +304,21 @@ class Student extends Model
     }
 
     /**
+     * Scope: Students in a specific division.
+     */
+    public function scopeByDivision($query, $divisionId)
+    {
+        if (!$divisionId) {
+            return $query;
+        }
+
+        return $query->whereHas('enrollments', function ($q) use ($divisionId) {
+            $q->whereNull('end_date')
+              ->whereHas('section.gradeLevel', fn($sq) => $sq->where('division_id', $divisionId));
+        });
+    }
+
+    /**
      * Scope: Students without active enrollment (unassigned).
      */
     public function scopeUnassigned($query)

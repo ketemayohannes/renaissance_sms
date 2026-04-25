@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Route;
 
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('login');
 });
 
 Route::get('/dashboard', [App\Http\Controllers\Auth\RedirectController::class, 'index'])
@@ -132,6 +132,9 @@ Route::middleware('auth')->group(function () {
         
         // Assessment System Routes
         Route::resource('assessment-types', App\Http\Controllers\Admin\AssessmentTypeController::class);
+        Route::post('assessment-templates/bulk-destroy', [App\Http\Controllers\Admin\AssessmentTemplateController::class, 'bulkDestroy'])->name('assessment-templates.bulk-destroy');
+        Route::get('assessment-templates/reorder', [App\Http\Controllers\Admin\AssessmentTemplateController::class, 'reorder'])->name('assessment-templates.reorder');
+        Route::post('assessment-templates/reorder', [App\Http\Controllers\Admin\AssessmentTemplateController::class, 'updateOrder'])->name('assessment-templates.update-order');
         Route::resource('assessment-templates', App\Http\Controllers\Admin\AssessmentTemplateController::class);
         Route::resource('grade-components', App\Http\Controllers\Admin\GradeComponentController::class);
         Route::get('grade-components/get-components', [App\Http\Controllers\Admin\GradeComponentController::class, 'getComponents'])->name('grade-components.get-components');

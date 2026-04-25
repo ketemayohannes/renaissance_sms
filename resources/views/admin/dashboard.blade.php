@@ -3,6 +3,47 @@
         <div class="flex items-center justify-between w-full">
             <span class="text-xl font-bold text-slate-800">Command Center</span>
             <div class="flex items-center gap-3">
+                <!-- Division Selector -->
+                <div class="relative" x-data="{ open: false }">
+                    <button @click="open = !open" class="bg-white border border-slate-200 rounded-xl px-4 py-2 flex items-center gap-3 hover:border-indigo-500 transition-all shadow-sm group">
+                        <div class="flex flex-col items-start">
+                            <span class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none mb-1">Division</span>
+                            <span class="text-xs font-black text-slate-800 uppercase tracking-wider leading-none">{{ $selectedDivision?->name ?? 'All Divisions' }}</span>
+                        </div>
+                        <svg class="w-4 h-4 text-slate-400 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div x-show="open" 
+                         x-transition:enter="transition ease-out duration-200"
+                         x-transition:enter-start="opacity-0 scale-95 translate-y-2"
+                         x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                         x-transition:leave="transition ease-in duration-150"
+                         x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                         x-transition:leave-end="opacity-0 scale-95 translate-y-2"
+                         @click.away="open = false" 
+                         class="absolute right-0 mt-3 w-64 rounded-2xl bg-white shadow-2xl border border-slate-100 py-3 z-[100] ring-1 ring-black/5" 
+                         x-cloak>
+                        <div class="px-6 py-2 mb-2 border-b border-slate-50">
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Select View</span>
+                        </div>
+                        <a href="{{ route('admin.dashboard') }}" class="flex items-center justify-between px-6 py-3 text-xs font-black uppercase tracking-widest transition-all {{ !$selectedDivision ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50 hover:text-indigo-600' }}">
+                            Global View
+                            @if(!$selectedDivision)
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                            @endif
+                        </a>
+                        @foreach($divisions as $division)
+                            <a href="{{ route('admin.dashboard', ['division_id' => $division->id]) }}" class="flex items-center justify-between px-6 py-3 text-xs font-black uppercase tracking-widest transition-all {{ $selectedDivision?->id == $division->id ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50 hover:text-indigo-600' }}">
+                                {{ $division->name }}
+                                @if($selectedDivision?->id == $division->id)
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                                @endif
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+
+                <div class="h-8 w-[1px] bg-slate-200 mx-1"></div>
+
                 <div class="bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-2 flex items-center gap-2">
                     <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
                     <span class="text-xs font-black text-indigo-700 uppercase tracking-wider">{{ $academicYear?->name ?? 'N/A' }}</span>
@@ -48,7 +89,7 @@
                 <h4 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">Total Enrollment</h4>
                 <p class="text-4xl font-black text-slate-900 tracking-tight">{{ number_format($stats['total_students']) }}</p>
                 <div class="mt-4 pt-4 border-t border-slate-50 flex items-center gap-2">
-                    <span class="text-xs font-bold text-slate-400 italic">Global Student Body</span>
+                    <span class="text-xs font-bold text-slate-400 italic">{{ $selectedDivision ? $selectedDivision->name : 'Global Student Body' }}</span>
                 </div>
             </div>
             
@@ -65,7 +106,7 @@
                 <h4 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">Total Faculty</h4>
                 <p class="text-4xl font-black text-slate-900 tracking-tight">{{ $stats['total_staff'] }}</p>
                 <div class="mt-4 pt-4 border-t border-slate-50">
-                    <span class="text-xs font-bold text-slate-400 italic">Academic & Support</span>
+                    <span class="text-xs font-bold text-slate-400 italic">{{ $selectedDivision ? $selectedDivision->name . ' Staff' : 'Academic & Support' }}</span>
                 </div>
             </div>
             
@@ -89,7 +130,7 @@
                 <h4 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">Today's Presence</h4>
                 <p class="text-4xl font-black text-slate-900 tracking-tight">{{ $stats['today_attendance'] }}%</p>
                 <div class="mt-4 pt-4 border-t border-slate-50">
-                    <span class="text-xs font-bold text-slate-400 italic">Current Daily Statistic</span>
+                    <span class="text-xs font-bold text-slate-400 italic">{{ $selectedDivision ? $selectedDivision->name . ' Stats' : 'Current Daily Statistic' }}</span>
                 </div>
             </div>
 

@@ -60,17 +60,27 @@ class GradebookController extends Controller
                 $query->where('grade_level_id', $section->grade_level_id)
                       ->where('subject_id', $subject->id);
             })
-            ->with('assessmentType')
             ->orderBy('order')
             ->get();
 
+        // Fetch Term Total template separately (for display if exists)
+        $termTotalTemplate = null;
+        if ($termTotalType) {
+            $termTotalTemplate = \App\Models\AssessmentTemplate::where('academic_year_id', $academicYear->id)
+                ->where('term_id', $term->id)
+                ->where('assessment_type_id', $termTotalType->id)
+                ->whereHas('assignments', function($query) use ($section, $subject) {
+                    $query->where('grade_level_id', $section->grade_level_id)
+                          ->where('subject_id', $subject->id);
+                })
+                ->first();
+        }
+
         // VALIDATION: Check for Elective/Regular vs Term Type conflicts
         if ($subject->is_elective && $term->type === 'quarter') {
-            return back()->with('error', 'Elective subjects are only assessed in Semester terms.');
         }
 
         if (!$subject->is_elective && $term->type === 'semester') {
-            return back()->with('error', 'Regular subjects are assessed in Quarters. Semester grades are calculated automatically.');
         }
 
         // Fetch students enrolled in this section
@@ -128,7 +138,8 @@ class GradebookController extends Controller
 
         return view('admin.gradebook.entry', compact(
             'section', 'subject', 'academicYear', 'term', 'students', 'gradeComponents', 
-            'existingMarks', 'gradedAverage', 'classAverage', 'top3Students', 'bottom3Students'
+            'existingMarks', 'gradedAverage', 'classAverage', 'top3Students', 'bottom3Students',
+            'termTotalTemplate'
         ));
     }
 
@@ -307,11 +318,9 @@ class GradebookController extends Controller
 
         // VALIDATION: Check for Elective/Regular vs Term Type conflicts
         if ($subject->is_elective && $term->type === 'quarter') {
-            return back()->with('error', 'Elective subjects are only assessed in Semester terms.');
         }
 
         if (!$subject->is_elective && $term->type === 'semester') {
-            return back()->with('error', 'Regular subjects are assessed in Quarters. Semester grades are calculated automatically.');
         }
 
         $section = Section::findOrFail($request->section_id);

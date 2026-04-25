@@ -31,6 +31,22 @@ class AssessmentTemplateController extends Controller
         if ($request->term_id) {
             $query->where('term_id', $request->term_id);
         }
+        if ($request->assessment_type_id) {
+            $query->where('assessment_type_id', $request->assessment_type_id);
+        }
+        if ($request->subject_id) {
+            $query->whereHas('assignments', function($q) use ($request) {
+                $q->where('subject_id', $request->subject_id);
+            });
+        }
+        if ($request->grade_level_id) {
+            $query->whereHas('assignments', function($q) use ($request) {
+                $q->where('grade_level_id', $request->grade_level_id);
+            });
+        }
+        if ($request->search) {
+            $query->where('name', 'like', '%' . $request->search . '%');
+        }
 
         $templates = $query->orderBy('academic_year_id', 'desc')
             ->orderBy('term_id')
@@ -65,11 +81,23 @@ class AssessmentTemplateController extends Controller
         // Calculate weight totals and warnings
         $weightWarnings = $this->calculateWeightWarnings($templates);
 
-        // PERFORMANCE: Use cached data
+        // Fetch filter options
         $academicYears = \App\Helpers\CachedData::academicYears();
-        $terms = \App\Helpers\CachedData::terms();
+        $selectedYearId = $request->academic_year_id ?: \App\Helpers\CachedData::activeAcademicYear()?->id;
+        $terms = \App\Helpers\CachedData::terms()->where('academic_year_id', $selectedYearId);
+        $subjects = Subject::where('is_active', true)->orderBy('name')->get();
+        $gradeLevels = GradeLevel::orderBy('name')->get();
+        $assessmentTypes = AssessmentType::where('is_active', true)->where('code', '!=', 'TERM_TOTAL')->orderBy('name')->get();
 
-        return view('admin.assessment-templates.index', compact('groupedTemplates', 'weightWarnings', 'academicYears', 'terms'));
+        return view('admin.assessment-templates.index', compact(
+            'groupedTemplates', 
+            'weightWarnings', 
+            'academicYears', 
+            'terms',
+            'subjects',
+            'gradeLevels',
+            'assessmentTypes'
+        ));
     }
 
     public function create()
@@ -334,6 +362,26 @@ class AssessmentTemplateController extends Controller
         }
     }
 
+    public function bulkDestroy(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'exists:assessment_templates,id'
+        ]);
+
+        try {
+            DB::beginTransaction();
+            AssessmentTemplate::whereIn('id', $request->ids)->delete();
+            DB::commit();
+
+            return redirect()->route('admin.assessment-templates.index')
+                ->with('success', count($request->ids) . ' assessment templates deleted successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Error deleting templates: ' . $e->getMessage()]);
+        }
+    }
+
     // Helper method to calculate total weight for a grade/subject/term combination
     private function getTotalWeight($academicYearId, $termId, $gradeLevelId, $subjectId, $excludeTemplateId = null)
     {
@@ -396,5 +444,95 @@ class AssessmentTemplateController extends Controller
         }
 
         return $warnings;
+    }
+
+    public function reorder(Request $request)
+    {
+        $academicYears = \App\Helpers\CachedData::academicYears();
+        $gradeLevels = \App\Helpers\CachedData::gradeLevels();
+        
+        $activeYear = \App\Helpers\CachedData::activeAcademicYear();
+        $academicYearId = $request->get('academic_year_id', $activeYear?->id);
+
+        $terms = \App\Helpers\CachedData::terms()->where('academic_year_id', $academicYearId);
+        $activeTerm = Term::where('academic_year_id', $academicYearId)
+            ->where('start_date', '<=', now())
+            ->where('end_date', '>=', now())
+            ->first();
+            
+        $termId = $request->get('term_id', $activeTerm?->id);
+        $gradeLevelId = $request->get('grade_level_id');
+
+        $query = AssessmentTemplate::with(['assessmentType'])
+            ->where('academic_year_id', $academicYearId)
+            ->whereHas('assessmentType', function($q) {
+                $q->where('code', '!=', 'TERM_TOTAL');
+            });
+
+        if ($termId) {
+            $query->where('term_id', $termId);
+        }
+
+        if ($gradeLevelId) {
+            $query->whereHas('assignments', function($q) use ($gradeLevelId) {
+                $q->where('grade_level_id', $gradeLevelId);
+            });
+        }
+
+        $templates = $query->orderBy('order')->get();
+
+        // Group templates to ensure we reorder "Concepts" rather than individual records
+        $groupedTemplates = $templates->groupBy(function($t) {
+            return $t->assessment_type_id . '-' . $t->name . '-' . $t->weight . '-' . $t->max_score;
+        })->map(function($group) {
+            $first = $group->first();
+            return (object)[
+                'id' => $first->id,
+                'name' => $first->name,
+                'order' => $first->order,
+                'assessment_type' => $first->assessmentType,
+                'weight' => $first->weight,
+                'max_score' => $first->max_score
+            ];
+        })->sortBy('order')->values();
+
+        return view('admin.assessment-templates.reorder', [
+            'templates' => $groupedTemplates,
+            'academicYears' => $academicYears,
+            'terms' => $terms,
+            'gradeLevels' => $gradeLevels,
+            'academicYearId' => $academicYearId,
+            'termId' => $termId,
+            'gradeLevelId' => $gradeLevelId
+        ]);
+    }
+
+    public function updateOrder(Request $request)
+    {
+        $request->validate([
+            'orders' => 'required|array',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            foreach ($request->orders as $id => $order) {
+                $template = AssessmentTemplate::find($id);
+                if ($template) {
+                    // Update ALL templates that share the same characteristics (the group)
+                    AssessmentTemplate::where('academic_year_id', $template->academic_year_id)
+                        ->where('term_id', $template->term_id)
+                        ->where('assessment_type_id', $template->assessment_type_id)
+                        ->where('name', $template->name)
+                        ->where('weight', $template->weight)
+                        ->where('max_score', $template->max_score)
+                        ->update(['order' => $order]);
+                }
+            }
+            DB::commit();
+            return back()->with('success', 'Assessment order updated successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Error updating order: ' . $e->getMessage());
+        }
     }
 }

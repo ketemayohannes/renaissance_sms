@@ -715,7 +715,7 @@
                                                                         @if($finalTemplate)
                                                                             <th class="pb-4 text-center">{{ $finalTemplate->name }} <br><span class="text-[8px] opacity-60">({{ (int)$finalTemplate->max_score }})</span></th>
                                                                         @endif
-                                                                        <th class="pb-4 text-center bg-indigo-50/30 text-indigo-500">C.A. (60%)</th>
+                                                                        <th class="pb-4 text-center bg-indigo-50/30 text-indigo-500">C.A. ({{ (int)$caTemplates->sum('max_score') }}%)</th>
                                                                         <th class="pb-4 text-center bg-emerald-50/30 text-emerald-600 pr-4">Total (100%)</th>
                                                                     </tr>
                                                                 </thead>
@@ -1168,7 +1168,7 @@
                  x-transition:leave-end="opacity-0 scale-95 translate-y-4"
                  x-data="{ 
                     selectedYear: '{{ $academicYear->id ?? '' }}', 
-                    selectedTerm: '{{ \App\Models\Term::where('is_active', true)->value('id') ?? '' }}',
+                    selectedTerm: '{{ $availableTerms->first()->id ?? '' }}',
                     availableTerms: {{ $availableTerms->toJson() }}
                  }"
                  class="bg-white/90 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-2xl w-full max-w-lg overflow-hidden relative z-10">

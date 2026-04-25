@@ -376,10 +376,10 @@ class AcademicReportService
                     'appeared' => $appeared,
                     'passed' => $passed,
                     'failed' => $appeared - $passed,
-                    'pass_rate' => ($passed / $appeared) * 100,
-                    'highest' => max($scores),
-                    'lowest' => min($scores),
-                    'average' => array_sum($scores) / $appeared,
+                    'pass_rate' => $appeared > 0 ? ($passed / $appeared) * 100 : 0,
+                    'highest' => !empty($scores) ? max($scores) : 0,
+                    'lowest' => !empty($scores) ? min($scores) : 0,
+                    'average' => $appeared > 0 ? array_sum($scores) / $appeared : 0,
                 ];
             }
         }
@@ -434,7 +434,7 @@ class AcademicReportService
             $totalGradeSum = 0;
             $totalSubCount = 0;
             foreach ($tempSubData as $subId => $data) {
-                $avg = $data['sum'] / $data['count'];
+                $avg = $data['count'] > 0 ? $data['sum'] / $data['count'] : 0;
                 $gradeMatrix[$subId] = $avg;
                 $totalGradeSum += $avg;
                 $totalSubCount++;

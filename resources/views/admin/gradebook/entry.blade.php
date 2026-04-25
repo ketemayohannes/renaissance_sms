@@ -234,8 +234,11 @@
                                     </th>
                                 @endforeach
 
+                                @php
+                                    $totalCaCapacity = $gradeComponents->filter(fn($c) => $c->assessmentType?->code !== 'FINAL')->sum('max_score');
+                                @endphp
                                 <th class="px-4 py-3 border-b border-slate-200 text-center font-bold text-indigo-600 text-[11px] bg-indigo-50/30 uppercase tracking-wider min-w-[6rem]">
-                                    CA (60%)
+                                    CA ({{ (int)$totalCaCapacity }}%)
                                 </th>
                                 <th class="px-4 py-3 border-b border-slate-200 text-center font-bold text-slate-700 text-[11px] uppercase tracking-wider min-w-[6rem]">
                                     Total
@@ -285,8 +288,7 @@
                                                    max="{{ $component->max_score }}" 
                                                    class="w-full text-center text-xs font-medium border-slate-200 rounded focus:ring-1 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all hover:bg-slate-50 disabled:bg-slate-50 disabled:text-slate-300 mark-input py-1 px-0"
                                                    data-is-final="{{ $component->assessmentType?->code === 'FINAL' ? '1' : '0' }}"
-                                                   onchange="calculateRow(this.closest('tr'))"
-                                                   oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');"
+                                                   oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1'); calculateRow(this.closest('tr'));"
                                                    @if(!$term->is_grading_open) disabled @endif>
                                         </td>
                                     @endforeach
@@ -296,7 +298,18 @@
                                     </td>
 
                                     <td class="px-1 py-2 text-center">
-                                        <span class="inline-block px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 text-xs font-bold student-total min-w-[2.5rem]">{{ $totalScore }}</span>
+                                        @php
+                                            $displayTotal = $totalScore;
+                                            $termTotalMark = null;
+                                            if (isset($termTotalTemplate) && $termTotalTemplate) {
+                                                $termTotalMark = $existingMarks->get($student->id)?->firstWhere('assessment_template_id', $termTotalTemplate->id);
+                                            }
+                                            
+                                            if ($displayTotal == 0 && $termTotalMark) {
+                                                $displayTotal = $termTotalMark->score;
+                                            }
+                                        @endphp
+                                        <span class="inline-block px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 text-xs font-bold student-total min-w-[2.5rem]">{{ number_format($displayTotal, 2) }}</span>
                                     </td>
                                 </tr>
                             @empty
@@ -378,37 +391,44 @@
             const inputs = row.querySelectorAll('.mark-input');
             let grandTotal = 0;
             let caTotal = 0;
+            let hasValue = false;
             
             inputs.forEach(input => {
                 const max = parseFloat(input.getAttribute('max'));
                 const isFinal = input.getAttribute('data-is-final') === '1';
-                let val = parseFloat(input.value) || 0;
+                const rawVal = input.value.trim();
                 
-                // Reset validation styles
-                input.classList.remove('border-red-500', 'bg-red-50', 'text-red-600', 'focus:border-red-500', 'focus:ring-red-500');
-                
-                if (val > max) {
-                    // Warning style instead of auto-correct
-                    input.classList.add('border-red-500', 'bg-red-50', 'text-red-600', 'focus:border-red-500', 'focus:ring-red-500');
-                }
-                
-                if (val < 0) {
-                    val = 0;
-                    input.value = 0;
-                }
-                
-                grandTotal += val;
-                if (!isFinal) {
-                    caTotal += val;
+                if (rawVal !== '') {
+                    hasValue = true;
+                    let val = parseFloat(rawVal) || 0;
+                    
+                    // Reset validation styles
+                    input.classList.remove('border-red-500', 'bg-red-50', 'text-red-600', 'focus:border-red-500', 'focus:ring-red-500');
+                    
+                    if (val > max) {
+                        input.classList.add('border-red-500', 'bg-red-50', 'text-red-600', 'focus:border-red-500', 'focus:ring-red-500');
+                    }
+                    
+                    if (val < 0) {
+                        val = 0;
+                        input.value = 0;
+                    }
+                    
+                    grandTotal += val;
+                    if (!isFinal) {
+                        caTotal += val;
+                    }
                 }
             });
             
-            // Update CA and Total
-            const caEl = row.querySelector('.student-ca');
-            if (caEl) caEl.innerText = caTotal.toFixed(2);
+            if (hasValue) {
+                // Update CA and Total
+                const caEl = row.querySelector('.student-ca');
+                if (caEl) caEl.innerText = caTotal.toFixed(2);
 
-            const totalEl = row.querySelector('.student-total');
-            if (totalEl) totalEl.innerText = grandTotal.toFixed(2);
+                const totalEl = row.querySelector('.student-total');
+                if (totalEl) totalEl.innerText = grandTotal.toFixed(2);
+            }
             
             // Mark as unsaved
             const rootElement = document.querySelector('.space-y-8');

@@ -143,7 +143,10 @@
                         <span style="font-size: 8pt; font-weight: normal;">({{ (int)$component->max_score }})</span>
                     </th>
                 @endforeach
-                <th class="ca-col">CA (60%)</th>
+                @php
+                    $totalCaCapacity = $gradeComponents->filter(fn($c) => $c->assessmentType?->code !== 'FINAL')->sum('max_score');
+                @endphp
+                <th class="ca-col">CA ({{ (int)$totalCaCapacity }}%)</th>
                 <th class="total-col">Total (100%)</th>
             </tr>
         </thead>
@@ -172,7 +175,16 @@
                         <td>{{ $mark ? number_format($score, 1) : '-' }}</td>
                     @endforeach
                     <td class="ca-col">{{ number_format($caScore, 1) }}</td>
-                    <td class="total-col">{{ number_format($totalScore, 1) }}</td>
+                    @php
+                        $displayTotal = $totalScore;
+                        if ($totalScore == 0 && isset($termTotalTemplate) && $termTotalTemplate) {
+                            $termTotalMark = $studentMarks?->firstWhere('assessment_template_id', $termTotalTemplate->id);
+                            if ($termTotalMark) {
+                                $displayTotal = $termTotalMark->score;
+                            }
+                        }
+                    @endphp
+                    <td class="total-col">{{ number_format($displayTotal, 1) }}</td>
                 </tr>
             @endforeach
         </tbody>

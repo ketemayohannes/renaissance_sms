@@ -131,26 +131,43 @@ class ReportCardController extends Controller
     // Bulk Print
     public function bulkPrint(Request $request, Section $section)
     {
-        $academicYear = AcademicYear::findOrFail($request->get('academic_year_id'));
-        $termId = $request->get('term_id');
-        
-        if ($termId === 'yearly') {
-            $term = new Term([
-                'type' => 'yearly', 
-                'name' => 'Yearly Report', 
-                'academic_year_id' => $academicYear->id
-            ]);
-            $term->incrementing = false;
-            $term->id = 'yearly';
-        } else {
-            $term = Term::findOrFail($termId);
-        }
+        // Increase resources for large PDF generation
+        ini_set('memory_limit', '512M');
+        set_time_limit(300);
 
-        $params = $this->reportCardService->getSectionReportParams($section, $term, $academicYear);
-        
-        $viewName = $params['isYearly'] ? 'admin.report-cards.bulk-yearly-pdf' : 'admin.report-cards.bulk-pdf';
-        
-        return view($viewName, $params);
+        try {
+            $academicYear = AcademicYear::findOrFail($request->get('academic_year_id'));
+            $termId = $request->get('term_id');
+            
+            \Illuminate\Support\Facades\Log::info("Starting bulk report card generation for section: {$section->id}, term: {$termId}");
+
+            if ($termId === 'yearly') {
+                $term = new Term([
+                    'type' => 'yearly', 
+                    'name' => 'Yearly Report', 
+                    'academic_year_id' => $academicYear->id
+                ]);
+                $term->incrementing = false;
+                $term->id = 'yearly';
+            } else {
+                $term = Term::findOrFail($termId);
+            }
+
+            $params = $this->reportCardService->getSectionReportParams($section, $term, $academicYear);
+            
+            $viewName = $params['isYearly'] ? 'admin.report-cards.bulk-yearly-pdf' : 'admin.report-cards.bulk-pdf';
+            
+            \Illuminate\Support\Facades\Log::info("Rendering report card view: {$viewName}");
+            return view($viewName, $params);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Report Card Generation Error: ' . $e->getMessage(), [
+                'exception' => $e,
+                'request' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return redirect()->route('admin.academic-reports.index')
+                ->with('error', 'Error generating report cards: ' . $e->getMessage());
+        }
     }
 
     // Background Exports

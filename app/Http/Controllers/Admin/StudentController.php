@@ -36,6 +36,9 @@ class StudentController extends Controller
         // Gender Filter - Using scope
         $query->byGender($request->gender);
 
+        // Division Filter
+        $query->byDivision($request->division_id);
+
         // Status Filter
         if ($request->filled('status')) {
             if ($request->status == 'blocked') {
@@ -102,18 +105,11 @@ class StudentController extends Controller
         
         $students = $query->paginate($perPage)->withQueryString();
         
-        // PERFORMANCE: Cache grade levels and sections (they rarely change)
-        $gradeLevels = Cache::remember('all_grade_levels', 3600, function() {
-            return \App\Models\GradeLevel::orderBy('sort_order')->get();
-        });
+        $gradeLevels = \App\Models\GradeLevel::orderBy('sort_order')->get();
+        $allSections = Section::orderBy('name')->get();
+        $divisions = \App\Models\Division::where('is_active', true)->orderBy('sort_order')->get();
 
-        $sections = Cache::remember('all_sections_grouped', 3600, function() {
-            return Section::with('gradeLevel')->get()->groupBy(function($section) {
-                return $section->gradeLevel ? $section->gradeLevel->name : 'Unassigned';
-            });
-        });
-
-        return view('admin.students.index', compact('students', 'gradeLevels', 'sections'));
+        return view('admin.students.index', compact('students', 'gradeLevels', 'allSections', 'divisions'));
     }
 
     public function create()

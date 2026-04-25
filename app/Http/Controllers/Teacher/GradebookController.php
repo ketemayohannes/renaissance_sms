@@ -52,28 +52,11 @@ class GradebookController extends Controller
         $section = $assignment->section;
         $subject = $assignment->subject;
 
-        // Fetch accessible terms for this year for the dropdown
-        $terms = collect();
-        if ($subject->is_elective) {
-            $terms = Term::where('academic_year_id', $academicYearId)->where('type', 'semester')->orderBy('start_date')->get();
-            if ($term->type === 'quarter') {
-                return back()->with('error', 'Elective subjects are only assessed in Semester terms.');
-            }
-        } else {
-            $terms = Term::where('academic_year_id', $academicYearId)->where('type', 'quarter')->orderBy('start_date')->get();
-            // Regular subjects are prevented from being assessed in semester terms.
-            if ($term->type === 'semester') {
-                // If it's a semester, maybe auto-redirect to first quarter or just show an error.
-                // For safety, we will let the view handle it or just fallback to quarter.
-                $quarter = Term::where('academic_year_id', $academicYearId)->where('type', 'quarter')->orderBy('start_date')->first();
-                if ($quarter) {
-                    return redirect()->route('teacher.gradebook.entry', [
-                        'assignment' => $assignment->id,
-                        'term_id' => $quarter->id
-                    ]);
-                }
-            }
-        }
+        // Fetch all terms for this year for the dropdown
+        $terms = Term::where('academic_year_id', $academicYearId)
+            ->whereIn('type', ['quarter', 'semester'])
+            ->orderBy('start_date')
+            ->get();
 
         // Fetch assessment templates
         $termTotalType = \App\Models\AssessmentType::where('code', 'TERM_TOTAL')->first();
@@ -91,6 +74,19 @@ class GradebookController extends Controller
             ->with('assessmentType')
             ->orderBy('order')
             ->get();
+
+        // Fetch Term Total template separately (for display if exists)
+        $termTotalTemplate = null;
+        if ($termTotalType) {
+            $termTotalTemplate = \App\Models\AssessmentTemplate::where('academic_year_id', $academicYear->id)
+                ->where('term_id', $term->id)
+                ->where('assessment_type_id', $termTotalType->id)
+                ->whereHas('assignments', function($query) use ($section, $subject) {
+                    $query->where('grade_level_id', $section->grade_level_id)
+                          ->where('subject_id', $subject->id);
+                })
+                ->first();
+        }
 
         // Fetch students
         if ($subject->is_elective) {
@@ -144,7 +140,7 @@ class GradebookController extends Controller
 
         return view('teacher.gradebook.entry', compact(
             'assignment', 'section', 'subject', 'academicYear', 'term', 'terms', 'students', 'gradeComponents', 'existingMarks',
-            'gradedAverage', 'classAverage', 'top3Students', 'bottom3Students'
+            'gradedAverage', 'classAverage', 'top3Students', 'bottom3Students', 'termTotalTemplate'
         ));
     }
 
@@ -265,6 +261,19 @@ class GradebookController extends Controller
             ->orderBy('order')
             ->get();
 
+        // Fetch Term Total template separately (for display if exists)
+        $termTotalTemplate = null;
+        if ($termTotalType) {
+            $termTotalTemplate = \App\Models\AssessmentTemplate::where('academic_year_id', $academicYear->id)
+                ->where('term_id', $term->id)
+                ->where('assessment_type_id', $termTotalType->id)
+                ->whereHas('assignments', function($query) use ($section, $subject) {
+                    $query->where('grade_level_id', $section->grade_level_id)
+                          ->where('subject_id', $subject->id);
+                })
+                ->first();
+        }
+
         // Fetch students
         if ($subject->is_elective) {
             $students = $section->students()
@@ -295,6 +304,7 @@ class GradebookController extends Controller
             'students' => $students,
             'gradeComponents' => $gradeComponents,
             'existingMarks' => $existingMarks,
+            'termTotalTemplate' => $termTotalTemplate,
             'settings' => $settings,
             'teacher' => Auth::user(),
         ];
@@ -398,6 +408,8 @@ class GradebookController extends Controller
             }
         }
 
+        $sectionStudents = $assignment->section->students()->get()->keyBy('student_id');
+
         DB::beginTransaction();
         try {
             $successCount = 0;
@@ -412,10 +424,12 @@ class GradebookController extends Controller
                 if (empty($row) || (count($row) === 1 && empty($row[0]))) continue;
                 
                 $studentIdStr = trim($row[0]);
-                $student = \App\Models\Student::where('student_id', $studentIdStr)->first();
+                
+                // Fetch from pre-loaded section students to ensure they belong to this section
+                $student = $sectionStudents->get($studentIdStr);
                 
                 if (!$student) {
-                    $errors[] = "Student ID $studentIdStr not found";
+                    $errors[] = "Student ID $studentIdStr not found in this section";
                     continue;
                 }
 

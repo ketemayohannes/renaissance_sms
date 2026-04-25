@@ -101,15 +101,41 @@
         <x-ui.premium-card>
             <div class="p-6">
                 <!-- Filters Section -->
-                <div x-data="{ showAdvanced: {{ request()->anyFilled(['age_min', 'age_max', 'enrollment_year']) ? 'true' : 'false' }} }" 
-                     class="mb-8 p-6 bg-slate-50/50 rounded-3xl border border-slate-100">
+                <div x-data="{
+                    showAdvanced: {{ request()->anyFilled(['age_min', 'age_max', 'enrollment_year']) ? 'true' : 'false' }},
+                    selectedDivision: '{{ request('division_id') }}',
+                    selectedGrade: '{{ request('grade_id') }}',
+                    selectedSection: '{{ request('section_name') }}',
+                    allGrades: {{ $gradeLevels->map(fn($g) => ['id' => $g->id, 'name' => $g->name, 'division_id' => $g->division_id])->values()->toJson() }},
+                    allSections: {{ $allSections->map(fn($s) => ['id' => $s->id, 'name' => $s->name, 'grade_level_id' => $s->grade_level_id])->values()->toJson() }},
+                    get filteredGrades() {
+                        if (!this.selectedDivision) return this.allGrades;
+                        return this.allGrades.filter(g => String(g.division_id) === String(this.selectedDivision));
+                    },
+                    get filteredSections() {
+                        if (!this.selectedGrade) {
+                            if (!this.selectedDivision) return this.allSections;
+                            const gradeIds = this.filteredGrades.map(g => g.id);
+                            return this.allSections.filter(s => gradeIds.includes(s.grade_level_id));
+                        }
+                        return this.allSections.filter(s => String(s.grade_level_id) === String(this.selectedGrade));
+                    },
+                    onDivisionChange() {
+                        this.selectedGrade = '';
+                        this.selectedSection = '';
+                    },
+                    onGradeChange() {
+                        this.selectedSection = '';
+                    }
+                }" class="mb-8 p-6 bg-slate-50/50 rounded-3xl border border-slate-100">
                     <form action="{{ route('admin.students.index') }}" method="GET">
-                        <div class="grid grid-cols-1 md:grid-cols-6 gap-4 mb-4">
-                            <div class="md:col-span-2">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-4 mb-4">
+                            <!-- Search -->
+                            <div class="sm:col-span-2 lg:col-span-2">
                                 <label for="search" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Search Students</label>
                                 <div class="relative">
-                                    <input type="text" name="search" id="search" value="{{ request('search') }}" 
-                                           placeholder="Name, ID, No..." 
+                                    <input type="text" name="search" id="search" value="{{ request('search') }}"
+                                           placeholder="Name, ID, No..."
                                            class="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all">
                                     <svg class="w-5 h-5 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -117,47 +143,59 @@
                                 </div>
                             </div>
 
+                            <!-- Gender -->
                             <div>
                                 <label for="gender" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Gender</label>
                                 <select name="gender" id="gender" class="w-full py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all">
                                     <option value="">All</option>
-                                    <option value="male" {{ request('gender') == 'male' ? 'selected' : '' }}>Male</option>
-                                    <option value="female" {{ request('gender') == 'female' ? 'selected' : '' }}>Female</option>
+                                    <option value="M" {{ request('gender') == 'M' ? 'selected' : '' }}>Male</option>
+                                    <option value="F" {{ request('gender') == 'F' ? 'selected' : '' }}>Female</option>
                                 </select>
                             </div>
 
+                            <!-- Division -->
+                            <div>
+                                <label for="division_id" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Division</label>
+                                <select name="division_id" id="division_id"
+                                        x-model="selectedDivision"
+                                        @change="onDivisionChange()"
+                                        class="w-full py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all">
+                                    <option value="">All Divisions</option>
+                                    @foreach($divisions as $division)
+                                        <option value="{{ $division->id }}">{{ $division->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <!-- Grade (filtered by division) -->
                             <div>
                                 <label for="grade_id" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Grade</label>
-                                <select name="grade_id" id="grade_id" class="w-full py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all">
+                                <select name="grade_id" id="grade_id"
+                                        x-model="selectedGrade"
+                                        @change="onGradeChange()"
+                                        class="w-full py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all">
                                     <option value="">All Grades</option>
-                                    @foreach($gradeLevels as $grade)
-                                        <option value="{{ $grade->id }}" {{ request('grade_id') == $grade->id ? 'selected' : '' }}>{{ $grade->name }}</option>
-                                    @endforeach
+                                    <template x-for="grade in filteredGrades" :key="grade.id">
+                                        <option :value="grade.id" x-text="grade.name"></option>
+                                    </template>
                                 </select>
                             </div>
 
+                            <!-- Section (filtered by grade) -->
                             <div>
                                 <label for="section_name" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Section</label>
-                                <select name="section_name" id="section_name" class="w-full py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all">
+                                <select name="section_name" id="section_name"
+                                        x-model="selectedSection"
+                                        class="w-full py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all">
                                     <option value="">All Sections</option>
-                                    <option value="unassigned" {{ request('section_name') == 'unassigned' ? 'selected' : '' }} class="text-rose-600 font-bold">Unassigned</option>
-                                    @php
-                                        $uniqueSections = collect();
-                                        foreach($sections as $gradeSections) {
-                                            foreach($gradeSections as $section) {
-                                                if (!$uniqueSections->contains('name', $section->name)) {
-                                                    $uniqueSections->push($section);
-                                                }
-                                            }
-                                        }
-                                        $uniqueSections = $uniqueSections->sortBy('name');
-                                    @endphp
-                                    @foreach($uniqueSections as $section)
-                                        <option value="{{ $section->name }}" {{ request('section_name') == $section->name ? 'selected' : '' }}>{{ $section->name }}</option>
-                                    @endforeach
+                                    <option value="unassigned" {{ request('section_name') == 'unassigned' ? 'selected' : '' }}>⚠ Unassigned</option>
+                                    <template x-for="section in filteredSections" :key="section.id">
+                                        <option :value="section.name" x-text="section.name"></option>
+                                    </template>
                                 </select>
                             </div>
 
+                            <!-- Status -->
                             <div>
                                 <label for="status" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Status</label>
                                 <select name="status" id="status" class="w-full py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all">
@@ -176,7 +214,7 @@
                                 <svg class="w-4 h-4 transform transition-transform" :class="{'rotate-180': showAdvanced}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                             </button>
                             <div class="flex gap-2">
-                                @if(request()->anyFilled(['search', 'gender', 'grade_id', 'section_name', 'status', 'age_min', 'age_max', 'enrollment_year']))
+                                @if(request()->anyFilled(['search', 'gender', 'grade_id', 'section_name', 'status', 'division_id', 'age_min', 'age_max', 'enrollment_year']))
                                     <a href="{{ route('admin.students.index') }}" class="px-4 py-2 text-slate-500 hover:text-slate-700 text-sm font-semibold transition-all">Clear All</a>
                                 @endif
                                 <button type="submit" class="inline-flex items-center px-6 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-slate-200">
@@ -207,6 +245,10 @@
                                 </div>
                              </div>
                         </div>
+                    </form>
+                </div>
+
+
                     </form>
                 </div>
 

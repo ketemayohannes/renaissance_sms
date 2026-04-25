@@ -226,7 +226,7 @@
     <script>
         function academicReports() {
             return {
-                selectedYear: '{{ $academicYears->firstWhere('is_active', true)?->id ?? '' }}',
+                selectedYear: '{{ $academicYears->firstWhere('is_active', true)?->id ?? $academicYears->first()?->id ?? '' }}',
                 selectedTerm: '',
                 selectedGrade: '',
                 selectedSection: '',
@@ -242,7 +242,11 @@
                 get disableSection() { return this.reportType === 'grade_subject_analysis'; },
 
                 init() {
-                    if (this.selectedYear) { this.loadTerms(); }
+                    console.log('Academic Reports Init - Selected Year:', this.selectedYear);
+                    if (this.selectedYear) { 
+                        console.log('Loading terms for initial year...');
+                        this.loadTerms(); 
+                    }
                     
                     this.$el.closest('form')?.addEventListener('submit', (e) => {
                         if (this.reportType === 'grade_subject_analysis') {

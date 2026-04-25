@@ -48,12 +48,6 @@ class SectionGradeController extends Controller
         // Fetch subjects for this grade level - ordered by the pivot sort_order
         $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
 
-        // If Quarter, exclude Elective Subjects (per user request)
-        if ($term->type === 'quarter') {
-            $subjects = $subjects->filter(function($subject) {
-                return !$subject->is_elective;
-            });
-        }
 
         // Fetch students
         $students = $section->students()->orderBy('first_name')->get();
@@ -147,11 +141,11 @@ class SectionGradeController extends Controller
             }
         }
 
-        // Fill in missing Term Totals with Component Sums
+        // Fill in Term Totals: Prioritize Component Sums if they exist to match Gradebook view
         foreach ($students as $student) {
             foreach ($subjects as $subject) {
-                if (!isset($marksMap[$student->id][$subject->id]) && isset($componentSums[$student->id][$subject->id])) {
-                    // Populate with sum of components if no explicit override exists
+                if (isset($componentSums[$student->id][$subject->id])) {
+                    // If components exist in Gradebook, they override the explicit Term Total
                     $marksMap[$student->id][$subject->id] = $componentSums[$student->id][$subject->id];
                 }
             }
@@ -363,6 +357,9 @@ class SectionGradeController extends Controller
             }
         }
 
+        // Pre-fetch all students in this section mapped by their Student ID (admission number)
+        $sectionStudents = $section->students()->get()->keyBy('student_id');
+
         DB::beginTransaction();
         try {
             $count = 0;
@@ -372,10 +369,12 @@ class SectionGradeController extends Controller
                 if (empty($row) || empty($row[0])) continue;
 
                 $studentIdStr = trim($row[0]);
-                $student = \App\Models\Student::where('student_id', $studentIdStr)->first();
+                
+                // Fetch from the pre-loaded section students to ensure they belong here
+                $student = $sectionStudents->get($studentIdStr);
 
                 if (!$student) {
-                    $errors[] = "Student ID $studentIdStr not found";
+                    $errors[] = "Student ID $studentIdStr not found in this section";
                     continue;
                 }
 

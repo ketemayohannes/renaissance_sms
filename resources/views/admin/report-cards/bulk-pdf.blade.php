@@ -257,7 +257,7 @@
             
             <div class="header">
                 @if($settings->logo_path)
-                    <img class="logo" src="/storage/{{ $settings->logo_path }}" alt="Logo">
+                    <img class="logo" src="{{ asset('storage/' . $settings->logo_path) }}" alt="Logo">
                 @endif
                 <div class="school-name">{{ $settings->school_name }}</div>
                 <div class="report-title">Progress Report Card</div>

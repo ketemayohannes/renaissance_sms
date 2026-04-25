@@ -247,11 +247,8 @@
 
     <div class="report-container">
         <div class="header">
-        @if($settings->logo_path && extension_loaded('gd'))
-            <img class="logo" src="{{ public_path('storage/' . $settings->logo_path) }}" alt="Logo">
-        @elseif($settings->logo_path)
-             <!-- GD is missing, showing text fallback -->
-             <div style="margin-bottom: 10px; font-style: italic; color: #666; font-size: 0.8em;">(Enable PHP GD Extension to view Logo)</div>
+        @if($settings->logo_path)
+            <img class="logo" src="{{ asset('storage/' . $settings->logo_path) }}" alt="Logo">
         @endif
         <div class="school-name">{{ $settings->school_name }}</div>
         <div class="report-title">Progress Report Card</div>

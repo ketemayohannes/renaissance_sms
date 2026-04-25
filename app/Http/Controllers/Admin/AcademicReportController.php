@@ -62,73 +62,89 @@ class AcademicReportController extends Controller
             'section_id' => 'required|exists:sections,id',
         ]);
 
-        $academicYear = AcademicYear::findOrFail($request->academic_year_id);
-        $termId = $request->term_id;
-        
-        if ($termId === 'yearly') {
-            $term = new Term(['type' => 'yearly', 'name' => 'Yearly', 'academic_year_id' => $academicYear->id]);
-            $term->id = 'yearly';
-        } else {
-            $term = Term::findOrFail($termId);
-        }
+        // Increase resources for report generation
+        ini_set('memory_limit', '512M');
+        set_time_limit(300);
 
-        $section = Section::findOrFail($request->section_id);
-        
-        $reportType = $request->get('report_type', 'roster');
+        try {
+            $academicYear = AcademicYear::findOrFail($request->academic_year_id);
+            $termId = $request->term_id;
+            
+            \Illuminate\Support\Facades\Log::info("Starting academic report generation: term {$termId}, section {$request->section_id}");
 
-        if ($reportType === 'report_card') {
-            return redirect()->route('admin.section-grades.bulk-print-report-cards', [
-                'section' => $section->id,
-                'academic_year_id' => $academicYear->id,
-                'term_id' => $termId
-            ]);
-        }
-
-        $params = $this->reportService->prepareRosterData($section, $term, $academicYear);
-
-        if ($reportType === 'result_analysis') {
-            // Internal analysis calculation - still simplified but kept in controller for now 
-            // as it builds on the same data
-            $subjects = $params['subjects'];
-            $reports = $params['reports'];
-            $subjectStats = [];
-            $passMark = 50;
-
-            foreach ($subjects as $subject) {
-                $scores = [];
-                foreach ($reports as $report) {
-                    $score = $termId === 'yearly' ? ($report['rows']['avg']['marks'][$subject->id] ?? null) : ($report['marks'][$subject->id] ?? null);
-                    if ($score !== null && $score !== '') $scores[] = (float)$score;
-                }
-                if (!empty($scores)) {
-                    $passed = collect($scores)->filter(fn($s) => $s >= $passMark)->count();
-                    $count = count($scores);
-                    $subjectStats[$subject->id] = (object)[
-                        'appeared' => $count,
-                        'passed' => $passed,
-                        'failed' => $count - $passed,
-                        'pass_rate' => ($passed / $count) * 100,
-                        'highest' => max($scores),
-                        'lowest' => min($scores),
-                        'average' => array_sum($scores) / $count,
-                    ];
-                }
+            if ($termId === 'yearly') {
+                $term = new Term(['type' => 'yearly', 'name' => 'Yearly', 'academic_year_id' => $academicYear->id]);
+                $term->id = 'yearly';
+            } else {
+                $term = Term::findOrFail($termId);
             }
 
-            $classAvgs = collect($reports)->map(fn($r) => $termId === 'yearly' ? ($r['rows']['avg']['average'] ?? 0) : ($r['average'] ?? 0));
-            $classStats = (object)[
-                'total_students' => count($reports),
-                'class_average' => $classAvgs->average(),
-                'total_passed' => $classAvgs->filter(fn($avg) => $avg >= $passMark)->count(),
-                'highest_avg' => $classAvgs->max(),
-            ];
+            $section = Section::findOrFail($request->section_id);
+            
+            $reportType = $request->get('report_type', 'roster');
 
-            $topPerformers = collect($reports)->sortByDesc(fn($r) => $termId === 'yearly' ? ($r['rows']['avg']['average'] ?? 0) : ($r['average'] ?? 0))->take(5);
+            if ($reportType === 'report_card') {
+                return redirect()->route('admin.section-grades.bulk-print-report-cards', [
+                    'section' => $section->id,
+                    'academic_year_id' => $academicYear->id,
+                    'term_id' => $termId
+                ]);
+            }
 
-            return view('admin.academic-reports.analysis', array_merge($params, compact('subjectStats', 'classStats', 'topPerformers')));
+            $params = $this->reportService->prepareRosterData($section, $term, $academicYear);
+
+            if ($reportType === 'result_analysis') {
+                // Internal analysis calculation - still simplified but kept in controller for now 
+                // as it builds on the same data
+                $subjects = $params['subjects'];
+                $reports = $params['reports'];
+                $subjectStats = [];
+                $passMark = 50;
+
+                foreach ($subjects as $subject) {
+                    $scores = [];
+                    foreach ($reports as $report) {
+                        $score = $termId === 'yearly' ? ($report['rows']['avg']['marks'][$subject->id] ?? null) : ($report['marks'][$subject->id] ?? null);
+                        if ($score !== null && $score !== '') $scores[] = (float)$score;
+                    }
+                    if (!empty($scores)) {
+                        $count = count($scores);
+                        $passed = collect($scores)->filter(fn($s) => $s >= $passMark)->count();
+                        $subjectStats[$subject->id] = (object)[
+                            'appeared' => $count,
+                            'passed' => $passed,
+                            'failed' => $count - $passed,
+                            'pass_rate' => $count > 0 ? ($passed / $count) * 100 : 0,
+                            'highest' => max($scores),
+                            'lowest' => min($scores),
+                            'average' => $count > 0 ? array_sum($scores) / $count : 0,
+                        ];
+                    }
+                }
+
+                $classAvgs = collect($reports)->map(fn($r) => $termId === 'yearly' ? ($r['rows']['avg']['average'] ?? 0) : ($r['average'] ?? 0));
+                $classCount = $classAvgs->count();
+                $classStats = (object)[
+                    'total_students' => $classCount,
+                    'class_average' => $classCount > 0 ? $classAvgs->average() : 0,
+                    'total_passed' => $classAvgs->filter(fn($avg) => $avg >= $passMark)->count(),
+                    'highest_avg' => $classAvgs->max(),
+                ];
+
+                $topPerformers = collect($reports)->sortByDesc(fn($r) => $termId === 'yearly' ? ($r['rows']['avg']['average'] ?? 0) : ($r['average'] ?? 0))->take(5);
+
+                return view('admin.academic-reports.analysis', array_merge($params, compact('subjectStats', 'classStats', 'topPerformers')));
+            }
+
+            return view('admin.academic-reports.show', $params);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Academic Report Error: ' . $e->getMessage(), [
+                'exception' => $e,
+                'request' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->with('error', 'Error generating report: ' . $e->getMessage());
         }
-
-        return view('admin.academic-reports.show', $params);
     }
 
     public function subjectAnalysis(Request $request)

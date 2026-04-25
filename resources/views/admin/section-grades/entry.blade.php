@@ -180,7 +180,15 @@
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
                             @foreach($students as $index => $student)
-                                <tr class="group hover:bg-slate-50 transition-colors student-row" data-student-id="{{ $student->id }}">
+                                @php
+                                    $applicableSubjectCount = 0;
+                                    foreach($subjects as $s) {
+                                        if (!$s->is_elective || (isset($studentElectives[$student->id]) && in_array($s->id, $studentElectives[$student->id]))) {
+                                            $applicableSubjectCount++;
+                                        }
+                                    }
+                                @endphp
+                                <tr class="group hover:bg-slate-50 transition-colors student-row" data-student-id="{{ $student->id }}" data-subject-count="{{ $applicableSubjectCount }}">
                                     <td class="px-2 py-2 text-xs font-medium text-slate-500 text-center">{{ $index + 1 }}</td>
                                     <td class="px-3 py-2 whitespace-nowrap sticky left-0 bg-white z-20 group-hover:bg-slate-50 transition-colors shadow-[4px_0_12px_-4px_rgba(0,0,0,0.05)]">
                                         <div class="flex items-center gap-2">
@@ -211,9 +219,6 @@
                                                     $disabled = true;
                                                     $placeholder = '.';
                                                     $title = 'Not enrolled';
-                                                } elseif ($term->type === 'quarter') {
-                                                    $disabled = true;
-                                                    $title = 'Semester only';
                                                 }
                                             } else {
                                                 if ($term->type === 'semester') {
@@ -221,7 +226,6 @@
                                                     $title = 'Auto-calculated';
                                                 }
                                             }
-                                        @endphp
                                         <td class="p-0.5 text-center relative group/cell min-w-[3rem]" title="{{ $title }}">
                                             <input type="text" inputmode="decimal"
                                                    name="marks[{{ $student->id }}][{{ $subject->id }}]" 
@@ -425,7 +429,7 @@
                 }
             });
             
-            const subjectCount = {{ $subjects->count() }};
+            const subjectCount = parseInt(row.dataset.subjectCount) || 0;
             const average = subjectCount > 0 ? (total / subjectCount) : 0;
 
             row.querySelector('.student-total').innerText = parseFloat(total.toFixed(2));

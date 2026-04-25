@@ -338,7 +338,8 @@ class StudentService
                 // 1. Validate Section
                 $section = $this->findSection($row['grade_level'], $row['section_name'], $activeYear->id);
                 if (!$section) {
-                    throw new \Exception("Section '{$row['section_name']}' (Grade {$row['grade_level']}) not found in active year.");
+                    $gradeLabel = str_contains(strtolower($row['grade_level']), 'grade') ? $row['grade_level'] : "Grade {$row['grade_level']}";
+                    throw new \Exception("Section '{$row['section_name']}' ($gradeLabel) not found in active year.");
                 }
 
                 // 2. Check Existence
@@ -373,7 +374,7 @@ class StudentService
                     'father_name' => $row['father_name'],
                     'grandfather_name' => $row['grandfather_name'],
                     'last_name' => $row['grandfather_name'],
-                    'gender' => $row['gender'],
+                    'gender' => $this->normalizeGender($row['gender']),
                     'date_of_birth' => $this->parseDate($row['date_of_birth']),
                     'birth_country' => $row['birth_country'],
                     'birth_city' => $row['birth_city'],
@@ -500,5 +501,24 @@ class StudentService
         } catch (\Exception $e) {
             throw new \Exception("Invalid date format: '$date'. Expected YYYY-MM-DD.");
         }
+    }
+
+    private function normalizeGender(?string $gender): string
+    {
+        if (empty($gender)) {
+            throw new \Exception("Gender is required.");
+        }
+        
+        $g = strtoupper(trim($gender));
+        
+        if (in_array($g, ['M', 'MALE', 'BOY'])) {
+            return 'M';
+        }
+        
+        if (in_array($g, ['F', 'FEMALE', 'GIRL'])) {
+            return 'F';
+        }
+        
+        throw new \Exception("Invalid gender '$gender'. Please use 'M' or 'F'.");
     }
 }

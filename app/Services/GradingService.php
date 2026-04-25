@@ -200,6 +200,16 @@ class GradingService
         $subjectIds = $subjects->pluck('id');
         $results = [];
 
+        // Pre-fetch elective enrollments for accurate denominator calculation
+        $electiveEnrollments = DB::table('student_electives')
+            ->whereIn('student_id', $studentIds)
+            ->where('academic_year_id', $academicYear->id)
+            ->get()
+            ->groupBy('student_id')
+            ->map(fn($group) => $group->pluck('subject_id')->toArray());
+
+        $regularSubjectsCount = $subjects->where('is_elective', false)->count();
+
         if ($term->isSemester()) {
             $quarterIds = $term->quarters()->pluck('id');
             $termTotalTypeId = $this->getTermTotalTypeId();
@@ -219,21 +229,30 @@ class GradingService
                 foreach ($subjects as $subject) {
                     $subMarks = $studentMarks->get($subject->id);
                     if ($subMarks && $subMarks->isNotEmpty()) {
-                        // Correct Logic: Aggregate by Quarter first, then average the quarters
                         $quarterSums = [];
                         foreach ($subMarks->groupBy('term_id') as $termId => $termMarks) {
                             $termTotal = $termMarks->first(fn($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
                             $quarterSums[$termId] = $termTotal ? $termTotal->score : $termMarks->sum('score');
                         }
                         
-                        // We use the count of quarters that have marks to showing "progressive" average
-                        // If user wants literal division by 2 even if Q2 is empty, change to count($quarterIds)
-                        $score = array_sum($quarterSums) / count($quarterSums);
+                        $count = count($quarterSums);
+                        $score = $count > 0 ? array_sum($quarterSums) / $count : 0;
                         $total += $score;
                         $subjectScores[$subject->id] = $score;
                     }
                 }
-                $average = $subjects->count() > 0 ? round($total / $subjects->count(), 2) : 0;
+                
+                // Determine effective elective count (Enrolled OR has score)
+                $enrolledElectiveIds = $electiveEnrollments->get($student->id) ?? [];
+                $electiveIdsWithScores = collect($subjectScores)->keys()->filter(function($id) use ($subjects) {
+                    $s = $subjects->firstWhere('id', $id);
+                    return $s && $s->is_elective;
+                })->toArray();
+                
+                $effectiveElectiveCount = count(array_unique(array_merge($enrolledElectiveIds, $electiveIdsWithScores)));
+                $denominator = $regularSubjectsCount + $effectiveElectiveCount;
+                
+                $average = $denominator > 0 ? round($total / $denominator, 2) : 0;
                 $results[$student->id] = ['total' => round($total, 2), 'average' => $average, 'marks' => $subjectScores];
             }
         } elseif ($term->type === 'yearly' || $term->id === 'yearly') {
@@ -264,23 +283,34 @@ class GradingService
                         $subSemMarks = $studentMarks->where('subject_id', $subject->id)->whereIn('term_id', $qIds);
                         
                         if ($subSemMarks->isNotEmpty()) {
-                            // Sum components per quarter first
                             $quarterSums = [];
                             foreach ($subSemMarks->groupBy('term_id') as $termId => $termMarks) {
                                 $termTotal = $termMarks->first(fn($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
                                 $quarterSums[$termId] = $termTotal ? $termTotal->score : $termMarks->sum('score');
                             }
-                            $semAverages[] = array_sum($quarterSums) / count($quarterSums);
+                            $count = count($quarterSums);
+                            $semAverages[] = $count > 0 ? array_sum($quarterSums) / $count : 0;
                         }
                     }
                     
                     if (!empty($semAverages)) {
-                        $yearlyAvg = array_sum($semAverages) / count($semAverages);
+                        $semCount = count($semAverages);
+                        $yearlyAvg = $semCount > 0 ? array_sum($semAverages) / $semCount : 0;
                         $subjectScores[$subject->id] = $yearlyAvg;
                         $totalYearlyAvg += $yearlyAvg;
                     }
                 }
-                $average = $subjects->count() > 0 ? round($totalYearlyAvg / $subjects->count(), 2) : 0;
+
+                $enrolledElectiveIds = $electiveEnrollments->get($student->id) ?? [];
+                $electiveIdsWithScores = collect($subjectScores)->keys()->filter(function($id) use ($subjects) {
+                    $s = $subjects->firstWhere('id', $id);
+                    return $s && $s->is_elective;
+                })->toArray();
+                
+                $effectiveElectiveCount = count(array_unique(array_merge($enrolledElectiveIds, $electiveIdsWithScores)));
+                $denominator = $regularSubjectsCount + $effectiveElectiveCount;
+
+                $average = $denominator > 0 ? round($totalYearlyAvg / $denominator, 2) : 0;
                 $results[$student->id] = ['total' => round($totalYearlyAvg, 2), 'average' => $average, 'marks' => $subjectScores];
             }
         } else {
@@ -294,7 +324,17 @@ class GradingService
                 $studentMarks = $allMarks->get($student->id, collect());
                 $total = $studentMarks->sum('score');
                 $subjectScores = $studentMarks->pluck('score', 'subject_id')->toArray();
-                $average = $subjects->count() > 0 ? round($total / $subjects->count(), 2) : 0;
+                
+                $enrolledElectiveIds = $electiveEnrollments->get($student->id) ?? [];
+                $electiveIdsWithScores = collect($subjectScores)->keys()->filter(function($id) use ($subjects) {
+                    $s = $subjects->firstWhere('id', $id);
+                    return $s && $s->is_elective;
+                })->toArray();
+                
+                $effectiveElectiveCount = count(array_unique(array_merge($enrolledElectiveIds, $electiveIdsWithScores)));
+                $denominator = $regularSubjectsCount + $effectiveElectiveCount;
+                
+                $average = $denominator > 0 ? round($total / $denominator, 2) : 0;
                 $results[$student->id] = ['total' => round($total, 2), 'average' => $average, 'marks' => $subjectScores];
             }
         }
@@ -312,11 +352,20 @@ class GradingService
             $subjects = $enrollment->section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
         }
 
+        // Determine actual denominator (Regular + Enrolled Electives)
+        $regularSubjectsCount = $subjects->where('is_elective', false)->count();
+        $enrolledElectivesCount = DB::table('student_electives')
+            ->where('student_id', $student->id)
+            ->where('academic_year_id', $academicYear->id)
+            ->count();
+        $denominator = $regularSubjectsCount + $enrolledElectivesCount;
+
         if ($term->isSemester()) {
             $quarterIds = $term->quarters()->pluck('id');
+            $targetTermIds = $quarterIds->concat([$term->id]);
             $termTotalTypeId = $this->getTermTotalTypeId();
             $marks = StudentMark::where('student_id', $student->id)
-                ->whereIn('term_id', $quarterIds)
+                ->whereIn('term_id', $targetTermIds)
                 ->with('assessmentTemplate')
                 ->get()
                 ->groupBy('subject_id');
@@ -324,37 +373,46 @@ class GradingService
             $total = 0;
             $subjectScores = [];
             foreach ($subjects as $subject) {
-                $subMarks = $marks->get($subject->id);
-                if ($subMarks && $subMarks->isNotEmpty()) {
-                    $quarterSums = [];
-                    foreach ($subMarks->groupBy('term_id') as $termId => $termMarks) {
-                        $termTotal = $termMarks->first(fn($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
-                        $quarterSums[$termId] = $termTotal ? $termTotal->score : $termMarks->sum('score');
-                    }
-                    $score = array_sum($quarterSums) / count($quarterSums);
-                    $total += $score;
-                    $subjectScores[$subject->id] = $score;
-                }
-            }
-            $average = count($subjects) > 0 ? round($total / count($subjects), 2) : 0;
-            return ['total' => round($total, 2), 'average' => $average, 'marks' => $subjectScores];
-            $subjectScores = [];
-            foreach ($subjects as $subject) {
-                $subSemAverages = [];
-                foreach ($semesters as $sem) {
-                    $stats = $this->calculateStudentTotals($student, $sem, $academicYear, collect([$subject]));
-                    if (isset($stats['total']) && $stats['total'] !== null) {
-                        $subSemAverages[] = $stats['total'];
-                    }
-                }
+                $subMarks = $marks->get($subject->id, collect());
+                $score = 0;
                 
-                if (!empty($subSemAverages)) {
-                    $score = array_sum($subSemAverages) / count($subSemAverages);
-                    $total += $score;
-                    $subjectScores[$subject->id] = $score;
-                }
+                if ($subMarks->isNotEmpty()) {
+                    // 1. Calculate from Quarters
+                    $quarterMarks = $subMarks->whereIn('term_id', $quarterIds);
+                    if ($quarterMarks->isNotEmpty()) {
+                        $quarterSums = [];
+                        foreach ($quarterMarks->groupBy('term_id') as $termId => $termMarks) {
+                            $termTotal = $termMarks->first(fn($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
+                            $quarterSums[$termId] = $termTotal ? $termTotal->score : $termMarks->sum('score');
+                        }
+                        $count = count($quarterSums);
+                        $score = $count > 0 ? array_sum($quarterSums) / $count : 0;
+                    }
+                    
+                    // 2. FALLBACK: Use direct semester mark if it exists
+                    $directSemMark = $subMarks->firstWhere('term_id', $term->id);
+                    if ($directSemMark && ($score == 0 || $directSemMark->score > 0)) {
+                        $score = $directSemMark->score;
+                    }
+
             }
-            $average = count($subjects) > 0 ? round($total / count($subjects), 2) : 0;
+            
+            // Determine effective elective count for denominator
+            $enrolledElectiveIds = DB::table('student_electives')
+                ->where('student_id', $student->id)
+                ->where('academic_year_id', $academicYear->id)
+                ->pluck('subject_id')
+                ->toArray();
+            
+            $electiveIdsWithScores = collect($subjectScores)->keys()->filter(function($id) use ($subjects) {
+                $s = $subjects->firstWhere('id', $id);
+                return $s && $s->is_elective;
+            })->toArray();
+            
+            $effectiveElectiveCount = count(array_unique(array_merge($enrolledElectiveIds, $electiveIdsWithScores)));
+            $denominator = $regularSubjectsCount + $effectiveElectiveCount;
+
+            $average = $denominator > 0 ? round($total / $denominator, 2) : 0;
             return ['total' => round($total, 2), 'average' => $average, 'marks' => $subjectScores];
 
         } else {
@@ -363,7 +421,23 @@ class GradingService
                 ->get();
             $total = $marks->sum('score');
             $subjectScores = $marks->pluck('score', 'subject_id')->toArray();
-            $average = count($subjects) > 0 ? round($total / count($subjects), 2) : 0;
+            
+            // Determine effective elective count
+            $enrolledElectiveIds = DB::table('student_electives')
+                ->where('student_id', $student->id)
+                ->where('academic_year_id', $academicYear->id)
+                ->pluck('subject_id')
+                ->toArray();
+            
+            $electiveIdsWithScores = collect($subjectScores)->keys()->filter(function($id) use ($subjects) {
+                $s = $subjects->firstWhere('id', $id);
+                return $s && $s->is_elective;
+            })->toArray();
+            
+            $effectiveElectiveCount = count(array_unique(array_merge($enrolledElectiveIds, $electiveIdsWithScores)));
+            $denominator = $regularSubjectsCount + $effectiveElectiveCount;
+            
+            $average = $denominator > 0 ? round($total / $denominator, 2) : 0;
         }
 
         return ['total' => round($total, 2), 'average' => $average, 'marks' => $subjectScores];
@@ -503,12 +577,20 @@ class GradingService
                         return $termTotal ? $termTotal->score : $subjectMarks->sum('score');
                     });
 
+                    // Determine actual denominator for this student
+                    $regularCount = $subjects->where('is_elective', false)->count();
+                    $enrolledElectivesCount = DB::table('student_electives')
+                        ->where('student_id', $student->id)
+                        ->where('academic_year_id', $academicYear->id)
+                        ->count();
+                    $denominator = $regularCount + $enrolledElectivesCount;
+
                     $quarterData[$q->id] = [
                         'term' => $q,
                         'marks' => $qMarks,
                         'record' => $qRecord,
                         'total' => $qRecord->total_score ?? $qMarks->sum(),
-                        'average' => $qRecord->average_score ?? ($subjects->count() > 0 ? $qMarks->sum() / $subjects->count() : 0),
+                        'average' => $qRecord->average_score ?? ($denominator > 0 ? $qMarks->sum() / $denominator : 0),
                         'rank' => $qRecord->rank ?? '-',
                     ];
 
@@ -544,9 +626,14 @@ class GradingService
                 }
             }
             
-            // Calculate averages per subject (for yearly average)
-            foreach ($allQuarterMarks as $subId => $scores) {
-                $marks[$subId] = round(array_sum($scores) / count($scores), 2);
+            // Calculate averages per subject (for yearly average or final semester view)
+            if ($isSemester && isset($sStats)) {
+                $marks = collect($sStats['marks']);
+            } else {
+                foreach ($allQuarterMarks as $subId => $scores) {
+                    $count = count($scores);
+                    $marks[$subId] = $count > 0 ? round(array_sum($scores) / $count, 2) : 0;
+                }
             }
         } elseif ($term->type === 'yearly') {
             $stats = $this->calculateStudentTotals($student, $term, $academicYear, $subjects);
