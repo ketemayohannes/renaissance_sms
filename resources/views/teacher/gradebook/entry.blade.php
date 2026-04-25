@@ -323,7 +323,7 @@
                                                 $displayTotal = $termTotalMark->score;
                                             }
                                         @endphp
-                                        <span class="inline-block px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 text-xs font-bold student-total min-w-[2.5rem]">{{ number_format($displayTotal, 2) }}</span>
+                                        <span class="inline-block px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 text-xs font-bold student-total min-w-[2.5rem]" data-master-total="{{ $termTotalMark ? $termTotalMark->score : 0 }}">{{ number_format($displayTotal, 2) }}</span>
                                     </td>
                                 </tr>
                             @empty
@@ -402,10 +402,16 @@
             const inputs = row.querySelectorAll('.mark-input');
             let grandTotal = 0;
             let caTotal = 0;
+            let hasAnyValue = false;
             
             inputs.forEach(input => {
                 const max = parseFloat(input.getAttribute('max'));
                 const isFinal = input.getAttribute('data-is-final') === '1';
+                
+                if (input.value.trim() !== '') {
+                    hasAnyValue = true;
+                }
+                
                 let val = parseFloat(input.value) || 0;
                 
                 // Reset validation styles
@@ -432,7 +438,16 @@
             if (caEl) caEl.innerText = caTotal.toFixed(2);
 
             const totalEl = row.querySelector('.student-total');
-            if (totalEl) totalEl.innerText = grandTotal.toFixed(2);
+            if (totalEl) {
+                if (!hasAnyValue && totalEl.hasAttribute('data-master-total')) {
+                    const masterTotal = parseFloat(totalEl.getAttribute('data-master-total')) || 0;
+                    if (masterTotal > 0) {
+                        totalEl.innerText = masterTotal.toFixed(2);
+                        return; // Keep master total, don't flag as unsaved unless changed
+                    }
+                }
+                totalEl.innerText = grandTotal.toFixed(2);
+            }
             
             // Mark as unsaved
             const rootElement = document.querySelector('.space-y-8');
