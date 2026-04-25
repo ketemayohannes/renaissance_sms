@@ -226,6 +226,7 @@
                                                     $title = 'Auto-calculated';
                                                 }
                                             }
+                                        @endphp
                                         <td class="p-0.5 text-center relative group/cell min-w-[3rem]" title="{{ $title }}">
                                             <input type="text" inputmode="decimal"
                                                    name="marks[{{ $student->id }}][{{ $subject->id }}]" 
