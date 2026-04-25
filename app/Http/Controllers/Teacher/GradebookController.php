@@ -122,6 +122,14 @@ class GradebookController extends Controller
                 // IMPORTANT: Only sum marks that belong to the components currently being viewed
                 $totalScore = $studentMarks->whereIn('assessment_template_id', $componentIds)->sum('score');
                 
+                // Fallback to Master Sheet total if components sum to 0
+                if ($totalScore == 0 && $termTotalTemplate) {
+                    $termTotalMark = $studentMarks->firstWhere('assessment_template_id', $termTotalTemplate->id);
+                    if ($termTotalMark) {
+                        $totalScore = $termTotalMark->score;
+                    }
+                }
+                
                 if ($totalScore > 0) {
                     $studentTotals->push([
                         'student' => $student,
