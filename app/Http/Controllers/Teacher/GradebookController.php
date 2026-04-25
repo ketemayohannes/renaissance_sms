@@ -33,6 +33,7 @@ class GradebookController extends Controller
 
         // Determine active term or fallback
         $activeTerm = Term::where('academic_year_id', $academicYearId)
+            ->where('type', 'quarter')
             ->where('start_date', '<=', now())
             ->where('end_date', '>=', now())
             ->first();
@@ -41,9 +42,12 @@ class GradebookController extends Controller
         
         // If no term is selected/active, get the closest one
         if (!$termId) {
-            $firstTerm = Term::where('academic_year_id', $academicYearId)->orderBy('start_date')->first();
+            $firstTerm = Term::where('academic_year_id', $academicYearId)
+                ->where('type', 'quarter')
+                ->orderBy('start_date')
+                ->first();
             if (!$firstTerm) {
-                return back()->with('error', 'No academic terms defined for this year.');
+                return back()->with('error', 'No quarter terms defined for this year.');
             }
             $termId = $firstTerm->id;
         }
@@ -54,7 +58,7 @@ class GradebookController extends Controller
 
         // Fetch all terms for this year for the dropdown
         $terms = Term::where('academic_year_id', $academicYearId)
-            ->whereIn('type', ['quarter', 'semester'])
+            ->where('type', 'quarter')
             ->orderBy('start_date')
             ->get();
 
