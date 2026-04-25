@@ -32,11 +32,20 @@ class GradebookController extends Controller
         $academicYear = AcademicYear::findOrFail($academicYearId);
 
         // Determine active term or fallback
+        // 1. Prioritize the quarter that is currently open for grading
         $activeTerm = Term::where('academic_year_id', $academicYearId)
             ->where('type', 'quarter')
-            ->where('start_date', '<=', now())
-            ->where('end_date', '>=', now())
+            ->where('is_grading_open', true)
             ->first();
+            
+        // 2. Fallback to calendar date if no grading quarter is explicitly open
+        if (!$activeTerm) {
+            $activeTerm = Term::where('academic_year_id', $academicYearId)
+                ->where('type', 'quarter')
+                ->where('start_date', '<=', now())
+                ->where('end_date', '>=', now())
+                ->first();
+        }
             
         $termId = $request->input('term_id', $activeTerm ? $activeTerm->id : null);
         
