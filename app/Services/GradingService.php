@@ -38,6 +38,7 @@ class GradingService
             // Now calculate yearly scores and ranks
             $students = $section->students()
                 ->wherePivot('academic_year_id', $academicYear->id)
+                ->whereIn('student_enrollments.status', ['active', 'completed'])
                 ->get();
             $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
 
@@ -115,7 +116,7 @@ class GradingService
         
         $students = $section->students()
             ->wherePivot('academic_year_id', $academicYear->id)
-            ->wherePivot('status', 'active')
+            ->whereIn('student_enrollments.status', ['active', 'completed'])
             ->get();
 
         $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
@@ -454,9 +455,24 @@ class GradingService
     public function getStudentReportData(Student $student, Term $term, AcademicYear $academicYear)
     {
         $enrollment = $student->enrollments()->where('academic_year_id', $academicYear->id)->first();
+        if (!$enrollment) return [];
+
         $section = $enrollment->section;
-        $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
+        $isYearly = $term->id === 'yearly' || $term->type === 'yearly';
+
+        // For non-yearly reports, we use the section bulk fetcher to ensure on-the-fly ranking is performed
+        if (!$isYearly) {
+            $students = $section->students()
+                ->wherePivot('academic_year_id', $academicYear->id)
+                ->whereIn('student_enrollments.status', ['active', 'completed'])
+                ->get();
+            
+            $allReports = $this->getSectionReportData($students, $section, $term, $academicYear);
+            return $allReports[(string)$student->id] ?? $allReports[(int)$student->id] ?? $this->prepareReportData($student, $section, $term, $academicYear, null);
+        }
         
+        // For yearly, use the default single-student preparation
+        $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
         return $this->prepareReportData($student, $section, $term, $academicYear, $subjects);
     }
 
@@ -506,6 +522,30 @@ class GradingService
                 $allMarks->get($student->id, collect())
             );
         }
+
+        // On-the-fly ranking if records are missing ranks in the database
+        // This ensures the roster (Academic Report) shows ranks even before a manual sync
+        if (!$isYearly) {
+            $hasMissingRanks = false;
+            foreach ($reports as $r) {
+                if ($r['rank'] === '-' || $r['rank'] === null || $r['rank'] === 0) {
+                    $hasMissingRanks = true;
+                    break;
+                }
+            }
+
+            if ($hasMissingRanks) {
+                $sortedTotals = collect($reports)->pluck('totalScore')->sortDesc();
+                $totalStudents = $sortedTotals->count();
+                foreach ($reports as $sid => &$report) {
+                    if ($report['rank'] === '-' || $report['rank'] === null || $report['rank'] === 0) {
+                        $rank = $sortedTotals->filter(fn($score) => $score > $report['totalScore'])->count() + 1;
+                        $report['rank'] = $rank;
+                        $report['rank_out_of'] = $totalStudents;
+                    }
+                }
+            }
+        }
         
         return $reports;
     }
@@ -534,8 +574,8 @@ class GradingService
                 $stats = $this->calculateStudentTotals($student, $term, $academicYear, $subjects);
                 $totalScore = $stats['total'];
                 $average = $stats['average'];
-                $rank = $record->rank ?? '-';
-                $rankOutOf = $record->rank_out_of ?? '-';
+                $rank = ($record && $record->rank) ? $record->rank : '-';
+                $rankOutOf = ($record && $record->rank_out_of) ? $record->rank_out_of : '-';
             } else {
                 // DEFENSIVE: If record has total > 0 but marks were pre-fetched and found 0, 
                 // we should trust the marks more (or recalculate).
@@ -752,7 +792,7 @@ class GradingService
 
         $students = $section->students()
             ->wherePivot('academic_year_id', $academicYear->id)
-            ->wherePivot('status', 'active')
+            ->whereIn('student_enrollments.status', ['active', 'completed'])
             ->get();
 
         if ($students->isEmpty()) return 0;

@@ -1,7 +1,7 @@
 <x-admin-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between w-full relative z-10">
-            <span class="text-xl font-bold text-slate-800">Academic Intelligence</span>
+            <span class="text-xl font-bold text-slate-800">Academic Reports</span>
             <div class="flex items-center gap-3">
                 <a href="{{ route('admin.academic-reports.settings') }}" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-50 hover:text-emerald-600 transition-all shadow-sm flex items-center gap-2 group">
                     <svg class="w-4 h-4 text-emerald-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
@@ -15,7 +15,7 @@
         </div>
     </x-slot>
 
-    <div class="space-y-8 pb-12" x-data="academicReports()">
+    <div class="space-y-8 pb-12">
         <x-breadcrumb :items="[['label' => 'Academic Reports', 'url' => '#']]" />
 
         <!-- High-Impact Compact Hero Section -->
@@ -28,20 +28,20 @@
                 <div class="max-w-xl">
                     <div class="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/20 mb-4">
                         <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping"></span>
-                        <span class="text-[9px] font-black uppercase tracking-[0.2em] text-indigo-100">Intel Engine Alpha</span>
+                        <span class="text-[9px] font-black uppercase tracking-[0.2em] text-indigo-100">Reports Engine</span>
                     </div>
-                    <h2 class="text-3xl md:text-4xl font-black mb-3 uppercase tracking-tighter leading-none italic font-heading">Academic Intelligence</h2>
-                    <p class="text-indigo-100/70 text-[11px] font-bold uppercase tracking-widest leading-relaxed">Synthesis of student performance into professional analytical matrices.</p>
+                    <h2 class="text-3xl md:text-4xl font-black mb-3 uppercase tracking-tighter leading-none italic font-heading">Academic Reports</h2>
+                    <p class="text-indigo-100/70 text-[11px] font-bold uppercase tracking-widest leading-relaxed">Generate and download comprehensive student academic reports and rosters.</p>
                 </div>
                 <div class="bg-white/10 backdrop-blur-xl rounded-[2rem] p-5 border border-white/20 shadow-2xl min-w-[200px]">
-                    <p class="text-[9px] font-black text-indigo-200 uppercase tracking-[0.3em] mb-1">Active Cycle</p>
+                    <p class="text-[9px] font-black text-indigo-200 uppercase tracking-[0.3em] mb-1">Active Year</p>
                     <p class="font-black text-xl tracking-tighter italic">{{ $academicYears->firstWhere('is_active', true)?->name ?? 'N/A' }}</p>
                 </div>
             </div>
         </div>
 
         <!-- Analytical Configuration Matrix -->
-        <form id="reportForm" action="{{ route('admin.academic-reports.show') }}" method="GET" class="space-y-8">
+        <form id="reportForm" x-data="academicReports()" @submit.prevent="submitReport($event)" action="{{ route('admin.academic-reports.show') }}" method="GET" class="space-y-8">
             <div class="bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-2xl shadow-slate-200/50 overflow-hidden divide-y divide-slate-100">
                 <!-- Data Scope Section -->
                 <div class="p-8 md:p-10">
@@ -50,14 +50,14 @@
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         </div>
                         <div>
-                            <h3 class="text-base font-black text-slate-900 uppercase tracking-tight">Scope Calibration</h3>
-                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 italic text-opacity-80">Define the target environment and timeline</p>
+                            <h3 class="text-base font-black text-slate-900 uppercase tracking-tight">Report Filters</h3>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 italic text-opacity-80">Select the year, term, and division for the report</p>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <div class="space-y-2">
-                            <label class="px-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">Academic Cycle</label>
+                            <label class="px-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">Academic Year</label>
                             <select name="academic_year_id" x-model="selectedYear" @change="loadTerms()" class="w-full bg-white/50 border-slate-200 rounded-2xl focus:ring-indigo-500 focus:border-indigo-500 font-bold text-sm py-3 px-4 transition-all" required>
                                 @foreach($academicYears as $year)
                                     <option value="{{ $year->id }}" {{ $year->is_active ? 'selected' : '' }}>{{ $year->name }}</option>
@@ -66,7 +66,7 @@
                         </div>
 
                         <div class="space-y-2">
-                            <label class="px-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">Target Term</label>
+                            <label class="px-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">Term / Quarter</label>
                             <select name="term_id" x-model="selectedTerm" class="w-full bg-white/50 border-slate-200 rounded-2xl focus:ring-indigo-500 focus:border-indigo-500 font-bold text-sm py-3 px-4 transition-all" required>
                                 <option value="">Select Timeline</option>
                                 <template x-for="term in terms" :key="term.id">
@@ -86,7 +86,7 @@
                         </div>
 
                         <div class="space-y-2" x-show="!hideSection" x-transition>
-                            <label class="px-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">Target Section</label>
+                            <label class="px-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">Select Section</label>
                             <select name="section_id" x-model="selectedSection" class="w-full bg-white/50 border-slate-200 rounded-2xl focus:ring-indigo-500 focus:border-indigo-500 font-bold text-sm py-3 px-4 transition-all" :required="!hideSection && !disableSection" :disabled="disableSection">
                                 <option value="">Select Unit</option>
                                 <template x-for="section in sections" :key="section.id">
@@ -96,7 +96,7 @@
                         </div>
                         
                         <div class="space-y-2" x-show="hideGrade" x-transition x-cloak>
-                            <label class="px-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">Division Matrix</label>
+                            <label class="px-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">Division</label>
                             <select name="division_id" x-model="selectedDivision" class="w-full bg-white/50 border-slate-200 rounded-2xl focus:ring-indigo-500 focus:border-indigo-500 font-bold text-sm py-3 px-4 transition-all">
                                 <option value="">All Divisions</option>
                                 @foreach($divisions as $division)
@@ -107,9 +107,9 @@
                     </div>
                     
                     <div x-show="reportType === 'grade_subject_analysis'" x-transition x-cloak class="mt-8 p-6 bg-indigo-50/30 rounded-3xl border border-indigo-100 shadow-sm">
-                        <label class="px-1 text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-3 block">Analytical Variable: Subject</label>
+                        <label class="px-1 text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-3 block">Selected Subject</label>
                         <select name="subject_id" x-model="selectedSubject" class="w-full max-w-lg bg-white border-slate-200 rounded-2xl focus:ring-indigo-500 focus:border-indigo-500 font-bold text-sm py-3 px-4 transition-all" :required="reportType === 'grade_subject_analysis'">
-                            <option value="">Select Discipline for Analysis</option>
+                            <option value="">Select Subject for Analysis</option>
                             <template x-for="subject in subjects" :key="subject.id">
                                 <option :value="subject.id" x-text="subject.name"></option>
                             </template>
@@ -124,8 +124,8 @@
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                         </div>
                         <div>
-                            <h3 class="text-base font-black text-slate-900 uppercase tracking-tight">Report Modality</h3>
-                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 italic text-opacity-80">Choose the final output format</p>
+                            <h3 class="text-base font-black text-slate-900 uppercase tracking-tight">Report Type</h3>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 italic text-opacity-80">Choose the type of report you want to generate</p>
                         </div>
                     </div>
 
@@ -161,11 +161,11 @@
                         @endphp
 
                         @foreach([
-                            ['val' => 'report_card', 'label' => 'Report Card', 'desc' => 'Individual Student certification', 'icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', 'color' => 'indigo'],
-                            ['val' => 'roster', 'label' => 'Term Roster', 'desc' => 'Comprehensive class marksheet', 'icon' => 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', 'color' => 'emerald'],
-                            ['val' => 'result_analysis', 'label' => 'Performance', 'desc' => 'Section-wise grade distribution', 'icon' => 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10', 'color' => 'rose'],
-                            ['val' => 'grade_subject_analysis', 'label' => 'Subject Intel', 'desc' => 'Cross-section subject benchmarks', 'icon' => 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253', 'color' => 'purple'],
-                            ['val' => 'consolidated_matrix', 'label' => 'School Matrix', 'desc' => 'Global grade level aggregation', 'icon' => 'M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z', 'color' => 'amber']
+                            ['val' => 'report_card', 'label' => 'Report Card', 'desc' => 'Individual student report cards', 'icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', 'color' => 'indigo'],
+                            ['val' => 'roster', 'label' => 'Term Roster', 'desc' => 'Full class marksheet', 'icon' => 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', 'color' => 'emerald'],
+                            ['val' => 'result_analysis', 'label' => 'Statistics', 'desc' => 'View grade distribution by section', 'icon' => 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10', 'color' => 'rose'],
+                            ['val' => 'grade_subject_analysis', 'label' => 'Subject Analysis', 'desc' => 'Subject performance comparison', 'icon' => 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253', 'color' => 'purple'],
+                            ['val' => 'consolidated_matrix', 'label' => 'School Matrix', 'desc' => 'Summary for the entire grade level', 'icon' => 'M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z', 'color' => 'amber']
                         ] as $item)
                         <label class="group relative cursor-pointer">
                             <input type="radio" name="report_type" value="{{ $item['val'] }}" x-model="reportType" class="sr-only peer" required>
@@ -188,12 +188,12 @@
                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         </div>
                         <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">
-                            Verification is mandatory before generation.
+                            Please verify all filters before generating.
                         </p>
                     </div>
                     <button type="submit" class="inline-flex items-center px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-black uppercase tracking-widest rounded-2xl transition-all shadow-lg shadow-indigo-100 gap-3 group">
                         <svg class="w-5 h-5 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04M12 2.944V22m0-19.056c1.1 0 2.1.2 3 .6a11.955 11.955 0 018.618 3.04M12 2.944a11.955 11.955 0 00-8.618 3.04"></path></svg>
-                        Initiate Generator
+                        Initiate Report
                     </button>
                 </div>
             </div>
@@ -202,9 +202,9 @@
         <!-- Dynamic Information Grid -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             @foreach([
-                ['label' => 'Active Roster', 'val' => \App\Models\Student::where('is_active', true)->count(), 'unit' => 'Students', 'color' => 'indigo', 'icon' => 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z'],
-                ['label' => 'Operational Units', 'val' => \App\Models\Section::whereHas('academicYear', fn($q) => $q->where('is_active', true))->count(), 'unit' => 'Sections', 'color' => 'emerald', 'icon' => 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'],
-                ['label' => 'Academic Phases', 'val' => \App\Models\Term::whereHas('academicYear', fn($q) => $q->where('is_active', true))->count(), 'unit' => 'Terms', 'color' => 'purple', 'icon' => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z']
+                ['label' => 'Active Students', 'val' => \App\Models\Student::where('is_active', true)->count(), 'unit' => 'Students', 'color' => 'indigo', 'icon' => 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z'],
+                ['label' => 'Active Sections', 'val' => \App\Models\Section::whereHas('academicYear', fn($q) => $q->where('is_active', true))->count(), 'unit' => 'Sections', 'color' => 'emerald', 'icon' => 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'],
+                ['label' => 'Active Terms', 'val' => \App\Models\Term::whereHas('academicYear', fn($q) => $q->where('is_active', true))->count(), 'unit' => 'Terms', 'color' => 'purple', 'icon' => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z']
             ] as $stat)
             <div class="bg-white/60 backdrop-blur-md p-6 rounded-3xl border border-white shadow-sm flex items-center gap-5 group hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
                 <div class="w-12 h-12 rounded-2xl bg-{{ $stat['color'] }}-50 flex items-center justify-center text-{{ $stat['color'] }}-600 group-hover:scale-110 transition-transform">
@@ -242,23 +242,23 @@
                 get disableSection() { return this.reportType === 'grade_subject_analysis'; },
 
                 init() {
-                    console.log('Academic Reports Init - Selected Year:', this.selectedYear);
                     if (this.selectedYear) { 
-                        console.log('Loading terms for initial year...');
                         this.loadTerms(); 
                     }
-                    
-                    this.$el.closest('form')?.addEventListener('submit', (e) => {
-                        if (this.reportType === 'grade_subject_analysis') {
-                            e.preventDefault();
-                            const params = new URLSearchParams(new FormData(e.target)).toString();
-                            window.location.href = `{{ route('admin.academic-reports.subject-analysis') }}?${params}`;
-                        } else if (this.reportType === 'consolidated_matrix') {
-                            e.preventDefault();
-                            const params = new URLSearchParams(new FormData(e.target)).toString();
-                            window.location.href = `{{ route('admin.academic-reports.grade-matrix') }}?${params}`;
-                        }
-                    });
+                },
+
+                submitReport(e) {
+                    const formData = new FormData(e.target);
+                    const params = new URLSearchParams(formData).toString();
+
+                    if (this.reportType === 'grade_subject_analysis') {
+                        window.location.href = `{{ route('admin.academic-reports.subject-analysis') }}?${params}`;
+                    } else if (this.reportType === 'consolidated_matrix') {
+                        window.location.href = `{{ route('admin.academic-reports.grade-matrix') }}?${params}`;
+                    } else {
+                        // Standard reports (roster, report card, etc.)
+                        e.target.submit();
+                    }
                 },
 
                 async loadTerms() {

@@ -81,7 +81,7 @@ class ReportCardService
     /**
      * Store bulk data entry for students.
      */
-    public function storeDataEntry(int $termId, int $academicYearId, array $records): void
+    public function storeDataEntry(int $termId, int $academicYearId, array $records, Section $section = null): void
     {
         DB::transaction(function () use ($termId, $academicYearId, $records) {
             foreach ($records as $studentId => $data) {
@@ -99,6 +99,11 @@ class ReportCardService
                 );
             }
         });
+
+        // Clear roster cache for this section and term
+        if ($section) {
+            \Illuminate\Support\Facades\Cache::forget("roster_data_{$section->id}_{$termId}_{$academicYearId}");
+        }
     }
 
     /**
@@ -176,7 +181,7 @@ class ReportCardService
         
         $students = $section->students()
             ->wherePivot('academic_year_id', $academicYear->id)
-            ->where('is_active', true)
+            ->whereIn('student_enrollments.status', ['active', 'completed'])
             ->orderBy('first_name')
             ->get();
 
@@ -369,9 +374,16 @@ class ReportCardService
             ->toArray();
 
         $present = $stats['present'] ?? 0;
-        $absent = $stats['absent'] ?? 0;
+        $automatedAbsent = $stats['absent'] ?? 0;
         $late = $stats['late'] ?? 0;
         $excused = $stats['excused'] ?? 0;
+
+        // Manual Override from StudentTermRecord
+        $record = StudentTermRecord::where('student_id', $student->id)
+            ->where('term_id', $term->id)
+            ->first();
+            
+        $absent = ($record && $record->days_absent !== null) ? $record->days_absent : $automatedAbsent;
 
         return [
             'total_days' => $present + $absent + $late + $excused,

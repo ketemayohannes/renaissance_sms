@@ -50,7 +50,12 @@ class SectionGradeController extends Controller
 
 
         // Fetch students
-        $students = $section->students()->orderBy('first_name')->get();
+        $students = $section->students()
+            ->wherePivot('academic_year_id', $academicYear->id)
+            ->wherePivot('status', 'active')
+            ->where('students.is_active', true)
+            ->orderBy('students.first_name')
+            ->get();
 
         // Ensure "Term Total" Assessment Template exists for EACH subject
         // We look for a template with a specific convention, e.g., type "TERM_GRADE" or name "Term Total"
@@ -256,7 +261,12 @@ class SectionGradeController extends Controller
         $academicYear = AcademicYear::findOrFail($request->academic_year_id);
         
         $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
-        $students = $section->students()->orderBy('first_name')->get();
+        $students = $section->students()
+            ->wherePivot('academic_year_id', $academicYear->id)
+            ->wherePivot('status', 'active')
+            ->where('students.is_active', true)
+            ->orderBy('students.first_name')
+            ->get();
 
         $filename = "master_sheet_{$section->name}_{$term->name}.csv";
         

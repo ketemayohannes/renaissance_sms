@@ -194,6 +194,77 @@
             </div>
         </div>
 
+        <!-- Academic Performance Analytics (Full Width) -->
+        <div class="glass-panel p-8">
+            <div class="flex items-center justify-between mb-8">
+                <div>
+                    <h3 class="text-xl font-black text-slate-900 uppercase tracking-tight">Academic Excellence</h3>
+                    <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Subject Average Performance</p>
+                </div>
+                
+                <!-- Selectors -->
+                <div class="flex items-center gap-2">
+                    <form id="academicExcellenceForm" class="flex gap-2">
+                        @if(request('division_id'))
+                            <input type="hidden" name="division_id" value="{{ request('division_id') }}">
+                        @endif
+                        <select name="grade_level_id" onchange="fetchAcademicExcellenceData()" 
+                                class="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest focus:ring-indigo-600 focus:border-indigo-600 transition-all shadow-sm">
+                            @foreach($gradeLevels as $grade)
+                                <option value="{{ $grade->id }}" {{ $selectedGradeLevelId == $grade->id ? 'selected' : '' }}>{{ $grade->name }}</option>
+                            @endforeach
+                        </select>
+                        <select name="term_id" onchange="fetchAcademicExcellenceData()" 
+                                class="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest focus:ring-indigo-600 focus:border-indigo-600 transition-all shadow-sm">
+                            <option value="yearly" {{ $selectedTermId === 'yearly' ? 'selected' : '' }}>Yearly Average</option>
+                            @foreach($terms as $term)
+                                <option value="{{ $term->id }}" {{ $selectedTermId == $term->id ? 'selected' : '' }}>{{ $term->name }}</option>
+                            @endforeach
+                        </select>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Chart (Full Width) -->
+            <div class="h-[350px] mb-8">
+                <canvas id="gradeAveragesChart"></canvas>
+            </div>
+            
+            <!-- Horizontal Table -->
+            <div class="overflow-x-auto custom-scrollbar relative" id="academicExcellenceTableContainer">
+                <!-- Loading overlay -->
+                <div id="academicExcellenceLoading" class="absolute inset-0 bg-white/80 backdrop-blur-sm z-20 flex items-center justify-center hidden rounded-xl">
+                    <svg class="animate-spin h-8 w-8 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>
+                
+                <table class="w-full text-center">
+                    <thead id="academicExcellenceThead">
+                        <tr>
+                            @foreach($subjectAverages as $avg)
+                            <th class="text-[10px] font-black text-slate-400 uppercase tracking-widest pb-3 px-3 whitespace-nowrap">{{ $avg->subject_name }}</th>
+                            @endforeach
+                        </tr>
+                    </thead>
+                    <tbody id="academicExcellenceTbody">
+                        <tr>
+                            @forelse($subjectAverages as $avg)
+                            <td class="py-3 px-3">
+                                <span class="px-3 py-1.5 rounded-lg text-xs font-black {{ $avg->average >= 75 ? 'bg-emerald-50 text-emerald-600' : ($avg->average >= 50 ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600') }}">
+                                    {{ $avg->average }}%
+                                </span>
+                            </td>
+                            @empty
+                            <td class="py-8 text-center text-xs font-bold text-slate-400 italic">No data</td>
+                            @endforelse
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <!-- System Status -->
             <div class="glass-panel p-8">
@@ -378,7 +449,164 @@
                     }
                 });
             }
+            
+            // Grade Averages Chart
+            const averagesCtx = document.getElementById('gradeAveragesChart');
+            window.academicExcellenceChart = null;
+            
+            if (averagesCtx) {
+                const gradient = averagesCtx.getContext('2d').createLinearGradient(0, 400, 0, 0);
+                gradient.addColorStop(0, '#34d399');
+                gradient.addColorStop(1, '#10b981');
+
+                const initialData = {!! json_encode($subjectAverages->pluck('average')) !!};
+                const bgColors = initialData.map(val => val < 70 ? '#f43f5e' : gradient);
+                const hoverColors = initialData.map(val => val < 70 ? '#e11d48' : '#059669');
+
+                window.academicExcellenceChart = new Chart(averagesCtx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: {!! json_encode($subjectAverages->pluck('subject_name')) !!},
+                        datasets: [{
+                            label: 'Average %',
+                            data: initialData,
+                            backgroundColor: bgColors,
+                            hoverBackgroundColor: hoverColors,
+                            borderRadius: 8,
+                            maxBarThickness: 40,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { 
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: '#0f172a',
+                                titleFont: { size: 14, weight: '900', family: 'Inter' },
+                                bodyFont: { size: 13, family: 'Inter' },
+                                padding: 16,
+                                cornerRadius: 16,
+                                displayColors: false,
+                                callbacks: {
+                                    label: function(ctx) { return ctx.parsed.y + '%'; }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: { 
+                                min: 0,
+                                max: 100,
+                                beginAtZero: true, 
+                                grid: { color: '#f8fafc', drawBorder: false },
+                                ticks: { 
+                                    font: { size: 11, weight: '700' }, 
+                                    color: '#94a3b8',
+                                    callback: function(v) { return v + '%'; }
+                                }
+                            },
+                            x: { 
+                                grid: { display: false },
+                                ticks: { 
+                                    font: { size: 10, weight: '700' }, 
+                                    color: '#94a3b8',
+                                    maxRotation: 45,
+                                    minRotation: 45
+                                }
+                            }
+                        }
+                    }
+                });
+            }
         });
+
+        // AJAX function for Academic Excellence
+        function fetchAcademicExcellenceData() {
+            const form = document.getElementById('academicExcellenceForm');
+            const url = new URL('{{ route('admin.dashboard') }}', window.location.origin);
+            const formData = new FormData(form);
+            
+            // Append form data to URL
+            for (const [key, value] of formData.entries()) {
+                url.searchParams.append(key, value);
+            }
+            url.searchParams.append('fetch_academic_excellence', '1');
+
+            // Show loading
+            document.getElementById('academicExcellenceLoading').classList.remove('hidden');
+
+            fetch(url, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const averages = data.subjectAverages;
+                
+                // Update Chart
+                if (window.academicExcellenceChart) {
+                    const newLabels = averages.map(a => a.subject_name);
+                    const newData = averages.map(a => a.average);
+                    
+                    const averagesCtx = document.getElementById('gradeAveragesChart');
+                    const gradient = averagesCtx.getContext('2d').createLinearGradient(0, 400, 0, 0);
+                    gradient.addColorStop(0, '#34d399');
+                    gradient.addColorStop(1, '#10b981');
+                    
+                    const newBgColors = newData.map(val => val < 70 ? '#f43f5e' : gradient);
+                    const newHoverColors = newData.map(val => val < 70 ? '#e11d48' : '#059669');
+
+                    window.academicExcellenceChart.data.labels = newLabels;
+                    window.academicExcellenceChart.data.datasets[0].data = newData;
+                    window.academicExcellenceChart.data.datasets[0].backgroundColor = newBgColors;
+                    window.academicExcellenceChart.data.datasets[0].hoverBackgroundColor = newHoverColors;
+                    window.academicExcellenceChart.update();
+                }
+
+                // Update Table
+                const thead = document.getElementById('academicExcellenceThead');
+                const tbody = document.getElementById('academicExcellenceTbody');
+                
+                let theadHtml = '<tr>';
+                let tbodyHtml = '<tr>';
+                
+                if (averages.length === 0) {
+                    theadHtml += '<th class="py-3 px-3 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Subject</th>';
+                    tbodyHtml += '<td class="py-8 text-center text-xs font-bold text-slate-400 italic">No data</td>';
+                } else {
+                    averages.forEach(avg => {
+                        theadHtml += `<th class="text-[10px] font-black text-slate-400 uppercase tracking-widest pb-3 px-3 whitespace-nowrap">${avg.subject_name}</th>`;
+                        
+                        let colorClass = 'bg-rose-50 text-rose-600';
+                        if (avg.average >= 75) colorClass = 'bg-emerald-50 text-emerald-600';
+                        else if (avg.average >= 50) colorClass = 'bg-amber-50 text-amber-600';
+                        
+                        tbodyHtml += `
+                            <td class="py-3 px-3">
+                                <span class="px-3 py-1.5 rounded-lg text-xs font-black ${colorClass}">
+                                    ${avg.average}%
+                                </span>
+                            </td>
+                        `;
+                    });
+                }
+                
+                theadHtml += '</tr>';
+                tbodyHtml += '</tr>';
+                
+                thead.innerHTML = theadHtml;
+                tbody.innerHTML = tbodyHtml;
+            })
+            .catch(error => {
+                console.error('Error fetching academic excellence data:', error);
+            })
+            .finally(() => {
+                // Hide loading
+                document.getElementById('academicExcellenceLoading').classList.add('hidden');
+            });
+        }
     </script>
     @endpush
 

@@ -41,7 +41,7 @@ class StudentController extends Controller
 
         // Status Filter
         if ($request->filled('status')) {
-            if ($request->status == 'blocked') {
+            if ($request->status == 'blocked' || $request->status == 'inactive') {
                 $query->inactive();
             } elseif ($request->status == 'active') {
                 $query->active();

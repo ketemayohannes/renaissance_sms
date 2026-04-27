@@ -700,63 +700,40 @@
                                                     <div class="px-6 pb-6">
                                                         @php
                                                             $pivotedMarks = $marks->groupBy('subject_id');
-                                                            $assessmentTemplates = $marks->pluck('assessmentTemplate')->unique('id')->sortBy('order');
+                                                            // Group by name to avoid diagonal view when multiple templates have the same name
+                                                            $assessmentTemplates = $marks->pluck('assessmentTemplate')->unique('name')->sortBy('order');
                                                             $caTemplates = $assessmentTemplates->filter(fn($t) => stripos($t->name, 'Final') === false);
                                                             $finalTemplate = $assessmentTemplates->first(fn($t) => stripos($t->name, 'Final') !== false);
+                                                            
+                                                            // Calculate total max score for headers
+                                                            $caMaxTotal = $caTemplates->sum('max_score');
+                                                            $finalMaxScore = $finalTemplate ? $finalTemplate->max_score : 0;
                                                         @endphp
-                                                        <div class="overflow-x-auto">
-                                                            <table class="w-full text-left border-collapse">
+                                                        <div class="overflow-x-auto no-scrollbar pb-4">
+                                                            <table class="w-full text-left border-separate border-spacing-x-2">
                                                                 <thead>
-                                                                    <tr class="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
-                                                                        <th class="pb-4 pl-4 min-w-[150px]">Subject</th>
-                                                                        @foreach($caTemplates as $template)
-                                                                            <th class="pb-4 text-center">{{ $template->name }} <br><span class="text-[8px] opacity-60">({{ (int)$template->max_score }})</span></th>
+                                                                    <tr class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                                                        @foreach($pivotedMarks as $subjectId => $subjectMarks)
+                                                                            <th class="pb-3 text-center px-4 bg-slate-50 rounded-t-xl border-x border-t border-slate-100 min-w-[120px]">
+                                                                                {{ $subjectMarks->first()->subject->name }}
+                                                                            </th>
                                                                         @endforeach
-                                                                        @if($finalTemplate)
-                                                                            <th class="pb-4 text-center">{{ $finalTemplate->name }} <br><span class="text-[8px] opacity-60">({{ (int)$finalTemplate->max_score }})</span></th>
-                                                                        @endif
-                                                                        <th class="pb-4 text-center bg-indigo-50/30 text-indigo-500">C.A. ({{ (int)$caTemplates->sum('max_score') }}%)</th>
-                                                                        <th class="pb-4 text-center bg-emerald-50/30 text-emerald-600 pr-4">Total (100%)</th>
                                                                     </tr>
                                                                 </thead>
-                                                                <tbody class="divide-y divide-slate-50">
-                                                                    @foreach($pivotedMarks as $subjectId => $subjectMarks)
-                                                                        @php
-                                                                            $subject = $subjectMarks->first()->subject;
-                                                                            $caTotal = 0;
-                                                                            $finalScore = 0;
-                                                                        @endphp
-                                                                        <tr class="group hover:bg-slate-50/50 transition-colors">
-                                                                            <td class="py-4 pl-4 font-bold text-slate-700 text-sm">
-                                                                                {{ $subject->name }}
+                                                                <tbody>
+                                                                    <tr>
+                                                                        @foreach($pivotedMarks as $subjectId => $subjectMarks)
+                                                                            @php
+                                                                                $total = $subjectMarks->sum('score');
+                                                                            @endphp
+                                                                            <td class="py-6 text-center bg-white border border-slate-100 rounded-b-xl shadow-sm">
+                                                                                <span class="text-xl font-black text-indigo-600">
+                                                                                    {{ number_format($total, 1) }}
+                                                                                </span>
+                                                                                <div class="text-[8px] font-black text-slate-300 uppercase tracking-widest mt-1">Total Score</div>
                                                                             </td>
-                                                                            @foreach($caTemplates as $template)
-                                                                                @php
-                                                                                    $mark = $subjectMarks->firstWhere('assessment_template_id', $template->id);
-                                                                                    $score = $mark ? $mark->score : 0;
-                                                                                    $caTotal += $score;
-                                                                                @endphp
-                                                                                <td class="py-4 text-center text-xs font-semibold text-slate-500">
-                                                                                    {{ $mark ? number_format($score, 1) : '-' }}
-                                                                                </td>
-                                                                            @endforeach
-                                                                            @if($finalTemplate)
-                                                                                @php
-                                                                                    $mark = $subjectMarks->firstWhere('assessment_template_id', $finalTemplate->id);
-                                                                                    $finalScore = $mark ? $mark->score : 0;
-                                                                                @endphp
-                                                                                <td class="py-4 text-center text-xs font-semibold text-slate-500">
-                                                                                    {{ $mark ? number_format($finalScore, 1) : '-' }}
-                                                                                </td>
-                                                                            @endif
-                                                                            <td class="py-4 text-center bg-indigo-50/30 font-black text-indigo-600 text-xs">
-                                                                                {{ number_format($caTotal, 1) }}
-                                                                            </td>
-                                                                            <td class="py-4 text-center bg-emerald-50/30 font-black text-emerald-600 text-xs pr-4">
-                                                                                {{ number_format($caTotal + $finalScore, 1) }}
-                                                                            </td>
-                                                                        </tr>
-                                                                    @endforeach
+                                                                        @endforeach
+                                                                    </tr>
                                                                 </tbody>
                                                             </table>
                                                         </div>

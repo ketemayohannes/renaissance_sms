@@ -12,12 +12,21 @@ use Illuminate\Support\Facades\DB;
 
 class SectionController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $query = Section::with(['gradeLevel.division', 'academicYear', 'homeroomTeacher'])
+            ->orderBy('academic_year_id', 'desc');
+
+        if ($request->filled('search')) {
+            $search = $request->get('search');
+            $query->where('name', 'like', "%{$search}%")
+                  ->orWhereHas('gradeLevel', function($q) use ($search) {
+                      $q->where('name', 'like', "%{$search}%");
+                  });
+        }
+
         // PERFORMANCE: Use pagination instead of loading all sections
-        $sections = Section::with(['gradeLevel.division', 'academicYear', 'homeroomTeacher'])
-            ->orderBy('academic_year_id', 'desc')
-            ->paginate(50);
+        $sections = $query->paginate(50)->withQueryString();
         return view('admin.sections.index', compact('sections'));
     }
 

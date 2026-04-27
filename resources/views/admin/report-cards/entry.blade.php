@@ -44,6 +44,42 @@
             </div>
         @endif
 
+        <!-- Low Performance Alert -->
+        @php
+            $lowPerformers = $students->filter(function($student) use ($records) {
+                $record = $records[$student->id] ?? null;
+                return $record && $record->average_score !== null && $record->average_score < 76;
+            });
+        @endphp
+
+        @if($lowPerformers->isNotEmpty())
+            <div class="bg-rose-50 border border-rose-100 rounded-[2.5rem] p-8 shadow-xl shadow-rose-100/50 animate-in fade-in slide-in-from-top-4 duration-500">
+                <div class="flex items-center gap-6 mb-6">
+                    <div class="w-14 h-14 rounded-2xl bg-rose-500 text-white flex items-center justify-center shadow-lg shadow-rose-200">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-black text-rose-900 tracking-tight">Academic Alert: Low Performance Threshold</h2>
+                        <p class="text-sm font-bold text-rose-600/80">The following students have a total average below 76% for this {{ $term->type }}.</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    @foreach($lowPerformers as $student)
+                        <div class="bg-white/60 backdrop-blur-md border border-rose-100 rounded-2xl p-4 flex items-center justify-between group hover:bg-white transition-all">
+                            <div class="flex flex-col">
+                                <span class="text-xs font-black text-slate-800 tracking-tight group-hover:text-rose-600 transition-colors">{{ $student->full_name }}</span>
+                                <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">ID: {{ $student->student_id }}</span>
+                            </div>
+                            <div class="flex flex-col items-end">
+                                <span class="text-sm font-black text-rose-600">{{ number_format($records[$student->id]->average_score, 1) }}%</span>
+                                <span class="text-[9px] font-bold text-rose-300 uppercase tracking-tighter">Average</span>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         <!-- Context Matrix -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div class="bg-white/80 backdrop-blur-xl border border-white rounded-[2.5rem] p-8 shadow-xl shadow-slate-200/50 flex items-center gap-6 group hover:-translate-y-1 transition-all">
@@ -87,7 +123,7 @@
                 <input type="hidden" name="academic_year_id" value="{{ $academicYear->id }}">
                 <input type="hidden" name="term_id" value="{{ $term->id }}">
 
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto pb-24">
                     <table class="w-full text-left border-separate border-spacing-0">
                         <thead>
                             <tr class="bg-slate-50/50">
@@ -114,10 +150,13 @@
                                     </td>
                                     <td class="px-4 py-6">
                                         <div class="relative group/input">
-                                            <input type="text" name="records[{{ $student->id }}][conduct]" 
-                                                   value="{{ $record->conduct_grade ?? '' }}" 
-                                                   class="w-full bg-white/50 border-slate-100 rounded-xl py-3 px-4 text-center text-sm font-black focus:ring-indigo-600 focus:border-indigo-600 shadow-inner group-hover/input:border-indigo-200 transition-all uppercase" 
-                                                   placeholder="A+">
+                                            <select name="records[{{ $student->id }}][conduct]" 
+                                                    class="w-full bg-white/50 border-slate-100 rounded-xl py-3 px-4 text-center text-sm font-black focus:ring-indigo-600 focus:border-indigo-600 shadow-inner group-hover/input:border-indigo-200 transition-all appearance-none cursor-pointer">
+                                                <option value="">-</option>
+                                                <option value="A" {{ ($record->conduct_grade ?? '') == 'A' ? 'selected' : '' }}>A</option>
+                                                <option value="B" {{ ($record->conduct_grade ?? '') == 'B' ? 'selected' : '' }}>B</option>
+                                                <option value="C" {{ ($record->conduct_grade ?? '') == 'C' ? 'selected' : '' }}>C</option>
+                                            </select>
                                         </div>
                                     </td>
                                     <td class="px-4 py-6">
@@ -149,27 +188,27 @@
                     </table>
                 </div>
 
-                </div>
             </form>
 
-            <!-- Floating Bottom Command Bar -->
-            <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 p-1.5 bg-white/90 backdrop-blur-xl border border-slate-200 shadow-2xl shadow-slate-200/50 rounded-2xl animate-in slide-in-from-bottom-12 duration-500">
-                <div class="flex items-center gap-3 pl-4 pr-2 border-r border-slate-100">
-                    <div class="flex flex-col">
-                        <span class="text-[10px] uppercase tracking-wider font-bold text-slate-400 leading-none">Status</span>
-                        <span class="text-sm font-bold text-slate-700 leading-tight">Ready</span>
-                    </div>
+        </div>
+        
+        <!-- Floating Bottom Command Bar -->
+        <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 p-1.5 bg-white/90 backdrop-blur-xl border border-slate-200 shadow-2xl shadow-slate-200/50 rounded-2xl animate-in slide-in-from-bottom-12 duration-500">
+            <div class="flex items-center gap-3 pl-4 pr-2 border-r border-slate-100">
+                <div class="flex flex-col">
+                    <span class="text-[10px] uppercase tracking-wider font-bold text-slate-400 leading-none">Status</span>
+                    <span class="text-sm font-bold text-slate-700 leading-tight">Ready</span>
                 </div>
-
-                <a href="{{ route('admin.section-grades.index') }}" class="px-5 py-2.5 text-slate-500 font-bold text-xs hover:text-slate-900 transition-colors uppercase tracking-wider">
-                    Discard
-                </a>
-                
-                <button type="submit" form="reportCardForm" class="px-6 py-2.5 bg-slate-900 text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-indigo-600 transition-all shadow-lg shadow-indigo-100 flex items-center gap-2 group">
-                    Save Behaviors
-                    <svg class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
-                </button>
             </div>
+
+            <a href="{{ route('admin.section-grades.index') }}" class="px-5 py-2.5 text-slate-500 font-bold text-xs hover:text-slate-900 transition-colors uppercase tracking-wider">
+                Discard
+            </a>
+            
+            <button type="submit" form="reportCardForm" class="px-6 py-2.5 bg-slate-900 text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-indigo-600 transition-all shadow-lg shadow-indigo-100 flex items-center gap-2 group">
+                Save Behaviors
+                <svg class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+            </button>
         </div>
     </div>
 </x-admin-layout>

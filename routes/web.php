@@ -162,6 +162,8 @@ Route::middleware('auth')->group(function () {
         Route::get('academic-reports/show', [App\Http\Controllers\Admin\AcademicReportController::class, 'show'])->name('academic-reports.show');
         Route::get('academic-reports/subject-analysis', [App\Http\Controllers\Admin\AcademicReportController::class, 'subjectAnalysis'])->name('academic-reports.subject-analysis');
         Route::get('academic-reports/grade-matrix', [App\Http\Controllers\Admin\AcademicReportController::class, 'gradeMatrix'])->name('academic-reports.grade-matrix');
+        Route::get('academic-reports/matrix-reorder', [App\Http\Controllers\Admin\AcademicReportController::class, 'matrixReorder'])->name('academic-reports.matrix-reorder');
+        Route::post('academic-reports/matrix-reorder', [App\Http\Controllers\Admin\AcademicReportController::class, 'updateMatrixOrder'])->name('academic-reports.matrix-reorder.update');
         Route::post('academic-reports/recalculate', [App\Http\Controllers\Admin\AcademicReportController::class, 'recalculate'])->name('academic-reports.recalculate');
 
         Route::get('section-grades/{section}/report-card-details', [App\Http\Controllers\Admin\ReportCardController::class, 'entry'])->name('section-grades.report-card-entry');

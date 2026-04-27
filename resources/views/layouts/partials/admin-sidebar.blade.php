@@ -88,11 +88,18 @@
         </div>
         
         <div x-show="openCategories['students'] || sidebarCollapsed" x-collapse>
-            <a href="{{ route('admin.students.index') }}" class="sidebar-link {{ request()->routeIs('admin.students.*') ? 'sidebar-link-active' : '' }}" title="Learners">
+            <a href="{{ route('admin.students.index') }}" class="sidebar-link {{ request()->routeIs('admin.students.*') && !request()->has('status') ? 'sidebar-link-active' : '' }}" title="Learners">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                 </svg>
-                <span x-show="!sidebarCollapsed" x-transition>Learners</span>
+                <span x-show="!sidebarCollapsed" x-transition>Learners (Active)</span>
+            </a>
+
+            <a href="{{ route('admin.students.index', ['status' => 'inactive']) }}" class="sidebar-link {{ request('status') === 'inactive' ? 'sidebar-link-active' : '' }}" title="Inactive Students">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+                </svg>
+                <span x-show="!sidebarCollapsed" x-transition>Inactive Students</span>
             </a>
 
             <a href="{{ route('admin.guardians.index') }}" class="sidebar-link {{ request()->routeIs('admin.guardians.*') ? 'sidebar-link-active' : '' }}" title="Parents">

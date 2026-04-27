@@ -201,7 +201,7 @@
                                 <select name="status" id="status" class="w-full py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all">
                                     <option value="">All</option>
                                     <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
-                                    <option value="blocked" {{ request('status') == 'blocked' ? 'selected' : '' }}>Blocked</option>
+                                    <option value="inactive" {{ request('status') == 'inactive' || request('status') == 'blocked' ? 'selected' : '' }}>Inactive</option>
                                     <option value="trashed" {{ request('status') == 'trashed' ? 'selected' : '' }}>Trash</option>
                                 </select>
                             </div>

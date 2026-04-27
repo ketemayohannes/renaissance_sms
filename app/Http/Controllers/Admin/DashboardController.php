@@ -20,8 +20,115 @@ class DashboardController extends Controller
         $divisionId = $request->get('division_id');
         $cacheTtl = 3600;
         
-        // Cache key includes division ID
-        $cacheSuffix = $divisionId ? "_div_{$divisionId}" : "_all";
+        $selectedTermId = $request->get('term_id');
+        $selectedGradeLevelId = $request->get('grade_level_id');
+        
+        $academicYear = \App\Helpers\CachedData::activeAcademicYear();
+        $terms = \App\Models\Term::where('academic_year_id', $academicYear?->id)->orderBy('start_date')->get();
+        
+        // Find default term if none selected
+        if (!$selectedTermId) {
+            $selectedTermId = $terms->where('is_grading_open', true)->first()?->id ?? $terms->last()?->id;
+        }
+
+        // Get all grade levels for the dropdown
+        $gradeLevelsQuery = \App\Models\GradeLevel::where('is_active', true)->orderBy('sort_order');
+        if ($divisionId) {
+            $gradeLevelsQuery->where('division_id', $divisionId);
+        }
+        $gradeLevels = $gradeLevelsQuery->get();
+        
+        // Default to first grade level if none selected
+        if (!$selectedGradeLevelId) {
+            $selectedGradeLevelId = $gradeLevels->first()?->id;
+        }
+
+        $cacheSuffix = ($divisionId ? "_div_{$divisionId}" : "_all") 
+            . ($selectedTermId ? "_term_{$selectedTermId}" : "") 
+            . ($selectedGradeLevelId ? "_gl_{$selectedGradeLevelId}" : "");
+
+        // Subject Averages for selected grade level (Cached)
+        $subjectAverages = \Illuminate\Support\Facades\Cache::remember("admin_dashboard_subject_averages{$cacheSuffix}", $cacheTtl, function() use ($selectedTermId, $selectedGradeLevelId, $academicYear) {
+            if (!$academicYear || !$selectedGradeLevelId) return collect();
+
+            $gradeLevel = \App\Models\GradeLevel::find($selectedGradeLevelId);
+            if (!$gradeLevel) return collect();
+
+            // Get subjects for this grade level
+            $subjects = $gradeLevel->subjects()->orderByPivot('sort_order')->get();
+            if ($subjects->isEmpty()) return collect();
+
+            // Get the TERM_TOTAL assessment type ID
+            $termTotalTypeId = \App\Models\AssessmentType::where('code', 'TERM_TOTAL')->value('id');
+
+            // Determine which quarter term IDs to query marks from
+            $quarterIds = [];
+            if ($selectedTermId === 'yearly') {
+                $quarterIds = \App\Models\Term::where('academic_year_id', $academicYear->id)
+                    ->where('type', 'quarter')->pluck('id')->toArray();
+            } else {
+                $term = \App\Models\Term::find($selectedTermId);
+                if ($term && $term->isSemester()) {
+                    $quarterIds = $term->quarters()->pluck('id')->toArray();
+                } elseif ($term && $term->isQuarter()) {
+                    $quarterIds = [$term->id];
+                }
+            }
+
+            if (empty($quarterIds)) return collect();
+
+            // Get all active students in this grade level's sections
+            $sectionIds = \App\Models\Section::where('grade_level_id', $selectedGradeLevelId)
+                ->where('is_active', true)->pluck('id');
+            
+            $studentIds = \App\Models\StudentEnrollment::whereIn('section_id', $sectionIds)
+                ->where('academic_year_id', $academicYear->id)
+                ->whereNull('end_date')
+                ->whereIn('status', ['active', 'completed'])
+                ->pluck('student_id');
+
+            // Fetch term total marks for these students, subjects, and quarters
+            $marks = \App\Models\StudentMark::whereIn('student_id', $studentIds)
+                ->whereIn('term_id', $quarterIds)
+                ->whereIn('subject_id', $subjects->pluck('id'))
+                ->whereHas('assessmentTemplate', function($q) use ($termTotalTypeId) {
+                    $q->where('assessment_type_id', $termTotalTypeId);
+                })
+                ->selectRaw('subject_id, student_id, term_id, score')
+                ->get();
+
+            // Calculate per-subject averages
+            return $subjects->map(function($subject) use ($marks, $quarterIds) {
+                $subjectMarks = $marks->where('subject_id', $subject->id);
+                
+                if ($subjectMarks->isEmpty()) {
+                    return (object)[
+                        'subject_name' => $subject->name,
+                        'average' => 0,
+                    ];
+                }
+
+                // Group by student, then average each student's quarter scores
+                $studentGroups = $subjectMarks->groupBy('student_id');
+                $studentAverages = $studentGroups->map(function($recs) {
+                    $scores = $recs->where('score', '>', 0)->pluck('score');
+                    return $scores->isNotEmpty() ? $scores->avg() : 0;
+                })->filter(fn($avg) => $avg > 0);
+
+                $average = $studentAverages->isNotEmpty() ? round($studentAverages->avg(), 1) : 0;
+                
+                return (object)[
+                    'subject_name' => $subject->name,
+                    'average' => $average,
+                ];
+            });
+        });
+
+        if ($request->ajax() && $request->has('fetch_academic_excellence')) {
+            return response()->json([
+                'subjectAverages' => $subjectAverages
+            ]);
+        }
         
         // Key Metrics (Cached)
         $stats = \Illuminate\Support\Facades\Cache::remember("admin_dashboard_stats{$cacheSuffix}", $cacheTtl, function() use ($divisionId) {
@@ -156,7 +263,8 @@ class DashboardController extends Controller
         return view('admin.dashboard', compact(
             'stats', 'recentActivity', 'studentsByGrade', 'sectionsMissingAttendance', 
             'genderBreakdown', 'academicYear', 'executionTime', 'systemHealth', 
-            'divisions', 'selectedDivision'
+            'divisions', 'selectedDivision', 'subjectAverages', 'terms', 'selectedTermId',
+            'gradeLevels', 'selectedGradeLevelId'
         ));
     }
 }

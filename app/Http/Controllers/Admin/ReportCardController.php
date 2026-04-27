@@ -74,7 +74,12 @@ class ReportCardController extends Controller
         
         // Ensure section belongs to correct year? (Optional check)
 
-        $students = $section->students()->wherePivot('academic_year_id', $academicYear->id)->where('is_active', true)->orderBy('first_name')->get();
+        $students = $section->students()
+            ->wherePivot('academic_year_id', $academicYear->id)
+            ->wherePivot('status', 'active')
+            ->where('students.is_active', true)
+            ->orderBy('students.first_name')
+            ->get();
         
         // Fetch existing records
         $records = StudentTermRecord::whereIn('student_id', $students->pluck('id'))
@@ -91,13 +96,17 @@ class ReportCardController extends Controller
             'academic_year_id' => 'required|exists:academic_years,id',
             'term_id' => 'required|exists:terms,id',
             'records' => 'array',
+            'records.*.conduct' => 'nullable|string|in:A,B,C',
+            'records.*.absent' => 'nullable|integer|min:0',
+            'records.*.comment' => 'nullable|string',
         ]);
         
         try {
             $this->reportCardService->storeDataEntry(
                 (int)$request->term_id, 
                 (int)$request->academic_year_id, 
-                $request->records ?? []
+                $request->records ?? [],
+                $section
             );
             return back()->with('success', 'Report Card details saved.');
         } catch (\Exception $e) {

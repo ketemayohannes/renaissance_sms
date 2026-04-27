@@ -248,29 +248,34 @@ class AcademicReportService
             }
         }
 
-        $yearTotal = $reportData['totalScore'] ?? 0;
+        $yearRecord = $reportData['record'] ?? null;
+        $dynamicYearlyAbs = $studentAttendance['yearly']['absent'] ?? ($studentAttendance['all_year']['absent'] ?? null);
+        
         $rows['avg'] = $this->formatRosterRow(
             'Year Avg',
             $reportData['marks'],
             $yearTotal,
             $reportData['average'] ?? 0,
-            $reportData['record'],
+            $yearRecord,
             $reportData['rank'] ?? '-',
-            $studentAttendance['yearly']['absent'] ?? ($studentAttendance['all_year']['absent'] ?? null)
+            $dynamicYearlyAbs
         );
+
+        $absRaw = ($yearRecord && $yearRecord->days_absent !== null) ? $yearRecord->days_absent : ($studentAttendance['all_year']['absent'] ?? 0);
+        $absence = ($absRaw == 0 || $absRaw === null) ? '_' : $absRaw;
 
         return [
             'student' => $student,
             'gender' => $student->gender,
             'rows' => $rows,
             'yearTotal' => $yearTotal,
-            'absence' => $studentAttendance['all_year']['absent'] ?? '_'
+            'absence' => $absence
         ];
     }
 
     private function formatRosterRow($label, $marks, $total, $average, $record, $rank, $dynamicAbsence = null): array
     {
-        $absenceVal = ($record && $record->days_absent) ? $record->days_absent : (is_numeric($dynamicAbsence) ? $dynamicAbsence : 0);
+        $absenceVal = ($record && $record->days_absent !== null) ? $record->days_absent : (is_numeric($dynamicAbsence) ? $dynamicAbsence : 0);
 
         return [
             'label' => $label,
@@ -407,57 +412,107 @@ class AcademicReportService
      */
     public function prepareGradeMatrixData(AcademicYear $academicYear, $term, Collection $gradeLevels): array
     {
-        $allSubjects = $gradeLevels->flatMap->subjects->unique('id')->sortBy('name');
-        $matrix = [];
-        $gradeAverages = [];
+        $termsToProcess = collect([$term]);
+        if ($term->isSemester()) {
+            // Include quarters for this semester, followed by the semester itself
+            $quarters = $term->quarters()->orderBy('term_number')->get();
+            $termsToProcess = $quarters->concat([$term]);
+        }
 
-        foreach ($gradeLevels as $grade) {
-            $gradeMatrix = [];
+        // Only include subjects that are actually assigned to these grade levels
+        $allSubjects = $gradeLevels->flatMap->subjects->unique('id');
+        
+        // Use custom Matrix order if available, otherwise fallback
+        $settings = \App\Models\AcademicReportSetting::first();
+        if ($settings && isset($settings->display_options['matrix_subject_order'])) {
+            $orderMap = $settings->display_options['matrix_subject_order'];
+            $allSubjects = $allSubjects->sort(function ($a, $b) use ($orderMap) {
+                $posA = $orderMap[$a->id] ?? 999;
+                $posB = $orderMap[$b->id] ?? 999;
+                return $posA <=> $posB;
+            })->values();
+        } else {
+            $allSubjects = $allSubjects->sortBy('name')->values();
+        }
+
+        $termData = [];
+
+        foreach ($termsToProcess as $t) {
+            $matrix = [];
+            $gradeAverages = [];
             $tempSubData = [];
 
-            foreach ($grade->sections as $section) {
-                $students = $section->students()->wherePivot('academic_year_id', $academicYear->id)->wherePivot('status', 'active')->get();
-                if ($students->isEmpty()) continue;
+            foreach ($gradeLevels as $grade) {
+                $gradeMatrix = [];
+                $studentScores = collect(); // To calculate grade average across all subjects
 
-                $batchResults = $this->gradingService->calculateSectionTotals($students, $term, $academicYear, $grade->subjects);
+                foreach ($grade->sections as $section) {
+                    $students = $section->students()
+                        ->wherePivot('academic_year_id', $academicYear->id)
+                        ->where('is_active', true) // Only active students
+                        ->get();
+                    
+                    if ($students->isEmpty()) continue;
 
-                foreach ($grade->subjects as $subject) {
-                    $scores = collect($students)->map(fn($s) => $batchResults[$s->id]['marks'][$subject->id] ?? null)->filter(fn($s) => $s !== null && $s !== '')->map(fn($s) => (float)$s);
-                    if ($scores->isNotEmpty()) {
-                        $tempSubData[$subject->id] = $tempSubData[$subject->id] ?? ['sum' => 0, 'count' => 0];
-                        $tempSubData[$subject->id]['sum'] += $scores->sum();
-                        $tempSubData[$subject->id]['count'] += $scores->count();
+                    // Get totals for this specific term
+                    $batchResults = $this->gradingService->calculateSectionTotals($students, $t, $academicYear, $grade->subjects);
+
+                    foreach ($grade->subjects as $subject) {
+                        $scores = collect($students)
+                            ->map(fn($s) => $batchResults[$s->id]['marks'][$subject->id] ?? null)
+                            ->filter(fn($s) => $s !== null && $s !== '')
+                            ->map(fn($s) => (float)$s);
+                        
+                        if ($scores->isNotEmpty()) {
+                            $tempSubData[$subject->id] = $tempSubData[$subject->id] ?? ['sum' => 0, 'count' => 0];
+                            $tempSubData[$subject->id]['sum'] += $scores->sum();
+                            $tempSubData[$subject->id]['count'] += $scores->count();
+                            
+                            $gradeMatrix[$subject->id] = ($gradeMatrix[$subject->id] ?? collect())->concat($scores);
+                        }
                     }
+                }
+
+                // Finalize grade-subject averages
+                $finalGradeMatrix = [];
+                $gradeSumOfAverages = 0;
+                $gradeSubCount = 0;
+                foreach ($gradeMatrix as $subId => $scores) {
+                    $avg = $scores->average();
+                    $finalGradeMatrix[$subId] = $avg;
+                    $gradeSumOfAverages += $avg;
+                    $gradeSubCount++;
+                }
+
+                $matrix[$grade->id] = $finalGradeMatrix;
+                $gradeAverages[$grade->id] = $gradeSubCount > 0 ? $gradeSumOfAverages / $gradeSubCount : 0;
+            }
+
+            $subjectAverages = [];
+            foreach ($allSubjects as $subject) {
+                if (isset($tempSubData[$subject->id])) {
+                    $subjectAverages[$subject->id] = $tempSubData[$subject->id]['sum'] / $tempSubData[$subject->id]['count'];
+                } else {
+                    $subjectAverages[$subject->id] = null;
                 }
             }
 
-            $totalGradeSum = 0;
-            $totalSubCount = 0;
-            foreach ($tempSubData as $subId => $data) {
-                $avg = $data['count'] > 0 ? $data['sum'] / $data['count'] : 0;
-                $gradeMatrix[$subId] = $avg;
-                $totalGradeSum += $avg;
-                $totalSubCount++;
-            }
-            $matrix[$grade->id] = $gradeMatrix;
-            $gradeAverages[$grade->id] = $totalSubCount > 0 ? $totalGradeSum / $totalSubCount : 0;
-        }
-
-        $subjectAverages = [];
-        foreach ($allSubjects as $subject) {
-            $vals = collect($gradeLevels)->map(fn($g) => $matrix[$g->id][$subject->id] ?? null)->filter();
-            $subjectAverages[$subject->id] = $vals->isNotEmpty() ? $vals->average() : null;
+            $termData[$t->id] = [
+                'term' => $t,
+                'matrix' => $matrix,
+                'gradeAverages' => $gradeAverages,
+                'subjectAverages' => $subjectAverages,
+                'overallAverage' => collect($gradeAverages)->filter()->avg(),
+            ];
         }
 
         return [
             'academicYear' => $academicYear,
-            'term' => $term,
+            'term' => $term, // Selected term
             'gradeLevels' => $gradeLevels,
             'allSubjects' => $allSubjects,
-            'matrix' => $matrix,
-            'gradeAverages' => $gradeAverages,
-            'subjectAverages' => $subjectAverages,
-            'overallAverage' => collect($gradeAverages)->filter()->avg(),
+            'termData' => $termData,
+            'isMultiTerm' => $termsToProcess->count() > 1
         ];
     }
 

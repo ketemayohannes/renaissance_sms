@@ -38,7 +38,7 @@ class ProcessStudentWithdrawal
             $enrollment = $student->currentEnrollment;
             if ($enrollment) {
                 $enrollment->update([
-                    'status' => 'completed',
+                    'status' => $data['new_status'],
                     'end_date' => $data['effective_date'],
                 ]);
             }

@@ -226,6 +226,32 @@ class AcademicReportController extends Controller
         \Illuminate\Support\Facades\Cache::forget("roster_data_{$section->id}_{$termId}_{$academicYear->id}");
 
         return back()->with('success', 'Statistics recalculated successfully.');
+    public function matrixReorder()
+    {
+        $settings = \App\Models\AcademicReportSetting::firstOrNew();
+        $subjects = \App\Helpers\CachedData::subjects();
+        $gradeLevels = \App\Helpers\CachedData::gradeLevels();
+        return view('admin.academic-reports.matrix-reorder', compact('settings', 'subjects', 'gradeLevels'));
+    }
+
+    public function updateMatrixOrder(Request $request)
+    {
+        $request->validate([
+            'subject_order' => 'nullable|array',
+        ]);
+
+        $settings = \App\Models\AcademicReportSetting::firstOrNew();
+        $displayOptions = $settings->display_options ?? [];
+        
+        $displayOptions['matrix_subject_order'] = collect($request->subject_order)
+            ->filter(fn($val) => $val !== null && $val !== '')
+            ->map(fn($val) => (int)$val)
+            ->toArray();
+            
+        $settings->display_options = $displayOptions;
+        $settings->save();
+
+        return back()->with('success', 'Matrix subject order updated successfully.');
     }
 
 }

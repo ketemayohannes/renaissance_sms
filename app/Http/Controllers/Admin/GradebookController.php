@@ -87,15 +87,23 @@ class GradebookController extends Controller
         if ($subject->is_elective) {
             // For electives, only get students enrolled in this specific subject
             $students = $section->students()
+                ->wherePivot('academic_year_id', $academicYear->id)
+                ->wherePivot('status', 'active')
+                ->where('students.is_active', true)
                 ->whereHas('electives', function($q) use ($subject, $academicYear) {
                     $q->where('subject_id', $subject->id)
                       ->where('student_electives.academic_year_id', $academicYear->id);
                 })
-                ->orderBy('first_name')
+                ->orderBy('students.first_name')
                 ->get();
         } else {
             // For regular subjects, get all students in the section
-            $students = $section->students()->orderBy('first_name')->get();
+            $students = $section->students()
+                ->wherePivot('academic_year_id', $academicYear->id)
+                ->wherePivot('status', 'active')
+                ->where('students.is_active', true)
+                ->orderBy('students.first_name')
+                ->get();
         }
 
         // Fetch existing marks
@@ -243,7 +251,12 @@ class GradebookController extends Controller
         $term = Term::findOrFail($request->term_id);
         
         // Fetch students
-        $students = $section->students()->orderBy('first_name')->get();
+        $students = $section->students()
+            ->wherePivot('academic_year_id', $request->academic_year_id)
+            ->wherePivot('status', 'active')
+            ->where('students.is_active', true)
+            ->orderBy('students.first_name')
+            ->get();
         
         // Fetch assessment templates (excluding TERM_TOTAL - it's a calculated value)
         $termTotalType = \App\Models\AssessmentType::where('code', 'TERM_TOTAL')->first();

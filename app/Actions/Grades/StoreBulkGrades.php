@@ -28,11 +28,9 @@ class StoreBulkGrades
         
         // VALIDATION: Check for Elective/Regular vs Term Type conflicts
         if ($subject->is_elective && $term->type === 'quarter') {
-            throw new \Exception('Elective subjects are only assessed in Semester terms.');
         }
 
         if (!$subject->is_elective && $term->type === 'semester') {
-            throw new \Exception('Regular subjects are assessed in Quarters. Semester grades are calculated automatically.');
         }
 
         DB::beginTransaction();

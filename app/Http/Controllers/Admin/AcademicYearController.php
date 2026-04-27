@@ -28,12 +28,15 @@ class AcademicYearController extends Controller
             'is_active' => 'boolean',
         ]);
 
+        $data = $request->all();
+        $data['is_active'] = $request->boolean('is_active');
+
         // If setting as active, deactivate all others
-        if ($request->is_active) {
+        if ($data['is_active']) {
             AcademicYear::where('is_active', true)->update(['is_active' => false]);
         }
 
-        AcademicYear::create($request->all());
+        AcademicYear::create($data);
 
         return redirect()->route('admin.academic-years.index')
             ->with('success', 'Academic Year created successfully.');
@@ -53,14 +56,17 @@ class AcademicYearController extends Controller
             'is_active' => 'boolean',
         ]);
 
+        $data = $request->all();
+        $data['is_active'] = $request->boolean('is_active');
+
         // If setting as active, deactivate all others
-        if ($request->is_active) {
+        if ($data['is_active']) {
             AcademicYear::where('id', '!=', $academicYear->id)
                 ->where('is_active', true)
                 ->update(['is_active' => false]);
         }
 
-        $academicYear->update($request->all());
+        $academicYear->update($data);
 
         return redirect()->route('admin.academic-years.index')
             ->with('success', 'Academic Year updated successfully.');
@@ -68,8 +74,19 @@ class AcademicYearController extends Controller
 
     public function destroy(AcademicYear $academicYear)
     {
-        if ($academicYear->is_active) {
-            return back()->with('error', 'Cannot delete active academic year.');
+        // Check for student data
+        $hasData = \App\Models\StudentEnrollment::where('academic_year_id', $academicYear->id)->exists()
+            || \App\Models\StudentMark::where('academic_year_id', $academicYear->id)->exists()
+            || \App\Models\StudentAttendance::where('academic_year_id', $academicYear->id)->exists()
+            || \App\Models\DisciplinaryRecord::where('academic_year_id', $academicYear->id)->exists()
+            || \App\Models\StudentTermRecord::where('academic_year_id', $academicYear->id)->exists();
+
+        if ($hasData) {
+            return back()->with('error', 'Cannot delete academic year with existing student data (enrollments, marks, etc.).');
+        }
+
+        if ($academicYear->is_active && AcademicYear::count() > 1) {
+            return back()->with('error', 'Cannot delete an active academic year if it is not the only year.');
         }
 
         $academicYear->delete();

@@ -108,10 +108,18 @@ class GradebookController extends Controller
                     $q->where('subject_id', $subject->id)
                       ->where('student_electives.academic_year_id', $academicYear->id);
                 })
-                ->orderBy('first_name')
+                ->wherePivot('status', 'active')
+                ->where('students.is_active', true)
+                ->orderBy('students.first_name')
                 ->get();
         } else {
-            $students = $section->students()->orderBy('first_name')->get();
+            $students = $section->students()
+                ->wherePivot('academic_year_id', $academicYear->id)
+                ->wherePivot('status', 'active')
+                ->where('students.is_active', true)
+                ->orderBy('students.first_name')
+                ->get()
+;
         }
 
         // Fetch existing marks
@@ -186,14 +194,22 @@ class GradebookController extends Controller
         // Fetch students
         if ($subject->is_elective) {
             $students = $section->students()
+                ->wherePivot('academic_year_id', $academicYearId)
+                ->wherePivot('status', 'active')
+                ->where('students.is_active', true)
                 ->whereHas('electives', function($q) use ($subject, $academicYearId) {
                     $q->where('subject_id', $subject->id)
                       ->where('student_electives.academic_year_id', $academicYearId);
                 })
-                ->orderBy('first_name')
+                ->orderBy('students.first_name')
                 ->get();
         } else {
-            $students = $section->students()->orderBy('first_name')->get();
+            $students = $section->students()
+                ->wherePivot('academic_year_id', $academicYearId)
+                ->wherePivot('status', 'active')
+                ->where('students.is_active', true)
+                ->orderBy('students.first_name')
+                ->get();
         }
         
         // Fetch assessment templates (excluding TERM_TOTAL - it's a calculated value)
@@ -302,10 +318,18 @@ class GradebookController extends Controller
                     $q->where('subject_id', $subject->id)
                       ->where('student_electives.academic_year_id', $academicYear->id);
                 })
-                ->orderBy('first_name')
+                ->wherePivot('status', 'active')
+                ->where('students.is_active', true)
+                ->orderBy('students.first_name')
                 ->get();
         } else {
-            $students = $section->students()->orderBy('first_name')->get();
+            $students = $section->students()
+                ->wherePivot('academic_year_id', $academicYear->id)
+                ->wherePivot('status', 'active')
+                ->where('students.is_active', true)
+                ->orderBy('students.first_name')
+                ->get()
+;
         }
 
         // Fetch existing marks
