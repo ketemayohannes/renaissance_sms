@@ -257,4 +257,4 @@ class AcademicReportController extends Controller
     }
 
 }
-}
+
