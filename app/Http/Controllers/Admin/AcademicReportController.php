@@ -226,6 +226,8 @@ class AcademicReportController extends Controller
         \Illuminate\Support\Facades\Cache::forget("roster_data_{$section->id}_{$termId}_{$academicYear->id}");
 
         return back()->with('success', 'Statistics recalculated successfully.');
+    }
+
     public function matrixReorder()
     {
         $settings = \App\Models\AcademicReportSetting::firstOrNew();
@@ -254,4 +256,5 @@ class AcademicReportController extends Controller
         return back()->with('success', 'Matrix subject order updated successfully.');
     }
 
+}
 }
