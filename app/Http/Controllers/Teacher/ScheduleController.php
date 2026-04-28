@@ -37,9 +37,9 @@ class ScheduleController extends Controller
         foreach ($timetableEntries as $entry) {
             $dayName = $daysMap[$entry->day_of_week] ?? 'Unknown';
             
-            // Format time safely
-            $startTime = optional($entry->classPeriod->start_time)->format('H:i') ?? '--:--';
-            $endTime = optional($entry->classPeriod->end_time)->format('H:i') ?? '--:--';
+            // Format time safely in 12-hour format
+            $startTime = optional($entry->classPeriod->start_time)->format('g:i') ?? '--:--';
+            $endTime = optional($entry->classPeriod->end_time)->format('g:i') ?? '--:--';
             
             $schedule[$dayName][] = [
                 'time' => "{$startTime} - {$endTime}",
