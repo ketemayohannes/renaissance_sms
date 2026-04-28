@@ -94,13 +94,13 @@ class HomeroomController extends Controller
             return redirect()->route('teacher.dashboard')->with('error', 'You are not assigned as a Homeroom Teacher.');
         }
 
-        $activeYear = \App\Models\AcademicYear::active()->first();
+        $academicYear = \App\Models\AcademicYear::active()->first();
         
         // Find current term based on date, or fallback to first term of the year
-        $defaultTermId = \App\Models\Term::where('academic_year_id', $activeYear->id)
+        $defaultTermId = \App\Models\Term::where('academic_year_id', $academicYear->id)
             ->whereDate('start_date', '<=', now())
             ->whereDate('end_date', '>=', now())
-            ->value('id') ?? \App\Models\Term::where('academic_year_id', $activeYear->id)->first()?->id;
+            ->value('id') ?? \App\Models\Term::where('academic_year_id', $academicYear->id)->first()?->id;
 
         $termId = $request->get('term_id', $defaultTermId);
         
@@ -121,9 +121,9 @@ class HomeroomController extends Controller
             ->get()
             ->keyBy('student_id');
 
-        $terms = \App\Models\Term::where('academic_year_id', $activeYear->id)->get();
+        $terms = \App\Models\Term::where('academic_year_id', $academicYear->id)->get();
 
-        return view('teacher.homeroom.behavior', compact('section', 'students', 'records', 'activeYear', 'term', 'terms'));
+        return view('teacher.homeroom.behavior', compact('section', 'students', 'records', 'academicYear', 'term', 'terms'));
     }
 
     /**
