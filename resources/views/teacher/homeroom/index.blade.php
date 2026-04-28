@@ -14,7 +14,7 @@
                 </div>
                 <div>
                     <h3 class="text-sm font-medium text-slate-500">Total Students</h3>
-                    <p class="text-2xl font-bold text-slate-900 mt-1">{{ $students->count() }}</p>
+                    <p class="text-2xl font-bold text-slate-900 mt-1">{{ $stats['total'] }}</p>
                 </div>
             </div>
 
@@ -26,8 +26,8 @@
                 </div>
                 <div>
                     <h3 class="text-sm font-medium text-slate-500">At Risk (Absence)</h3>
-                    <p class="text-2xl font-bold {{ $atRiskStudents->count() > 0 ? 'text-amber-600' : 'text-slate-900' }} mt-1">
-                        {{ $atRiskStudents->count() }}
+                    <p class="text-2xl font-bold {{ $stats['at_risk'] > 0 ? 'text-amber-600' : 'text-slate-900' }} mt-1">
+                        {{ $stats['at_risk'] }}
                     </p>
                 </div>
             </div>
@@ -35,12 +35,12 @@
             <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-around">
                 <div class="text-center">
                     <span class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Male</span>
-                    <span class="text-lg font-bold text-blue-600">{{ $students->where('student.gender', 'male')->count() }}</span>
+                    <span class="text-lg font-bold text-blue-600">{{ $stats['male'] }}</span>
                 </div>
                 <div class="w-px h-10 bg-slate-100"></div>
                 <div class="text-center">
                     <span class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Female</span>
-                    <span class="text-lg font-bold text-pink-600">{{ $students->where('student.gender', 'female')->count() }}</span>
+                    <span class="text-lg font-bold text-pink-600">{{ $stats['female'] }}</span>
                 </div>
             </div>
         </div>
@@ -130,12 +130,12 @@
                             <td class="px-6 py-4 uppercase text-xs font-bold tracking-widest {{ $enrollment->student->gender === 'male' ? 'text-blue-500' : 'text-pink-500' }}">
                                 {{ $enrollment->student->gender }}
                             </td>
-                            <td class="px-6 py-4">
-                                <div class="text-sm text-slate-600">
-                                    {{ $enrollment->student->guardian_name }}
+                             <td class="px-6 py-4">
+                                <div class="text-sm font-bold text-slate-700">
+                                    {{ $enrollment->student->primaryGuardian->full_name ?? 'N/A' }}
                                 </div>
-                                <div class="text-xs text-slate-400">
-                                    {{ $enrollment->student->guardian_phone }}
+                                <div class="text-[10px] text-slate-400 font-mono">
+                                    {{ $enrollment->student->primaryGuardian->phone ?? '' }}
                                 </div>
                             </td>
                             <td class="px-6 py-4 text-right">

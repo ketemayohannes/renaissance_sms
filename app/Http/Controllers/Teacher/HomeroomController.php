@@ -39,12 +39,29 @@ class HomeroomController extends Controller
         }
 
         $date = now()->format('Y-m-d');
-        $students = $section->enrollments()->with(['student.user', 'student.attendance' => function($query) use ($date, $section) {
-            $query->whereDate('attendance_date', $date)->where('section_id', $section->id);
-        }])->where('status', 'active')->get();
+        // Eager load everything needed for the roster
+        $students = $section->enrollments()
+            ->with([
+                'student.user', 
+                'student.primaryGuardian',
+                'student.attendance' => function($query) use ($date, $section) {
+                    $query->whereDate('attendance_date', $date)->where('section_id', $section->id);
+                }
+            ])
+            ->where('status', 'active')
+            ->get();
+            
         $atRiskStudents = $this->alertService->getAtRiskStudents($section);
 
-        return view('teacher.homeroom.index', compact('section', 'students', 'atRiskStudents'));
+        // Pre-calculate stats to ensure accuracy in the view
+        $stats = [
+            'total' => $students->count(),
+            'male' => $students->filter(fn($e) => optional($e->student)->gender === 'male')->count(),
+            'female' => $students->filter(fn($e) => optional($e->student)->gender === 'female')->count(),
+            'at_risk' => $atRiskStudents->count()
+        ];
+
+        return view('teacher.homeroom.index', compact('section', 'students', 'atRiskStudents', 'stats'));
     }
 
     /**
