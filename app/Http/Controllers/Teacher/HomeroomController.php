@@ -111,7 +111,7 @@ class HomeroomController extends Controller
         $term = \App\Models\Term::findOrFail($termId);
 
         $students = $section->students()
-            ->wherePivot('academic_year_id', $activeYear->id)
+            ->wherePivot('academic_year_id', $academicYear->id)
             ->wherePivot('status', 'active')
             ->orderBy('students.first_name')
             ->get();
