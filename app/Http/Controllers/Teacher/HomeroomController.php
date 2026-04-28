@@ -147,6 +147,11 @@ class HomeroomController extends Controller
             'records.*.comment' => 'nullable|string',
         ]);
 
+        $term = \App\Models\Term::findOrFail($request->term_id);
+        if (!$term->is_grading_open) {
+            return back()->with('error', 'Entry for this term is currently closed.');
+        }
+
         $section = $this->teacherService->getHomeroomSection(Auth::user());
         
         if (!$section) {
