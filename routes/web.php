@@ -133,6 +133,7 @@ Route::middleware('auth')->group(function () {
         // Assessment System Routes
         Route::resource('assessment-types', App\Http\Controllers\Admin\AssessmentTypeController::class);
         Route::post('assessment-templates/bulk-destroy', [App\Http\Controllers\Admin\AssessmentTemplateController::class, 'bulkDestroy'])->name('assessment-templates.bulk-destroy');
+        Route::post('assessment-templates/destroy-by-term', [App\Http\Controllers\Admin\AssessmentTemplateController::class, 'destroyByTerm'])->name('assessment-templates.destroy-by-term');
         Route::get('assessment-templates/reorder', [App\Http\Controllers\Admin\AssessmentTemplateController::class, 'reorder'])->name('assessment-templates.reorder');
         Route::post('assessment-templates/reorder', [App\Http\Controllers\Admin\AssessmentTemplateController::class, 'updateOrder'])->name('assessment-templates.update-order');
         Route::resource('assessment-templates', App\Http\Controllers\Admin\AssessmentTemplateController::class);
@@ -162,6 +163,7 @@ Route::middleware('auth')->group(function () {
         Route::get('academic-reports/show', [App\Http\Controllers\Admin\AcademicReportController::class, 'show'])->name('academic-reports.show');
         Route::get('academic-reports/subject-analysis', [App\Http\Controllers\Admin\AcademicReportController::class, 'subjectAnalysis'])->name('academic-reports.subject-analysis');
         Route::get('academic-reports/grade-matrix', [App\Http\Controllers\Admin\AcademicReportController::class, 'gradeMatrix'])->name('academic-reports.grade-matrix');
+        Route::get('academic-reports/grade-matrix/pdf', [App\Http\Controllers\Admin\AcademicReportController::class, 'gradeMatrixPdf'])->name('academic-reports.grade-matrix.pdf');
         Route::get('academic-reports/matrix-reorder', [App\Http\Controllers\Admin\AcademicReportController::class, 'matrixReorder'])->name('academic-reports.matrix-reorder');
         Route::post('academic-reports/matrix-reorder', [App\Http\Controllers\Admin\AcademicReportController::class, 'updateMatrixOrder'])->name('academic-reports.matrix-reorder.update');
         Route::post('academic-reports/recalculate', [App\Http\Controllers\Admin\AcademicReportController::class, 'recalculate'])->name('academic-reports.recalculate');
@@ -281,6 +283,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [\App\Http\Controllers\Teacher\HomeroomController::class, 'index'])->name('index');
             Route::get('/attendance', [\App\Http\Controllers\Teacher\HomeroomController::class, 'attendance'])->name('attendance');
             Route::post('/attendance', [\App\Http\Controllers\Teacher\HomeroomController::class, 'storeAttendance'])->name('attendance.store');
+            Route::get('/behavior', [\App\Http\Controllers\Teacher\HomeroomController::class, 'behavior'])->name('behavior');
+            Route::post('/behavior', [\App\Http\Controllers\Teacher\HomeroomController::class, 'storeBehavior'])->name('behavior.store');
         });
 
         // Department Head Oversight

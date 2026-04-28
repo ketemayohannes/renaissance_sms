@@ -24,11 +24,17 @@
             </div>
             
             <div class="flex items-center gap-3">
-                <a href="{{ route('admin.academic-reports.matrix-reorder') }}" class="px-8 py-4 bg-white border-2 border-slate-200 text-slate-600 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-50 shadow-lg shadow-slate-100 transition-all flex items-center gap-3 active:scale-95 no-print">
+                <a href="{{ route('admin.academic-reports.matrix-reorder') }}" class="px-6 py-4 bg-white border-2 border-slate-200 text-slate-600 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-50 transition-all flex items-center gap-3 active:scale-95 no-print">
                     <div class="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"></path></svg>
                     </div>
-                    Reorder Subjects
+                    Reorder
+                </a>
+                <a href="{{ route('admin.academic-reports.grade-matrix.pdf', request()->all()) }}" class="px-8 py-4 bg-indigo-600 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all flex items-center gap-3 active:scale-95 no-print">
+                    <div class="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    </div>
+                    Download PDF
                 </a>
                 <button onclick="window.print()" class="px-8 py-4 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-indigo-600 shadow-xl shadow-slate-200 transition-all flex items-center gap-3 active:scale-95">
                     <div class="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center">

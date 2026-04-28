@@ -81,4 +81,80 @@ class HomeroomController extends Controller
 
         return redirect()->back()->with('success', 'Attendance marked successfully for ' . $request->attendance_date);
     }
+
+    /**
+     * Display the behavior and protocol entry interface.
+     */
+    public function behavior(Request $request)
+    {
+        $user = Auth::user();
+        $section = $this->teacherService->getHomeroomSection($user);
+
+        if (!$section) {
+            return redirect()->route('teacher.dashboard')->with('error', 'You are not assigned as a Homeroom Teacher.');
+        }
+
+        $activeYear = \App\Models\AcademicYear::active()->first();
+        
+        // Find current term based on date, or fallback to first term of the year
+        $defaultTermId = \App\Models\Term::where('academic_year_id', $activeYear->id)
+            ->whereDate('start_date', '<=', now())
+            ->whereDate('end_date', '>=', now())
+            ->value('id') ?? \App\Models\Term::where('academic_year_id', $activeYear->id)->first()?->id;
+
+        $termId = $request->get('term_id', $defaultTermId);
+        
+        if (!$termId) {
+            return back()->with('error', 'No active term found for this academic year.');
+        }
+
+        $term = \App\Models\Term::findOrFail($termId);
+
+        $students = $section->students()
+            ->wherePivot('academic_year_id', $activeYear->id)
+            ->wherePivot('status', 'active')
+            ->orderBy('students.first_name')
+            ->get();
+
+        $records = \App\Models\StudentTermRecord::whereIn('student_id', $students->pluck('id'))
+            ->where('term_id', $term->id)
+            ->get()
+            ->keyBy('student_id');
+
+        $terms = \App\Models\Term::where('academic_year_id', $activeYear->id)->get();
+
+        return view('teacher.homeroom.behavior', compact('section', 'students', 'records', 'activeYear', 'term', 'terms'));
+    }
+
+    /**
+     * Store behavior and protocol records.
+     */
+    public function storeBehavior(Request $request)
+    {
+        $request->validate([
+            'academic_year_id' => 'required|exists:academic_years,id',
+            'term_id' => 'required|exists:terms,id',
+            'records' => 'array',
+            'records.*.conduct' => 'nullable|string|in:A,B,C,D,E',
+            'records.*.absent' => 'nullable|integer|min:0',
+            'records.*.comment' => 'nullable|string',
+        ]);
+
+        $section = $this->teacherService->getHomeroomSection(Auth::user());
+        
+        if (!$section) {
+            abort(403, 'Unauthorized');
+        }
+
+        $reportCardService = app(\App\Services\ReportCardService::class);
+        
+        $reportCardService->storeDataEntry(
+            (int)$request->term_id, 
+            (int)$request->academic_year_id, 
+            $request->records ?? [],
+            $section
+        );
+
+        return back()->with('success', 'Behavior and attendance details saved successfully.');
+    }
 }

@@ -22,7 +22,7 @@
 
     /* Sidebar Navigation - Updated */
     .sidebar-link {
-        @apply flex items-center gap-3 px-3 py-2.5 mx-3 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-all duration-300 relative overflow-hidden hover:translate-x-1 hover:shadow-sm;
+        @apply flex items-center gap-3 px-3 py-2.5 mx-3 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-all duration-300 relative overflow-hidden hover:translate-x-1 hover:shadow-sm;
     }
 
     .sidebar-link-active {
@@ -36,7 +36,7 @@
     }
 
     .sidebar-category-header {
-        @apply px-6 py-4 text-[11px] font-bold text-slate-400/80 uppercase tracking-widest bg-white/95 backdrop-blur-md border-b border-white/50 transition-all duration-300;
+        @apply px-6 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest bg-white/95 backdrop-blur-md border-b border-white/50 transition-all duration-300;
     }
 
     .sidebar-category-header.is-stuck {
@@ -256,6 +256,15 @@
     background: #94a3b8;
 }
 
+/* Dark mode scrollbar */
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #475569;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+}
+
 /* Smooth transitions for interactive elements */
 .transition-smooth {
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -264,4 +273,173 @@
 /* Focus ring utility */
 .focus-ring {
     @apply focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2;
+}
+
+/* ========================================
+   DARK MODE OVERRIDES
+   ======================================== */
+
+@layer components {
+    /* Cards - Dark */
+    .dark .card {
+        @apply bg-slate-900 border-slate-800 shadow-xl shadow-black/40;
+    }
+
+    .dark .glass-panel {
+        @apply bg-slate-900/80 border-slate-800 shadow-black/50;
+    }
+
+    .dark .card-interactive {
+        @apply bg-slate-900 border-slate-800 hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10 transition-all duration-300;
+    }
+
+    /* Sidebar - Dark */
+    .dark .sidebar-link {
+        @apply text-slate-400 hover:bg-slate-800 hover:text-indigo-400;
+    }
+
+    .dark .sidebar-link-active {
+        @apply bg-gradient-to-r from-indigo-500/10 to-purple-500/5 text-indigo-400 shadow-lg shadow-indigo-500/20 border-r-2 border-indigo-500;
+    }
+
+    .dark .sidebar-link-active::before {
+        box-shadow: 0 0 8px rgba(129, 140, 248, 0.4);
+    }
+
+    .dark .sidebar-category-header {
+        @apply text-slate-400 bg-slate-950/95 border-slate-800/50;
+    }
+
+    .dark .sidebar-category-header.is-stuck {
+        @apply border-indigo-500/30 bg-slate-950/90 text-indigo-400/80 backdrop-blur-xl shadow-lg shadow-black/20;
+    }
+
+    /* KPI Cards - Dark */
+    .dark .kpi-value {
+        @apply text-slate-100;
+    }
+
+    .dark .kpi-label {
+        @apply text-slate-400;
+    }
+
+    /* Form Inputs - Dark */
+    .dark .form-input {
+        @apply bg-slate-950 border-slate-800 text-slate-200 focus:border-indigo-500 focus:ring-indigo-500/50;
+    }
+
+    .dark .form-select {
+        @apply bg-slate-950 border-slate-800 text-slate-200 focus:border-indigo-500 focus:ring-indigo-500/50;
+    }
+
+    .dark .form-label {
+        @apply text-slate-300;
+    }
+
+    .dark .premium-input {
+        @apply bg-slate-950/60 border-slate-800 text-slate-200 placeholder-slate-600 focus:ring-indigo-500 focus:border-indigo-500;
+    }
+
+    .dark .premium-select {
+        @apply bg-slate-950/60 border-slate-800 text-slate-200 focus:ring-indigo-500 focus:border-indigo-500;
+    }
+
+    /* Tables - Dark */
+    .dark .table-header {
+        @apply bg-slate-900 text-slate-400 border-b border-slate-800;
+    }
+
+    .dark .table-cell {
+        @apply text-slate-300;
+    }
+
+    .dark .table-row {
+        @apply border-slate-800 hover:bg-slate-800/30;
+    }
+
+    .dark .premium-table-header {
+        @apply bg-slate-900/50 text-slate-400 border-b border-slate-800;
+    }
+
+    .dark .premium-table-cell {
+        @apply text-slate-300;
+    }
+
+    .dark .premium-table-row {
+        @apply border-slate-800 hover:bg-slate-800/30;
+    }
+
+    /* Section Headers - Dark */
+    .dark .section-header {
+        @apply text-slate-100;
+    }
+
+    .dark .section-subheader {
+        @apply text-slate-500;
+    }
+
+    .dark .section-form-header {
+        @apply text-slate-100 border-slate-800 shadow-sm shadow-indigo-500/5;
+    }
+
+    /* Alert Banners - Dark */
+    .dark .alert-warning {
+        @apply bg-amber-900/30 border-amber-700/50;
+    }
+
+    .dark .alert-success {
+        @apply bg-emerald-900/30 border-emerald-700/50;
+    }
+
+    .dark .alert-danger {
+        @apply bg-rose-900/30 border-rose-700/50;
+    }
+
+    .dark .alert-info {
+        @apply bg-blue-900/30 border-blue-700/50;
+    }
+
+    /* Badges - Dark */
+    .dark .badge-success {
+        @apply bg-emerald-900/50 text-emerald-300;
+    }
+
+    .dark .badge-warning {
+        @apply bg-amber-900/50 text-amber-300;
+    }
+
+    .dark .badge-danger {
+        @apply bg-rose-900/50 text-rose-300;
+    }
+
+    .dark .badge-info {
+        @apply bg-blue-900/50 text-blue-300;
+    }
+
+    .dark .badge-neutral {
+        @apply bg-slate-700 text-slate-300;
+    }
+
+    /* Glass surfaces - Dark */
+    .dark .vibrant-glass-surface {
+        @apply bg-slate-800/80 border-slate-700/50;
+    }
+
+    /* Modal - Dark */
+    .dark .modal-overlay {
+        @apply bg-black/60;
+    }
+
+    .dark .modal-container {
+        @apply bg-slate-800/90 border-slate-700/50;
+    }
+}
+
+/* Dark mode toggle transition */
+html.dark {
+    color-scheme: dark;
+}
+
+html {
+    transition: background-color 0.3s ease, color 0.3s ease;
 }

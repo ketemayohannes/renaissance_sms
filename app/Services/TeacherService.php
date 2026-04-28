@@ -54,12 +54,43 @@ class TeacherService
     {
         $activeYear = AcademicYear::active()->first();
         
-        return Cache::remember("teacher_metrics_{$user->id}_{$activeYear->id}", 3600, function() use ($user, $activeYear) {
+        // Cache key includes date to refresh daily for schedule
+        $date = now()->format('Y-m-d');
+        return Cache::remember("teacher_metrics_{$user->id}_{$activeYear->id}_{$date}", 3600, function() use ($user, $activeYear) {
             $homeroom = $this->getHomeroomSection($user, $activeYear->id);
             
-            $classesCount = \App\Models\TeacherAssignment::where('teacher_id', $user->id)
+            $teacherAssignments = \App\Models\TeacherAssignment::where('teacher_id', $user->id)
                 ->where('academic_year_id', $activeYear->id)
+                ->get();
+            
+            $assignmentIds = $teacherAssignments->pluck('id');
+
+            // Pending Assignments: Submissions that are submitted but not yet graded (score is null)
+            $pendingAssignments = \App\Models\ActivitySubmission::whereIn('academic_activity_id', function($query) use ($assignmentIds) {
+                    $query->select('id')->from('academic_activities')->whereIn('teacher_assignment_id', $assignmentIds);
+                })
+                ->where(function($query) {
+                    $query->where('status', 'submitted')
+                          ->orWhere(function($q) {
+                              $q->whereNull('score')->whereNotNull('submitted_at');
+                          });
+                })
                 ->count();
+
+            // Today's Schedule
+            $dayOfWeek = now()->format('l');
+            $todaySchedule = \App\Models\Timetable::with(['section.gradeLevel', 'classPeriod', 'teacherAssignment.subject'])
+                ->whereIn('teacher_assignment_id', $assignmentIds)
+                ->where('day_of_week', $dayOfWeek)
+                ->get()
+                ->sortBy(function($item) {
+                    return $item->classPeriod->start_time;
+                })
+                ->values();
+
+            // Free Periods
+            $totalPeriodsCount = \App\Models\ClassPeriod::where('is_break', false)->count();
+            $freePeriodsCount = max(0, $totalPeriodsCount - $todaySchedule->count());
 
             return [
                 'has_homeroom' => !is_null($homeroom),
@@ -68,7 +99,11 @@ class TeacherService
                 'homeroom_student_count' => $homeroom?->enrollments()->where('status', 'active')->count() ?? 0,
                 'is_dept_head' => $this->isDepartmentHead($user),
                 'headed_departments' => $this->getHeadedDepartments($user)->pluck('name')->toArray(),
-                'classes_count' => $classesCount,
+                'classes_count' => $teacherAssignments->count(),
+                'pending_assignments_count' => $pendingAssignments,
+                'free_periods_count' => $freePeriodsCount,
+                'today_schedule' => $todaySchedule,
+                'today_name' => $dayOfWeek,
             ];
         });
     }

@@ -39,32 +39,44 @@ class InitialDataSeeder extends Seeder
             Division::firstOrCreate(['code' => $div['code']], $div);
         }
 
-        // 3. Create Current Academic Year
-        $year = AcademicYear::firstOrCreate(
-            ['name' => '2024/2025'],
-            [
-                'start_date' => '2024-09-11', // Ethiopian New Year approx
+        // 3. Create Default Academic Year (Only if none exist)
+        if (AcademicYear::count() === 0) {
+            $year = AcademicYear::create([
+                'name' => '2024/2025',
+                'start_date' => '2024-09-11',
                 'end_date' => '2025-06-30',
                 'is_active' => true,
-            ]
-        );
+            ]);
 
-        // 4. Create Terms (Quarters & Semesters)
-        // Quarter 1
-        Term::firstOrCreate(
-            ['name' => 'Quarter 1', 'academic_year_id' => $year->id],
-            ['type' => 'quarter', 'term_number' => 1, 'start_date' => '2024-09-11', 'end_date' => '2024-11-10']
-        );
-        // Quarter 2
-        Term::firstOrCreate(
-            ['name' => 'Quarter 2', 'academic_year_id' => $year->id],
-            ['type' => 'quarter', 'term_number' => 2, 'start_date' => '2024-11-11', 'end_date' => '2025-01-31']
-        );
-        // Semester 1 (Aggregates Q1 & Q2)
-        Term::firstOrCreate(
-            ['name' => 'Semester 1', 'academic_year_id' => $year->id],
-            ['type' => 'semester', 'term_number' => 1, 'start_date' => '2024-09-11', 'end_date' => '2025-01-31']
-        );
+            // 4. Create Terms (Quarters & Semesters)
+            // Quarter 1
+            Term::create([
+                'name' => 'Quarter 1', 
+                'academic_year_id' => $year->id,
+                'type' => 'quarter', 
+                'term_number' => 1, 
+                'start_date' => '2024-09-11', 
+                'end_date' => '2024-11-10'
+            ]);
+            // Quarter 2
+            Term::create([
+                'name' => 'Quarter 2', 
+                'academic_year_id' => $year->id,
+                'type' => 'quarter', 
+                'term_number' => 2, 
+                'start_date' => '2024-11-11', 
+                'end_date' => '2025-01-31'
+            ]);
+            // Semester 1 (Aggregates Q1 & Q2)
+            Term::create([
+                'name' => 'Semester 1', 
+                'academic_year_id' => $year->id,
+                'type' => 'semester', 
+                'term_number' => 1, 
+                'start_date' => '2024-09-11', 
+                'end_date' => '2025-01-31'
+            ]);
+        }
 
         // 5. Create Conduct Grades
         $conducts = [

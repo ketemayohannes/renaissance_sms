@@ -215,8 +215,7 @@ class AcademicReportService
     {
         // Yearly data is already pre-aggregated in $reportData by GradingService
         $rows = [];
-        $yearlyTotals = [];
-        $yearlyCounts = [];
+        $yearTotal = $reportData['totalScore'] ?? 0;
 
         // Distribute quarter data into rows
         foreach ($reportData['quarters'] as $qId => $qData) {
@@ -413,11 +412,6 @@ class AcademicReportService
     public function prepareGradeMatrixData(AcademicYear $academicYear, $term, Collection $gradeLevels): array
     {
         $termsToProcess = collect([$term]);
-        if ($term->isSemester()) {
-            // Include quarters for this semester, followed by the semester itself
-            $quarters = $term->quarters()->orderBy('term_number')->get();
-            $termsToProcess = $quarters->concat([$term]);
-        }
 
         // Only include subjects that are actually assigned to these grade levels
         $allSubjects = $gradeLevels->flatMap->subjects->unique('id');

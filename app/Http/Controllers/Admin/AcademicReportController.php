@@ -12,6 +12,7 @@ use App\Services\AcademicReportService;
 use App\Services\GradingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class AcademicReportController extends Controller
 {
@@ -199,6 +200,37 @@ class AcademicReportController extends Controller
         $params = $this->reportService->prepareGradeMatrixData($academicYear, $term, $gradeLevels);
 
         return view('admin.academic-reports.grade-matrix', $params);
+    }
+
+    public function gradeMatrixPdf(Request $request)
+    {
+        $academicYear = AcademicYear::findOrFail($request->get('academic_year_id', AcademicYear::where('is_active', true)->value('id')));
+        $term = Term::findOrFail($request->get('term_id'));
+        $divisionId = $request->get('division_id');
+        
+        $gradeLevels = GradeLevel::where('division_id', $divisionId)->orderBy('sort_order')->get();
+        $data = $this->reportService->prepareGradeMatrixData($academicYear, $term, $gradeLevels);
+        $settings = \App\Models\AcademicReportSetting::first();
+        $data['settings'] = $settings;
+        $data['academicYear'] = $academicYear;
+
+        // Prepare Base64 Logo for DomPDF
+        $logoBase64 = null;
+        if ($settings && $settings->roster_logo_path) {
+            $path = storage_path('app/public/' . $settings->roster_logo_path);
+            if (file_exists($path)) {
+                $type = pathinfo($path, PATHINFO_EXTENSION);
+                $imageData = file_get_contents($path);
+                $logoBase64 = 'data:image/' . $type . ';base64,' . base64_encode($imageData);
+            }
+        }
+        $data['logoBase64'] = $logoBase64;
+
+        $pdf = Pdf::loadView('admin.academic-reports.grade-matrix-pdf', $data)
+            ->setPaper('a3', 'landscape');
+
+        $filename = str_replace(['/', '\\'], '-', "School_Matrix_{$term->name}_{$academicYear->name}.pdf");
+        return $pdf->download($filename);
     }
 
     public function recalculate(Request $request)

@@ -99,6 +99,17 @@
                         <a href="{{ route('admin.assessment-templates.index') }}" class="px-4 bg-white hover:bg-slate-50 text-slate-400 hover:text-rose-500 font-black text-[10px] uppercase tracking-widest py-4 rounded-2xl border border-slate-200 transition-all flex items-center justify-center gap-2 group" title="Clear Filters">
                             <svg class="w-4 h-4 group-hover:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                         </a>
+
+                        @if(request('term_id') || request('academic_year_id'))
+                        <form action="{{ route('admin.assessment-templates.destroy-by-term') }}" method="POST" class="inline delete-form" data-confirm-message="DANGER: Delete ALL templates matching this filter? This cannot be undone.">
+                            @csrf
+                            <input type="hidden" name="academic_year_id" value="{{ request('academic_year_id') ?: \App\Helpers\CachedData::activeAcademicYear()?->id }}">
+                            <input type="hidden" name="term_id" value="{{ request('term_id') }}">
+                            <button type="submit" class="px-4 bg-rose-50 hover:bg-rose-500 text-rose-500 hover:text-white font-black text-[10px] uppercase tracking-widest py-4 rounded-2xl border border-rose-100 hover:border-rose-500 transition-all flex items-center justify-center gap-2 group" title="Delete All Matching Templates">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </form>
+                        @endif
                     </div>
                 </div>
             </form>

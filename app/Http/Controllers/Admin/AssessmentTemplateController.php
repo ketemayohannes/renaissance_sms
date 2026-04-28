@@ -382,6 +382,39 @@ class AssessmentTemplateController extends Controller
         }
     }
 
+    public function destroyByTerm(Request $request)
+    {
+        $request->validate([
+            'academic_year_id' => 'required|exists:academic_years,id',
+            'term_id' => 'nullable|exists:terms,id'
+        ]);
+
+        try {
+            DB::beginTransaction();
+            
+            $query = AssessmentTemplate::where('academic_year_id', $request->academic_year_id);
+            
+            if ($request->term_id) {
+                $query->where('term_id', $request->term_id);
+                $termName = Term::find($request->term_id)->name;
+            } else {
+                $query->whereNull('term_id');
+                $termName = 'All Terms (Global)';
+            }
+
+            $count = $query->count();
+            $query->delete();
+            
+            DB::commit();
+
+            return redirect()->route('admin.assessment-templates.index')
+                ->with('success', "Successfully deleted {$count} templates for {$termName}.");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Error deleting term templates: ' . $e->getMessage()]);
+        }
+    }
+
     // Helper method to calculate total weight for a grade/subject/term combination
     private function getTotalWeight($academicYearId, $termId, $gradeLevelId, $subjectId, $excludeTemplateId = null)
     {

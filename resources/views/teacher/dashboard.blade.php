@@ -84,7 +84,7 @@
                 </div>
                 <div>
                     <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Assignments</h3>
-                    <p class="text-2xl font-black text-slate-800">12 <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Pending</span></p>
+                    <p class="text-2xl font-black text-slate-800">{{ $metrics['pending_assignments_count'] }} <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Pending</span></p>
                 </div>
             </div>
             @endif
@@ -98,7 +98,7 @@
                 </div>
                 <div>
                     <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Free Periods</h3>
-                    <p class="text-2xl font-black text-slate-800">2 <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Today</span></p>
+                    <p class="text-2xl font-black text-slate-800">{{ $metrics['free_periods_count'] }} <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Today</span></p>
                 </div>
             </div>
         </div>
@@ -108,49 +108,69 @@
             <div class="lg:col-span-2 glass-panel border-white bg-white/60 rounded-[2.5rem] shadow-sm p-8">
                 <div class="flex items-center justify-between mb-8">
                     <h2 class="text-xl font-black text-slate-900 font-heading uppercase tracking-widest">Today's Schedule</h2>
-                    <span class="px-4 py-2 bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase tracking-widest rounded-xl">Monday</span>
+                    <span class="px-4 py-2 bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase tracking-widest rounded-xl">{{ $metrics['today_name'] }}</span>
                 </div>
                 
                 <div class="space-y-6 relative before:absolute before:inset-y-0 before:left-5 before:w-1 before:bg-slate-100 before:rounded-full">
-                    <!-- Class Item -->
-                    <div class="relative pl-12 group">
-                        <div class="absolute left-3.5 top-3 w-4 h-4 rounded-full border-4 border-white shadow-sm ring-2 ring-indigo-500 bg-indigo-500 group-hover:scale-125 transition-transform"></div>
-                        <div class="bg-white p-5 rounded-[1.5rem] border border-slate-100 shadow-sm hover:shadow-md hover:border-indigo-100 transition-all flex justify-between items-center">
-                            <div>
-                                <div class="flex items-center gap-3 mb-2">
-                                    <span class="text-[10px] font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg uppercase tracking-widest">08:30 AM - 09:15 AM</span>
-                                    <span class="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse"></span>
-                                    <span class="text-[10px] font-black text-rose-500 uppercase tracking-widest">Now Happening</span>
+                    @forelse($metrics['today_schedule'] as $item)
+                        @php
+                            $startTime = \Carbon\Carbon::parse($item->classPeriod->start_time);
+                            $endTime = \Carbon\Carbon::parse($item->classPeriod->end_time);
+                            $isNow = now()->between($startTime, $endTime);
+                        @endphp
+                        <div class="relative pl-12 group">
+                            <div @class([
+                                'absolute left-3.5 top-3 w-4 h-4 rounded-full border-4 border-white shadow-sm ring-2 transition-transform group-hover:scale-125',
+                                'ring-indigo-500 bg-indigo-500' => $isNow,
+                                'ring-slate-200 bg-slate-200' => !$isNow
+                            ])></div>
+                            <div @class([
+                                'p-5 rounded-[1.5rem] border transition-all flex justify-between items-center',
+                                'bg-white border-slate-100 shadow-sm hover:shadow-md hover:border-indigo-100' => $isNow,
+                                'bg-white/50 border-slate-100 shadow-sm hover:bg-white hover:shadow-md opacity-80 hover:opacity-100' => !$isNow
+                            ])>
+                                <div>
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <span @class([
+                                            'text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-widest',
+                                            'text-indigo-600 bg-indigo-50' => $isNow,
+                                            'text-slate-500 bg-slate-100' => !$isNow
+                                        ])>
+                                            {{ $startTime->format('h:i A') }} - {{ $endTime->format('h:i A') }}
+                                        </span>
+                                        @if($isNow)
+                                            <span class="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                                            <span class="text-[10px] font-black text-rose-500 uppercase tracking-widest">Now Happening</span>
+                                        @endif
+                                    </div>
+                                    <h3 @class([
+                                        'font-black text-lg',
+                                        'text-slate-800' => $isNow,
+                                        'text-slate-700' => !$isNow
+                                    ])>{{ $item->teacherAssignment->subject->name }}</h3>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                                        <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                            {{ $item->section->gradeLevel->name }} • Section {{ $item->section->name }}
+                                        </p>
+                                    </div>
                                 </div>
-                                <h3 class="font-black text-slate-800 text-lg">Mathematics - Algebra</h3>
-                                <div class="flex items-center gap-2 mt-1">
-                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-                                    <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Grade 9 • Section A</p>
-                                </div>
+                                <a href="{{ route('teacher.classes.show', $item->teacherAssignment->id) }}" class="w-12 h-12 bg-slate-50 hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 rounded-2xl flex items-center justify-center transition-all">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                                </a>
                             </div>
-                            <!-- Navigate to Roster -->
-                            <a href="#" class="w-12 h-12 bg-slate-50 hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 rounded-2xl flex items-center justify-center transition-all">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                            </a>
                         </div>
-                    </div>
-
-                    <!-- Coming Up Item -->
-                    <div class="relative pl-12 group">
-                        <div class="absolute left-3.5 top-3 w-4 h-4 rounded-full border-4 border-white shadow-sm ring-2 ring-slate-200 bg-slate-200 group-hover:scale-125 group-hover:ring-indigo-300 transition-transform"></div>
-                        <div class="bg-white/50 p-5 rounded-[1.5rem] border border-slate-100 shadow-sm hover:bg-white hover:shadow-md transition-all flex justify-between items-center opacity-80 hover:opacity-100">
-                            <div>
-                                <div class="flex items-center gap-3 mb-2">
-                                    <span class="text-[10px] font-black text-slate-500 bg-slate-100 px-3 py-1 rounded-lg uppercase tracking-widest">10:00 AM - 10:45 AM</span>
-                                </div>
-                                <h3 class="font-black text-slate-700 text-lg">Physics - Motion</h3>
-                                <div class="flex items-center gap-2 mt-1">
-                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-                                    <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Grade 10 • Section B</p>
-                                </div>
+                    @empty
+                        <div class="py-12 flex flex-col items-center justify-center text-center opacity-60">
+                            <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                                <svg class="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
                             </div>
+                            <p class="text-slate-500 font-bold uppercase tracking-widest text-sm">No classes scheduled for today</p>
+                            <p class="text-xs text-slate-400 mt-1">Enjoy your free time or prepare for upcoming lessons.</p>
                         </div>
-                    </div>
+                    @endforelse
                 </div>
             </div>
 
@@ -170,6 +190,19 @@
                             <div>
                                 <span class="block font-black text-slate-800 uppercase tracking-widest text-xs mb-1">Take Attendance</span>
                                 <span class="block text-[10px] font-bold text-slate-400">{{ $metrics['homeroom_grade'] }} - Section {{ $metrics['homeroom_section'] }}</span>
+                            </div>
+                        </div>
+                    <a href="{{ route('teacher.homeroom.behavior') }}" class="block p-5 bg-white border border-slate-100 rounded-[1.5rem] hover:border-amber-200 hover:shadow-lg hover:shadow-amber-500/10 transition-all group relative overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-r from-amber-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <div class="relative z-10 flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition-all shadow-sm">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <span class="block font-black text-slate-800 uppercase tracking-widest text-xs mb-1">Manage Behavior</span>
+                                <span class="block text-[10px] font-bold text-slate-400">Conduct & Total Absences</span>
                             </div>
                         </div>
                     </a>
