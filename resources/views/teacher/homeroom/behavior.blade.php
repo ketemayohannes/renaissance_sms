@@ -78,7 +78,7 @@
         <div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white dark:border-slate-800 rounded-[3rem] shadow-2xl overflow-hidden group">
             <form action="{{ route('teacher.homeroom.behavior.store') }}" method="POST" id="behaviorForm">
                 @csrf
-                <input type="hidden" name="academic_year_id" value="{{ $activeYear->id }}">
+                <input type="hidden" name="academic_year_id" value="{{ $academicYear->id }}">
                 <input type="hidden" name="term_id" value="{{ $term->id }}">
 
                 <div class="overflow-x-auto pb-24">
