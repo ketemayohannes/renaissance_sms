@@ -127,7 +127,7 @@
                             <td class="px-6 py-4">
                                 <span class="font-mono text-sm text-slate-600">{{ $enrollment->student->student_id }}</span>
                             </td>
-                            <td class="px-6 py-4 uppercase text-xs font-bold tracking-widest {{ $enrollment->student->gender === 'male' ? 'text-blue-500' : 'text-pink-500' }}">
+                            <td class="px-6 py-4 uppercase text-xs font-bold tracking-widest {{ in_array(strtoupper($enrollment->student->gender), ['M', 'MALE']) ? 'text-blue-500' : 'text-pink-500' }}">
                                 {{ $enrollment->student->gender }}
                             </td>
                              <td class="px-6 py-4">

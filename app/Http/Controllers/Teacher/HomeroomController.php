@@ -56,8 +56,14 @@ class HomeroomController extends Controller
         // Pre-calculate stats to ensure accuracy in the view
         $stats = [
             'total' => $students->count(),
-            'male' => $students->filter(fn($e) => optional($e->student)->gender === 'male')->count(),
-            'female' => $students->filter(fn($e) => optional($e->student)->gender === 'female')->count(),
+            'male' => $students->filter(function($e) {
+                $g = strtoupper(optional($e->student)->gender);
+                return $g === 'M' || $g === 'MALE';
+            })->count(),
+            'female' => $students->filter(function($e) {
+                $g = strtoupper(optional($e->student)->gender);
+                return $g === 'F' || $g === 'FEMALE';
+            })->count(),
             'at_risk' => $atRiskStudents->count()
         ];
 
