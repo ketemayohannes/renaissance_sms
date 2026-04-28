@@ -135,7 +135,7 @@ class HomeroomController extends Controller
             'academic_year_id' => 'required|exists:academic_years,id',
             'term_id' => 'required|exists:terms,id',
             'records' => 'array',
-            'records.*.conduct' => 'nullable|string|in:A,B,C,D,E',
+            'records.*.conduct' => 'nullable|string|in:A,B,C',
             'records.*.absent' => 'nullable|integer|min:0',
             'records.*.comment' => 'nullable|string',
         ]);

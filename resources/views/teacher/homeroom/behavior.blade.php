@@ -113,8 +113,6 @@
                                                 <option value="A" {{ ($record->conduct_grade ?? '') == 'A' ? 'selected' : '' }}>A</option>
                                                 <option value="B" {{ ($record->conduct_grade ?? '') == 'B' ? 'selected' : '' }}>B</option>
                                                 <option value="C" {{ ($record->conduct_grade ?? '') == 'C' ? 'selected' : '' }}>C</option>
-                                                <option value="D" {{ ($record->conduct_grade ?? '') == 'D' ? 'selected' : '' }}>D</option>
-                                                <option value="E" {{ ($record->conduct_grade ?? '') == 'E' ? 'selected' : '' }}>E</option>
                                             </select>
                                         </div>
                                     </td>
