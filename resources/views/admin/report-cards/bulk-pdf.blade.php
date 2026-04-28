@@ -441,7 +441,7 @@
                     </div>
                     
                      <div style="margin-top: 15px;">
-                        <strong>Homeroom Teacher Name:</strong> <span style="border-bottom: 1px solid black; min-width: 150px; display: inline-block;">{{ $section->homeroomTeacher->employee->first_name ?? '' }} {{ $section->homeroomTeacher->employee->middle_name ?? '' }}</span>
+                        <strong>Homeroom Teacher Name:</strong> <span style="border-bottom: 1px solid black; min-width: 150px; display: inline-block;">{{ ucwords(mb_strtolower($section->homeroomTeacher->employee->first_name ?? '')) }} {{ ucwords(mb_strtolower($section->homeroomTeacher->employee->middle_name ?? '')) }}</span>
                     </div>
 
                      <div style="margin-top: 15px;">
