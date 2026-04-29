@@ -1,6 +1,6 @@
 <x-guest-layout>
-    <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-slate-50">
-        <div class="w-full sm:max-w-md mt-6 px-10 py-12 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-slate-100 overflow-hidden sm:rounded-[2.5rem] relative">
+    <div class="min-h-screen w-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-100 via-indigo-50 to-slate-100 py-12 px-4">
+        <div class="w-full sm:max-w-md px-10 py-12 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.08)] border border-slate-100 overflow-hidden sm:rounded-[2.5rem] relative">
             
             <!-- Background Decorative Elements -->
             <div class="absolute top-0 right-0 -mr-20 -mt-20 w-48 h-48 bg-indigo-50 rounded-full blur-3xl opacity-50"></div>
