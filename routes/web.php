@@ -9,11 +9,11 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
-Route::get('/dashboard', [App\Http\Controllers\Auth\RedirectController::class, 'index'])
-    ->middleware(['auth', 'verified'])
-    ->name('dashboard');
+Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard', [App\Http\Controllers\Auth\RedirectController::class, 'index'])
+        ->middleware(['verified'])
+        ->name('dashboard');
 
-Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -23,7 +23,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/auth/change-password', [App\Http\Controllers\Auth\PasswordChangeController::class, 'update'])->name('auth.change-password.update');
 
     // Student Routes
-    Route::middleware(['role:Student', 'force.password.change'])->prefix('student')->name('student.')->group(function () {
+    Route::middleware(['role:Student'])->prefix('student')->name('student.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Student\DashboardController::class, 'index'])->name('dashboard');
         Route::get('/grades', [App\Http\Controllers\Student\GradeController::class, 'index'])->name('grades.index');
         Route::get('/grades/download', [App\Http\Controllers\Student\GradeController::class, 'downloadReport'])->name('grades.download');
@@ -39,7 +39,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // Admin Routes
-    Route::middleware(['role_or_permission:Super Admin|view students|view employees|view fees', 'force.password.change'])->prefix('admin')->name('admin.')->group(function () {
+    Route::middleware(['role_or_permission:Super Admin|view students|view employees|view fees'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
         Route::get('/search', [App\Http\Controllers\Admin\GlobalSearchController::class, 'search'])->name('global-search');
         
@@ -265,7 +265,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // Teacher Portal Routes
-    Route::middleware(['auth', 'role_or_permission:Teacher|enter marks', 'force.password.change'])->prefix('teacher')->name('teacher.')->group(function () {
+    Route::middleware(['auth', 'role_or_permission:Teacher|enter marks'])->prefix('teacher')->name('teacher.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Teacher\DashboardController::class, 'index'])->name('dashboard');
         
         // My Classes

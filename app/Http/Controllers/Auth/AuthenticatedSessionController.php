@@ -28,14 +28,10 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        // Clear temp password on success and track login
+        // Track login time (temp_password is cleared only after user changes it)
         $user = Auth::user();
         if ($user) {
-            $updateData = ['last_login_at' => now()];
-            if ($user->temp_password) {
-                $updateData['temp_password'] = null;
-            }
-            $user->update($updateData);
+            $user->update(['last_login_at' => now()]);
         }
 
         return redirect()->intended(route('dashboard', absolute: false));

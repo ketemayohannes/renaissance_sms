@@ -16,8 +16,9 @@ class ForcePasswordChange
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (Auth::check() && Auth::user()->temp_password) {
-            // Check if the user is already on the change password page or logout route
+        $user = Auth::user();
+
+        if ($user && !is_null($user->getRawOriginal('temp_password')) && $user->getRawOriginal('temp_password') !== '') {
             if (!$request->routeIs('auth.change-password') && 
                 !$request->routeIs('auth.change-password.update') && 
                 !$request->routeIs('logout')) {
