@@ -46,7 +46,7 @@
                             <tr class="hover:bg-indigo-50/20 transition-all group">
                                 <td class="px-8 py-6">
                                     <div class="flex flex-col">
-                                        <span class="text-sm font-bold text-slate-900 tracking-tight">{{ $log->created_at->format('H:i:s') }}</span>
+                                        <span class="text-sm font-bold text-slate-900 tracking-tight">{{ $log->created_at->format('h:i:s A') }}</span>
                                         <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ $log->created_at->format('Y-M-d') }}</span>
                                     </div>
                                 </td>
