@@ -198,7 +198,7 @@
                                                 <span class="text-sm font-semibold text-slate-400 italic">No Role</span>
                                             @endif
                                         </div>
-                                        <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">{{ $employee->department ?? 'General' }} division</p>
+                                        <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">{{ $employee->division->name ?? 'Global' }} Division</p>
                                     </div>
                                 </td>
                                 <td class="px-6 py-4">

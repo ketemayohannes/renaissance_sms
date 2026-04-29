@@ -112,8 +112,8 @@
                                 <span class="font-bold text-slate-900 capitalize">{{ $employee->user->roles->first()->category ?? ($employee->staff_category ?? 'N/A') }}</span>
                             </div>
                             <div class="bg-amber-50/30 p-4 rounded-[1.5rem] border border-amber-100/30 shadow-sm">
-                                <span class="text-[10px] text-amber-400 font-black uppercase tracking-widest block mb-1">Department</span>
-                                <span class="font-bold text-slate-900 capitalize">{{ $employee->department ?? 'General' }}</span>
+                                <span class="text-[10px] text-amber-400 font-black uppercase tracking-widest block mb-1">Division</span>
+                                <span class="font-bold text-slate-900 capitalize">{{ $employee->division->name ?? 'Global' }}</span>
                             </div>
                             <div class="bg-emerald-50/30 p-4 rounded-[1.5rem] border border-emerald-100/30 shadow-sm">
                                 <span class="text-[10px] text-emerald-400 font-black uppercase tracking-widest block mb-1">Birth Date</span>
@@ -315,8 +315,8 @@
 
                     <div class="space-y-4 mb-8">
                         <div class="p-4 rounded-xl bg-slate-50 border border-slate-100 flex justify-between items-center">
-                            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Department</span>
-                            <span class="font-bold text-slate-900 capitalize">{{ $employee->department ?? 'General' }}</span>
+                            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Division</span>
+                            <span class="font-bold text-slate-900 capitalize">{{ $employee->division->name ?? 'Global' }}</span>
                         </div>
                         <div class="p-4 rounded-xl bg-slate-50 border border-slate-100 flex justify-between items-center">
                             <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Contract</span>
