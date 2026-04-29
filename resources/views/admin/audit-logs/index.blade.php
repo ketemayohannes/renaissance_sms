@@ -96,9 +96,20 @@
                                     @endif
                                 </td>
                                 <td class="px-8 py-6 text-right">
-                                    <div class="flex flex-col items-end opacity-40 group-hover:opacity-100 transition-opacity">
-                                        <span class="text-[10px] font-black text-slate-900 tracking-widest">IP: {{ $log->ip_address }}</span>
-                                        <span class="text-[9px] font-bold text-slate-400 truncate max-w-[120px]" title="{{ $log->user_agent }}">{{ $log->user_agent }}</span>
+                                    <div class="flex flex-col items-end opacity-60 group-hover:opacity-100 transition-opacity">
+                                        <div class="flex items-center gap-1.5 mb-0.5">
+                                            <span class="text-[10px] font-black text-slate-900 tracking-widest">{{ $log->ip_address }}</span>
+                                            <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+                                        </div>
+                                        <span class="text-[9px] font-black text-indigo-600 uppercase tracking-widest mb-1">
+                                            @if(str_contains($log->user_agent, 'Windows')) Windows PC
+                                            @elseif(str_contains($log->user_agent, 'iPhone')) iPhone
+                                            @elseif(str_contains($log->user_agent, 'Android')) Android Device
+                                            @elseif(str_contains($log->user_agent, 'Macintosh')) Mac Device
+                                            @elseif(str_contains($log->user_agent, 'Linux')) Linux System
+                                            @else Unknown Device @endif
+                                        </span>
+                                        <span class="text-[8px] font-medium text-slate-400 truncate max-w-[150px] italic" title="{{ $log->user_agent }}">{{ $log->user_agent }}</span>
                                     </div>
                                 </td>
                             </tr>

@@ -37,6 +37,17 @@ trait Auditable
             $oldValues = $this->getAttributes();
         }
 
+        $userAgent = Request::userAgent();
+        $ip = Request::ip();
+        
+        // Defensive check for real IP behind Docker/Nginx proxies
+        if (str_starts_with($ip, '172.') || $ip === '127.0.0.1') {
+            $forwarded = Request::header('X-Forwarded-For') ?? Request::server('HTTP_X_FORWARDED_FOR');
+            if ($forwarded) {
+                $ip = trim(explode(',', $forwarded)[0]);
+            }
+        }
+
         AuditLog::create([
             'user_id' => Auth::id(),
             'event' => $event,
@@ -45,8 +56,8 @@ trait Auditable
             'old_values' => $oldValues,
             'new_values' => $newValues,
             'url' => Request::fullUrl(),
-            'ip_address' => Request::ip(),
-            'user_agent' => Request::userAgent(),
+            'ip_address' => $ip,
+            'user_agent' => $userAgent,
         ]);
     }
 }
