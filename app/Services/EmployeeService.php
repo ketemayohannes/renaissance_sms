@@ -36,8 +36,8 @@ class EmployeeService
             $user = User::create([
                 'name' => $fullName,
                 'email' => $email,
-                'password' => Hash::make($data['password'] ?? 'staff1234'),
-                'temp_password' => $data['password'] ?? 'staff1234',
+                'password' => Hash::make(!empty($data['password']) ? $data['password'] : 'staff1234'),
+                'temp_password' => !empty($data['password']) ? $data['password'] : 'staff1234',
             ]);
 
             // 3. Assign Role
