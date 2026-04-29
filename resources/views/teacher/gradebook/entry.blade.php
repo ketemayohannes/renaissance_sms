@@ -285,7 +285,8 @@
                                     @endphp
                                     @foreach($gradeComponents as $component)
                                         @php
-                                            $mark = $existingMarks->get($student->id)?->firstWhere('assessment_template_id', $component->id);
+                                            $studentMarks = $existingMarks->get($student->id);
+                                            $mark = $studentMarks ? $studentMarks->first(fn($m) => (int)$m->assessment_template_id === (int)$component->id) : null;
                                             $score = $mark ? $mark->score : 0;
                                             $val = $mark ? $mark->score : '';
                                             $isFinal = ($component->assessmentType?->code === 'FINAL');
@@ -315,8 +316,8 @@
                                         @php
                                             $displayTotal = $totalScore;
                                             $termTotalMark = null;
-                                            if (isset($termTotalTemplate) && $termTotalTemplate) {
-                                                $termTotalMark = $existingMarks->get($student->id)?->firstWhere('assessment_template_id', $termTotalTemplate->id);
+                                            if (isset($termTotalTemplate) && $termTotalTemplate && $studentMarks) {
+                                                $termTotalMark = $studentMarks->first(fn($m) => (int)$m->assessment_template_id === (int)$termTotalTemplate->id);
                                             }
                                             
                                             if ($displayTotal == 0 && $termTotalMark) {

@@ -99,8 +99,8 @@ class StoreBulkGrades
             if (!empty($upsertData)) {
                 StudentMark::upsert(
                     $upsertData,
-                    ['student_id', 'assessment_template_id'],
-                    ['score', 'remarks', 'teacher_id', 'section_id', 'updated_at']
+                    ['student_id', 'assessment_template_id', 'subject_id'],
+                    ['score', 'remarks', 'teacher_id', 'section_id', 'subject_id', 'updated_at']
                 );
 
                 // Manual Audit Injection
