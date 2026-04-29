@@ -11,10 +11,21 @@ class AuditLogController extends Controller
 {
     public function index(Request $request)
     {
-        $logs = AuditLog::with('user')
-            ->latest()
-            ->paginate(50);
+        $search = $request->input('search');
 
-        return view('admin.audit-logs.index', compact('logs'));
+        $logs = AuditLog::with('user')
+            ->when($search, function($query) use ($search) {
+                $query->where('event', 'like', "%{$search}%")
+                    ->orWhere('auditable_type', 'like', "%{$search}%")
+                    ->orWhere('ip_address', 'like', "%{$search}%")
+                    ->orWhereHas('user', function($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%");
+                    });
+            })
+            ->latest()
+            ->paginate(50)
+            ->withQueryString();
+
+        return view('admin.audit-logs.index', compact('logs', 'search'));
     }
 }

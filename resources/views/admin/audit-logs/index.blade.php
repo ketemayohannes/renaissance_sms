@@ -14,6 +14,13 @@
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-30">
             <x-breadcrumb :items="[['label' => 'System Audit Logs', 'url' => '#']]" />
             <div class="flex items-center gap-4">
+                 <form action="{{ route('admin.audit-logs.index') }}" method="GET" class="relative">
+                    <input type="text" name="search" value="{{ $search }}" placeholder="Search Logs..." 
+                        class="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm w-64">
+                    <div class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </div>
+                 </form>
                  <button class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all shadow-sm">
                     Export Incident Report
                  </button>
@@ -25,7 +32,13 @@
             <div class="p-8 border-b border-slate-100 bg-slate-50/30 flex items-center justify-between">
                 <div>
                     <h3 class="text-sm font-black text-slate-900 uppercase tracking-widest">Operational Feedback Loop</h3>
-                    <p class="text-xs text-slate-500 font-medium mt-1 italic">Comprehensive history of all state changes within the environment.</p>
+                    <p class="text-xs text-slate-500 font-medium mt-1 italic">
+                        @if($search)
+                            Showing results for <span class="text-indigo-600 font-bold">"{{ $search }}"</span> — {{ $logs->total() }} entries found.
+                        @else
+                            Comprehensive history of all state changes within the environment.
+                        @endif
+                    </p>
                 </div>
             </div>
 
