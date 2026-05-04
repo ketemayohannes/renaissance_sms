@@ -541,35 +541,7 @@
                 </div>
             </div>
 
-            <!-- Section 7: Final Step / Specialized Info (Teachers) -->
-            <div x-show="staffCategory === 'academic' && step === 2" 
-                 x-transition:enter="transition ease-out duration-300"
-                 x-transition:enter-start="opacity-0 translate-y-4"
-                 x-transition:enter-end="opacity-100 translate-y-0"
-                 class="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-xl shadow-slate-200/50 overflow-hidden">
-                <div class="p-8">
-                    <div class="flex items-center gap-4 mb-8">
-                        <div class="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100/50">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-                        </div>
-                        <div>
-                            <h3 class="text-xl font-bold text-slate-900">Workload & Rank</h3>
-                            <p class="text-slate-500 text-sm">Instructional assignments and faculty status.</p>
-                        </div>
-                    </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                        <div>
-                            <label for="teacher_rank" class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Faculty Rank</label>
-                            <input type="text" name="teacher_rank" id="teacher_rank" value="{{ old('teacher_rank') }}" placeholder="e.g. Senior Teacher"
-                                   class="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl font-semibold text-slate-700">
-                        </div>
-                        <div>
-                            <label for="periods_per_week" class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Periods / Week</label>
-                            <input type="number" name="periods_per_week" id="periods_per_week" value="{{ old('periods_per_week') }}" placeholder="0"
-                                   class="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl font-semibold text-slate-700">
-                        </div>
-                    </div>
             <div class="flex items-center justify-end gap-3 pb-12">
                 <a href="{{ route('admin.employees.index') }}" class="px-8 py-4 bg-white border-2 border-slate-200 text-slate-500 text-sm font-bold rounded-2xl hover:bg-slate-50 transition-all">
                     Cancel Registry
@@ -578,7 +550,7 @@
                     Register Staff
                 </button>
             </div>
-            </div>
+
         </form>
     </div>
 </x-admin-layout>

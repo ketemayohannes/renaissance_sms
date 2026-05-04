@@ -78,10 +78,10 @@ class EmployeeManagementTest extends TestCase
             'phone' => '0911000005',
             'role' => 'Teacher',
             'staff_category' => 'academic',
-            'teacher_rank' => 'Senior',
+
             'qualification_level' => 'Masters',
             'specialization' => 'Biology',
-            'periods_per_week' => 20,
+
             'secondary_responsibilities' => 'Lab Coordinator',
             'basic_salary' => 6000,
             'date_of_birth' => '1985-05-15',
@@ -91,7 +91,7 @@ class EmployeeManagementTest extends TestCase
 
         $this->assertDatabaseHas('academic_staff_details', [
             'employee_id' => $employee->id,
-            'teacher_rank' => 'Senior',
+
             'specialization' => 'Biology'
         ]);
 

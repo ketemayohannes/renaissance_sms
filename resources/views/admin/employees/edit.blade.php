@@ -420,16 +420,7 @@
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                        <div>
-                            <label for="teacher_rank" class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Teacher Rank</label>
-                            <input type="text" name="teacher_rank" id="teacher_rank" value="{{ old('teacher_rank', $employee->academicDetails->teacher_rank ?? '') }}" placeholder="e.g. Senior Faculty"
-                                   class="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl font-semibold text-slate-700">
-                        </div>
-                        <div>
-                            <label for="periods_per_week" class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Periods / Week</label>
-                            <input type="number" name="periods_per_week" id="periods_per_week" value="{{ old('periods_per_week', $employee->academicDetails->periods_per_week ?? 0) }}" placeholder="0"
-                                   class="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-xl font-semibold text-slate-700">
-                        </div>
+
                         <div class="md:col-span-2">
                             <label for="secondary_responsibilities" class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Secondary Responsibilities</label>
                             <textarea name="secondary_responsibilities" id="secondary_responsibilities" rows="2" placeholder="e.g. Club Coordinator, Department Head Proxy"

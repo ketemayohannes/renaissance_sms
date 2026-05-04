@@ -238,7 +238,7 @@ class EmployeeController extends Controller
 
         $categoryColumns = [
             'academic' => [
-                'teacher_rank', 'qualification_level', 'specialization', 'periods_per_week', 
+                'qualification_level', 'specialization', 
                 'joining_date', 'basic_salary', 'employment_type', 'division_id'
             ],
             'administrative' => [
@@ -271,7 +271,7 @@ class EmployeeController extends Controller
         ];
 
         if ($category === 'academic') {
-            $exampleRow = array_merge($exampleRow, ['Senior Teacher', 'Masters', 'Mathematics', '18']);
+            $exampleRow = array_merge($exampleRow, ['Masters', 'Mathematics']);
         } else {
             $exampleRow = array_merge($exampleRow, ['Registrar, Finance', 'Bachelors', 'Accounting']);
         }
@@ -412,10 +412,8 @@ class EmployeeController extends Controller
                     'emergency_contact_phone' => $val('emergency_contact_phone'),
                     'bank_name' => $val('bank_name'),
                     'account_number' => $val('account_number'),
-                    'teacher_rank' => $val('teacher_rank'),
                     'qualification_level' => $val('qualification_level'),
                     'specialization' => $val('specialization'),
-                    'periods_per_week' => $val('periods_per_week'),
                     'division_id' => $val('division_id'),
                 ];
             }, $data));
@@ -462,10 +460,8 @@ class EmployeeController extends Controller
                     'emergency_contact_phone' => $val('emergency_contact_phone'),
                     'bank_name' => $val('bank_name'),
                     'account_number' => $val('account_number'),
-                    'teacher_rank' => $val('teacher_rank'),
                     'qualification_level' => $val('qualification_level'),
                     'specialization' => $val('specialization'),
-                    'periods_per_week' => $val('periods_per_week'),
                     'division_id' => $val('division_id'),
                 ];
             }, $data);

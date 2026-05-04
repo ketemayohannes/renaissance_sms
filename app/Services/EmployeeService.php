@@ -68,10 +68,8 @@ class EmployeeService
             if ($category === 'academic') {
                 AcademicStaffDetail::create([
                     'employee_id' => $employee->id,
-                    'teacher_rank' => $data['teacher_rank'] ?? null,
                     'qualification_level' => $data['qualification_level'] ?? null,
                     'specialization' => $data['specialization'] ?? null,
-                    'periods_per_week' => $data['periods_per_week'] ?? null,
                     'secondary_responsibilities' => $data['secondary_responsibilities'] ?? null,
                     'institution' => $data['institution'] ?? null,
                     'graduation_year' => $data['graduation_year'] ?? null,
@@ -125,7 +123,7 @@ class EmployeeService
             $role = $employee->user->roles->first();
             if ($role && $role->category === 'academic') {
                 $academicFields = [
-                    'teacher_rank', 'qualification_level', 'specialization', 'periods_per_week', 
+                    'qualification_level', 'specialization', 
                     'secondary_responsibilities', 'institution', 'graduation_year', 'last_degree'
                 ];
                 $academicData = [];

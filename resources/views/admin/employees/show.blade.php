@@ -375,18 +375,12 @@
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                        <div class="bg-indigo-50/30 p-4 rounded-2xl border border-indigo-100/20">
-                            <span class="text-[9px] font-bold text-indigo-400 uppercase tracking-widest mb-1 block">Teacher Rank</span>
-                            <p class="font-bold text-indigo-900 uppercase">{{ $employee->academicDetails->teacher_rank ?? 'N/A' }}</p>
-                        </div>
+
                         <div class="bg-violet-50/30 p-4 rounded-2xl border border-violet-100/20">
                             <span class="text-[9px] font-bold text-violet-400 uppercase tracking-widest mb-1 block">Qualification</span>
                             <p class="font-bold text-violet-900 uppercase">{{ $employee->academicDetails->qualification_level ?? 'N/A' }}</p>
                         </div>
-                        <div class="bg-emerald-50/30 p-4 rounded-2xl border border-emerald-100/20">
-                            <span class="text-[9px] font-bold text-emerald-400 uppercase tracking-widest mb-1 block">Weekly Periods</span>
-                            <p class="font-black text-emerald-900">{{ $employee->academicDetails->periods_per_week ?? '0' }}</p>
-                        </div>
+
                     </div>
 
                     @if($employee->academicDetails && $employee->academicDetails->secondary_responsibilities)
