@@ -201,6 +201,17 @@ class GradingService
         $subjectIds = $subjects->pluck('id');
         $results = [];
 
+        $isGrade11Or12 = false;
+        $firstStudent = $students->first();
+        if ($firstStudent) {
+            $enrollment = $firstStudent->enrollments()->where('academic_year_id', $academicYear->id)->first();
+            if ($enrollment && $enrollment->section && $enrollment->section->gradeLevel) {
+                if (preg_match('/\b(11|12)\b/', $enrollment->section->gradeLevel->name)) {
+                    $isGrade11Or12 = true;
+                }
+            }
+        }
+
         // Pre-fetch elective enrollments for accurate denominator calculation
         $electiveEnrollments = DB::table('student_electives')
             ->whereIn('student_id', $studentIds)
@@ -250,7 +261,11 @@ class GradingService
                     return $s && $s->is_elective;
                 })->toArray();
                 
-                $effectiveElectiveCount = count(array_unique(array_merge($enrolledElectiveIds, $electiveIdsWithScores)));
+                if ($isGrade11Or12) {
+                    $effectiveElectiveCount = count($electiveIdsWithScores);
+                } else {
+                    $effectiveElectiveCount = count(array_unique(array_merge($enrolledElectiveIds, $electiveIdsWithScores)));
+                }
                 $denominator = $regularSubjectsCount + $effectiveElectiveCount;
                 
                 $average = $denominator > 0 ? round($total / $denominator, 2) : 0;
@@ -308,7 +323,11 @@ class GradingService
                     return $s && $s->is_elective;
                 })->toArray();
                 
-                $effectiveElectiveCount = count(array_unique(array_merge($enrolledElectiveIds, $electiveIdsWithScores)));
+                if ($isGrade11Or12) {
+                    $effectiveElectiveCount = count($electiveIdsWithScores);
+                } else {
+                    $effectiveElectiveCount = count(array_unique(array_merge($enrolledElectiveIds, $electiveIdsWithScores)));
+                }
                 $denominator = $regularSubjectsCount + $effectiveElectiveCount;
 
                 $average = $denominator > 0 ? round($totalYearlyAvg / $denominator, 2) : 0;
@@ -332,7 +351,11 @@ class GradingService
                     return $s && $s->is_elective;
                 })->toArray();
                 
-                $effectiveElectiveCount = count(array_unique(array_merge($enrolledElectiveIds, $electiveIdsWithScores)));
+                if ($isGrade11Or12) {
+                    $effectiveElectiveCount = count($electiveIdsWithScores);
+                } else {
+                    $effectiveElectiveCount = count(array_unique(array_merge($enrolledElectiveIds, $electiveIdsWithScores)));
+                }
                 $denominator = $regularSubjectsCount + $effectiveElectiveCount;
                 
                 $average = $denominator > 0 ? round($total / $denominator, 2) : 0;
@@ -351,6 +374,14 @@ class GradingService
         if (!$subjects) {
             $enrollment = $student->enrollments()->where('academic_year_id', $academicYear->id)->first();
             $subjects = $enrollment->section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
+        }
+
+        $isGrade11Or12 = false;
+        $enrollmentForGrade = $student->enrollments()->where('academic_year_id', $academicYear->id)->first();
+        if ($enrollmentForGrade && $enrollmentForGrade->section && $enrollmentForGrade->section->gradeLevel) {
+            if (preg_match('/\b(11|12)\b/', $enrollmentForGrade->section->gradeLevel->name)) {
+                $isGrade11Or12 = true;
+            }
         }
 
         // Determine actual denominator (Regular + Enrolled Electives)
@@ -415,7 +446,11 @@ class GradingService
                 return $s && $s->is_elective;
             })->toArray();
             
-            $effectiveElectiveCount = count(array_unique(array_merge($enrolledElectiveIds, $electiveIdsWithScores)));
+            if ($isGrade11Or12) {
+                $effectiveElectiveCount = count($electiveIdsWithScores);
+            } else {
+                $effectiveElectiveCount = count(array_unique(array_merge($enrolledElectiveIds, $electiveIdsWithScores)));
+            }
             $denominator = $regularSubjectsCount + $effectiveElectiveCount;
 
             $average = $denominator > 0 ? round($total / $denominator, 2) : 0;
@@ -440,7 +475,11 @@ class GradingService
                 return $s && $s->is_elective;
             })->toArray();
             
-            $effectiveElectiveCount = count(array_unique(array_merge($enrolledElectiveIds, $electiveIdsWithScores)));
+            if ($isGrade11Or12) {
+                $effectiveElectiveCount = count($electiveIdsWithScores);
+            } else {
+                $effectiveElectiveCount = count(array_unique(array_merge($enrolledElectiveIds, $electiveIdsWithScores)));
+            }
             $denominator = $regularSubjectsCount + $effectiveElectiveCount;
             
             $average = $denominator > 0 ? round($total / $denominator, 2) : 0;
@@ -559,6 +598,13 @@ class GradingService
         $isYearly = $term->id === 'yearly' || $term->type === 'yearly';
         $cacheKey = "{$section->id}_{$academicYear->id}";
         
+        $isGrade11Or12 = false;
+        if ($section && $section->gradeLevel) {
+            if (preg_match('/\b(11|12)\b/', $section->gradeLevel->name)) {
+                $isGrade11Or12 = true;
+            }
+        }
+        
         // 1. Basic Stats Calculation/Retrieval
         if ($isYearly && isset($this->yearlyStatsCache[$cacheKey][$student->id])) {
             $stats = $this->yearlyStatsCache[$cacheKey][$student->id];
@@ -570,7 +616,7 @@ class GradingService
         } else {
             $record = $preFetchedRecords ? $preFetchedRecords->firstWhere('term_id', $term->id) : StudentTermRecord::where('student_id', $student->id)->where('term_id', $term->id)->first();
 
-            if (!$record || $record->total_score === null) {
+            if (!$record || $record->total_score === null || $record->total_score == 0) {
                 $stats = $this->calculateStudentTotals($student, $term, $academicYear, $subjects);
                 $totalScore = $stats['total'];
                 $average = $stats['average'];
@@ -624,19 +670,33 @@ class GradingService
 
                     // Determine actual denominator for this student
                     $regularCount = $subjects->where('is_elective', false)->count();
-                    $enrolledElectivesCount = DB::table('student_electives')
-                        ->where('student_id', $student->id)
-                        ->where('academic_year_id', $academicYear->id)
-                        ->count();
-                    $denominator = $regularCount + $enrolledElectivesCount;
+                    
+                    $qSubjectScores = $qMarks->toArray();
+                    $electiveIdsWithScores = collect($qSubjectScores)->keys()->filter(function($id) use ($subjects) {
+                        $s = $subjects->firstWhere('id', $id);
+                        return $s && $s->is_elective;
+                    })->toArray();
+
+                    if ($isGrade11Or12) {
+                        $effectiveElectiveCount = count($electiveIdsWithScores);
+                    } else {
+                        $enrolledElectiveIds = DB::table('student_electives')
+                            ->where('student_id', $student->id)
+                            ->where('academic_year_id', $academicYear->id)
+                            ->pluck('subject_id')
+                            ->toArray();
+                        $effectiveElectiveCount = count(array_unique(array_merge($enrolledElectiveIds, $electiveIdsWithScores)));
+                    }
+                    
+                    $denominator = $regularCount + $effectiveElectiveCount;
 
                     $quarterData[$q->id] = [
                         'term' => $q,
                         'marks' => $qMarks,
                         'record' => $qRecord,
-                        'total' => $qRecord->total_score ?? $qMarks->sum(),
-                        'average' => $qRecord->average_score ?? ($denominator > 0 ? $qMarks->sum() / $denominator : 0),
-                        'rank' => $qRecord->rank ?? '-',
+                        'total' => ($qRecord && $qRecord->total_score > 0) ? $qRecord->total_score : $qMarks->sum(),
+                        'average' => ($qRecord && $qRecord->average_score > 0) ? $qRecord->average_score : ($denominator > 0 ? $qMarks->sum() / $denominator : 0),
+                        'rank' => ($qRecord && $qRecord->rank && $qRecord->rank != 0) ? $qRecord->rank : '-',
                     ];
 
                     $statsByQuarter[$q->id] = [
@@ -661,9 +721,9 @@ class GradingService
                 $sRecord = $preFetchedRecords ? $preFetchedRecords->firstWhere('term_id', $sem->id) : StudentTermRecord::where('student_id', $student->id)->where('term_id', $sem->id)->first();
                 
                 $statsBySemester[$sem->id] = [
-                    'total' => $sRecord->total_score ?? $sStats['total'],
-                    'average' => $sRecord->average_score ?? $sStats['average'],
-                    'rank' => $sRecord->rank ?? '-',
+                    'total' => ($sRecord && $sRecord->total_score > 0) ? $sRecord->total_score : $sStats['total'],
+                    'average' => ($sRecord && $sRecord->average_score > 0) ? $sRecord->average_score : $sStats['average'],
+                    'rank' => ($sRecord && $sRecord->rank && $sRecord->rank != 0) ? $sRecord->rank : '-',
                 ];
 
                 foreach ($sStats['marks'] as $subId => $score) {
@@ -755,9 +815,9 @@ class GradingService
                 'term' => $semester,
                 'record' => $sRecord,
                 'marks' => $sData['marks'] ?? [],
-                'total' => $sRecord->total_score ?? $sData['total'],
-                'average' => $sRecord->average_score ?? $sData['average'],
-                'rank' => $sRecord->rank ?? '-'
+                'total' => ($sRecord && $sRecord->total_score > 0) ? $sRecord->total_score : $sData['total'],
+                'average' => ($sRecord && $sRecord->average_score > 0) ? $sRecord->average_score : $sData['average'],
+                'rank' => ($sRecord && $sRecord->rank && $sRecord->rank != 0) ? $sRecord->rank : '-'
             ];
         }
         return $semesterStats;

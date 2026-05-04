@@ -465,21 +465,24 @@ class AcademicReportService
                             $gradeMatrix[$subject->id] = ($gradeMatrix[$subject->id] ?? collect())->concat($scores);
                         }
                     }
+                    
+                    // Collect student averages for an accurate grade average
+                    foreach ($students as $student) {
+                        if (isset($batchResults[$student->id]['average'])) {
+                            $studentScores->push($batchResults[$student->id]['average']);
+                        }
+                    }
                 }
 
                 // Finalize grade-subject averages
                 $finalGradeMatrix = [];
-                $gradeSumOfAverages = 0;
-                $gradeSubCount = 0;
                 foreach ($gradeMatrix as $subId => $scores) {
                     $avg = $scores->average();
                     $finalGradeMatrix[$subId] = $avg;
-                    $gradeSumOfAverages += $avg;
-                    $gradeSubCount++;
                 }
 
                 $matrix[$grade->id] = $finalGradeMatrix;
-                $gradeAverages[$grade->id] = $gradeSubCount > 0 ? $gradeSumOfAverages / $gradeSubCount : 0;
+                $gradeAverages[$grade->id] = $studentScores->isNotEmpty() ? $studentScores->average() : 0;
             }
 
             $subjectAverages = [];
