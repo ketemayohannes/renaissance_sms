@@ -161,7 +161,17 @@ class SectionGradeController extends Controller
              // Actually, for store/import we should block.
         }
 
-        return view('admin.section-grades.entry', compact('academicYear', 'term', 'section', 'students', 'subjects', 'marksMap', 'studentElectives'));
+        if (preg_match('/\b(11|12)\b/', $section->gradeLevel->name)) {
+            $isGrade11Or12 = true;
+        }
+
+        // Fetch existing records for Academic Alert
+        $records = \App\Models\StudentTermRecord::whereIn('student_id', $students->pluck('id'))
+            ->where('term_id', $term->id)
+            ->get()
+            ->keyBy('student_id');
+
+        return view('admin.section-grades.entry', compact('academicYear', 'term', 'section', 'students', 'subjects', 'marksMap', 'studentElectives', 'isGrade11Or12', 'records'));
     }
 
     public function store(Request $request, \App\Services\GradingService $gradingService)
@@ -443,6 +453,14 @@ class SectionGradeController extends Controller
             
             DB::commit();
             fclose($file);
+
+            // Recalculate Statistics
+            $academicYear = AcademicYear::findOrFail($request->academic_year_id);
+            $gradingService = app(\App\Services\GradingService::class);
+            $gradingService->recalculateSectionStatistics($section, $term, $academicYear);
+            
+            // Clear roster cache
+            \Illuminate\Support\Facades\Cache::forget("roster_data_{$section->id}_{$term->id}_{$academicYear->id}");
 
             if (!empty($errors)) {
                  return back()->with('warning', "Imported $count rows. Errors: " . implode('; ', array_slice($errors, 0, 3)));

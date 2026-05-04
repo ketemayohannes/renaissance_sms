@@ -47,6 +47,41 @@
                 </div>
             </div>
         @endif
+        
+        @php
+            $lowPerformers = $students->filter(function($student) use ($records) {
+                $record = $records[$student->id] ?? null;
+                return $record && $record->average_score !== null && $record->average_score < 76;
+            });
+        @endphp
+
+        @if($lowPerformers->isNotEmpty())
+            <div class="bg-rose-50 border border-rose-100 rounded-[2.5rem] p-8 shadow-xl shadow-rose-100/50 animate-in fade-in slide-in-from-top-4 duration-500">
+                <div class="flex items-center gap-6 mb-6">
+                    <div class="w-14 h-14 rounded-2xl bg-rose-500 text-white flex items-center justify-center shadow-lg shadow-rose-200">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-black text-rose-900 tracking-tight">Academic Alert: Low Performance Threshold</h2>
+                        <p class="text-sm font-bold text-rose-600/80">The following students have a total average below 76% for this {{ $term->type }}.</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    @foreach($lowPerformers as $student)
+                        <div class="bg-white/60 backdrop-blur-md border border-rose-100 rounded-2xl p-4 flex items-center justify-between group hover:bg-white transition-all">
+                            <div class="flex flex-col">
+                                <span class="text-xs font-black text-slate-800 tracking-tight group-hover:text-rose-600 transition-colors">{{ $student->full_name }}</span>
+                                <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">ID: {{ $student->student_id }}</span>
+                            </div>
+                            <div class="flex flex-col items-end">
+                                <span class="text-sm font-black text-rose-600">{{ number_format($records[$student->id]->average_score, 1) }}%</span>
+                                <span class="text-[9px] font-bold text-rose-300 uppercase tracking-tighter">Average</span>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
 
         <!-- Stats Overview -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -181,14 +216,34 @@
                         <tbody class="divide-y divide-slate-100 bg-white">
                             @foreach($students as $index => $student)
                                 @php
-                                    $applicableSubjectCount = 0;
+                                    $regularSubjectCount = 0;
+                                    $enrolledElectiveIds = $studentElectives[$student->id] ?? [];
+                                    $electiveIdsWithScores = [];
+                                    
                                     foreach($subjects as $s) {
-                                        if (!$s->is_elective || (isset($studentElectives[$student->id]) && in_array($s->id, $studentElectives[$student->id]))) {
-                                            $applicableSubjectCount++;
+                                        if (!$s->is_elective) {
+                                            $regularSubjectCount++;
+                                        } else {
+                                            $score = $marksMap[$student->id][$s->id] ?? '';
+                                            if ($score !== null && $score !== '') {
+                                                $electiveIdsWithScores[] = $s->id;
+                                            }
                                         }
                                     }
+
+                                    if (isset($isGrade11Or12) && $isGrade11Or12) {
+                                        $applicableSubjectCount = $regularSubjectCount + count($electiveIdsWithScores);
+                                    } else {
+                                        $effectiveElectives = array_unique(array_merge($enrolledElectiveIds, $electiveIdsWithScores));
+                                        $applicableSubjectCount = $regularSubjectCount + count($effectiveElectives);
+                                    }
                                 @endphp
-                                <tr class="group hover:bg-slate-50 transition-colors student-row" data-student-id="{{ $student->id }}" data-subject-count="{{ $applicableSubjectCount }}">
+                                <tr class="group hover:bg-slate-50 transition-colors student-row" 
+                                    data-student-id="{{ $student->id }}" 
+                                    data-subject-count="{{ $applicableSubjectCount }}"
+                                    data-regular-subject-count="{{ $regularSubjectCount }}"
+                                    data-enrolled-electives="{{ json_encode($enrolledElectiveIds) }}"
+                                    data-is-grade11or12="{{ isset($isGrade11Or12) && $isGrade11Or12 ? 'true' : 'false' }}">
                                     <td class="px-2 py-2 text-xs font-medium text-slate-500 text-center">{{ $index + 1 }}</td>
                                     <td class="px-3 py-2 whitespace-nowrap sticky left-0 bg-white z-20 group-hover:bg-slate-50 transition-colors shadow-[4px_0_12px_-4px_rgba(0,0,0,0.05)]">
                                         <div class="flex items-center gap-2">
@@ -231,6 +286,8 @@
                                             <input type="text" inputmode="decimal"
                                                    name="marks[{{ $student->id }}][{{ $subject->id }}]" 
                                                    value="{{ $score }}" 
+                                                   data-is-elective="{{ $subject->is_elective ? 'true' : 'false' }}"
+                                                   data-subject-id="{{ $subject->id }}"
                                                    class="w-full text-center text-xs font-medium border-slate-200 rounded focus:ring-1 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all hover:bg-slate-50 disabled:bg-slate-50 disabled:text-slate-300 mark-input py-1 px-0"
                                                    placeholder="{{ $placeholder }}"
                                                    oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');"
@@ -406,10 +463,14 @@
 
         function calculateRow(row) {
             let total = 0;
-            let count = 0;
+            let effectiveElectiveCount = 0;
+            const isGrade11Or12 = row.dataset.isGrade11or12 === 'true';
+            const enrolledElectives = JSON.parse(row.dataset.enrolledElectives || '[]');
             
             row.querySelectorAll('.mark-input').forEach(input => {
                 const val = parseFloat(input.value);
+                const isElective = input.dataset.isElective === 'true';
+                const subjectId = parseInt(input.dataset.subjectId);
                 
                 // Reset validation styles
                 input.classList.remove('border-red-500', 'bg-red-50', 'text-red-600', 'focus:border-red-500', 'focus:ring-red-200');
@@ -426,12 +487,27 @@
                     } else {
                         total += val;
                     }
-                    count++;
+                    
+                    if (isElective) {
+                        if (isGrade11Or12) {
+                            effectiveElectiveCount++;
+                        } else if (!enrolledElectives.includes(subjectId)) {
+                            effectiveElectiveCount++;
+                        }
+                    }
                 }
             });
             
-            const subjectCount = parseInt(row.dataset.subjectCount) || 0;
-            const average = subjectCount > 0 ? (total / subjectCount) : 0;
+            const regularSubjectCount = parseInt(row.dataset.regularSubjectCount) || 0;
+            let finalDenominator = regularSubjectCount;
+            
+            if (isGrade11Or12) {
+                finalDenominator += effectiveElectiveCount;
+            } else {
+                finalDenominator += enrolledElectives.length + effectiveElectiveCount;
+            }
+
+            const average = finalDenominator > 0 ? (total / finalDenominator) : 0;
 
             row.querySelector('.student-total').innerText = parseFloat(total.toFixed(2));
             row.querySelector('.student-average').innerText = average.toFixed(2);

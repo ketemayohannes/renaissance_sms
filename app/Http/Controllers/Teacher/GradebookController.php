@@ -532,6 +532,13 @@ class GradebookController extends Controller
             DB::commit();
             fclose($file);
             
+            // Recalculate Statistics
+            $gradingService = app(\App\Services\GradingService::class);
+            $gradingService->recalculateSectionStatistics($section, $term, \App\Models\AcademicYear::findOrFail($academicYearId));
+            
+            // Clear roster cache
+            \Illuminate\Support\Facades\Cache::forget("roster_data_{$section->id}_{$term->id}_{$academicYearId}");
+
             if (empty($upsertData)) {
                 return back()->with('warning', 'No grades were imported.');
             }
@@ -574,6 +581,13 @@ class GradebookController extends Controller
                 'marks' => $request->marks,
             ], Auth::id());
             
+            // Recalculate Statistics
+            $gradingService = app(\App\Services\GradingService::class);
+            $gradingService->recalculateSectionStatistics($assignment->section, Term::findOrFail($request->term_id), \App\Models\AcademicYear::findOrFail($assignment->academic_year_id));
+            
+            // Clear roster cache
+            \Illuminate\Support\Facades\Cache::forget("roster_data_{$assignment->section_id}_{$request->term_id}_{$assignment->academic_year_id}");
+
             return back()->with('success', $result['message']);
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
