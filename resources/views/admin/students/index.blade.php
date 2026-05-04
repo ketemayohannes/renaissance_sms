@@ -341,7 +341,7 @@
                                             <span class="text-sm font-semibold text-slate-600">{{ $student->student_id }}</span>
                                         </td>
                                         <td class="p-4">
-                                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold {{ $student->gender == 'male' ? 'bg-blue-50 text-blue-700' : 'bg-pink-50 text-pink-700' }} uppercase tracking-wide">
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold {{ in_array(strtoupper($student->gender), ['M', 'MALE']) ? 'bg-blue-50 text-blue-700' : 'bg-pink-50 text-pink-700' }} uppercase tracking-wide">
                                                 {{ $student->gender }}
                                             </span>
                                         </td>
@@ -376,6 +376,17 @@
                                                     <a href="{{ route('admin.students.show', $student) }}" class="p-2 hover:bg-indigo-50 text-indigo-600 rounded-xl transition-all" title="View Profile">
                                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                                                     </a>
+                                                     <button @click="$dispatch('open-quick-edit', { 
+                                                         id: '{{ $student->id }}', 
+                                                         first_name: '{{ $student->getRawOriginal('first_name') }}', 
+                                                         father_name: '{{ $student->getRawOriginal('father_name') }}', 
+                                                         grandfather_name: '{{ $student->getRawOriginal('grandfather_name') }}', 
+                                                         gender: '{{ strtoupper($student->gender) }}' 
+                                                     })" class="p-2 hover:bg-indigo-50 text-indigo-600 rounded-xl transition-all" title="Quick Edit">
+                                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                                         </svg>
+                                                     </button>
                                                     <a href="{{ route('admin.students.edit', $student) }}" class="p-2 hover:bg-amber-50 text-amber-600 rounded-xl transition-all" title="Edit Student">
                                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                                     </a>
@@ -420,5 +431,102 @@
                 </div>
             </div>
         </x-ui.premium-card>
+    </div>
+
+    <!-- Quick Edit Modal -->
+    <div x-data="{ 
+        isOpen: false, 
+        student: { id: '', first_name: '', father_name: '', grandfather_name: '', gender: '' },
+        openModal(data) {
+            this.student = data;
+            this.isOpen = true;
+        }
+    }" 
+    @open-quick-edit.window="openModal($event.detail)"
+    x-show="isOpen" 
+    class="fixed inset-0 z-[100] overflow-y-auto" 
+    x-cloak>
+        <div class="flex items-center justify-center min-h-screen p-4 text-center sm:p-0">
+            <div x-show="isOpen" 
+                 x-transition:enter="ease-out duration-300" 
+                 x-transition:enter-start="opacity-0" 
+                 x-transition:enter-end="opacity-100" 
+                 x-transition:leave="ease-in duration-200" 
+                 x-transition:leave-start="opacity-100" 
+                 x-transition:leave-end="opacity-0" 
+                 class="fixed inset-0 transition-opacity bg-slate-900/60 backdrop-blur-sm" 
+                 @click="isOpen = false"></div>
+
+            <div x-show="isOpen" 
+                 x-transition:enter="ease-out duration-300" 
+                 x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" 
+                 x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100" 
+                 x-transition:leave="ease-in duration-200" 
+                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100" 
+                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" 
+                 class="relative inline-block w-full max-w-lg p-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-2xl rounded-3xl sm:my-8">
+                
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-900">Quick Edit Student</h3>
+                        <p class="text-sm text-slate-500 mt-1">Update basic information instantly.</p>
+                    </div>
+                    <button @click="isOpen = false" class="p-2 hover:bg-slate-100 text-slate-400 hover:text-slate-600 rounded-full transition-all">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+
+                <form :action="'{{ route('admin.students.index') }}/' + student.id + '/quick-update'" method="POST">
+                    @csrf
+                    @method('PATCH')
+                    
+                    <div class="space-y-5">
+                        <div class="grid grid-cols-1 gap-5">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">First Name</label>
+                                <input type="text" name="first_name" x-model="student.first_name" required
+                                       class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-medium">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Father Name</label>
+                                <input type="text" name="father_name" x-model="student.father_name" required
+                                       class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-medium">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Grandfather Name</label>
+                                <input type="text" name="grandfather_name" x-model="student.grandfather_name" required
+                                       class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-medium">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Gender</label>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <label class="relative flex items-center justify-center p-3 border-2 rounded-2xl cursor-pointer transition-all"
+                                           :class="student.gender === 'M' ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-slate-100 hover:border-slate-200 text-slate-600'">
+                                        <input type="radio" name="gender" value="M" x-model="student.gender" class="sr-only">
+                                        <span class="font-bold">Male</span>
+                                    </label>
+                                    <label class="relative flex items-center justify-center p-3 border-2 rounded-2xl cursor-pointer transition-all"
+                                           :class="student.gender === 'F' ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-slate-100 hover:border-slate-200 text-slate-600'">
+                                        <input type="radio" name="gender" value="F" x-model="student.gender" class="sr-only">
+                                        <span class="font-bold">Female</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 flex gap-3">
+                        <button type="button" @click="isOpen = false" 
+                                class="flex-1 px-6 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl transition-all">
+                            Cancel
+                        </button>
+                        <button type="submit" 
+                                class="flex-1 px-6 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-xl shadow-indigo-200 transition-all transform hover:-translate-y-0.5">
+                            Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 </x-admin-layout>

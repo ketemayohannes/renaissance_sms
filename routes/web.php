@@ -249,6 +249,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('guardians/{guardian}/reset-password', [App\Http\Controllers\Admin\GuardianController::class, 'resetPassword'])->name('guardians.reset-password');
         Route::resource('guardians', App\Http\Controllers\Admin\GuardianController::class);
 
+        Route::patch('students/{student}/quick-update', [App\Http\Controllers\Admin\StudentController::class, 'quickUpdate'])->name('students.quick-update');
         Route::resource('students', App\Http\Controllers\Admin\StudentController::class);
 
         // Finance & Operations Portals

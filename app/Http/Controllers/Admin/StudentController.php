@@ -315,6 +315,23 @@ class StudentController extends Controller
         }
     }
 
+    public function quickUpdate(Request $request, Student $student)
+    {
+        $validated = $request->validate([
+            'first_name' => 'required|string|max:255',
+            'father_name' => 'required|string|max:255',
+            'grandfather_name' => 'required|string|max:255',
+            'gender' => 'required|in:M,F',
+        ]);
+
+        try {
+            $student->update($validated);
+            return back()->with('success', 'Student details updated quickly.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Update failed: ' . $e->getMessage());
+        }
+    }
+
     public function export()
     {
         $students = Student::with(['guardians', 'medicalInfo', 'transportation', 'enrollments.section.gradeLevel'])
