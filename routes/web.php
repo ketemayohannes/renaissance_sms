@@ -131,6 +131,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('section-grades/entry', [App\Http\Controllers\Admin\SectionGradeController::class, 'entry'])->name('section-grades.entry');
         Route::post('section-grades/store', [App\Http\Controllers\Admin\SectionGradeController::class, 'store'])->name('section-grades.store');
         Route::get('section-grades/export', [App\Http\Controllers\Admin\SectionGradeController::class, 'export'])->name('section-grades.export');
+        Route::get('section-grades/export-data', [App\Http\Controllers\Admin\SectionGradeController::class, 'exportData'])->name('section-grades.export-data');
         Route::post('section-grades/import', [App\Http\Controllers\Admin\SectionGradeController::class, 'import'])->name('section-grades.import');
         Route::post('section-grades/calculate', [App\Http\Controllers\Admin\SectionGradeController::class, 'calculateSemester'])->name('section-grades.calculate');
         

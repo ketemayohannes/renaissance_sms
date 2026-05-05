@@ -277,7 +277,7 @@ class SectionGradeController extends Controller
             ->orderBy('students.first_name')
             ->get();
 
-        $filename = "master_sheet_{$section->name}_{$term->name}.csv";
+        $filename = "master_sheet_template_{$section->name}_{$term->name}.csv";
         
         $headers = [
             "Content-type" => "text/csv",
@@ -305,6 +305,111 @@ class SectionGradeController extends Controller
                 foreach ($subjects as $subject) {
                      $row[] = ''; // Empty grade
                 }
+                fputcsv($file, $row);
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function exportData(Request $request, \App\Services\GradingService $gradingService)
+    {
+        $request->validate([
+            'academic_year_id' => 'required|exists:academic_years,id',
+            'term_id' => 'required|exists:terms,id',
+            'section_id' => 'required|exists:sections,id',
+        ]);
+
+        $section = Section::with('gradeLevel')->findOrFail($request->section_id);
+        $term = Term::findOrFail($request->term_id);
+        $academicYear = AcademicYear::findOrFail($request->academic_year_id);
+        
+        $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
+        $students = $section->students()
+            ->wherePivot('academic_year_id', $academicYear->id)
+            ->wherePivot('status', 'active')
+            ->where('students.is_active', true)
+            ->orderBy('students.first_name')
+            ->get();
+
+        // Reuse logic from entry() to get current marks
+        $termTotalType = AssessmentType::where('code', 'TERM_TOTAL')->first();
+        $subjectTemplates = [];
+        foreach ($subjects as $subject) {
+            $template = AssessmentTemplate::where('academic_year_id', $academicYear->id)
+                ->where('term_id', $term->id)
+                ->where('assessment_type_id', $termTotalType->id)
+                ->whereHas('assignments', function($q) use ($section, $subject) {
+                    $q->where('grade_level_id', $section->grade_level_id)
+                      ->where('subject_id', $subject->id);
+                })
+                ->first();
+            
+            if ($template) {
+                $subjectTemplates[$subject->id] = $template;
+            }
+        }
+
+        $allMarks = StudentMark::where('academic_year_id', $academicYear->id)
+            ->where('term_id', $term->id)
+            ->whereIn('student_id', $students->pluck('id'))
+            ->get();
+            
+        $marksMap = [];
+        $componentSums = []; 
+
+        foreach ($allMarks as $mark) {
+            $termTotalTemplate = $subjectTemplates[$mark->subject_id] ?? null;
+            if ($termTotalTemplate && $mark->assessment_template_id == $termTotalTemplate->id) {
+                $marksMap[$mark->student_id][$mark->subject_id] = $mark->score;
+            } else {
+                if (!isset($componentSums[$mark->student_id][$mark->subject_id])) {
+                    $componentSums[$mark->student_id][$mark->subject_id] = 0;
+                }
+                $componentSums[$mark->student_id][$mark->subject_id] += $mark->score;
+            }
+        }
+
+        foreach ($students as $student) {
+            foreach ($subjects as $subject) {
+                if (isset($componentSums[$student->id][$subject->id])) {
+                    $marksMap[$student->id][$subject->id] = $componentSums[$student->id][$subject->id];
+                }
+            }
+        }
+
+        // Add stats for average column
+        $stats = $gradingService->calculateSectionTotals($students, $term, $academicYear, $subjects);
+
+        $filename = "master_sheet_data_{$section->name}_{$term->name}.csv";
+        
+        $headers = [
+            "Content-type" => "text/csv",
+            "Content-Disposition" => "attachment; filename=$filename",
+            "Pragma" => "no-cache",
+            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
+            "Expires" => "0"
+        ];
+
+        $callback = function() use ($students, $subjects, $marksMap, $stats) {
+            $file = fopen('php://output', 'w');
+            fputs($file, "\xEF\xBB\xBF"); // BOM
+            fputs($file, "sep=,\n"); 
+
+            $headerRow = ['Student ID', 'Student Name'];
+            foreach ($subjects as $subject) {
+                $headerRow[] = $subject->name;
+            }
+            $headerRow[] = 'Average';
+            fputcsv($file, $headerRow);
+
+            foreach ($students as $student) {
+                $row = [$student->student_id, $student->full_name];
+                foreach ($subjects as $subject) {
+                     $row[] = $marksMap[$student->id][$subject->id] ?? '';
+                }
+                $row[] = number_format($stats[$student->id]['average'] ?? 0, 2);
                 fputcsv($file, $row);
             }
             fclose($file);
