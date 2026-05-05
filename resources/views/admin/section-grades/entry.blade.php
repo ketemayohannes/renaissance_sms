@@ -49,9 +49,9 @@
         @endif
         
         @php
-            $lowPerformers = $students->filter(function($student) use ($records) {
-                $record = $records[$student->id] ?? null;
-                return $record && $record->average_score !== null && $record->average_score < 76;
+            $lowPerformers = $students->filter(function($student) use ($stats) {
+                $average = $stats[$student->id]['average'] ?? 0;
+                return $average > 0 && $average < 76;
             });
         @endphp
 
@@ -74,7 +74,7 @@
                                 <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">ID: {{ $student->student_id }}</span>
                             </div>
                             <div class="flex flex-col items-end">
-                                <span class="text-sm font-black text-rose-600">{{ number_format($records[$student->id]->average_score, 1) }}%</span>
+                                <span class="text-sm font-black text-rose-600">{{ number_format($stats[$student->id]['average'], 1) }}%</span>
                                 <span class="text-[9px] font-bold text-rose-300 uppercase tracking-tighter">Average</span>
                             </div>
                         </div>
@@ -177,7 +177,6 @@
 
                 <div class="overflow-x-auto custom-scrollbar">
                     <table class="w-full text-left border-separate border-spacing-0">
-                        <thead>
                         <thead>
                             <tr class="bg-slate-50 border-b border-slate-200">
                                 <th class="px-2 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center w-12 align-bottom pb-2">No</th>

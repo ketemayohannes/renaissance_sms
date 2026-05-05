@@ -32,7 +32,7 @@ class SectionGradeController extends Controller
         return view('admin.section-grades.index', compact('academicYears', 'gradeLevels', 'terms', 'sections', 'subjects'));
     }
 
-    public function entry(Request $request)
+    public function entry(Request $request, \App\Services\GradingService $gradingService)
     {
         $request->validate([
             'academic_year_id' => 'required|exists:academic_years,id',
@@ -161,17 +161,16 @@ class SectionGradeController extends Controller
              // Actually, for store/import we should block.
         }
 
+        $isGrade11Or12 = false;
         if (preg_match('/\b(11|12)\b/', $section->gradeLevel->name)) {
             $isGrade11Or12 = true;
         }
 
-        // Fetch existing records for Academic Alert
-        $records = \App\Models\StudentTermRecord::whereIn('student_id', $students->pluck('id'))
-            ->where('term_id', $term->id)
-            ->get()
-            ->keyBy('student_id');
+        // Calculate real-time stats for Academic Alert
+        // This ensures the alert is always accurate regardless of background calculation state
+        $stats = $gradingService->calculateSectionTotals($students, $term, $academicYear, $subjects);
 
-        return view('admin.section-grades.entry', compact('academicYear', 'term', 'section', 'students', 'subjects', 'marksMap', 'studentElectives', 'isGrade11Or12', 'records'));
+        return view('admin.section-grades.entry', compact('academicYear', 'term', 'section', 'students', 'subjects', 'marksMap', 'studentElectives', 'isGrade11Or12', 'stats'));
     }
 
     public function store(Request $request, \App\Services\GradingService $gradingService)
@@ -320,7 +319,6 @@ class SectionGradeController extends Controller
             'file' => 'required|file|mimes:csv,txt',
             'academic_year_id' => 'required|exists:academic_years,id',
             'term_id' => 'required|exists:terms,id',
-            'section_id' => 'required|exists:sections,id',
             'section_id' => 'required|exists:sections,id',
         ]);
 
