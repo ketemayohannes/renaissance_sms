@@ -52,35 +52,42 @@
                                 <select name="term_id" class="w-full bg-slate-50 border-0 rounded-2xl focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700">
                                     @foreach($terms as $term)
                                         <option value="{{ $term->id }}" {{ $exam->term_id == $term->id ? 'selected' : '' }}>{{ $term->name }}</option>
+                                        <option value="{{ $term->id }}" {{ old('term_id', $exam->term_id) == $term->id ? 'selected' : '' }}>{{ $term->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
 
                             <div>
                                 <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Subject & Grade</label>
-                                <select name="assignment_selection" id="assignment_selection" class="w-full bg-slate-50 border-0 rounded-2xl focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700">
+                                <select name="assignment_selection" id="assignment_selection" class="w-full bg-slate-50 border-0 rounded-2xl focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700 @error('subject_id') ring-2 ring-rose-500 @enderror">
                                     <option value="">Select Assignment</option>
                                     @foreach($assignments as $assignment)
-                                        <option value="{{ $assignment->subject_id }}|{{ $assignment->section->grade_level_id }}" {{ ($exam->subject_id == $assignment->subject_id && $exam->grade_level_id == $assignment->section->grade_level_id) ? 'selected' : '' }}>
+                                        @php
+                                            $isSelected = old('subject_id', $exam->subject_id) == $assignment->subject_id && old('grade_level_id', $exam->grade_level_id) == $assignment->section->grade_level_id;
+                                        @endphp
+                                        <option value="{{ $assignment->subject_id }}|{{ $assignment->section->grade_level_id }}" {{ $isSelected ? 'selected' : '' }}>
                                             {{ $assignment->section->gradeLevel->name }} - {{ $assignment->subject->name }}
                                         </option>
                                     @endforeach
                                 </select>
-                                <input type="hidden" name="subject_id" id="subject_id" value="{{ $exam->subject_id }}">
-                                <input type="hidden" name="grade_level_id" id="grade_level_id" value="{{ $exam->grade_level_id }}">
+                                <input type="hidden" name="subject_id" id="subject_id" value="{{ old('subject_id', $exam->subject_id) }}">
+                                <input type="hidden" name="grade_level_id" id="grade_level_id" value="{{ old('grade_level_id', $exam->grade_level_id) }}">
+                                @error('subject_id')
+                                    <p class="text-rose-500 text-[10px] font-black mt-2 ml-1 uppercase tracking-widest">{{ $message }}</p>
+                                @enderror
                             </div>
 
                             <div>
                                 <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Submission Type</label>
                                 <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-2xl">
                                     <label class="cursor-pointer">
-                                        <input type="radio" name="type" value="text" class="sr-only peer" {{ $exam->type === 'text' ? 'checked' : '' }}>
+                                        <input type="radio" name="type" value="text" class="sr-only peer" {{ old('type', $exam->type) === 'text' ? 'checked' : '' }}>
                                         <div class="py-2 px-4 rounded-xl text-center text-xs font-black uppercase tracking-widest transition-all peer-checked:bg-white peer-checked:shadow-sm peer-checked:text-indigo-600 text-slate-500">
                                             Text Editor
                                         </div>
                                     </label>
                                     <label class="cursor-pointer">
-                                        <input type="radio" name="type" value="upload" class="sr-only peer" {{ $exam->type === 'upload' ? 'checked' : '' }}>
+                                        <input type="radio" name="type" value="upload" class="sr-only peer" {{ old('type', $exam->type) === 'upload' ? 'checked' : '' }}>
                                         <div class="py-2 px-4 rounded-xl text-center text-xs font-black uppercase tracking-widest transition-all peer-checked:bg-white peer-checked:shadow-sm peer-checked:text-indigo-600 text-slate-500">
                                             File Upload
                                         </div>
@@ -96,19 +103,25 @@
                     <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50 space-y-6">
                         <div>
                             <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Exam Title</label>
-                            <input type="text" name="title" value="{{ $exam->title }}" placeholder="e.g. Midterm 1 - Mathematics" class="w-full bg-slate-50 border-0 rounded-2xl focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700 px-6 py-4 placeholder:text-slate-300">
+                            <input type="text" name="title" value="{{ old('title', $exam->title) }}" placeholder="e.g. Midterm 1 - Mathematics" class="w-full bg-slate-50 border-0 rounded-2xl focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700 px-6 py-4 placeholder:text-slate-300 @error('title') ring-2 ring-rose-500 @enderror">
+                            @error('title')
+                                <p class="text-rose-500 text-[10px] font-black mt-2 ml-1 uppercase tracking-widest">{{ $message }}</p>
+                            @enderror
                         </div>
 
                         <!-- Editor Container -->
-                        <div id="text_container" class="{{ $exam->type === 'upload' ? 'hidden' : '' }} space-y-4">
+                        <div id="text_container" class="{{ old('type', $exam->type) === 'upload' ? 'hidden' : '' }} space-y-4">
                             <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1 text-center">Exam Paper Content</label>
                             <div class="prose max-w-none border border-slate-100 rounded-3xl overflow-hidden min-h-[400px]">
-                                <textarea name="content" id="editor">{{ $exam->content }}</textarea>
+                                <textarea name="content" id="editor">{{ old('content', $exam->content) }}</textarea>
                             </div>
+                            @error('content')
+                                <p class="text-rose-500 text-[10px] font-black mt-2 ml-1 uppercase tracking-widest text-center">{{ $message }}</p>
+                            @enderror
                         </div>
 
                         <!-- Upload Container -->
-                        <div id="upload_container" class="{{ $exam->type === 'text' ? 'hidden' : '' }} space-y-4">
+                        <div id="upload_container" class="{{ old('type', $exam->type) === 'text' ? 'hidden' : '' }} space-y-4">
                             @if($exam->file_path)
                                 <div class="bg-slate-50 p-6 rounded-2xl flex items-center justify-between">
                                     <div class="flex items-center gap-4 text-slate-700 font-bold text-sm">
@@ -160,16 +173,22 @@
         const textContainer = document.getElementById('text_container');
         const uploadContainer = document.getElementById('upload_container');
 
+        const updateTypeContainers = (val) => {
+            if (val === 'text') {
+                textContainer.classList.remove('hidden');
+                uploadContainer.classList.add('hidden');
+            } else {
+                textContainer.classList.add('hidden');
+                uploadContainer.classList.remove('hidden');
+            }
+        };
+
+        // Initialize based on old input
+        const checkedRadio = document.querySelector('input[name="type"]:checked');
+        if (checkedRadio) updateTypeContainers(checkedRadio.value);
+
         typeRadios.forEach(radio => {
-            radio.addEventListener('change', (e) => {
-                if (e.target.value === 'text') {
-                    textContainer.classList.remove('hidden');
-                    uploadContainer.classList.add('hidden');
-                } else {
-                    textContainer.classList.add('hidden');
-                    uploadContainer.classList.remove('hidden');
-                }
-            });
+            radio.addEventListener('change', (e) => updateTypeContainers(e.target.value));
         });
 
         const selection = document.getElementById('assignment_selection');

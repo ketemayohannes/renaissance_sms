@@ -1,3 +1,7 @@
+@php
+    $pendingExamsCount = \App\Models\ExamPaper::where('status', 'submitted')->count();
+@endphp
+
 <aside 
        x-data="{ 
            openCategories: JSON.parse(localStorage.getItem('openCategories')) || { 
@@ -139,17 +143,35 @@
         @endcanany
 
         @canany(['view attendance', 'view timetable', 'view master gradebook', 'view subject gradebook', 'view assessment types', 'view assessment assignments', 'view subject assignments', 'view activities'])
-        <div class="sidebar-category-header flex items-center cursor-pointer group" 
+        <div class="sidebar-category-header flex items-center cursor-pointer group relative" 
              :class="sidebarCollapsed ? 'text-center px-0 justify-center w-full' : 'justify-between sticky top-0 z-10 bg-white/95 backdrop-blur-md'"
              @click="toggleCategory('academics')">
-            <span x-show="!sidebarCollapsed" class="group-hover:text-slate-600 transition-colors">Academic Operations</span>
-            <span x-show="!sidebarCollapsed">
-                <svg class="w-3 h-3 text-slate-400 transition-transform duration-200"
-                     :class="openCategories['academics'] ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                </svg>
-            </span>
-            <span x-show="sidebarCollapsed">•••</span>
+            
+            <div class="flex items-center gap-2">
+                <span x-show="!sidebarCollapsed" class="group-hover:text-slate-600 transition-colors">Academic Operations</span>
+                @if($pendingExamsCount > 0)
+                    <span x-show="!sidebarCollapsed && !openCategories['academics']" x-transition class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-600 text-[9px] font-black border border-rose-200">
+                        {{ $pendingExamsCount }}
+                    </span>
+                @endif
+            </div>
+
+            <div class="flex items-center">
+                <span x-show="!sidebarCollapsed">
+                    <svg class="w-3 h-3 text-slate-400 transition-transform duration-200"
+                         :class="openCategories['academics'] ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </span>
+                <span x-show="sidebarCollapsed" class="relative flex h-3 w-3">
+                    @if($pendingExamsCount > 0)
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+                    @else
+                        •••
+                    @endif
+                </span>
+            </div>
         </div>
         
         <div x-show="openCategories['academics'] || sidebarCollapsed" x-collapse>
@@ -225,11 +247,26 @@
             </a>
             @endcan
 
-            <a href="{{ route('admin.exams.index') }}" class="sidebar-link {{ request()->routeIs('admin.exams.*') ? 'sidebar-link-active' : '' }}" title="Exam Paper Reviews">
-                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-                <span x-show="!sidebarCollapsed" x-transition>Exam Reviews</span>
+            <a href="{{ route('admin.exams.index') }}" class="sidebar-link {{ request()->routeIs('admin.exams.*') ? 'sidebar-link-active' : '' }} flex items-center justify-between" title="Exam Paper Reviews">
+                <div class="flex items-center gap-3">
+                    <div class="relative">
+                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        @if($pendingExamsCount > 0)
+                            <span x-show="sidebarCollapsed" class="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+                            </span>
+                        @endif
+                    </div>
+                    <span x-show="!sidebarCollapsed" x-transition>Exam Reviews</span>
+                </div>
+                @if($pendingExamsCount > 0)
+                    <span x-show="!sidebarCollapsed" x-transition class="px-2 py-0.5 rounded-full bg-rose-500 text-white text-[9px] font-black shadow-sm">
+                        {{ $pendingExamsCount }}
+                    </span>
+                @endif
             </a>
         </div>
         @endcanany

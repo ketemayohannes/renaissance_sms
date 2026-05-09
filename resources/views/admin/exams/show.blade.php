@@ -81,15 +81,25 @@
                     
                     <form action="{{ route('admin.exams.review', $exam) }}" method="POST" class="space-y-6">
                         @csrf
+                        
+                        @if ($errors->any())
+                            <div class="bg-rose-50 border border-rose-200 text-rose-600 p-4 rounded-2xl text-xs font-bold">
+                                <ul>
+                                    @foreach ($errors->all() as $error)
+                                        <li>• {{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
                         <div class="grid grid-cols-2 gap-3">
                             <label class="cursor-pointer">
-                                <input type="radio" name="status" value="approved" class="sr-only peer" {{ $exam->status === 'approved' ? 'checked' : '' }}>
+                                <input type="radio" name="status" value="approved" class="sr-only peer" {{ old('status', $exam->status) === 'approved' ? 'checked' : '' }}>
                                 <div class="py-4 px-4 rounded-2xl text-center text-[10px] font-black uppercase tracking-widest transition-all peer-checked:bg-emerald-600 peer-checked:text-white bg-slate-50 text-slate-500 hover:bg-slate-100">
                                     Approve
                                 </div>
                             </label>
                             <label class="cursor-pointer">
-                                <input type="radio" name="status" value="rejected" class="sr-only peer" {{ $exam->status === 'rejected' ? 'checked' : '' }}>
+                                <input type="radio" name="status" value="rejected" class="sr-only peer" {{ old('status', $exam->status) === 'rejected' ? 'checked' : '' }}>
                                 <div class="py-4 px-4 rounded-2xl text-center text-[10px] font-black uppercase tracking-widest transition-all peer-checked:bg-rose-600 peer-checked:text-white bg-slate-50 text-slate-500 hover:bg-slate-100">
                                     Needs Revision
                                 </div>
@@ -98,7 +108,10 @@
 
                         <div>
                             <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Reviewer Comments</label>
-                            <textarea name="review_comments" rows="5" class="w-full bg-slate-50 border-0 rounded-2xl focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700 p-6 placeholder:text-slate-300" placeholder="Provide feedback or reasons for rejection...">{{ $exam->review_comments }}</textarea>
+                            <textarea name="review_comments" rows="5" class="w-full bg-slate-50 border-0 rounded-2xl focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700 p-6 placeholder:text-slate-300 @error('review_comments') ring-2 ring-rose-500 @enderror" placeholder="Provide feedback or reasons for rejection...">{{ old('review_comments', $exam->review_comments) }}</textarea>
+                            @error('review_comments')
+                                <p class="text-rose-500 text-[10px] font-black mt-2 ml-1 uppercase tracking-widest">{{ $message }}</p>
+                            @enderror
                         </div>
 
                         <button type="submit" class="w-full py-4 bg-slate-900 text-white font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-indigo-600 transition-all shadow-xl shadow-slate-200">
