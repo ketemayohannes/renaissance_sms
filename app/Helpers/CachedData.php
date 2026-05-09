@@ -17,9 +17,24 @@ class CachedData
 {
     private const TTL = 3600; // 1 hour
 
+    private static function getDivisionKey()
+    {
+        if (app()->runningInConsole()) return 'global';
+        $user = \Illuminate\Support\Facades\Auth::user();
+        if (!$user) return 'global';
+        
+        if ($user->hasAnyRole(['Super Admin', 'IT / System Admin', 'Registrar', 'General Manager', 'HR Manager', 'Senior Finance Officer', 'Librarian'])) {
+            return 'global';
+        }
+        
+        $employee = \App\Models\Employee::withoutGlobalScopes()->where('user_id', $user->id)->first();
+        return $employee && $employee->division_id ? $employee->division_id : 'global';
+    }
+
     public static function gradeLevels()
     {
-        return Cache::remember('cached_grade_levels', self::TTL, function() {
+        $key = 'cached_grade_levels_' . self::getDivisionKey();
+        return Cache::remember($key, self::TTL, function() {
             return \App\Models\GradeLevel::orderBy('sort_order')->get();
         });
     }
@@ -61,14 +76,16 @@ class CachedData
 
     public static function sections()
     {
-        return Cache::remember('cached_sections', self::TTL, function() {
+        $key = 'cached_sections_' . self::getDivisionKey();
+        return Cache::remember($key, self::TTL, function() {
             return \App\Models\Section::with('gradeLevel')->where('is_active', true)->get();
         });
     }
 
     public static function sectionsGrouped()
     {
-        return Cache::remember('cached_sections_grouped', self::TTL, function() {
+        $key = 'cached_sections_grouped_' . self::getDivisionKey();
+        return Cache::remember($key, self::TTL, function() {
             return \App\Models\Section::with('gradeLevel')->get()->groupBy(function($section) {
                 return $section->gradeLevel ? $section->gradeLevel->name : 'Unassigned';
             });
@@ -98,19 +115,35 @@ class CachedData
         });
     }
 
-    /**
-     * Clear all cached data. Call this when underlying data changes.
-     */
     public static function flush()
     {
+        // Global keys
+        Cache::forget('cached_grade_levels_global');
+        Cache::forget('cached_sections_global');
+        Cache::forget('cached_sections_grouped_global');
+        
+        // Division-specific keys
+        try {
+            $divisions = \App\Models\Division::all();
+            foreach ($divisions as $division) {
+                Cache::forget('cached_grade_levels_' . $division->id);
+                Cache::forget('cached_sections_' . $division->id);
+                Cache::forget('cached_sections_grouped_' . $division->id);
+            }
+        } catch (\Exception $e) {
+            // Ignore if tables don't exist yet
+        }
+
+        // Old keys (for safety)
         Cache::forget('cached_grade_levels');
+        Cache::forget('cached_sections');
+        Cache::forget('cached_sections_grouped');
+
         Cache::forget('cached_subjects');
         Cache::forget('cached_all_subjects');
         Cache::forget('cached_terms');
         Cache::forget('cached_academic_years');
         Cache::forget('cached_active_academic_year');
-        Cache::forget('cached_sections');
-        Cache::forget('cached_sections_grouped');
         Cache::forget('cached_assessment_types');
         Cache::forget('cached_divisions');
         Cache::forget('cached_permissions');

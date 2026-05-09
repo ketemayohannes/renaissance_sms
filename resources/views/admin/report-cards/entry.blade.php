@@ -48,7 +48,7 @@
         @php
             $lowPerformers = $students->filter(function($student) use ($records) {
                 $record = $records[$student->id] ?? null;
-                return $record && $record->average_score !== null && $record->average_score < 76;
+                return $record && $record->average_score !== null && $record->average_score < 75;
             });
         @endphp
 
@@ -58,10 +58,15 @@
                     <div class="w-14 h-14 rounded-2xl bg-rose-500 text-white flex items-center justify-center shadow-lg shadow-rose-200">
                         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                     </div>
-                    <div>
+                    <div class="flex-1">
                         <h2 class="text-xl font-black text-rose-900 tracking-tight">Academic Alert: Low Performance Threshold</h2>
-                        <p class="text-sm font-bold text-rose-600/80">The following students have a total average below 76% for this {{ $term->type }}.</p>
+                        <p class="text-sm font-bold text-rose-600/80">The following students have a total average below 75% for this {{ $term->type }}.</p>
                     </div>
+                    <a href="{{ route('admin.report-cards.export-low-performance', ['academic_year_id' => $academicYear->id, 'term_id' => $term->id, 'section_id' => $section->id]) }}" 
+                       class="px-6 py-3 bg-rose-600 text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-rose-700 transition-all shadow-lg shadow-rose-200 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        Export List
+                    </a>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     @foreach($lowPerformers as $student)

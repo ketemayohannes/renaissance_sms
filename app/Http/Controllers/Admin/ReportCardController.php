@@ -215,4 +215,61 @@ class ReportCardController extends Controller
         return Storage::disk('public')->download($exportRequest->file_path);
     }
 
+    public function exportLowPerformance(Request $request)
+    {
+        $request->validate([
+            'academic_year_id' => 'required|exists:academic_years,id',
+            'term_id' => 'required|exists:terms,id',
+            'section_id' => 'required|exists:sections,id',
+        ]);
+
+        $section = Section::findOrFail($request->section_id);
+        $term = Term::findOrFail($request->term_id);
+        $academicYear = AcademicYear::findOrFail($request->academic_year_id);
+        
+        $students = $section->students()
+            ->wherePivot('academic_year_id', $academicYear->id)
+            ->wherePivot('status', 'active')
+            ->where('students.is_active', true)
+            ->orderBy('students.first_name')
+            ->get();
+        
+        $records = StudentTermRecord::whereIn('student_id', $students->pluck('id'))
+            ->where('term_id', $term->id)
+            ->get()
+            ->keyBy('student_id');
+
+        $lowPerformers = $students->filter(function($student) use ($records) {
+            $record = $records[$student->id] ?? null;
+            return $record && $record->average_score !== null && $record->average_score < 75;
+        });
+
+        $filename = "low_performance_report_cards_{$section->name}_{$term->name}.csv";
+        
+        $headers = [
+            "Content-type" => "text/csv",
+            "Content-Disposition" => "attachment; filename=$filename",
+            "Pragma" => "no-cache",
+            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
+            "Expires" => "0"
+        ];
+
+        $callback = function() use ($lowPerformers, $records) {
+            $file = fopen('php://output', 'w');
+            fputs($file, "\xEF\xBB\xBF"); // BOM
+            fputs($file, "sep=,\n"); // Excel separator hint
+            fputcsv($file, ['Student ID', 'Student Name', 'Average Score (%)']);
+
+            foreach ($lowPerformers as $student) {
+                fputcsv($file, [
+                    $student->student_id,
+                    $student->full_name,
+                    number_format($records[$student->id]->average_score, 1) . '%'
+                ]);
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
 }

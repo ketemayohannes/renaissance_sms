@@ -328,10 +328,17 @@ class ReportCardService
         // unless the dataset is huge. Usually, attendance for one year is manageable.
         
         $allAttendance = $query->get(['student_id', 'attendance_date', 'status']);
+        
+        // Fetch all relevant StudentTermRecords for manual overrides
+        $allRecords = StudentTermRecord::whereIn('student_id', $studentIds)
+            ->whereIn('term_id', collect($terms)->pluck('id'))
+            ->get(['student_id', 'term_id', 'days_absent'])
+            ->groupBy('student_id');
 
         $results = [];
         foreach ($students as $student) {
             $studentAttendance = $allAttendance->where('student_id', $student->id);
+            $studentRecords = $allRecords->get($student->id, collect())->keyBy('term_id');
             
             foreach ($terms as $term) {
                 $termAttendance = $studentAttendance;
@@ -342,9 +349,13 @@ class ReportCardService
                 $stats = $termAttendance->groupBy('status')->map->count();
                 
                 $present = $stats['present'] ?? 0;
-                $absent = $stats['absent'] ?? 0;
+                $automatedAbsent = $stats['absent'] ?? 0;
                 $late = $stats['late'] ?? 0;
                 $excused = $stats['excused'] ?? 0;
+
+                // Manual Override
+                $record = $studentRecords->get($term->id);
+                $absent = ($record && $record->days_absent !== null) ? $record->days_absent : $automatedAbsent;
 
                 $results[$student->id][$term->id] = [
                     'total_days' => $present + $absent + $late + $excused,

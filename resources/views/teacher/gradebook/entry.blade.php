@@ -147,12 +147,14 @@
 
             <div class="flex items-center gap-3">
                 <a href="{{ route('teacher.gradebook.export', ['assignment' => $assignment->id, 'term_id' => $term->id]) }}" 
+                   target="_blank"
                    class="px-6 py-3.5 bg-white text-indigo-600 border border-indigo-100 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-indigo-50 shadow-xl shadow-indigo-100/50 transition-all flex items-center gap-3 group">
                     <svg class="w-4 h-4 text-indigo-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                     Export Template
                 </a>
 
                 <a href="{{ route('teacher.gradebook.marksheet', ['assignment' => $assignment->id, 'term_id' => $term->id]) }}" 
+                   target="_blank"
                    class="px-6 py-3.5 bg-white text-slate-600 border border-slate-100 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-50 shadow-xl shadow-slate-100/50 transition-all flex items-center gap-3 group">
                     <svg class="w-4 h-4 text-slate-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2m32-2v2m-9-2a4 4 0 00-4-4h-3a4 4 0 00-4 4v2M9 8a4 4 0 11-8 0 4 4 0 018 0zM3 20l4-8H4l-4 8h3zm18-8l-4 8h3l4-8h-3zM9 16l4-8h-3l-4 8h3z"></path></svg>
                     Download Marksheet
@@ -200,8 +202,8 @@
                                            @change="importFileName = $event.target.files[0] ? $event.target.files[0].name : ''">
                                     <div class="space-y-2">
                                         <svg class="w-8 h-8 text-slate-400 mx-auto group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                        <div x-show="!importFileName" class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Drop file here or click to browse</div>
-                                        <div x-show="importFileName" x-text="importFileName" class="text-xs font-bold text-indigo-600 truncate px-4"></div>
+                                        <div id="grade-import-placeholder" x-show="!importFileName" class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Drop file here or click to browse</div>
+                                        <div id="grade-import-filename" x-show="importFileName" x-text="importFileName" class="text-xs font-bold text-indigo-600 truncate px-4"></div>
                                     </div>
                                 </div>
                                 <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center px-4 leading-relaxed">Ensure Student IDs match exactly with the system records to avoid validation failures.</p>
@@ -388,7 +390,6 @@
                         }
                     });
                     
-                    // Warn before leaving with unsaved changes
                     window.addEventListener('beforeunload', (e) => {
                         if (this.hasUnsavedChanges && !this.isSaving) {
                             e.preventDefault();
@@ -399,7 +400,29 @@
             }
         }
 
-        function calculateRow(row) {
+        // Grade Import File Display
+        document.addEventListener('DOMContentLoaded', function() {
+            const gradeFileInput = document.querySelector('input[name="file"][accept=".csv,.txt"]');
+            const placeholder = document.getElementById('grade-import-placeholder');
+            const fileNameDisplay = document.getElementById('grade-import-filename');
+
+            if (gradeFileInput && placeholder && fileNameDisplay) {
+                gradeFileInput.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        const name = e.target.files[0].name;
+                        fileNameDisplay.textContent = name;
+                        fileNameDisplay.classList.remove('hidden');
+                        placeholder.classList.add('hidden');
+                    } else {
+                        fileNameDisplay.textContent = '';
+                        fileNameDisplay.classList.add('hidden');
+                        placeholder.classList.remove('hidden');
+                    }
+                });
+            }
+        });
+
+        function calculateRow(row, skipDirty = false) {
             const inputs = row.querySelectorAll('.mark-input');
             let grandTotal = 0;
             let caTotal = 0;
@@ -451,10 +474,12 @@
             }
             
             // Mark as unsaved
-            const rootElement = document.querySelector('.space-y-8');
-            if (rootElement && window.Alpine) {
-                const data = Alpine.$data(rootElement);
-                if (data) data.hasUnsavedChanges = true;
+            if (!skipDirty) {
+                const rootElement = document.querySelector('.space-y-8');
+                if (rootElement && window.Alpine) {
+                    const data = Alpine.$data(rootElement);
+                    if (data) data.hasUnsavedChanges = true;
+                }
             }
         }
 
@@ -481,9 +506,9 @@
         
         // Keyboard navigation
         document.addEventListener('DOMContentLoaded', function() {
-            // Initial calculation
+            // Initial calculation (skipping dirty flag)
             document.querySelectorAll('.student-row').forEach(row => {
-                calculateRow(row);
+                calculateRow(row, true);
             });
 
             const table = document.querySelector('table');

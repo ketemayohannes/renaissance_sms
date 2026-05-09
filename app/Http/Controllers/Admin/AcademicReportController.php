@@ -100,7 +100,7 @@ class AcademicReportController extends Controller
                 $subjects = $params['subjects'];
                 $reports = $params['reports'];
                 $subjectStats = [];
-                $passMark = 50;
+                $passMark = 75;
 
                 foreach ($subjects as $subject) {
                     $scores = [];
@@ -123,11 +123,12 @@ class AcademicReportController extends Controller
                     }
                 }
 
+                $subjectAvgs = collect($subjectStats)->pluck('average');
                 $classAvgs = collect($reports)->map(fn($r) => $termId === 'yearly' ? ($r['rows']['avg']['average'] ?? 0) : ($r['average'] ?? 0));
                 $classCount = $classAvgs->count();
                 $classStats = (object)[
                     'total_students' => $classCount,
-                    'class_average' => $classCount > 0 ? $classAvgs->average() : 0,
+                    'class_average' => $subjectAvgs->isNotEmpty() ? $subjectAvgs->average() : ($classCount > 0 ? $classAvgs->average() : 0),
                     'total_passed' => $classAvgs->filter(fn($avg) => $avg >= $passMark)->count(),
                     'highest_avg' => $classAvgs->max(),
                 ];

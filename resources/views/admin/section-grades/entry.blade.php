@@ -51,7 +51,7 @@
         @php
             $lowPerformers = $students->filter(function($student) use ($stats) {
                 $average = $stats[$student->id]['average'] ?? 0;
-                return $average > 0 && $average < 76;
+                return $average > 0 && $average < 75;
             });
         @endphp
 
@@ -61,10 +61,15 @@
                     <div class="w-14 h-14 rounded-2xl bg-rose-500 text-white flex items-center justify-center shadow-lg shadow-rose-200">
                         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                     </div>
-                    <div>
+                    <div class="flex-1">
                         <h2 class="text-xl font-black text-rose-900 tracking-tight">Academic Alert: Low Performance Threshold</h2>
-                        <p class="text-sm font-bold text-rose-600/80">The following students have a total average below 76% for this {{ $term->type }}.</p>
+                        <p class="text-sm font-bold text-rose-600/80">The following students have a total average below 75% for this {{ $term->type }}.</p>
                     </div>
+                    <a href="{{ route('admin.section-grades.export-low-performance', ['academic_year_id' => $academicYear->id, 'term_id' => $term->id, 'section_id' => $section->id]) }}" 
+                       class="px-6 py-3 bg-rose-600 text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-rose-700 transition-all shadow-lg shadow-rose-200 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        Export List
+                    </a>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     @foreach($lowPerformers as $student)
@@ -268,7 +273,7 @@
                                     @foreach($subjects as $subject)
                                         @php
                                             $score = $marksMap[$student->id][$subject->id] ?? '';
-                                            $disabled = !$term->is_master_grading_open;
+                                            $disabled = !$term->is_master_grading_open || !auth()->user()->can('edit master gradebook');
                                             $placeholder = '-';
                                             $title = '';
 
@@ -292,7 +297,7 @@
                                                    value="{{ $score }}" 
                                                    data-is-elective="{{ $subject->is_elective ? 'true' : 'false' }}"
                                                    data-subject-id="{{ $subject->id }}"
-                                                   class="w-full text-center text-xs font-medium border-slate-200 rounded focus:ring-1 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all hover:bg-slate-50 disabled:bg-slate-50 disabled:text-slate-300 mark-input py-1 px-0"
+                                                   class="w-full text-center text-xs font-medium border-slate-200 rounded focus:ring-1 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all hover:bg-slate-50 disabled:bg-slate-50 disabled:text-slate-700 mark-input py-1 px-0"
                                                    placeholder="{{ $placeholder }}"
                                                    oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');"
                                                    onchange="calculateRow(this.closest('tr'))"
@@ -328,12 +333,14 @@
                         Discard
                     </a>
                     
+                    @can('edit master gradebook')
                     @if($term->is_master_grading_open)
                         <button type="submit" class="px-6 py-2.5 bg-indigo-600 text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center gap-2 group">
                             Save Changes
                             <svg class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
                         </button>
                     @endif
+                    @endcan
                 </div>
             </form>
         </div>

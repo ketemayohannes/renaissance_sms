@@ -124,6 +124,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('gradebook/import', [App\Http\Controllers\Admin\GradebookController::class, 'import'])->name('gradebook.import');
         Route::get('gradebook', [App\Http\Controllers\Admin\GradebookController::class, 'index'])->name('gradebook.index');
         Route::get('gradebook/entry', [App\Http\Controllers\Admin\GradebookController::class, 'entry'])->name('gradebook.entry');
+        Route::get('gradebook/marksheet', [App\Http\Controllers\Admin\GradebookController::class, 'marksheet'])->name('gradebook.marksheet');
         Route::post('gradebook/store', [App\Http\Controllers\Admin\GradebookController::class, 'store'])->name('gradebook.store');
 
         // Section Grade Entry Routes
@@ -132,6 +133,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('section-grades/store', [App\Http\Controllers\Admin\SectionGradeController::class, 'store'])->name('section-grades.store');
         Route::get('section-grades/export', [App\Http\Controllers\Admin\SectionGradeController::class, 'export'])->name('section-grades.export');
         Route::get('section-grades/export-data', [App\Http\Controllers\Admin\SectionGradeController::class, 'exportData'])->name('section-grades.export-data');
+        Route::get('section-grades/export-low-performance', [App\Http\Controllers\Admin\SectionGradeController::class, 'exportLowPerformance'])->name('section-grades.export-low-performance');
         Route::post('section-grades/import', [App\Http\Controllers\Admin\SectionGradeController::class, 'import'])->name('section-grades.import');
         Route::post('section-grades/calculate', [App\Http\Controllers\Admin\SectionGradeController::class, 'calculateSemester'])->name('section-grades.calculate');
         
@@ -182,6 +184,7 @@ Route::middleware(['auth'])->group(function () {
 
         // Background Exports
         Route::get('report-cards/exports', [App\Http\Controllers\Admin\ReportCardController::class, 'exports'])->name('report-cards.exports');
+        Route::get('report-cards/export-low-performance', [App\Http\Controllers\Admin\ReportCardController::class, 'exportLowPerformance'])->name('report-cards.export-low-performance');
         Route::get('section-grades/{section}/report-card/bulk-export', [App\Http\Controllers\Admin\ReportCardController::class, 'bulkExport'])->name('section-grades.bulk-export-report-cards');
         Route::get('report-cards/exports/{exportRequest}/download', [App\Http\Controllers\Admin\ReportCardController::class, 'downloadExport'])->name('report-cards.download-export');
 
@@ -259,6 +262,13 @@ Route::middleware(['auth'])->group(function () {
             Route::get('payroll', [App\Http\Controllers\Admin\FinanceController::class, 'payroll'])->name('payroll');
         });
 
+        // Exam Paper Review
+        Route::get('exams', [App\Http\Controllers\Admin\ExamReviewController::class, 'index'])->name('exams.index');
+        Route::get('exams/{exam}', [App\Http\Controllers\Admin\ExamReviewController::class, 'show'])->name('exams.show');
+        Route::post('exams/{exam}/review', [App\Http\Controllers\Admin\ExamReviewController::class, 'review'])->name('exams.review');
+        Route::delete('exams/{exam}', [App\Http\Controllers\Admin\ExamReviewController::class, 'destroy'])->name('exams.destroy');
+        Route::get('exams/{exam}/download', [App\Http\Controllers\Teacher\ExamPaperController::class, 'download'])->name('exams.download');
+
         // Specialized Portals
         Route::prefix('portals')->name('portals.')->group(function() {
             Route::get('health', [App\Http\Controllers\Admin\PortalController::class, 'health'])->name('health');
@@ -270,6 +280,10 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['auth', 'role_or_permission:Teacher|enter marks'])->prefix('teacher')->name('teacher.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Teacher\DashboardController::class, 'index'])->name('dashboard');
         
+        // Exam Management
+        Route::resource('exams', App\Http\Controllers\Teacher\ExamPaperController::class);
+        Route::get('exams/{exam}/download', [App\Http\Controllers\Teacher\ExamPaperController::class, 'download'])->name('exams.download');
+
         // My Classes
         Route::get('/classes', [App\Http\Controllers\Teacher\ClassController::class, 'index'])->name('classes.index');
         Route::get('/classes/{id}', [App\Http\Controllers\Teacher\ClassController::class, 'show'])->name('classes.show');

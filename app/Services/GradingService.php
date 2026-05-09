@@ -337,13 +337,25 @@ class GradingService
             $allMarks = StudentMark::whereIn('student_id', $studentIds)
                 ->where('term_id', $term->id)
                 ->whereIn('subject_id', $subjectIds)
+                ->with('assessmentTemplate')
                 ->get()
                 ->groupBy('student_id');
 
+            $termTotalTypeId = $this->getTermTotalTypeId();
             foreach ($students as $student) {
-                $studentMarks = $allMarks->get($student->id, collect());
-                $total = $studentMarks->sum('score');
-                $subjectScores = $studentMarks->pluck('score', 'subject_id')->toArray();
+                $studentMarks = $allMarks->get($student->id, collect())->groupBy('subject_id');
+                $subjectScores = [];
+                $total = 0;
+
+                foreach ($subjects as $subject) {
+                    $subMarks = $studentMarks->get($subject->id);
+                    if ($subMarks && $subMarks->isNotEmpty()) {
+                        $termTotal = $subMarks->first(fn($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
+                        $score = $termTotal ? $termTotal->score : $subMarks->sum('score');
+                        $subjectScores[$subject->id] = $score;
+                        $total += $score;
+                    }
+                }
                 
                 $enrolledElectiveIds = $electiveEnrollments->get($student->id) ?? [];
                 $electiveIdsWithScores = collect($subjectScores)->keys()->filter(function($id) use ($subjects) {

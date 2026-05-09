@@ -21,6 +21,18 @@
                         {{ __('Activities') }}
                     </x-nav-link>
                     @endif
+
+                    @if(Auth::user()->hasRole('Teacher'))
+                    <x-nav-link :href="route('teacher.exams.index')" :active="request()->routeIs('teacher.exams.*')">
+                        {{ __('Exam Papers') }}
+                    </x-nav-link>
+                    @endif
+
+                    @if(Auth::user()->hasAnyRole(['Super Admin', 'Vice Principal']))
+                    <x-nav-link :href="route('admin.exams.index')" :active="request()->routeIs('admin.exams.*')">
+                        {{ __('Exam Reviews') }}
+                    </x-nav-link>
+                    @endif
                 </div>
             </div>
 
@@ -83,6 +95,18 @@
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
+
+            @if(Auth::user()->hasRole('Teacher'))
+            <x-responsive-nav-link :href="route('teacher.exams.index')" :active="request()->routeIs('teacher.exams.*')">
+                {{ __('Exam Papers') }}
+            </x-responsive-nav-link>
+            @endif
+
+            @if(Auth::user()->hasAnyRole(['Super Admin', 'Vice Principal']))
+            <x-responsive-nav-link :href="route('admin.exams.index')" :active="request()->routeIs('admin.exams.*')">
+                {{ __('Exam Reviews') }}
+            </x-responsive-nav-link>
+            @endif
         </div>
 
         <!-- Responsive Settings Options -->

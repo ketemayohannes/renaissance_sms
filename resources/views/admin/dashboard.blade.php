@@ -139,18 +139,22 @@
                 <div class="absolute inset-0 bg-gradient-to-br from-indigo-600/20 to-purple-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
                 <h4 class="text-xs font-black text-indigo-400 uppercase tracking-[0.2em] mb-4 relative z-10">Power Actions</h4>
                 <div class="space-y-3 relative z-10">
+                    @can('create students')
                     <a href="{{ route('admin.students.create') }}" class="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all group/item">
                         <span class="text-xs font-bold text-white tracking-wide">Register New Student</span>
                         <svg class="w-4 h-4 text-indigo-400 group-hover/item:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                     </a>
+                    @endcan
                     <a href="{{ route('admin.section-grades.index') }}" class="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all group/item">
                         <span class="text-xs font-bold text-white tracking-wide">Batch Grade Entry</span>
                         <svg class="w-4 h-4 text-emerald-400 group-hover/item:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                     </a>
+                    @can('create employees')
                     <a href="{{ route('admin.employees.create') }}" class="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all group/item">
                         <span class="text-xs font-bold text-white tracking-wide">Onboard New Staff</span>
                         <svg class="w-4 h-4 text-amber-400 group-hover/item:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                     </a>
+                    @endcan
                 </div>
             </div>
         </div>
@@ -265,6 +269,7 @@
             </div>
         </div>
 
+        @role('Super Admin')
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <!-- System Status -->
             <div class="glass-panel p-8">
@@ -343,25 +348,26 @@
                             <p class="text-sm font-black text-slate-400 uppercase tracking-widest italic">All Quiet on the Front</p>
                         </div>
                     @endforelse
-                </div>
             </div>
+        </div>
+    </div>
+    @endrole
 
-            <!-- Grade Enrollment List -->
-            <div class="glass-panel p-8">
-                <h3 class="text-xl font-black text-slate-900 uppercase tracking-tight mb-8">Capacity Report</h3>
-                <div class="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
-                    @foreach($studentsByGrade as $grade)
-                    <div class="group flex items-center justify-between p-4 bg-slate-50 hover:bg-indigo-600 hover:shadow-xl hover:shadow-indigo-200 rounded-2xl transition-all duration-300 border border-slate-100 hover:border-indigo-600">
-                        <span class="text-xs font-black text-slate-700 uppercase tracking-widest group-hover:text-white transition-colors">{{ $grade->grade_name }}</span>
-                        <div class="flex items-center gap-3">
-                            <span class="text-lg font-black text-slate-900 group-hover:text-white transition-colors">{{ number_format($grade->count) }}</span>
-                            <div class="w-2 h-8 bg-slate-200 group-hover:bg-white/20 rounded-full overflow-hidden">
-                                <div class="bg-indigo-500 w-full h-1/2 rounded-full"></div>
-                            </div>
+        <!-- Grade Enrollment List -->
+        <div class="glass-panel p-8">
+            <h3 class="text-xl font-black text-slate-900 uppercase tracking-tight mb-8">Capacity Report</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                @foreach($studentsByGrade as $grade)
+                <div class="group flex items-center justify-between p-4 bg-slate-50 hover:bg-indigo-600 hover:shadow-xl hover:shadow-indigo-200 rounded-2xl transition-all duration-300 border border-slate-100 hover:border-indigo-600">
+                    <span class="text-xs font-black text-slate-700 uppercase tracking-widest group-hover:text-white transition-colors">{{ $grade->grade_name }}</span>
+                    <div class="flex items-center gap-3">
+                        <span class="text-lg font-black text-slate-900 group-hover:text-white transition-colors">{{ number_format($grade->count) }}</span>
+                        <div class="w-2 h-8 bg-slate-200 group-hover:bg-white/20 rounded-full overflow-hidden">
+                            <div class="bg-indigo-500 w-full h-1/2 rounded-full"></div>
                         </div>
                     </div>
-                    @endforeach
                 </div>
+                @endforeach
             </div>
         </div>
     </div>

@@ -1,41 +1,182 @@
 <x-admin-layout>
-    <x-slot name="header">Create New Role</x-slot>
+    <x-slot name="header">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Create New Role</h2>
+                    <p class="text-sm text-slate-500 font-medium">Define access levels for staff</p>
+                </div>
+            </div>
+            <a href="{{ route('admin.roles.index') }}" class="inline-flex items-center px-4 py-2 bg-white border border-slate-200 text-slate-700 text-sm font-bold rounded-xl hover:bg-slate-50 transition-all gap-2 shadow-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                Back to List
+            </a>
+        </div>
+    </x-slot>
 
-    <div class="space-y-6">
-        <div class="card overflow-hidden">
-            <div class="p-6">
-                    <form action="{{ route('admin.roles.store') }}" method="POST">
-                        @csrf
-                        <div class="mb-4">
-                            <label for="name" class="block text-sm font-medium text-gray-700">Role Name</label>
-                            <input type="text" name="name" id="name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
+    <div class="pb-24">
+        <form action="{{ route('admin.roles.store') }}" method="POST" id="roleForm" x-data="roleManager()">
+            @csrf
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Role Info Side -->
+                <div class="lg:col-span-1 space-y-6">
+                    <div class="bg-white rounded-[2rem] p-8 border border-slate-200 shadow-sm sticky top-6">
+                        <h3 class="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
+                            <span class="w-1.5 h-6 bg-indigo-600 rounded-full"></span>
+                            Role Information
+                        </h3>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <label for="name" class="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2 ml-1">Role Name</label>
+                                <input type="text" name="name" id="name" value="{{ old('name') }}" 
+                                       placeholder="e.g. Finance Supervisor"
+                                       class="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-slate-400"
+                                       required>
+                                @error('name') <p class="mt-2 text-xs font-bold text-rose-500 ml-1">{{ $message }}</p> @enderror
+                            </div>
+
+                            <div class="pt-6">
+                                <button type="submit" class="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl shadow-xl shadow-slate-200 transition-all flex items-center justify-center gap-3 group">
+                                    <span>Create Role</span>
+                                    <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                                </button>
+                            </div>
                         </div>
 
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Permissions</label>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="mt-8 p-6 bg-indigo-50 rounded-2xl border border-indigo-100">
+                            <div class="flex gap-3">
+                                <svg class="w-5 h-5 text-indigo-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                <p class="text-xs text-indigo-900 font-medium leading-relaxed">
+                                    Once created, you can assign this role to any staff member in the Employee module.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Permissions Matrix -->
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-900">Module Permissions</h3>
+                                <p class="text-sm text-slate-500 font-medium mt-1">Define which parts of the system this role can access.</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button type="button" @click="selectAll()" class="text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors">Select All</button>
+                                <button type="button" @click="deselectAll()" class="text-xs font-bold text-slate-500 hover:text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg transition-colors">Deselect All</button>
+                            </div>
+                        </div>
+
+                        <div class="p-8">
+                            <div class="space-y-8">
                                 @foreach($permissions as $group => $perms)
-                                    <div class="border rounded p-4">
-                                        <h3 class="font-bold mb-2 capitalize">{{ $group }}</h3>
-                                        @foreach($perms as $permission)
-                                            <div class="flex items-center mb-1">
-                                                <input type="checkbox" name="permissions[]" value="{{ $permission->name }}" id="perm_{{ $permission->id }}" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
-                                                <label for="perm_{{ $permission->id }}" class="ml-2 block text-sm text-gray-900">
-                                                    {{ $permission->name }}
-                                                </label>
+                                    <div class="permission-group">
+                                        <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-2 h-2 rounded-full bg-indigo-400"></div>
+                                                <h4 class="text-sm font-black text-slate-900 uppercase tracking-widest">{{ $group }}</h4>
                                             </div>
-                                        @endforeach
+                                            <label class="inline-flex items-center cursor-pointer group">
+                                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter mr-2 group-hover:text-indigo-600 transition-colors">Toggle Group</span>
+                                                <input type="checkbox" class="hidden" @change="toggleGroup($event, '{{ $group }}')">
+                                                <div class="w-8 h-4 bg-slate-200 rounded-full relative transition-colors" :class="groupChecked('{{ $group }}') ? 'bg-indigo-600' : ''">
+                                                    <div class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform" :class="groupChecked('{{ $group }}') ? 'translate-x-4' : ''"></div>
+                                                </div>
+                                            </label>
+                                        </div>
+
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            @foreach($perms as $permission)
+                                                <label for="perm_{{ $permission->id }}" 
+                                                       class="relative flex items-center p-4 bg-slate-50 border border-slate-200 rounded-2xl cursor-pointer hover:bg-white hover:border-indigo-300 hover:shadow-md hover:shadow-indigo-50 transition-all group"
+                                                       :class="isPermChecked('{{ $permission->name }}') ? 'bg-white border-indigo-500 ring-2 ring-indigo-500/10' : ''">
+                                                    <div class="flex items-center gap-4">
+                                                        <div class="relative flex items-center justify-center">
+                                                            <input type="checkbox" name="permissions[]" value="{{ $permission->name }}" id="perm_{{ $permission->id }}" 
+                                                                   class="peer w-6 h-6 bg-white border-2 border-slate-300 rounded-lg text-indigo-600 focus:ring-0 focus:ring-offset-0 transition-all cursor-pointer"
+                                                                   @change="togglePerm('{{ $permission->name }}')"
+                                                                   data-group="{{ $group }}">
+                                                            <svg class="absolute w-4 h-4 text-white opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                                                        </div>
+                                                        <div class="flex flex-col">
+                                                            <span class="text-sm font-bold text-slate-800 group-hover:text-indigo-600 transition-colors capitalize">
+                                                                {{ str_replace($group, '', $permission->name) }}
+                                                            </span>
+                                                            <span class="text-[10px] font-medium text-slate-400 uppercase tracking-tighter">Permission ID: {{ $permission->id }}</span>
+                                                        </div>
+                                                    </div>
+                                                </label>
+                                            @endforeach
+                                        </div>
                                     </div>
                                 @endforeach
                             </div>
                         </div>
-
-                        <div class="flex justify-end">
-                            <a href="{{ route('admin.roles.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mr-2">Cancel</a>
-                            <button type="submit" class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Create Role</button>
-                        </div>
-                    </form>
+                    </div>
                 </div>
-        </div>
+            </div>
+        </form>
     </div>
+
+    @push('scripts')
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('roleManager', () => ({
+                checkedPermissions: [],
+                
+                selectAll() {
+                    const checkboxes = document.querySelectorAll('input[name="permissions[]"]');
+                    checkboxes.forEach(cb => {
+                        cb.checked = true;
+                        if (!this.checkedPermissions.includes(cb.value)) {
+                            this.checkedPermissions.push(cb.value);
+                        }
+                    });
+                },
+
+                deselectAll() {
+                    const checkboxes = document.querySelectorAll('input[name="permissions[]"]');
+                    checkboxes.forEach(cb => cb.checked = false);
+                    this.checkedPermissions = [];
+                },
+
+                togglePerm(name) {
+                    if (this.checkedPermissions.includes(name)) {
+                        this.checkedPermissions = this.checkedPermissions.filter(p => p !== name);
+                    } else {
+                        this.checkedPermissions.push(name);
+                    }
+                },
+
+                toggleGroup(e, groupName) {
+                    const groupCheckboxes = document.querySelectorAll(`input[data-group="${groupName}"]`);
+                    groupCheckboxes.forEach(cb => {
+                        cb.checked = e.target.checked;
+                        if (e.target.checked) {
+                            if (!this.checkedPermissions.includes(cb.value)) this.checkedPermissions.push(cb.value);
+                        } else {
+                            this.checkedPermissions = this.checkedPermissions.filter(p => p !== cb.value);
+                        }
+                    });
+                },
+
+                groupChecked(groupName) {
+                    const groupCheckboxes = document.querySelectorAll(`input[data-group="${groupName}"]`);
+                    if (groupCheckboxes.length === 0) return false;
+                    return Array.from(groupCheckboxes).every(cb => this.checkedPermissions.includes(cb.value));
+                },
+
+                isPermChecked(name) {
+                    return this.checkedPermissions.includes(name);
+                }
+            }))
+        });
+    </script>
+    @endpush
 </x-admin-layout>

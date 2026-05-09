@@ -2,6 +2,7 @@
     <x-slot name="header">
         <div class="flex items-center justify-between w-full relative z-10">
             <span class="text-xl font-bold text-slate-800">Academic Reports</span>
+            @unlessrole('Principal')
             <div class="flex items-center gap-3">
                 <a href="{{ route('admin.academic-reports.settings') }}" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-50 hover:text-emerald-600 transition-all shadow-sm flex items-center gap-2 group">
                     <svg class="w-4 h-4 text-emerald-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
@@ -12,6 +13,7 @@
                     Interface Config
                 </a>
             </div>
+            @endunlessrole
         </div>
     </x-slot>
 
@@ -160,13 +162,13 @@
                             ];
                         @endphp
 
-                        @foreach([
+                        @foreach(collect([
                             ['val' => 'report_card', 'label' => 'Report Card', 'desc' => 'Individual student report cards', 'icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', 'color' => 'indigo'],
                             ['val' => 'roster', 'label' => 'Term Roster', 'desc' => 'Full class marksheet', 'icon' => 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', 'color' => 'emerald'],
                             ['val' => 'result_analysis', 'label' => 'Statistics', 'desc' => 'View grade distribution by section', 'icon' => 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10', 'color' => 'rose'],
                             ['val' => 'grade_subject_analysis', 'label' => 'Subject Analysis', 'desc' => 'Subject performance comparison', 'icon' => 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253', 'color' => 'purple'],
                             ['val' => 'consolidated_matrix', 'label' => 'School Matrix', 'desc' => 'Summary for the entire grade level', 'icon' => 'M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z', 'color' => 'amber']
-                        ] as $item)
+                        ])->filter(fn($item) => !($item['val'] === 'report_card' && auth()->user()->hasRole('Principal'))) as $item)
                         <label class="group relative cursor-pointer">
                             <input type="radio" name="report_type" value="{{ $item['val'] }}" x-model="reportType" class="sr-only peer" required>
                             <div class="h-full p-5 rounded-[2rem] border-2 border-slate-100 bg-white shadow-sm transition-all duration-300 {{ $colorMaps[$item['color']]['peer'] }} hover:shadow-lg">

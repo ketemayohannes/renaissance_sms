@@ -10,11 +10,24 @@ use App\Models\Subject;
 use App\Models\Student;
 use App\Models\StudentMark;
 use App\Models\Term;
+use App\Models\ReportCardSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
+use Barryvdh\DomPDF\Facade\Pdf;
 
-class GradebookController extends Controller
+class GradebookController extends Controller implements HasMiddleware
 {
+    public static function middleware(): array
+    {
+        return [
+            new Middleware('permission:view subject gradebook', only: ['index', 'entry', 'marksheet', 'exportTemplate', 'getSections', 'getSubjects', 'getTerms']),
+            new Middleware('permission:edit subject gradebook', only: ['store', 'import']),
+        ];
+    }
+
     public function index()
     {
         // PERFORMANCE: Use cached data
@@ -503,5 +516,106 @@ class GradebookController extends Controller
             fclose($file);
             return back()->with('error', 'Import failed: ' . $e->getMessage());
         }
+    }
+
+    public function marksheet(Request $request)
+    {
+        $request->validate([
+            'academic_year_id' => 'required|exists:academic_years,id',
+            'term_id' => 'required|exists:terms,id',
+            'section_id' => 'required|exists:sections,id',
+            'subject_id' => 'required|exists:subjects,id',
+        ]);
+
+        $section = Section::with(['gradeLevel', 'students'])->findOrFail($request->section_id);
+        $subject = Subject::findOrFail($request->subject_id);
+        $academicYear = AcademicYear::findOrFail($request->academic_year_id);
+        $term = \App\Models\Term::findOrFail($request->term_id);
+        $settings = ReportCardSetting::firstOrNew();
+        
+        // Fetch assessment templates
+        $termTotalType = \App\Models\AssessmentType::where('code', 'TERM_TOTAL')->first();
+        
+        $gradeComponents = \App\Models\AssessmentTemplate::where('academic_year_id', $academicYear->id)
+            ->where('term_id', $term->id)
+            ->where('is_active', true)
+            ->when($termTotalType, function($query) use ($termTotalType) {
+                $query->where('assessment_type_id', '!=', $termTotalType->id);
+            })
+            ->whereHas('assignments', function($query) use ($section, $subject) {
+                $query->where('grade_level_id', $section->grade_level_id)
+                      ->where('subject_id', $subject->id);
+            })
+            ->with('assessmentType')
+            ->orderBy('order')
+            ->get();
+
+        // Fetch Term Total template separately (for display if exists)
+        $termTotalTemplate = null;
+        if ($termTotalType) {
+            $termTotalTemplate = \App\Models\AssessmentTemplate::where('academic_year_id', $academicYear->id)
+                ->where('term_id', $term->id)
+                ->where('assessment_type_id', $termTotalType->id)
+                ->whereHas('assignments', function($query) use ($section, $subject) {
+                    $query->where('grade_level_id', $section->grade_level_id)
+                          ->where('subject_id', $subject->id);
+                })
+                ->first();
+        }
+
+        // Fetch students enrolled in this section
+        if ($subject->is_elective) {
+            $students = $section->students()
+                ->wherePivot('academic_year_id', $academicYear->id)
+                ->wherePivot('status', 'active')
+                ->where('students.is_active', true)
+                ->whereHas('electives', function($q) use ($subject, $academicYear) {
+                    $q->where('subject_id', $subject->id)
+                      ->where('student_electives.academic_year_id', $academicYear->id);
+                })
+                ->orderBy('students.first_name')
+                ->get();
+        } else {
+            $students = $section->students()
+                ->wherePivot('academic_year_id', $academicYear->id)
+                ->wherePivot('status', 'active')
+                ->where('students.is_active', true)
+                ->orderBy('students.first_name')
+                ->get();
+        }
+
+        // Fetch existing marks
+        $existingMarks = StudentMark::where('academic_year_id', $academicYear->id)
+            ->where('term_id', $term->id)
+            ->where('subject_id', $subject->id)
+            ->whereIn('student_id', $students->pluck('id'))
+            ->get()
+            ->groupBy('student_id');
+
+        // Fetch the assigned teacher
+        $assignment = \App\Models\TeacherAssignment::where('academic_year_id', $academicYear->id)
+            ->where('section_id', $section->id)
+            ->where('subject_id', $subject->id)
+            ->first();
+
+        $data = [
+            'assignment' => $assignment,
+            'section' => $section,
+            'subject' => $subject,
+            'academicYear' => $academicYear,
+            'term' => $term,
+            'students' => $students,
+            'gradeComponents' => $gradeComponents,
+            'existingMarks' => $existingMarks,
+            'termTotalTemplate' => $termTotalTemplate,
+            'settings' => $settings,
+            'teacher' => $assignment ? $assignment->teacher : Auth::user(),
+        ];
+
+        $pdf = Pdf::loadView('teacher.gradebook.marksheet_pdf', $data);
+        $pdf->setPaper('a4', 'landscape');
+        
+        $filename = "marksheet_{$section->name}_{$subject->code}_{$term->name}.pdf";
+        return $pdf->download($filename);
     }
 }

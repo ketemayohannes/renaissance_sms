@@ -152,6 +152,9 @@ class AcademicReportService
                 $reports = $this->calculateYearlyRanks($reports);
             }
 
+            // Filter out elective subjects with no data
+            $subjects = $this->filterEmptySubjects($subjects, $reports);
+
             return [
                 'academicYear' => $academicYear,
                 'term' => $term,
@@ -335,10 +338,22 @@ class AcademicReportService
     private function filterEmptySubjects($subjects, $reports): Collection
     {
         return $subjects->filter(function($subject) use ($reports) {
+            // Never hide non-elective subjects
             if (!$subject->is_elective) return true;
+            
             foreach ($reports as $r) {
-                foreach ($r['rows'] as $row) {
-                    if (isset($row['marks'][$subject->id])) return true;
+                // Check top-level marks (current term/yearly total)
+                if (isset($r['marks'][$subject->id]) && $r['marks'][$subject->id] !== null && $r['marks'][$subject->id] !== '') {
+                    return true;
+                }
+                
+                // Check rows (Quarters, Semesters in Semester/Yearly view)
+                if (isset($r['rows']) && is_array($r['rows'])) {
+                    foreach ($r['rows'] as $row) {
+                        if (isset($row['marks'][$subject->id]) && $row['marks'][$subject->id] !== null && $row['marks'][$subject->id] !== '') {
+                            return true;
+                        }
+                    }
                 }
             }
             return false;
@@ -350,7 +365,7 @@ class AcademicReportService
      */
     public function prepareSubjectAnalysisData(AcademicYear $academicYear, $term, GradeLevel $gradeLevel, Subject $subject): array
     {
-        $passMark = 50;
+        $passMark = 75;
         $sectionStats = [];
         $allStudentsData = [];
 
@@ -437,18 +452,17 @@ class AcademicReportService
             $tempSubData = [];
 
             foreach ($gradeLevels as $grade) {
-                $gradeMatrix = [];
+                $gradeSubjectAverages = []; // [subject_id => [section_avg1, section_avg2, ...]]
                 $studentScores = collect(); // To calculate grade average across all subjects
 
                 foreach ($grade->sections as $section) {
                     $students = $section->students()
                         ->wherePivot('academic_year_id', $academicYear->id)
-                        ->where('is_active', true) // Only active students
+                        ->where('is_active', true)
                         ->get();
                     
                     if ($students->isEmpty()) continue;
 
-                    // Get totals for this specific term
                     $batchResults = $this->gradingService->calculateSectionTotals($students, $t, $academicYear, $grade->subjects);
 
                     foreach ($grade->subjects as $subject) {
@@ -458,15 +472,16 @@ class AcademicReportService
                             ->map(fn($s) => (float)$s);
                         
                         if ($scores->isNotEmpty()) {
+                            $sectionAvg = $scores->average();
+                            $gradeSubjectAverages[$subject->id][] = $sectionAvg;
+
+                            // Still accumulate raw sums for school-wide subject averages (footer)
                             $tempSubData[$subject->id] = $tempSubData[$subject->id] ?? ['sum' => 0, 'count' => 0];
                             $tempSubData[$subject->id]['sum'] += $scores->sum();
                             $tempSubData[$subject->id]['count'] += $scores->count();
-                            
-                            $gradeMatrix[$subject->id] = ($gradeMatrix[$subject->id] ?? collect())->concat($scores);
                         }
                     }
                     
-                    // Collect student averages for an accurate grade average
                     foreach ($students as $student) {
                         if (isset($batchResults[$student->id]['average'])) {
                             $studentScores->push($batchResults[$student->id]['average']);
@@ -474,15 +489,13 @@ class AcademicReportService
                     }
                 }
 
-                // Finalize grade-subject averages
                 $finalGradeMatrix = [];
-                foreach ($gradeMatrix as $subId => $scores) {
-                    $avg = $scores->average();
-                    $finalGradeMatrix[$subId] = $avg;
+                foreach ($gradeSubjectAverages as $subId => $averages) {
+                    $finalGradeMatrix[$subId] = count($averages) > 0 ? array_sum($averages) / count($averages) : 0;
                 }
 
                 $matrix[$grade->id] = $finalGradeMatrix;
-                $gradeAverages[$grade->id] = $studentScores->isNotEmpty() ? $studentScores->average() : 0;
+                $gradeAverages[$grade->id] = count($finalGradeMatrix) > 0 ? array_sum($finalGradeMatrix) / count($finalGradeMatrix) : 0;
             }
 
             $subjectAverages = [];
@@ -499,7 +512,7 @@ class AcademicReportService
                 'matrix' => $matrix,
                 'gradeAverages' => $gradeAverages,
                 'subjectAverages' => $subjectAverages,
-                'overallAverage' => collect($gradeAverages)->filter()->avg(),
+                'overallAverage' => collect($subjectAverages)->filter()->avg(),
             ];
         }
 

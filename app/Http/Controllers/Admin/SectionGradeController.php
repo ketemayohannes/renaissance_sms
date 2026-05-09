@@ -14,8 +14,20 @@ use App\Models\Term;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-class SectionGradeController extends Controller
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
+
+class SectionGradeController extends Controller implements HasMiddleware
 {
+    public static function middleware(): array
+    {
+        return [
+            new Middleware('permission:view master gradebook', only: ['index', 'entry', 'export', 'exportData', 'exportLowPerformance']),
+            new Middleware('permission:edit master gradebook', only: ['store', 'import', 'calculateSemester']),
+        ];
+    }
+
+
     public function index()
     {
         // PERFORMANCE: Use cached data
@@ -609,5 +621,60 @@ class SectionGradeController extends Controller
         } catch (\Exception $e) {
             return back()->with('error', 'Calculation failed: ' . $e->getMessage());
         }
+    }
+    public function exportLowPerformance(Request $request, \App\Services\GradingService $gradingService)
+    {
+        $request->validate([
+            'academic_year_id' => 'required|exists:academic_years,id',
+            'term_id' => 'required|exists:terms,id',
+            'section_id' => 'required|exists:sections,id',
+        ]);
+
+        $section = Section::findOrFail($request->section_id);
+        $term = Term::findOrFail($request->term_id);
+        $academicYear = AcademicYear::findOrFail($request->academic_year_id);
+        
+        $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
+        $students = $section->students()
+            ->wherePivot('academic_year_id', $academicYear->id)
+            ->wherePivot('status', 'active')
+            ->where('students.is_active', true)
+            ->orderBy('students.first_name')
+            ->get();
+
+        $stats = $gradingService->calculateSectionTotals($students, $term, $academicYear, $subjects);
+
+        $lowPerformers = $students->filter(function($student) use ($stats) {
+            $average = $stats[$student->id]['average'] ?? 0;
+            return $average > 0 && $average < 75;
+        });
+
+        $filename = "low_performance_alert_{$section->name}_{$term->name}.csv";
+        
+        $headers = [
+            "Content-type" => "text/csv",
+            "Content-Disposition" => "attachment; filename=$filename",
+            "Pragma" => "no-cache",
+            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
+            "Expires" => "0"
+        ];
+
+        $callback = function() use ($lowPerformers, $stats) {
+            $file = fopen('php://output', 'w');
+            fputs($file, "\xEF\xBB\xBF"); // BOM
+            fputs($file, "sep=,\n"); // Excel separator hint
+            fputcsv($file, ['Student ID', 'Student Name', 'Average Score (%)']);
+
+            foreach ($lowPerformers as $student) {
+                fputcsv($file, [
+                    $student->student_id,
+                    $student->full_name,
+                    number_format($stats[$student->id]['average'] ?? 0, 1) . '%'
+                ]);
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }

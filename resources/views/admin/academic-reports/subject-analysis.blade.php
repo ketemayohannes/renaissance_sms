@@ -82,9 +82,14 @@
                                         <td class="px-6 py-4 font-bold text-gray-900 text-lg">Section {{ $stats->section->name }}</td>
                                         <td class="px-4 py-4 text-center font-medium">{{ $stats->appeared }}</td>
                                         <td class="px-4 py-4 text-center whitespace-nowrap">
-                                            <span class="px-3 py-1 rounded-full text-sm font-bold {{ $stats->pass_rate >= 80 ? 'bg-green-100 text-green-700' : ($stats->pass_rate >= 50 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700') }}">
-                                                {{ round($stats->pass_rate, 1) }}%
-                                            </span>
+                                            <div class="flex flex-col items-center gap-1">
+                                                <span class="px-3 py-1 rounded-full text-sm font-bold {{ $stats->pass_rate >= 85 ? 'bg-green-100 text-green-700' : ($stats->pass_rate >= 75 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700') }}">
+                                                    {{ round($stats->pass_rate, 1) }}%
+                                                </span>
+                                                <span class="text-[10px] font-medium text-gray-500">
+                                                    {{ $stats->passed }} out of {{ $stats->appeared }}
+                                                </span>
+                                            </div>
                                         </td>
                                         <td class="px-4 py-4 text-center font-bold text-indigo-600">{{ number_format($stats->highest, 1) }}</td>
                                         <td class="px-4 py-4 text-center font-bold text-gray-700">{{ number_format($stats->average, 1) }}</td>

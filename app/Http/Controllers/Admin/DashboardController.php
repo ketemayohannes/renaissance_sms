@@ -18,7 +18,7 @@ class DashboardController extends Controller
         $start = microtime(true);
         $academicYear = \App\Helpers\CachedData::activeAcademicYear();
         $divisionId = $request->get('division_id');
-        $cacheTtl = 3600;
+        $cacheTtl = 300; // Reduced to 5 minutes for more responsive dashboard stats
         
         $selectedTermId = $request->get('term_id');
         $selectedGradeLevelId = $request->get('grade_level_id');
@@ -87,18 +87,16 @@ class DashboardController extends Controller
                 ->whereIn('status', ['active', 'completed'])
                 ->pluck('student_id');
 
-            // Fetch term total marks for these students, subjects, and quarters
+            // Fetch marks for these students, subjects, and quarters
+            // We fetch ALL marks and then prioritize TERM_TOTAL to handle live data (where total hasn't been saved yet)
             $marks = \App\Models\StudentMark::whereIn('student_id', $studentIds)
                 ->whereIn('term_id', $quarterIds)
                 ->whereIn('subject_id', $subjects->pluck('id'))
-                ->whereHas('assessmentTemplate', function($q) use ($termTotalTypeId) {
-                    $q->where('assessment_type_id', $termTotalTypeId);
-                })
-                ->selectRaw('subject_id, student_id, term_id, score')
+                ->with('assessmentTemplate:id,assessment_type_id')
                 ->get();
 
             // Calculate per-subject averages
-            return $subjects->map(function($subject) use ($marks, $quarterIds) {
+            return $subjects->map(function($subject) use ($marks, $termTotalTypeId) {
                 $subjectMarks = $marks->where('subject_id', $subject->id);
                 
                 if ($subjectMarks->isEmpty()) {
@@ -108,11 +106,20 @@ class DashboardController extends Controller
                     ];
                 }
 
-                // Group by student, then average each student's quarter scores
+                // Group by student, then average each student's term scores
                 $studentGroups = $subjectMarks->groupBy('student_id');
-                $studentAverages = $studentGroups->map(function($recs) {
-                    $scores = $recs->where('score', '>', 0)->pluck('score');
-                    return $scores->isNotEmpty() ? $scores->avg() : 0;
+                $studentAverages = $studentGroups->map(function($studentRecs) use ($termTotalTypeId) {
+                    // For each student, find the total for each quarter in the selection
+                    $termScores = $studentRecs->groupBy('term_id')->map(function($termMarks) use ($termTotalTypeId) {
+                        // Priority 1: Use TERM_TOTAL mark if it exists
+                        $termTotalMark = $termMarks->first(fn($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
+                        if ($termTotalMark) return $termTotalMark->score;
+                        
+                        // Priority 2: Sum component marks if no TERM_TOTAL
+                        return $termMarks->isNotEmpty() ? $termMarks->sum('score') : null;
+                    })->filter(fn($score) => $score !== null);
+                    
+                    return $termScores->isNotEmpty() ? $termScores->avg() : 0;
                 })->filter(fn($avg) => $avg > 0);
 
                 $average = $studentAverages->isNotEmpty() ? round($studentAverages->avg(), 1) : 0;

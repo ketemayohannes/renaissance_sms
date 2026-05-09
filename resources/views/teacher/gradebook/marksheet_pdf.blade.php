@@ -47,7 +47,19 @@
         }
         .label {
             font-weight: bold;
-            width: 120px;
+        }
+        .info-table .right-col {
+            text-align: right;
+        }
+        .info-table .value-right {
+            text-align: right;
+            width: 1%;
+            white-space: nowrap;
+        }
+        .info-table .label-right {
+            text-align: right;
+            font-weight: bold;
+            padding-right: 8px;
         }
         .marks-table {
             width: 100%;
@@ -84,6 +96,9 @@
             margin-top: 40px;
             width: 100%;
         }
+        .footer td {
+            text-align: center;
+        }
         .signature-box {
             width: 30%;
             display: inline-block;
@@ -112,22 +127,16 @@
 
     <table class="info-table">
         <tr>
-            <td class="label">Academic Year:</td>
-            <td>{{ $academicYear->name }}</td>
-            <td class="label">Term:</td>
-            <td>{{ $term->name }}</td>
+            <td><span class="label">Academic Year:</span> {{ $academicYear->name }}</td>
+            <td style="text-align: right;"><span class="label">Term:</span> {{ $term->name }}</td>
         </tr>
         <tr>
-            <td class="label">Grade & Section:</td>
-            <td>{{ $section->gradeLevel->name }} {{ $section->name }}</td>
-            <td class="label">Subject:</td>
-            <td>{{ $subject->name }} ({{ $subject->code }})</td>
+            <td><span class="label">Grade & Section:</span> {{ $section->gradeLevel->name }} {{ $section->name }}</td>
+            <td style="text-align: right;"><span class="label">Subject:</span> {{ $subject->name }} ({{ $subject->code }})</td>
         </tr>
         <tr>
-            <td class="label">Teacher:</td>
-            <td>{{ $teacher->full_name ?? $teacher->name }}</td>
-            <td class="label">Date:</td>
-            <td>{{ now()->format('d/m/Y') }}</td>
+            <td><span class="label">Teacher:</span> {{ $teacher->full_name ?? $teacher->name }}</td>
+            <td style="text-align: right;"><span class="label">Date:</span> {{ now()->format('d/m/Y') }}</td>
         </tr>
     </table>
 
@@ -156,6 +165,7 @@
                     $studentMarks = $existingMarks->get($student->id);
                     $totalScore = 0;
                     $caScore = 0;
+                    $hasAnyMark = $studentMarks && $studentMarks->count() > 0;
                 @endphp
                 <tr>
                     <td>{{ $index + 1 }}</td>
@@ -167,39 +177,46 @@
                             $score = $mark ? $mark->score : 0;
                             $isFinal = ($component->assessmentType?->code === 'FINAL');
                             
-                            $totalScore += $score;
-                            if (!$isFinal) {
-                                $caScore += $score;
+                            if ($mark) {
+                                $totalScore += $score;
+                                if (!$isFinal) {
+                                    $caScore += $score;
+                                }
                             }
                         @endphp
-                        <td>{{ $mark ? number_format($score, 1) : '-' }}</td>
+                        <td>{{ $mark ? number_format($score, 1) : '' }}</td>
                     @endforeach
-                    <td class="ca-col">{{ number_format($caScore, 1) }}</td>
+                    <td class="ca-col">{{ $hasAnyMark ? number_format($caScore, 1) : '' }}</td>
                     @php
                         $displayTotal = $totalScore;
                         if ($totalScore == 0 && isset($termTotalTemplate) && $termTotalTemplate) {
                             $termTotalMark = $studentMarks?->firstWhere('assessment_template_id', $termTotalTemplate->id);
                             if ($termTotalMark) {
                                 $displayTotal = $termTotalMark->score;
+                                $hasAnyMark = true;
                             }
                         }
                     @endphp
-                    <td class="total-col">{{ number_format($displayTotal, 1) }}</td>
+                    <td class="total-col">{{ $hasAnyMark ? number_format($displayTotal, 1) : '' }}</td>
                 </tr>
             @endforeach
         </tbody>
     </table>
 
-    <div class="footer">
-        <div class="signature-box" style="float: left;">
-            <div class="signature-line">Teacher's Signature</div>
-        </div>
-        <div class="signature-box" style="margin-left: 5%;">
-            <div class="signature-line">Department Head</div>
-        </div>
-        <div class="signature-box" style="float: right;">
-            <div class="signature-line">Principal's Signature</div>
-        </div>
-    </div>
+    <table class="footer">
+        <tr>
+            <td width="30%">
+                <div class="signature-line">Teacher's Signature</div>
+            </td>
+            <td width="5%"></td>
+            <td width="30%">
+                <div class="signature-line">Department Head</div>
+            </td>
+            <td width="5%"></td>
+            <td width="30%">
+                <div class="signature-line">Principal's Signature</div>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>

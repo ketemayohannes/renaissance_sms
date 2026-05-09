@@ -62,7 +62,7 @@
                     <span class="text-xs font-black text-emerald-500 uppercase">Pass</span>
                 </div>
                 <p class="text-[9px] font-bold text-slate-400 uppercase mt-4 tracking-tighter">
-                    {{ $classStats->total_passed }} of {{ $classStats->total_students }} subjects cleared
+                    {{ $classStats->total_passed }} of {{ $classStats->total_students }} students proficient
                 </p>
             </div>
 
@@ -121,11 +121,16 @@
                                             </td>
                                             <td class="px-6 py-6 text-center">
                                                 @php
-                                                    $efficiencyColor = $stats->pass_rate >= 75 ? 'text-emerald-500 bg-emerald-50' : ($stats->pass_rate >= 50 ? 'text-amber-500 bg-amber-50' : 'text-rose-500 bg-rose-50');
+                                                    $efficiencyColor = $stats->pass_rate >= 90 ? 'text-emerald-500 bg-emerald-50' : ($stats->pass_rate >= 75 ? 'text-amber-500 bg-amber-50' : 'text-rose-500 bg-rose-50');
                                                 @endphp
-                                                <span class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest {{ $efficiencyColor }} border border-current border-opacity-10">
-                                                    {{ number_format($stats->pass_rate, 1) }}%
-                                                </span>
+                                                <div class="flex flex-col items-center gap-2">
+                                                    <span class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest {{ $efficiencyColor }} border border-current border-opacity-10">
+                                                        {{ number_format($stats->pass_rate, 1) }}%
+                                                    </span>
+                                                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
+                                                        {{ $stats->passed }} out of {{ $stats->appeared }}
+                                                    </span>
+                                                </div>
                                             </td>
                                             <td class="px-6 py-6 text-center">
                                                 <span class="text-sm font-black text-indigo-600 italic">{{ number_format($stats->highest, 1) }}</span>

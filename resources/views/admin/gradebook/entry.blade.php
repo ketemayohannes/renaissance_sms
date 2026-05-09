@@ -16,7 +16,17 @@
             </div>
             
             <div class="flex items-center gap-3">
+                @if(auth()->user()->hasAnyRole(['Super Admin', 'Principal', 'Vice Principal', 'Supervisor']))
+                    <a href="{{ route('admin.gradebook.marksheet', ['academic_year_id' => $academicYear->id, 'term_id' => $term->id, 'section_id' => $section->id, 'subject_id' => $subject->id]) }}" 
+                       target="_blank"
+                       class="px-6 py-3 bg-white text-slate-600 font-black text-[10px] uppercase tracking-widest rounded-2xl border border-slate-200 hover:bg-slate-50 shadow-sm transition-all flex items-center gap-2 group">
+                        <svg class="w-4 h-4 text-slate-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2m32-2v2m-9-2a4 4 0 00-4-4h-3a4 4 0 00-4 4v2M9 8a4 4 0 11-8 0 4 4 0 018 0zM3 20l4-8H4l-4 8h3zm18-8l-4 8h3l4-8h-3zM9 16l4-8h-3l-4 8h3z"></path></svg>
+                        Download Marksheet
+                    </a>
+                @endif
+
                 <a href="{{ route('admin.gradebook.export-template', ['academic_year_id' => $academicYear->id, 'term_id' => $term->id, 'section_id' => $section->id, 'subject_id' => $subject->id]) }}" 
+                   target="_blank"
                    class="px-6 py-3 bg-white text-slate-700 font-black text-[10px] uppercase tracking-widest rounded-2xl border border-slate-200 hover:bg-slate-50 shadow-sm transition-all flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                     Export Template
@@ -144,14 +154,14 @@
             </div>
 
             <div class="flex items-center gap-3">
-                <button type="button" @if($term->is_grading_open) onclick="confirmClear()" @endif
-                        class="px-6 py-3.5 bg-white text-rose-600 border border-rose-100 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-rose-50 shadow-xl shadow-rose-100/50 transition-all flex items-center gap-3 group @if(!$term->is_grading_open) opacity-50 cursor-not-allowed @endif">
+                <button type="button" @if($term->is_grading_open && auth()->user()->can('edit subject gradebook')) onclick="confirmClear()" @endif
+                        class="px-6 py-3.5 bg-white text-rose-600 border border-rose-100 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-rose-50 shadow-xl shadow-rose-100/50 transition-all flex items-center gap-3 group @if(!$term->is_grading_open || !auth()->user()->can('edit subject gradebook')) opacity-50 cursor-not-allowed @endif">
                     <svg class="w-4 h-4 text-rose-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                     Clear Data
                 </button>
 
-                <button type="button" @if($term->is_grading_open) onclick="document.getElementById('importModal').classList.remove('hidden')" @endif
-                        class="px-8 py-3.5 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 shadow-xl shadow-slate-200 transition-all flex items-center gap-3 group @if(!$term->is_grading_open) opacity-50 cursor-not-allowed @endif">
+                <button type="button" @if($term->is_grading_open && auth()->user()->can('edit subject gradebook')) onclick="document.getElementById('importModal').classList.remove('hidden')" @endif
+                        class="px-8 py-3.5 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-slate-800 shadow-xl shadow-slate-200 transition-all flex items-center gap-3 group @if(!$term->is_grading_open || !auth()->user()->can('edit subject gradebook')) opacity-50 cursor-not-allowed @endif">
                     <svg class="w-4 h-4 text-white group-hover:-translate-y-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                     Batch Import
                 </button>
@@ -184,10 +194,13 @@
                             
                             <div class="space-y-4">
                                 <div class="bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center transition-colors hover:border-indigo-400 group relative">
-                                    <input type="file" name="file" accept=".csv,.txt" required class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                                    <input type="file" name="file" accept=".csv,.txt" required 
+                                           class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                           @change="importFileName = $event.target.files[0] ? $event.target.files[0].name : ''">
                                     <div class="space-y-2">
                                         <svg class="w-8 h-8 text-slate-400 mx-auto group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                        <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Drop file here or click to browse</div>
+                                        <div x-show="!importFileName" class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Drop file here or click to browse</div>
+                                        <div x-show="importFileName" x-text="importFileName" class="text-xs font-bold text-indigo-600 truncate px-4"></div>
                                     </div>
                                 </div>
                                 <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center px-4 leading-relaxed">Ensure Student IDs match exactly with the system records to avoid validation failures.</p>
@@ -208,7 +221,7 @@
             </div>
         </div>
 
-        <form action="{{ route('admin.gradebook.store') }}" method="POST" id="gradeForm">
+        <form action="{{ route('admin.gradebook.store') }}" method="POST" id="gradeForm" @submit="isSaving = true">
             @csrf
             <input type="hidden" name="academic_year_id" value="{{ $academicYear->id }}">
             <input type="hidden" name="section_id" value="{{ $section->id }}">
@@ -286,10 +299,10 @@
                                                    name="marks[{{ $student->id }}][{{ $component->id }}][score]" 
                                                    value="{{ $val }}" 
                                                    max="{{ $component->max_score }}" 
-                                                   class="w-full text-center text-xs font-medium border-slate-200 rounded focus:ring-1 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all hover:bg-slate-50 disabled:bg-slate-50 disabled:text-slate-300 mark-input py-1 px-0"
+                                                   class="w-full text-center text-xs font-medium border-slate-200 rounded focus:ring-1 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all hover:bg-slate-50 disabled:bg-slate-50 disabled:text-slate-700 mark-input py-1 px-0"
                                                    data-is-final="{{ $component->assessmentType?->code === 'FINAL' ? '1' : '0' }}"
                                                    oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1'); calculateRow(this.closest('tr'));"
-                                                   @if(!$term->is_grading_open) disabled @endif>
+                                                   @if(!$term->is_grading_open || !auth()->user()->can('edit subject gradebook')) disabled @endif>
                                         </td>
                                     @endforeach
 
@@ -341,12 +354,14 @@
                     Discard
                 </a>
                 
+                @can('edit subject gradebook')
                 @if($term->is_grading_open)
                     <button type="submit" class="px-6 py-2.5 bg-indigo-600 text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center gap-2 group">
                         Save Changes
                         <svg class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
                     </button>
                 @endif
+                @endcan
             </div>
         </form>
     </div>
@@ -358,6 +373,7 @@
             return {
                 hasUnsavedChanges: false,
                 isSaving: false,
+                importFileName: '',
                 
                 init() {
                     // Track changes on all inputs
@@ -387,7 +403,7 @@
             }
         }
 
-        function calculateRow(row) {
+        function calculateRow(row, skipDirty = false) {
             const inputs = row.querySelectorAll('.mark-input');
             let grandTotal = 0;
             let caTotal = 0;
@@ -431,10 +447,12 @@
             }
             
             // Mark as unsaved
-            const rootElement = document.querySelector('.space-y-8');
-            if (rootElement && window.Alpine) {
-                const data = Alpine.$data(rootElement);
-                if (data) data.hasUnsavedChanges = true;
+            if (!skipDirty) {
+                const rootElement = document.querySelector('.space-y-8');
+                if (rootElement && window.Alpine) {
+                    const data = Alpine.$data(rootElement);
+                    if (data) data.hasUnsavedChanges = true;
+                }
             }
         }
 
@@ -461,9 +479,9 @@
         
         // Keyboard navigation
         document.addEventListener('DOMContentLoaded', function() {
-            // Initial calculation
+            // Initial calculation (skipping dirty flag)
             document.querySelectorAll('.student-row').forEach(row => {
-                calculateRow(row);
+                calculateRow(row, true);
             });
 
             const table = document.querySelector('table');
