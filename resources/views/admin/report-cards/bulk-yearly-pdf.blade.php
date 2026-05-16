@@ -249,9 +249,18 @@
 </head>
 <body>
 
-    <div class="no-print-bar">
+    <div class="no-print-bar" style="display: flex; justify-content: center; gap: 15px; align-items: center;">
         <button onclick="window.print()" style="background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">Print All Report Cards</button>
-        <span style="margin-left: 20px; font-weight: bold; color: #333;">Press Ctrl+P to save as PDF</span>
+        <form action="{{ route('admin.academic-reports.recalculate') }}" method="POST" style="margin: 0;">
+            @csrf
+            <input type="hidden" name="academic_year_id" value="{{ $academicYear->id }}">
+            <input type="hidden" name="term_id" value="yearly">
+            <input type="hidden" name="section_id" value="{{ $section->id }}">
+            <button type="submit" style="background-color: #4F46E5; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+                Sync Status
+            </button>
+        </form>
+        <span style="font-weight: bold; color: #333;">Press Ctrl+P to save as PDF</span>
     </div>
 
     <div style="height: 60px;" class="no-print"></div>

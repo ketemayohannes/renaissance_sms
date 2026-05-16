@@ -15,7 +15,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ trim(strip_tags($header)) ?: 'Teacher Portal' }} - {{ config('app.name', 'Renaissance SMS') }}</title>
+    <title>{{ trim(strip_tags((string)$header)) ?: 'Teacher Portal' }} - {{ config('app.name', 'Renaissance SMS') }}</title>
     
     <!-- Resource Hints -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -60,6 +60,7 @@
             });
         });
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 </head>
 <body class="font-sans antialiased bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300" x-data="{ sidebarCollapsed: localStorage.getItem('sidebarCollapsed') === 'true' }">
     <div class="min-h-screen flex">

@@ -266,10 +266,19 @@
 </head>
 <body x-data>
     <!-- No-Print Bar -->
-    <div class="no-print-bar">
+    <div class="no-print-bar" style="display: flex; justify-content: center; gap: 10px; align-items: center;">
         <button onclick="window.print()" class="print-btn">
             Print Yearly Report Card
         </button>
+        <form action="{{ route('admin.academic-reports.recalculate') }}" method="POST" style="margin: 0;">
+            @csrf
+            <input type="hidden" name="academic_year_id" value="{{ $academicYear->id }}">
+            <input type="hidden" name="term_id" value="yearly">
+            <input type="hidden" name="section_id" value="{{ $section->id }}">
+            <button type="submit" class="print-btn" style="background-color: #4F46E5;">
+                Sync Status
+            </button>
+        </form>
     </div>
     <div class="spacer no-print"></div>
     @php

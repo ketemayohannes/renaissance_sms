@@ -6,6 +6,9 @@ use App\Models\User;
 use App\Models\Section;
 use App\Models\Department;
 use App\Models\AcademicYear;
+use App\Models\Term;
+use App\Models\TeacherAssignment;
+use App\Services\GradingService;
 use Illuminate\Support\Facades\Cache;
 
 class TeacherService
@@ -106,5 +109,120 @@ class TeacherService
                 'today_name' => $dayOfWeek,
             ];
         });
+    }
+    /**
+     * Get performance distribution for a specific assignment and term.
+     */
+    public function getPerformanceDistribution(User $user, $assignmentId, $termId)
+    {
+        $assignment = TeacherAssignment::with(['section', 'subject'])->findOrFail($assignmentId);
+        
+        // Security check
+        if ($assignment->teacher_id !== $user->id) {
+            return null;
+        }
+
+        $term = Term::findOrFail($termId);
+        $academicYear = AcademicYear::active()->first();
+        $subject = $assignment->subject;
+        $section = $assignment->section;
+
+        if ($subject->is_elective) {
+            $students = $section->students()
+                ->whereHas('electives', function($q) use ($subject, $academicYear) {
+                    $q->where('subject_id', $subject->id)
+                      ->where('student_electives.academic_year_id', $academicYear->id);
+                })
+                ->wherePivot('status', 'active')
+                ->where('students.is_active', true)
+                ->get();
+        } else {
+            $students = $section->students()
+                ->wherePivot('academic_year_id', $academicYear->id)
+                ->wherePivot('status', 'active')
+                ->where('students.is_active', true)
+                ->get();
+        }
+
+        $gradingService = app(GradingService::class);
+        $batchResults = $gradingService->calculateSectionTotals($students, $term, $academicYear, collect([$subject]));
+        
+        $distribution = [
+            '0-49' => 0,
+            '50-74' => 0,
+            '75-100' => 0,
+            'total' => $students->count()
+        ];
+
+        foreach ($students as $student) {
+            $score = $batchResults[$student->id]['marks'][$subject->id] ?? 0;
+            if ($score <= 49) $distribution['0-49']++;
+            elseif ($score <= 74) $distribution['50-74']++;
+            else $distribution['75-100']++;
+        }
+
+        return $distribution;
+    }
+
+    /**
+     * Get overall efficiency (percentage of students >= 75) for all teacher's classes in a term.
+     */
+    public function getOverallEfficiency(User $user, $termId, $subjectId = null)
+    {
+        $activeYear = AcademicYear::active()->first();
+        $term = Term::findOrFail($termId);
+        
+        $query = TeacherAssignment::where('teacher_id', $user->id)
+            ->where('academic_year_id', $activeYear->id);
+
+        if ($subjectId) {
+            $query->where('subject_id', $subjectId);
+        }
+
+        $assignments = $query->with(['section', 'subject'])->get();
+
+        $totalStudentsCount = 0;
+        $totalPassedCount = 0;
+        $gradingService = app(GradingService::class);
+
+        foreach ($assignments as $assignment) {
+            $section = $assignment->section;
+            $subject = $assignment->subject;
+
+            if ($subject->is_elective) {
+                $students = $section->students()
+                    ->whereHas('electives', function($q) use ($subject, $activeYear) {
+                        $q->where('subject_id', $subject->id)
+                          ->where('student_electives.academic_year_id', $activeYear->id);
+                    })
+                    ->wherePivot('status', 'active')
+                    ->where('students.is_active', true)
+                    ->get();
+            } else {
+                $students = $section->students()
+                    ->wherePivot('academic_year_id', $activeYear->id)
+                    ->wherePivot('status', 'active')
+                    ->where('students.is_active', true)
+                    ->get();
+            }
+
+            if ($students->isEmpty()) continue;
+
+            $batchResults = $gradingService->calculateSectionTotals($students, $term, $activeYear, collect([$subject]));
+            
+            foreach ($students as $student) {
+                $score = $batchResults[$student->id]['marks'][$subject->id] ?? 0;
+                $totalStudentsCount++;
+                if ($score >= 75) {
+                    $totalPassedCount++;
+                }
+            }
+        }
+
+        return [
+            'efficiency' => $totalStudentsCount > 0 ? round(($totalPassedCount / $totalStudentsCount) * 100, 1) : 0,
+            'passed_count' => $totalPassedCount,
+            'total_students' => $totalStudentsCount
+        ];
     }
 }

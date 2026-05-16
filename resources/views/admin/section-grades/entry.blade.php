@@ -65,11 +65,18 @@
                         <h2 class="text-xl font-black text-rose-900 tracking-tight">Academic Alert: Low Performance Threshold</h2>
                         <p class="text-sm font-bold text-rose-600/80">The following students have a total average below 75% for this {{ $term->type }}.</p>
                     </div>
-                    <a href="{{ route('admin.section-grades.export-low-performance', ['academic_year_id' => $academicYear->id, 'term_id' => $term->id, 'section_id' => $section->id]) }}" 
-                       class="px-6 py-3 bg-rose-600 text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-rose-700 transition-all shadow-lg shadow-rose-200 flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        Export List
-                    </a>
+                    <div class="flex items-center gap-3">
+                        <a href="{{ route('admin.section-grades.export-low-performance', ['academic_year_id' => $academicYear->id, 'term_id' => $term->id, 'section_id' => $section->id]) }}" 
+                           class="px-6 py-3 bg-white border-2 border-rose-200 text-rose-600 text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-rose-50 transition-all flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Export CSV
+                        </a>
+                        <a href="{{ route('admin.section-grades.download-low-performance-report', ['academic_year_id' => $academicYear->id, 'term_id' => $term->id, 'section_id' => $section->id]) }}" 
+                           class="px-6 py-3 bg-rose-600 text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-rose-700 transition-all shadow-lg shadow-rose-200 flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            Download Report
+                        </a>
+                    </div>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     @foreach($lowPerformers as $student)

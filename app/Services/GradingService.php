@@ -839,7 +839,7 @@ class GradingService
      * Calculate Semester Grades for a Section.
      * Logic: Semester 1 = (Q1 + Q2) / 2
      * Logic: Semester 2 = (Q3 + Q4) / 2
-     * Applies ONLY to Regular (Non-Elective) Subjects.
+     * Applies to all subjects assigned to the grade level.
      */
     public function calculateSemesterGrades(Section $section, Term $semesterTerm, AcademicYear $academicYear)
     {
@@ -858,7 +858,7 @@ class GradingService
 
         $sourceTermIds = $sourceTerms->pluck('id');
         $gradeLevel = $section->gradeLevel;
-        $subjects = $gradeLevel->subjects()->where('is_elective', false)->get();
+        $subjects = $gradeLevel->subjects()->get();
 
         if ($subjects->isEmpty()) return 0;
 

@@ -134,6 +134,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('section-grades/export', [App\Http\Controllers\Admin\SectionGradeController::class, 'export'])->name('section-grades.export');
         Route::get('section-grades/export-data', [App\Http\Controllers\Admin\SectionGradeController::class, 'exportData'])->name('section-grades.export-data');
         Route::get('section-grades/export-low-performance', [App\Http\Controllers\Admin\SectionGradeController::class, 'exportLowPerformance'])->name('section-grades.export-low-performance');
+        Route::get('section-grades/download-low-performance-report', [App\Http\Controllers\Admin\SectionGradeController::class, 'downloadLowPerformanceReport'])->name('section-grades.download-low-performance-report');
         Route::post('section-grades/import', [App\Http\Controllers\Admin\SectionGradeController::class, 'import'])->name('section-grades.import');
         Route::post('section-grades/calculate', [App\Http\Controllers\Admin\SectionGradeController::class, 'calculateSemester'])->name('section-grades.calculate');
         
@@ -174,6 +175,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('academic-reports/matrix-reorder', [App\Http\Controllers\Admin\AcademicReportController::class, 'matrixReorder'])->name('academic-reports.matrix-reorder');
         Route::post('academic-reports/matrix-reorder', [App\Http\Controllers\Admin\AcademicReportController::class, 'updateMatrixOrder'])->name('academic-reports.matrix-reorder.update');
         Route::post('academic-reports/recalculate', [App\Http\Controllers\Admin\AcademicReportController::class, 'recalculate'])->name('academic-reports.recalculate');
+        
+        // Result Analysis
+        Route::get('result-analysis', [App\Http\Controllers\Admin\ResultAnalysisController::class, 'index'])->name('result-analysis.index');
+        Route::get('result-analysis/{assignment}', [App\Http\Controllers\Admin\ResultAnalysisController::class, 'show'])->name('result-analysis.show');
 
         Route::get('section-grades/{section}/report-card-details', [App\Http\Controllers\Admin\ReportCardController::class, 'entry'])->name('section-grades.report-card-entry');
         Route::post('section-grades/{section}/report-card-details', [App\Http\Controllers\Admin\ReportCardController::class, 'storeEntry'])->name('section-grades.store-report-card-entry');
@@ -279,6 +284,8 @@ Route::middleware(['auth'])->group(function () {
     // Teacher Portal Routes
     Route::middleware(['auth', 'role_or_permission:Teacher|enter marks'])->prefix('teacher')->name('teacher.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Teacher\DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/dashboard/chart-data', [App\Http\Controllers\Teacher\DashboardController::class, 'getChartData'])->name('dashboard.chart-data');
+        Route::get('/dashboard/efficiency-data', [App\Http\Controllers\Teacher\DashboardController::class, 'getEfficiencyData'])->name('dashboard.efficiency-data');
         
         // Exam Management
         Route::resource('exams', App\Http\Controllers\Teacher\ExamPaperController::class);
@@ -311,6 +318,14 @@ Route::middleware(['auth'])->group(function () {
         Route::prefix('department')->name('department.')->group(function () {
             Route::get('/', [\App\Http\Controllers\Teacher\DepartmentController::class, 'index'])->name('index');
             Route::get('/{id}', [\App\Http\Controllers\Teacher\DepartmentController::class, 'show'])->name('show');
+        });
+
+        // Reports
+        Route::prefix('reports')->name('reports.')->group(function () {
+            Route::get('/result-analysis', [App\Http\Controllers\Teacher\ResultAnalysisController::class, 'index'])->name('result-analysis');
+            Route::get('/result-analysis/{assignment}', [App\Http\Controllers\Teacher\ResultAnalysisController::class, 'show'])->name('result-analysis.show');
+            Route::post('/result-analysis/{assignment}', [App\Http\Controllers\Teacher\ResultAnalysisController::class, 'store'])->name('result-analysis.store');
+            Route::get('/result-analysis/{assignment}/print', [App\Http\Controllers\Teacher\ResultAnalysisController::class, 'print'])->name('result-analysis.print');
         });
     });
 });

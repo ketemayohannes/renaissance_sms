@@ -431,10 +431,20 @@ class GradebookController extends Controller implements HasMiddleware
                 if (empty($row) || (count($row) === 1 && empty($row[0]))) continue;
                 
                 $studentIdStr = trim($row[0]);
+                $csvName = isset($row[1]) ? trim($row[1]) : '';
                 $student = \App\Models\Student::where('student_id', $studentIdStr)->first();
                 
                 if (!$student) {
                     $errors[] = "Student ID $studentIdStr not found";
+                    continue;
+                }
+
+                // Strict Name Validation to catch Excel sorting errors
+                $dbName = $student->full_name;
+                $similarity = 0;
+                similar_text(strtolower($csvName), strtolower($dbName), $similarity);
+                if ($similarity < 70 && !str_contains(strtolower($dbName), strtolower(explode(' ', $csvName)[0]))) {
+                    $errors[] = "CRITICAL MISMATCH: ID $studentIdStr belongs to '$dbName', but CSV has '$csvName'. The spreadsheet may have been sorted incorrectly.";
                     continue;
                 }
 

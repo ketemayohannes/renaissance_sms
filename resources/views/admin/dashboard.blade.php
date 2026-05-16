@@ -75,49 +75,44 @@
         @endif
         
         <!-- Premium KPI Row -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <!-- Total Students -->
-            <div class="glass-panel p-8 group hover:-translate-y-2 transition-all duration-500">
-                <div class="flex items-center justify-between mb-6">
-                    <div class="w-14 h-14 rounded-[1.5rem] bg-indigo-500/10 flex items-center justify-center group-hover:bg-indigo-500 group-hover:rotate-12 transition-all duration-500">
-                        <svg class="w-7 h-7 text-indigo-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <!-- Student Enrollment -->
+            <div class="glass-panel p-4 group hover:-translate-y-1 transition-all duration-500">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center group-hover:bg-indigo-500 transition-all duration-500">
+                        <svg class="w-5 h-5 text-indigo-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                         </svg>
                     </div>
-                    <span class="px-3 py-1 bg-emerald-500/10 text-emerald-600 rounded-lg text-[10px] font-black uppercase tracking-widest">+{{ number_format($stats['total_students']) }}</span>
+                    <span class="px-2 py-0.5 bg-emerald-500/10 text-emerald-600 rounded-md text-[9px] font-black uppercase tracking-widest">Active</span>
                 </div>
-                <h4 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">Total Enrollment</h4>
-                <p class="text-4xl font-black text-slate-900 tracking-tight">{{ number_format($stats['total_students']) }}</p>
-                <div class="mt-4 pt-4 border-t border-slate-50 flex items-center gap-2">
-                    <span class="text-xs font-bold text-slate-400 italic">{{ $selectedDivision ? $selectedDivision->name : 'Global Student Body' }}</span>
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Students</h4>
+                <p class="text-2xl font-black text-slate-900 tracking-tight">{{ number_format($stats['total_students']) }}</p>
+                <div class="mt-2 pt-2 border-t border-slate-50">
+                    <span class="text-[10px] font-bold text-slate-400 italic">{{ $selectedDivision ? $selectedDivision->name : 'Total Enrolled' }}</span>
                 </div>
             </div>
             
-            <!-- Total Staff -->
-            <div class="glass-panel p-8 group hover:-translate-y-2 transition-all duration-500">
-                <div class="flex items-center justify-between mb-6">
-                    <div class="w-14 h-14 rounded-[1.5rem] bg-emerald-500/10 flex items-center justify-center group-hover:bg-emerald-500 group-hover:-rotate-12 transition-all duration-500">
-                        <svg class="w-7 h-7 text-emerald-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <!-- Faculty & Staff -->
+            <div class="glass-panel p-4 group hover:-translate-y-1 transition-all duration-500">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center group-hover:bg-emerald-500 transition-all duration-500">
+                        <svg class="w-5 h-5 text-emerald-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                         </svg>
                     </div>
-                    <span class="px-3 py-1 bg-indigo-500/10 text-indigo-600 rounded-lg text-[10px] font-black uppercase tracking-widest">Active</span>
+                    <span class="px-2 py-0.5 bg-indigo-500/10 text-indigo-600 rounded-md text-[9px] font-black uppercase tracking-widest">Active</span>
                 </div>
-                <h4 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">Total Faculty</h4>
-                <p class="text-4xl font-black text-slate-900 tracking-tight">{{ $stats['total_staff'] }}</p>
-                <div class="mt-4 pt-4 border-t border-slate-50">
-                    <span class="text-xs font-bold text-slate-400 italic">{{ $selectedDivision ? $selectedDivision->name . ' Staff' : 'Academic & Support' }}</span>
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Faculty</h4>
+                <p class="text-2xl font-black text-slate-900 tracking-tight">{{ $stats['total_staff'] }}</p>
+                <div class="mt-2 pt-2 border-t border-slate-50">
+                    <span class="text-[10px] font-bold text-slate-400 italic">{{ $selectedDivision ? $selectedDivision->name : 'Academic & Support' }}</span>
                 </div>
             </div>
             
             <!-- Attendance Rate -->
-            <div class="glass-panel p-8 group hover:-translate-y-2 transition-all duration-500">
-                <div class="flex items-center justify-between mb-6">
-                    <div class="w-14 h-14 rounded-[1.5rem] bg-rose-500/10 flex items-center justify-center group-hover:bg-rose-500 transition-all duration-500">
-                        <svg class="w-7 h-7 text-rose-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
-                        </svg>
-                    </div>
+            <div class="glass-panel p-4 group hover:-translate-y-1 transition-all duration-500">
+                <div class="flex items-center justify-between mb-3">
                     @php
                         $attendanceStatus = match(true) {
                             $stats['today_attendance'] >= 90 => ['Excellent', 'emerald'],
@@ -125,147 +120,212 @@
                             default => ['Critical', 'rose']
                         };
                     @endphp
-                    <span class="px-3 py-1 bg-{{ $attendanceStatus[1] }}-500/10 text-{{ $attendanceStatus[1] }}-600 rounded-lg text-[10px] font-black uppercase tracking-widest">{{ $attendanceStatus[0] }}</span>
+                    <div class="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center group-hover:bg-rose-500 transition-all duration-500">
+                        <svg class="w-5 h-5 text-rose-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                        </svg>
+                    </div>
+                    <span class="px-2 py-0.5 bg-{{ $attendanceStatus[1] }}-500/10 text-{{ $attendanceStatus[1] }}-600 rounded-md text-[9px] font-black uppercase tracking-widest">{{ $attendanceStatus[0] }}</span>
                 </div>
-                <h4 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">Today's Presence</h4>
-                <p class="text-4xl font-black text-slate-900 tracking-tight">{{ $stats['today_attendance'] }}%</p>
-                <div class="mt-4 pt-4 border-t border-slate-50">
-                    <span class="text-xs font-bold text-slate-400 italic">{{ $selectedDivision ? $selectedDivision->name . ' Stats' : 'Current Daily Statistic' }}</span>
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Presence</h4>
+                <p class="text-2xl font-black text-slate-900 tracking-tight">{{ $stats['today_attendance'] }}%</p>
+                <div class="mt-2 pt-2 border-t border-slate-50">
+                    <span class="text-[10px] font-bold text-slate-400 italic">Daily Rate</span>
                 </div>
             </div>
 
             <!-- Quick Access Menu -->
-            <div class="glass-panel p-6 bg-slate-900 overflow-hidden relative group">
+            <div class="glass-panel p-4 bg-slate-900 overflow-hidden relative group">
                 <div class="absolute inset-0 bg-gradient-to-br from-indigo-600/20 to-purple-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-                <h4 class="text-xs font-black text-indigo-400 uppercase tracking-[0.2em] mb-4 relative z-10">Power Actions</h4>
-                <div class="space-y-3 relative z-10">
+                <h4 class="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2 relative z-10">Power Actions</h4>
+                <div class="space-y-2 relative z-10">
                     @can('create students')
-                    <a href="{{ route('admin.students.create') }}" class="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all group/item">
-                        <span class="text-xs font-bold text-white tracking-wide">Register New Student</span>
-                        <svg class="w-4 h-4 text-indigo-400 group-hover/item:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    <a href="{{ route('admin.students.create') }}" class="flex items-center justify-between p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 transition-all group/item">
+                        <span class="text-[10px] font-bold text-white tracking-wide">Register Student</span>
+                        <svg class="w-3 h-3 text-indigo-400 group-hover/item:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                     </a>
                     @endcan
-                    <a href="{{ route('admin.section-grades.index') }}" class="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all group/item">
-                        <span class="text-xs font-bold text-white tracking-wide">Batch Grade Entry</span>
-                        <svg class="w-4 h-4 text-emerald-400 group-hover/item:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    <a href="{{ route('admin.section-grades.index') }}" class="flex items-center justify-between p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 transition-all group/item">
+                        <span class="text-[10px] font-bold text-white tracking-wide">Batch Grading</span>
+                        <svg class="w-3 h-3 text-emerald-400 group-hover/item:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                     </a>
                     @can('create employees')
-                    <a href="{{ route('admin.employees.create') }}" class="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all group/item">
-                        <span class="text-xs font-bold text-white tracking-wide">Onboard New Staff</span>
-                        <svg class="w-4 h-4 text-amber-400 group-hover/item:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    <a href="{{ route('admin.employees.create') }}" class="flex items-center justify-between p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 transition-all group/item">
+                        <span class="text-[10px] font-bold text-white tracking-wide">Onboard Staff</span>
+                        <svg class="w-3 h-3 text-amber-400 group-hover/item:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                     </a>
                     @endcan
                 </div>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <!-- Enrollment Analytics -->
-            <div class="glass-panel p-8 lg:col-span-2">
-                <div class="flex items-center justify-between mb-8">
+            <div class="glass-panel p-4 lg:col-span-2">
+                <div class="flex items-center justify-between mb-2">
                     <div>
-                        <h3 class="text-xl font-black text-slate-900 uppercase tracking-tight">Enrollment Matrix</h3>
-                        <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Student Distribution by Grade</p>
+                        <h3 class="text-base font-black text-slate-900 uppercase tracking-tight">Enrollment Matrix</h3>
+                        <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Student Distribution</p>
                     </div>
                 </div>
-                <div class="h-[300px]">
+                <div class="h-[180px]">
                     <canvas id="enrollmentChart"></canvas>
                 </div>
             </div>
 
             <!-- Demographic Breakdown -->
-            <div class="glass-panel p-8">
-                <h3 class="text-xl font-black text-slate-900 uppercase tracking-tight mb-8">Demographics</h3>
-                <div class="h-[200px] relative">
+            <div class="glass-panel p-4">
+                <h3 class="text-base font-black text-slate-900 uppercase tracking-tight mb-2">Demographics</h3>
+                <div class="h-[120px] relative">
                     <canvas id="genderChart"></canvas>
                 </div>
-                <div class="mt-8 space-y-4">
-                    <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                        <div class="flex items-center gap-3">
-                            <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
-                            <span class="text-xs font-black text-slate-500 uppercase tracking-widest">Male Students</span>
+                <div class="mt-3 space-y-1.5">
+                    <div class="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-100">
+                        <div class="flex items-center gap-2">
+                            <div class="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
+                            <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Male</span>
                         </div>
-                        <span class="text-sm font-black text-slate-900">{{ $genderBreakdown['M'] ?? 0 }}</span>
+                        <span class="text-[10px] font-black text-slate-900">{{ $genderBreakdown['M'] ?? 0 }}</span>
                     </div>
-                    <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                        <div class="flex items-center gap-3">
-                            <div class="w-2 h-2 rounded-full bg-rose-400"></div>
-                            <span class="text-xs font-black text-slate-500 uppercase tracking-widest">Female Students</span>
+                    <div class="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-100">
+                        <div class="flex items-center gap-2">
+                            <div class="w-1.5 h-1.5 rounded-full bg-rose-400"></div>
+                            <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Female</span>
                         </div>
-                        <span class="text-sm font-black text-slate-900">{{ $genderBreakdown['F'] ?? 0 }}</span>
+                        <span class="text-[10px] font-black text-slate-900">{{ $genderBreakdown['F'] ?? 0 }}</span>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Academic Performance Analytics (Full Width) -->
-        <div class="glass-panel p-8">
-            <div class="flex items-center justify-between mb-8">
-                <div>
-                    <h3 class="text-xl font-black text-slate-900 uppercase tracking-tight">Academic Excellence</h3>
-                    <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Subject Average Performance</p>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="glass-panel p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="text-lg font-black text-slate-900 uppercase tracking-tight">Academic Excellence</h3>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Subject Average Performance</p>
+                    </div>
+                    
+                    <!-- Selectors -->
+                    <div class="flex items-center gap-2">
+                        <form id="academicExcellenceForm" class="flex gap-1">
+                            @if(request('division_id'))
+                                <input type="hidden" name="division_id" value="{{ request('division_id') }}">
+                            @endif
+                            <select name="grade_level_id" onchange="fetchAcademicExcellenceData()" 
+                                    class="bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 text-[9px] font-black uppercase tracking-widest focus:ring-indigo-600 focus:border-indigo-600 transition-all shadow-sm">
+                                @foreach($gradeLevels as $grade)
+                                    <option value="{{ $grade->id }}" {{ $selectedGradeLevelId == $grade->id ? 'selected' : '' }}>{{ $grade->name }}</option>
+                                @endforeach
+                            </select>
+                            <select name="term_id" onchange="fetchAcademicExcellenceData()" 
+                                    class="bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 text-[9px] font-black uppercase tracking-widest focus:ring-indigo-600 focus:border-indigo-600 transition-all shadow-sm">
+                                <option value="yearly" {{ $selectedTermId === 'yearly' ? 'selected' : '' }}>Yearly</option>
+                                @foreach($terms as $term)
+                                    <option value="{{ $term->id }}" {{ $selectedTermId == $term->id ? 'selected' : '' }}>{{ $term->name }}</option>
+                                @endforeach
+                            </select>
+                        </form>
+                    </div>
                 </div>
                 
-                <!-- Selectors -->
-                <div class="flex items-center gap-2">
-                    <form id="academicExcellenceForm" class="flex gap-2">
-                        @if(request('division_id'))
-                            <input type="hidden" name="division_id" value="{{ request('division_id') }}">
-                        @endif
-                        <select name="grade_level_id" onchange="fetchAcademicExcellenceData()" 
-                                class="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest focus:ring-indigo-600 focus:border-indigo-600 transition-all shadow-sm">
+                <!-- Chart -->
+                <div class="h-[200px] mb-6">
+                    <canvas id="gradeAveragesChart"></canvas>
+                </div>
+                
+                <!-- Table -->
+                <div class="overflow-x-auto custom-scrollbar relative" id="academicExcellenceTableContainer">
+                    <div id="academicExcellenceLoading" class="absolute inset-0 bg-white/80 backdrop-blur-sm z-20 flex items-center justify-center hidden rounded-xl">
+                        <svg class="animate-spin h-8 w-8 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
+                    
+                    <table class="w-full text-center">
+                        <thead id="academicExcellenceThead">
+                            <tr>
+                                @foreach($subjectAverages as $avg)
+                                <th class="text-[10px] font-black text-slate-400 uppercase tracking-widest pb-3 px-3 whitespace-nowrap">{{ $avg->subject_name }}</th>
+                                @endforeach
+                            </tr>
+                        </thead>
+                        <tbody id="academicExcellenceTbody">
+                            <tr>
+                                @forelse($subjectAverages as $avg)
+                                <td class="py-2 px-2">
+                                    <span class="px-2.5 py-1 rounded-lg text-[11px] font-black {{ $avg->average >= 75 ? 'bg-emerald-50 text-emerald-600' : ($avg->average >= 50 ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600') }}">
+                                        {{ $avg->average }}%
+                                    </span>
+                                </td>
+                                @empty
+                                <td class="py-8 text-center text-xs font-bold text-slate-400 italic">No data</td>
+                                @endforelse
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Performance Distribution -->
+            <div class="glass-panel p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="text-lg font-black text-slate-900 uppercase tracking-tight">Performance Analysis</h3>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Score Distribution Per Subject</p>
+                    </div>
+                    
+                    <!-- Selectors -->
+                    <div class="flex items-center gap-2">
+                        <select id="dist_grade_level_id" onchange="onGradeChange()" 
+                                class="bg-slate-50 border border-slate-100 rounded-xl px-2 py-1 text-[8px] font-black uppercase tracking-widest focus:ring-indigo-600 focus:border-indigo-600 transition-all shadow-sm">
                             @foreach($gradeLevels as $grade)
                                 <option value="{{ $grade->id }}" {{ $selectedGradeLevelId == $grade->id ? 'selected' : '' }}>{{ $grade->name }}</option>
                             @endforeach
                         </select>
-                        <select name="term_id" onchange="fetchAcademicExcellenceData()" 
-                                class="bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest focus:ring-indigo-600 focus:border-indigo-600 transition-all shadow-sm">
-                            <option value="yearly" {{ $selectedTermId === 'yearly' ? 'selected' : '' }}>Yearly Average</option>
-                            @foreach($terms as $term)
-                                <option value="{{ $term->id }}" {{ $selectedTermId == $term->id ? 'selected' : '' }}>{{ $term->name }}</option>
+                        <select id="dist_subject_id" onchange="fetchPerformanceDistribution()" 
+                                class="bg-slate-50 border border-slate-100 rounded-xl px-2 py-1 text-[8px] font-black uppercase tracking-widest focus:ring-indigo-600 focus:border-indigo-600 transition-all shadow-sm min-w-[100px]">
+                            @foreach($subjects as $subject)
+                                <option value="{{ $subject->id }}">
+                                    {{ strlen($subject->name) > 12 ? ($subject->code ?: $subject->name) : $subject->name }}
+                                </option>
                             @endforeach
                         </select>
-                    </form>
-                </div>
-            </div>
-            
-            <!-- Chart (Full Width) -->
-            <div class="h-[350px] mb-8">
-                <canvas id="gradeAveragesChart"></canvas>
-            </div>
-            
-            <!-- Horizontal Table -->
-            <div class="overflow-x-auto custom-scrollbar relative" id="academicExcellenceTableContainer">
-                <!-- Loading overlay -->
-                <div id="academicExcellenceLoading" class="absolute inset-0 bg-white/80 backdrop-blur-sm z-20 flex items-center justify-center hidden rounded-xl">
-                    <svg class="animate-spin h-8 w-8 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
+                        <select id="dist_term_id" onchange="fetchPerformanceDistribution()" 
+                                class="bg-slate-50 border border-slate-100 rounded-xl px-2 py-1 text-[8px] font-black uppercase tracking-widest focus:ring-indigo-600 focus:border-indigo-600 transition-all shadow-sm">
+                            @foreach($terms as $term)
+                                <option value="{{ $term->id }}" {{ ($terms->where('is_grading_open', true)->first()?->id ?? $terms->last()?->id) == $term->id ? 'selected' : '' }}>{{ $term->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
                 
-                <table class="w-full text-center">
-                    <thead id="academicExcellenceThead">
-                        <tr>
-                            @foreach($subjectAverages as $avg)
-                            <th class="text-[10px] font-black text-slate-400 uppercase tracking-widest pb-3 px-3 whitespace-nowrap">{{ $avg->subject_name }}</th>
-                            @endforeach
-                        </tr>
-                    </thead>
-                    <tbody id="academicExcellenceTbody">
-                        <tr>
-                            @forelse($subjectAverages as $avg)
-                            <td class="py-3 px-3">
-                                <span class="px-3 py-1.5 rounded-lg text-xs font-black {{ $avg->average >= 75 ? 'bg-emerald-50 text-emerald-600' : ($avg->average >= 50 ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600') }}">
-                                    {{ $avg->average }}%
-                                </span>
-                            </td>
-                            @empty
-                            <td class="py-8 text-center text-xs font-bold text-slate-400 italic">No data</td>
-                            @endforelse
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="h-[180px] relative">
+                    <div id="distributionLoading" class="absolute inset-0 bg-white/80 backdrop-blur-sm z-20 flex items-center justify-center hidden rounded-xl">
+                        <svg class="animate-spin h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
+                    <canvas id="performanceDistributionChart"></canvas>
+                </div>
+
+                <div id="distributionSummary" class="mt-6 flex justify-around text-center border-t border-slate-50 pt-4">
+                    <div>
+                        <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">0-49</span>
+                        <span id="range_0_49" class="text-lg font-black text-rose-600">0</span>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">50-74</span>
+                        <span id="range_50_74" class="text-lg font-black text-amber-500">0</span>
+                    </div>
+                    <div>
+                        <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">75-100</span>
+                        <span id="range_75_100" class="text-lg font-black text-emerald-500">0</span>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -392,8 +452,8 @@
                             data: {!! json_encode($studentsByGrade->pluck('count')) !!},
                             backgroundColor: gradient,
                             hoverBackgroundColor: '#4338ca',
-                            borderRadius: 12,
-                            barThickness: 32,
+                            borderRadius: 6,
+                            maxBarThickness: 24,
                         }]
                     },
                     options: {
@@ -418,7 +478,14 @@
                             },
                             x: { 
                                 grid: { display: false },
-                                ticks: { font: { size: 11, weight: '700' }, color: '#94a3b8' }
+                                ticks: { 
+                                    font: { size: 8, weight: '700' }, 
+                                    color: '#94a3b8',
+                                    maxRotation: 0,
+                                    minRotation: 0,
+                                    autoSkip: true,
+                                    maxTicksLimit: 12
+                                }
                             }
                         }
                     }
@@ -435,15 +502,15 @@
                         datasets: [{
                             data: [{{ $genderBreakdown['M'] ?? 0 }}, {{ $genderBreakdown['F'] ?? 0 }}],
                             backgroundColor: ['#4f46e5', '#fb7185'],
-                            borderWidth: 8,
+                            borderWidth: 4,
                             borderColor: '#ffffff',
-                            hoverOffset: 15,
+                            hoverOffset: 10,
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        cutout: '80%',
+                        cutout: '70%',
                         plugins: { 
                             legend: { display: false },
                             tooltip: {
@@ -514,10 +581,10 @@
                             x: { 
                                 grid: { display: false },
                                 ticks: { 
-                                    font: { size: 10, weight: '700' }, 
+                                    font: { size: 9, weight: '700' }, 
                                     color: '#94a3b8',
-                                    maxRotation: 45,
-                                    minRotation: 45
+                                    maxRotation: 0,
+                                    minRotation: 0
                                 }
                             }
                         }
@@ -609,10 +676,144 @@
                 console.error('Error fetching academic excellence data:', error);
             })
             .finally(() => {
-                // Hide loading
                 document.getElementById('academicExcellenceLoading').classList.add('hidden');
             });
         }
+
+        document.addEventListener('DOMContentLoaded', function() {
+
+            // Performance Distribution Chart Initializer
+            const distCanvas = document.getElementById('performanceDistributionChart');
+            if (distCanvas) {
+                window.performanceDistributionChart = new Chart(distCanvas.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['0-49', '50-74', '75-100'],
+                        datasets: [{
+                            label: 'Students',
+                            data: [0, 0, 0],
+                            backgroundColor: ['#f43f5e', '#f59e0b', '#10b981'],
+                            hoverBackgroundColor: ['#e11d48', '#d97706', '#059669'],
+                            borderRadius: 6,
+                            maxBarThickness: 40,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { 
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: '#0f172a',
+                                titleFont: { size: 14, weight: '900', family: 'Inter' },
+                                bodyFont: { size: 13, family: 'Inter' },
+                                padding: 16,
+                                cornerRadius: 16,
+                                displayColors: false
+                            }
+                        },
+                        scales: {
+                            y: { 
+                                beginAtZero: true, 
+                                grid: { color: '#f8fafc', drawBorder: false },
+                                ticks: { font: { size: 11, weight: '700', family: 'Inter' }, color: '#94a3b8' }
+                            },
+                            x: { 
+                                grid: { display: false },
+                                ticks: { font: { size: 11, weight: '700', family: 'Inter' }, color: '#94a3b8' }
+                            }
+                        }
+                    }
+                });
+                
+            }
+
+            // Initial fetch safely after chart is ready
+            console.log('Dashboard loaded, initializing distribution...');
+            setTimeout(() => {
+                fetchPerformanceDistribution();
+            }, 200);
+        });
+
+        // AJAX logic for Performance Distribution
+        function fetchPerformanceDistribution() {
+            const termEl = document.getElementById('dist_term_id');
+            const gradeEl = document.getElementById('dist_grade_level_id');
+            const subjectEl = document.getElementById('dist_subject_id');
+
+            if (!termEl || !gradeEl || !subjectEl) {
+                console.warn('Distribution elements not found');
+                return;
+            }
+
+            const termId = termEl.value;
+            const gradeLevelId = gradeEl.value;
+            const subjectId = subjectEl.value;
+
+            console.log('Fetching distribution for:', { termId, gradeLevelId, subjectId });
+
+            if (!termId || !gradeLevelId || !subjectId) {
+                console.warn('Missing distribution parameters');
+                return;
+            }
+
+            const loading = document.getElementById('distributionLoading');
+            if (loading) loading.classList.remove('hidden');
+
+            fetch(`{{ route('admin.dashboard') }}?fetch_distribution=1&term_id=${termId}&grade_level_id=${gradeLevelId}&subject_id=${subjectId}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Distribution data received:', data);
+                // Update text summary
+                const r1 = document.getElementById('range_0_49');
+                const r2 = document.getElementById('range_50_74');
+                const r3 = document.getElementById('range_75_100');
+                if (r1) r1.textContent = data.data[0];
+                if (r2) r2.textContent = data.data[1];
+                if (r3) r3.textContent = data.data[2];
+
+                // Update Chart
+                if (window.performanceDistributionChart) {
+                    window.performanceDistributionChart.data.datasets[0].data = data.data;
+                    window.performanceDistributionChart.update();
+                }
+            })
+            .catch(err => console.error('Performance Analysis Fetch Error:', err))
+            .finally(() => {
+                if (loading) loading.classList.add('hidden');
+            });
+        }
+        window.fetchPerformanceDistribution = fetchPerformanceDistribution;
+
+        function onGradeChange() {
+            const gradeLevelId = document.getElementById('dist_grade_level_id').value;
+            const subjectSelect = document.getElementById('dist_subject_id');
+            
+            console.log('Grade changed to:', gradeLevelId, 'Fetching subjects...');
+
+            fetch(`{{ route('admin.dashboard') }}?fetch_subjects=1&grade_level_id=${gradeLevelId}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(response => response.json())
+            .then(subjects => {
+                console.log('Subjects received:', subjects);
+                subjectSelect.innerHTML = '';
+                subjects.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.id;
+                    // Use code if name is long (>12 chars), fallback to name
+                    opt.textContent = s.name.length > 12 ? (s.code || s.name) : s.name;
+                    subjectSelect.appendChild(opt);
+                });
+                
+                // Trigger distribution fetch for the new subjects
+                setTimeout(() => fetchPerformanceDistribution(), 100);
+            })
+            .catch(err => console.error('Subject Fetch Error:', err));
+        }
+        window.onGradeChange = onGradeChange;
     </script>
     @endpush
 

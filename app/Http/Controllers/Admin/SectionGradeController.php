@@ -22,7 +22,7 @@ class SectionGradeController extends Controller implements HasMiddleware
     public static function middleware(): array
     {
         return [
-            new Middleware('permission:view master gradebook', only: ['index', 'entry', 'export', 'exportData', 'exportLowPerformance']),
+            new Middleware('permission:view master gradebook', only: ['index', 'entry', 'export', 'exportData', 'exportLowPerformance', 'downloadLowPerformanceReport']),
             new Middleware('permission:edit master gradebook', only: ['store', 'import', 'calculateSemester']),
         ];
     }
@@ -504,12 +504,23 @@ class SectionGradeController extends Controller implements HasMiddleware
                 if (empty($row) || empty($row[0])) continue;
 
                 $studentIdStr = trim($row[0]);
+                $csvName = isset($row[1]) ? trim($row[1]) : '';
                 
                 // Fetch from the pre-loaded section students to ensure they belong here
                 $student = $sectionStudents->get($studentIdStr);
 
                 if (!$student) {
                     $errors[] = "Student ID $studentIdStr not found in this section";
+                    continue;
+                }
+
+                // Strict Name Validation to catch Excel sorting errors
+                $dbName = $student->full_name;
+                // Calculate similarity, allow minor formatting differences but catch complete mismatches
+                $similarity = 0;
+                similar_text(strtolower($csvName), strtolower($dbName), $similarity);
+                if ($similarity < 70 && !str_contains(strtolower($dbName), strtolower(explode(' ', $csvName)[0]))) {
+                    $errors[] = "CRITICAL MISMATCH: ID $studentIdStr belongs to '$dbName', but CSV has '$csvName'. The spreadsheet may have been sorted incorrectly.";
                     continue;
                 }
 
@@ -676,5 +687,59 @@ class SectionGradeController extends Controller implements HasMiddleware
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    public function downloadLowPerformanceReport(Request $request, \App\Services\GradingService $gradingService)
+    {
+        $request->validate([
+            'academic_year_id' => 'required|exists:academic_years,id',
+            'term_id' => 'required|exists:terms,id',
+            'section_id' => 'required|exists:sections,id',
+        ]);
+
+        $section = Section::with('gradeLevel')->findOrFail($request->section_id);
+        $term = Term::findOrFail($request->term_id);
+        $academicYear = AcademicYear::findOrFail($request->academic_year_id);
+        
+        $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
+        $students = $section->students()
+            ->wherePivot('academic_year_id', $academicYear->id)
+            ->wherePivot('status', 'active')
+            ->where('students.is_active', true)
+            ->orderBy('students.first_name')
+            ->get();
+
+        $stats = $gradingService->calculateSectionTotals($students, $term, $academicYear, $subjects);
+
+        $lowPerformers = $students->filter(function($student) use ($stats) {
+            $average = $stats[$student->id]['average'] ?? 0;
+            return $average > 0 && $average < 75;
+        });
+
+        // Fetch school logo from Report Card settings
+        $settings = \App\Models\ReportCardSetting::first();
+        $logoBase64 = null;
+        if ($settings && $settings->logo_path) {
+            $logoPath = storage_path('app/public/' . $settings->logo_path);
+            if (file_exists($logoPath)) {
+                $logoData = base64_encode(file_get_contents($logoPath));
+                $logoBase64 = 'data:image/' . pathinfo($logoPath, PATHINFO_EXTENSION) . ';base64,' . $logoData;
+            }
+        }
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.section-grades.low-performance-report', [
+            'section' => $section,
+            'term' => $term,
+            'academicYear' => $academicYear,
+            'lowPerformers' => $lowPerformers,
+            'stats' => $stats,
+            'logoBase64' => $logoBase64,
+        ]);
+
+        // Set paper size to A4
+        $pdf->setPaper('a4', 'portrait');
+
+        $filename = "academic_performance_alert_{$section->name}_{$term->name}.pdf";
+        return $pdf->download($filename);
     }
 }

@@ -103,6 +103,252 @@
             </div>
         </div>
 
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Performance Overview Chart -->
+            <div class="glass-panel border-white bg-white/60 rounded-[2.5rem] shadow-sm p-8"
+             x-data="{
+                assignmentId: '{{ $assignments->first()->id ?? '' }}',
+                termId: '{{ $terms->first()->id ?? '' }}',
+                loading: false,
+                chart: null,
+                async updateChart() {
+                    if (!this.assignmentId || !this.termId) return;
+                    this.loading = true;
+                    try {
+                        const response = await axios.get('{{ route('teacher.dashboard.chart-data') }}', {
+                            params: { assignment_id: this.assignmentId, term_id: this.termId }
+                        });
+                        const data = response.data;
+                        
+                        const options = {
+                            series: [{
+                                name: 'Students',
+                                data: [data['0-49'], data['50-74'], data['75-100']]
+                            }],
+                            chart: {
+                                type: 'bar',
+                                height: 300,
+                                toolbar: { show: false },
+                                animations: { enabled: true, easing: 'easeinout', speed: 800 }
+                            },
+                            plotOptions: {
+                                bar: {
+                                    borderRadius: 10,
+                                    columnWidth: '50%',
+                                    distributed: true,
+                                }
+                            },
+                            colors: ['#f43f5e', '#f59e0b', '#10b981'],
+                            dataLabels: { enabled: false },
+                            legend: { show: false },
+                            xaxis: {
+                                categories: ['0-49', '50-74', '75-100'],
+                                labels: {
+                                    style: { colors: '#64748b', fontWeight: 600 }
+                                }
+                            },
+                            yaxis: {
+                                labels: {
+                                    style: { colors: '#64748b' }
+                                }
+                            },
+                            grid: {
+                                borderColor: '#f1f5f9',
+                                strokeDashArray: 4
+                            },
+                            tooltip: { theme: 'light' }
+                        };
+
+                        if (this.chart) {
+                            this.chart.updateOptions(options);
+                        } else {
+                            this.chart = new ApexCharts(this.$refs.chartCanvas, options);
+                            this.chart.render();
+                        }
+                    } catch (error) {
+                        console.error('Failed to fetch chart data:', error);
+                    } finally {
+                        this.loading = false;
+                    }
+                }
+             }"
+             x-init="updateChart()">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                <div>
+                    <h2 class="text-xl font-black text-slate-900 font-heading uppercase tracking-widest">Performance Analysis</h2>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Score distribution for your classes</p>
+                </div>
+                
+                <div class="flex items-center gap-2 flex-nowrap overflow-x-auto pb-1 custom-scrollbar">
+                    <!-- Assignment Dropdown -->
+                    <select x-model="assignmentId" @change="updateChart()"
+                            class="rounded-xl border-slate-100 bg-white text-xs font-bold text-slate-700 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm transition-all max-w-[200px]">
+                        @foreach($assignments as $assignment)
+                            <option value="{{ $assignment->id }}">
+                                {{ $assignment->section->gradeLevel->name }}{{ $assignment->section->name }}: {{ strlen($assignment->subject->name) > 15 ? $assignment->subject->code : $assignment->subject->name }}
+                            </option>
+                        @endforeach
+                    </select>
+
+                    <!-- Term Dropdown -->
+                    <select x-model="termId" @change="updateChart()"
+                            class="rounded-xl border-slate-100 bg-white text-xs font-bold text-slate-700 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm transition-all min-w-[100px]">
+                        @foreach($terms as $term)
+                            <option value="{{ $term->id }}">{{ $term->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
+            <div class="relative min-h-[300px]">
+                <div x-show="loading" class="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-2xl">
+                    <div class="flex items-center gap-2 text-indigo-600">
+                        <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span class="text-xs font-black uppercase tracking-widest">Updating...</span>
+                    </div>
+                </div>
+                <div x-ref="chartCanvas"></div>
+            </div>
+        </div>
+
+        <!-- Overall Efficiency Card -->
+        <div class="glass-panel border-white bg-white/60 rounded-[2.5rem] shadow-sm p-8"
+             x-data="{
+                termId: '{{ $terms->first()->id ?? '' }}',
+                subjectId: '',
+                efficiency: 0,
+                passedCount: 0,
+                totalStudents: 0,
+                loading: false,
+                chart: null,
+                async updateEfficiency() {
+                    if (!this.termId) return;
+                    this.loading = true;
+                    try {
+                        const response = await axios.get('{{ route('teacher.dashboard.efficiency-data') }}', {
+                            params: { 
+                                term_id: this.termId,
+                                subject_id: this.subjectId 
+                            }
+                        });
+                        this.efficiency = response.data.efficiency;
+                        this.passedCount = response.data.passed_count;
+                        this.totalStudents = response.data.total_students;
+                        
+                        const options = {
+                            series: [this.efficiency],
+                            chart: {
+                                height: 300,
+                                type: 'radialBar',
+                                sparkline: { enabled: true }
+                            },
+                            plotOptions: {
+                                radialBar: {
+                                    startAngle: -90,
+                                    endAngle: 90,
+                                    track: {
+                                        background: '#f1f5f9',
+                                        strokeWidth: '97%',
+                                        margin: 5,
+                                    },
+                                    dataLabels: {
+                                        name: { show: false },
+                                        value: {
+                                            offsetY: -2,
+                                            fontSize: '30px',
+                                            fontWeight: 900,
+                                            color: '#0f172a',
+                                            formatter: (val) => val + '%'
+                                        }
+                                    }
+                                }
+                            },
+                            fill: {
+                                type: 'gradient',
+                                gradient: {
+                                    shade: 'light',
+                                    shadeIntensity: 0.4,
+                                    inverseColors: false,
+                                    opacityFrom: 1,
+                                    opacityTo: 1,
+                                    stops: [0, 50, 53, 91],
+                                    colorStops: [
+                                        { offset: 0, color: '#4f46e5', opacity: 1 },
+                                        { offset: 100, color: '#10b981', opacity: 1 }
+                                    ]
+                                },
+                            },
+                            labels: ['Efficiency'],
+                        };
+
+                        if (this.chart) {
+                            this.chart.updateOptions(options);
+                        } else {
+                            this.chart = new ApexCharts(this.$refs.efficiencyCanvas, options);
+                            this.chart.render();
+                        }
+                    } catch (error) {
+                        console.error('Failed to fetch efficiency data:', error);
+                    } finally {
+                        this.loading = false;
+                    }
+                }
+             }"
+             x-init="updateEfficiency()">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                <div>
+                    <h2 class="text-xl font-black text-slate-900 font-heading uppercase tracking-widest">Overall Efficiency</h2>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Percentage of students ≥ 75%</p>
+                </div>
+                
+                <div class="flex items-center gap-2 flex-nowrap">
+                    @if(count($subjects) > 1)
+                        <select x-model="subjectId" @change="updateEfficiency()"
+                                class="rounded-xl border-slate-100 bg-white text-xs font-bold text-slate-700 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm transition-all max-w-[160px]">
+                            <option value="">All Subjects</option>
+                            @foreach($subjects as $subject)
+                                <option value="{{ $subject->id }}">
+                                    {{ strlen($subject->name) > 20 ? $subject->code : $subject->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    @endif
+
+                    <select x-model="termId" @change="updateEfficiency()"
+                            class="rounded-xl border-slate-100 bg-white text-xs font-bold text-slate-700 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm transition-all min-w-[100px]">
+                        @foreach($terms as $term)
+                            <option value="{{ $term->id }}">{{ $term->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
+            <div class="relative flex flex-col items-center">
+                <div x-show="loading" class="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-2xl">
+                    <div class="flex items-center gap-2 text-indigo-600">
+                        <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
+                </div>
+                
+                <div x-ref="efficiencyCanvas" class="w-full"></div>
+                
+                <div class="mt-4 text-center">
+                    <div class="text-3xl font-black text-slate-900" x-text="efficiency + '%'"></div>
+                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1">
+                        <span x-text="passedCount"></span> of <span x-text="totalStudents"></span> Students Passed
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <!-- Today's Schedule (Placeholder until timetable engine is built) -->
             <div class="lg:col-span-2 glass-panel border-white bg-white/60 rounded-[2.5rem] shadow-sm p-8">

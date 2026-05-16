@@ -136,6 +136,72 @@ class DashboardController extends Controller
                 'subjectAverages' => $subjectAverages
             ]);
         }
+
+        if ($request->ajax() && $request->has('fetch_subjects')) {
+            $glId = $request->get('grade_level_id');
+            $gradeLevel = \App\Models\GradeLevel::find($glId);
+            if (!$gradeLevel) return response()->json([]);
+            
+            $subjects = $gradeLevel->subjects()->orderByPivot('sort_order')->get()->map(function($s) {
+                return [
+                    'id' => $s->id,
+                    'name' => $s->name,
+                    'code' => $s->code
+                ];
+            });
+            return response()->json($subjects);
+        }
+
+        if ($request->ajax() && $request->has('fetch_distribution')) {
+            $termId = $request->get('term_id');
+            $glId = $request->get('grade_level_id');
+            $subjectId = $request->get('subject_id');
+
+            if (!$termId || !$glId || !$subjectId) {
+                return response()->json(['error' => 'Missing parameters'], 400);
+            }
+
+            $academicYear = \App\Helpers\CachedData::activeAcademicYear();
+            $termTotalTypeId = \App\Models\AssessmentType::where('code', 'TERM_TOTAL')->value('id');
+
+            $sectionIds = \App\Models\Section::where('grade_level_id', $glId)->where('is_active', true)->pluck('id');
+            $studentIds = \App\Models\StudentEnrollment::whereIn('section_id', $sectionIds)
+                ->where('academic_year_id', $academicYear->id)
+                ->whereNull('end_date')
+                ->whereIn('status', ['active', 'completed'])
+                ->pluck('student_id');
+
+            $marks = \App\Models\StudentMark::whereIn('student_id', $studentIds)
+                ->where('term_id', $termId)
+                ->where('subject_id', $subjectId)
+                ->with('assessmentTemplate:id,assessment_type_id')
+                ->get();
+
+            $distribution = [
+                'ranges' => ['0-49', '50-74', '75-100'],
+                'data' => [0, 0, 0],
+                'total' => $studentIds->count()
+            ];
+
+            $studentMarks = $marks->groupBy('student_id');
+
+            foreach ($studentIds as $studentId) {
+                $recs = $studentMarks->get($studentId);
+                if (!$recs || $recs->isEmpty()) {
+                    $distribution['data'][0]++;
+                    continue;
+                }
+
+                $termTotalMark = $recs->first(fn($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
+                $score = $termTotalMark ? $termTotalMark->score : $recs->sum('score');
+
+                if ($score <= 49) $distribution['data'][0]++;
+                elseif ($score <= 74) $distribution['data'][1]++;
+                else $distribution['data'][2]++;
+            }
+
+            return response()->json($distribution);
+        }
         
         // Key Metrics (Cached)
         $stats = \Illuminate\Support\Facades\Cache::remember("admin_dashboard_stats{$cacheSuffix}", $cacheTtl, function() use ($divisionId) {
@@ -267,11 +333,14 @@ class DashboardController extends Controller
         $divisions = \App\Models\Division::where('is_active', true)->orderBy('sort_order')->get();
         $selectedDivision = $divisionId ? $divisions->where('id', $divisionId)->first() : null;
 
+        $selectedGradeLevel = \App\Models\GradeLevel::find($selectedGradeLevelId);
+        $subjects = $selectedGradeLevel ? $selectedGradeLevel->subjects()->orderByPivot('sort_order')->get() : collect();
+
         return view('admin.dashboard', compact(
             'stats', 'recentActivity', 'studentsByGrade', 'sectionsMissingAttendance', 
             'genderBreakdown', 'academicYear', 'executionTime', 'systemHealth', 
             'divisions', 'selectedDivision', 'subjectAverages', 'terms', 'selectedTermId',
-            'gradeLevels', 'selectedGradeLevelId'
+            'gradeLevels', 'selectedGradeLevelId', 'subjects'
         ));
     }
 }
