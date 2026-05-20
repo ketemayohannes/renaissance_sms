@@ -1,4 +1,8 @@
 <x-teacher-layout>
+    @php
+        $canEditBehavior = $term->is_grading_open || auth()->user()->hasRole(['Super Admin', 'Principal']);
+    @endphp
+
     <div class="space-y-8 pb-32">
         <!-- Modern Header -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -40,12 +44,19 @@
             </div>
         @endif
 
-        @if (!$term->is_grading_open)
+        @if (!$canEditBehavior)
             <div class="bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 text-amber-800 dark:text-amber-400 px-6 py-4 rounded-[1.5rem] flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
                 <div class="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-11V7a4 4 0 00-8 0v4h8z"></path></svg>
                 </div>
                 <span class="font-bold text-sm">Grading Period Closed: You cannot modify records for this quarter.</span>
+            </div>
+        @elseif(!$term->is_grading_open)
+            <div class="bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 text-blue-800 dark:text-blue-400 px-6 py-4 rounded-[1.5rem] flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <span class="font-bold text-sm">Administrative Override Active: Subject grading is closed for regular users, but you have administrative override permission to modify behaviors.</span>
             </div>
         @endif
 
@@ -117,7 +128,7 @@
                                     <td class="px-4 py-6">
                                         <div class="relative group/input">
                                             <select name="records[{{ $student->id }}][conduct]" 
-                                                    {{ !$term->is_grading_open ? 'disabled' : '' }}
+                                                    {{ !$canEditBehavior ? 'disabled' : '' }}
                                                     class="w-full bg-white/50 dark:bg-slate-950/50 border-slate-100 dark:border-slate-800 rounded-xl py-3 px-4 text-center text-sm font-black text-slate-800 dark:text-slate-200 focus:ring-indigo-600 focus:border-indigo-600 shadow-inner group-hover/input:border-indigo-200 transition-all appearance-none cursor-pointer">
                                                 <option value="">-</option>
                                                 <option value="A" {{ ($record->conduct_grade ?? '') == 'A' ? 'selected' : '' }}>A</option>
@@ -129,7 +140,7 @@
                                     <td class="px-4 py-6">
                                         <div class="relative group/input">
                                             <input type="number" name="records[{{ $student->id }}][absent]" 
-                                                   {{ !$term->is_grading_open ? 'disabled' : '' }}
+                                                   {{ !$canEditBehavior ? 'disabled' : '' }}
                                                    value="{{ $record->days_absent ?? 0 }}" 
                                                    class="w-full bg-white/50 dark:bg-slate-950/50 border-slate-100 dark:border-slate-800 rounded-xl py-3 px-4 text-center text-sm font-black text-slate-800 dark:text-slate-200 focus:ring-indigo-600 focus:border-indigo-600 shadow-inner group-hover/input:border-indigo-200 transition-all"
                                                    placeholder="0">
@@ -138,7 +149,7 @@
                                     <td class="px-8 py-6">
                                         <div class="relative group/input">
                                             <input type="text" name="records[{{ $student->id }}][comment]" 
-                                                   {{ !$term->is_grading_open ? 'disabled' : '' }}
+                                                   {{ !$canEditBehavior ? 'disabled' : '' }}
                                                    value="{{ $record->homeroom_teacher_comment ?? '' }}" 
                                                    class="w-full bg-white/50 dark:bg-slate-950/50 border-slate-100 dark:border-slate-800 rounded-xl py-3 px-6 text-sm font-bold text-slate-800 dark:text-slate-200 focus:ring-indigo-600 focus:border-indigo-600 shadow-inner group-hover/input:border-indigo-200 transition-all italic placeholder:text-slate-300 dark:placeholder:text-slate-700"
                                                    placeholder="Begin evaluative entry...">
@@ -165,7 +176,7 @@
                 Discard
             </a>
             
-            @if($term->is_grading_open)
+            @if($canEditBehavior)
             <button type="submit" form="behaviorForm" class="px-6 py-2.5 bg-slate-900 dark:bg-indigo-600 text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-indigo-600 dark:hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-100 dark:shadow-indigo-500/20 flex items-center gap-2 group">
                 Save Behaviors
                 <svg class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>

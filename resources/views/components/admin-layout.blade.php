@@ -348,6 +348,13 @@
                 
                 {{ $slot }}
             </main>
+
+            <!-- Footer -->
+            <footer class="print:hidden no-print mt-auto py-4 text-center bg-slate-50/50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-700">
+                <p class="text-xs font-black uppercase tracking-widest">
+                    © {{ date('Y') }} All Rights Reserved to Byte Tech Solutions
+                </p>
+            </footer>
         </div>
     </div>
     

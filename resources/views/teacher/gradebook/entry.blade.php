@@ -1,4 +1,8 @@
 <x-teacher-layout>
+    @php
+        $user = auth()->user();
+        $canEditGradebook = $term->is_grading_open || ($user && ($user->hasRole('Super Admin') || $user->hasRole('Principal')));
+    @endphp
     <div class="space-y-8 pb-32" x-data="gradebookState()">
         <!-- Header & Navigation -->
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -27,15 +31,27 @@
         </div>
 
         @if(!$term->is_grading_open)
-            <div class="bg-red-50/50 backdrop-blur-md border border-red-100 p-6 rounded-[2rem] flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
-                <div class="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center text-red-600 shadow-sm">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            @if($canEditGradebook)
+                <div class="bg-blue-50/50 backdrop-blur-md border border-blue-100 p-6 rounded-[2rem] flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div class="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600 shadow-sm">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-blue-900 font-black text-sm uppercase tracking-widest">Administrative Override Active</h3>
+                        <p class="text-blue-700 text-xs font-semibold mt-0.5">Subject grading is closed for regular users, but you have edit permissions as a Super Admin or Principal.</p>
+                    </div>
                 </div>
-                <div>
-                    <h3 class="text-red-900 font-black text-sm uppercase tracking-widest">Grading Disabled</h3>
-                    <p class="text-red-700 text-xs font-semibold mt-0.5">Subject grading is currently closed for this term. Records are in read-only mode.</p>
+            @else
+                <div class="bg-red-50/50 backdrop-blur-md border border-red-100 p-6 rounded-[2rem] flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div class="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center text-red-600 shadow-sm">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-red-900 font-black text-sm uppercase tracking-widest">Grading Disabled</h3>
+                        <p class="text-red-700 text-xs font-semibold mt-0.5">Subject grading is currently closed for this term. Records are in read-only mode.</p>
+                    </div>
                 </div>
-            </div>
+            @endif
         @endif
 
 
@@ -160,14 +176,14 @@
                     Download Marksheet
                 </a>
 
-                <button type="button" @if($term->is_grading_open) onclick="document.getElementById('importModal').classList.remove('hidden')" @endif
-                        class="px-6 py-3.5 bg-emerald-600 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-emerald-700 shadow-xl shadow-emerald-100/50 transition-all flex items-center gap-3 group @if(!$term->is_grading_open) opacity-50 cursor-not-allowed @endif">
+                <button type="button" @if($canEditGradebook) onclick="document.getElementById('importModal').classList.remove('hidden')" @endif
+                        class="px-6 py-3.5 bg-emerald-600 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-emerald-700 shadow-xl shadow-emerald-100/50 transition-all flex items-center gap-3 group @if(!$canEditGradebook) opacity-50 cursor-not-allowed @endif">
                     <svg class="w-4 h-4 text-white group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                     Import Grades
                 </button>
 
-                <button type="button" @if($term->is_grading_open) onclick="confirmClear()" @endif
-                        class="px-6 py-3.5 bg-white text-rose-600 border border-rose-100 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-rose-50 shadow-xl shadow-rose-100/50 transition-all flex items-center gap-3 group @if(!$term->is_grading_open) opacity-50 cursor-not-allowed @endif">
+                <button type="button" @if($canEditGradebook) onclick="confirmClear()" @endif
+                        class="px-6 py-3.5 bg-white text-rose-600 border border-rose-100 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-rose-50 shadow-xl shadow-rose-100/50 transition-all flex items-center gap-3 group @if(!$canEditGradebook) opacity-50 cursor-not-allowed @endif">
                     <svg class="w-4 h-4 text-rose-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                     Clear Data
                 </button>
@@ -306,7 +322,7 @@
                                                    class="w-full text-center text-xs font-medium border-slate-200 rounded focus:ring-1 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all hover:bg-slate-50 disabled:bg-slate-50 disabled:text-slate-300 mark-input py-1 px-0"
                                                    data-is-final="{{ $component->assessmentType?->code === 'FINAL' ? '1' : '0' }}"
                                                    oninput="this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1'); calculateRow(this.closest('tr'));"
-                                                   @if(!$term->is_grading_open) disabled @endif>
+                                                   @if(!$canEditGradebook) disabled @endif>
                                         </td>
                                     @endforeach
 
@@ -358,7 +374,7 @@
                     Discard
                 </a>
                 
-                @if($term->is_grading_open)
+                @if($canEditGradebook)
                     <button type="submit" class="px-6 py-2.5 bg-indigo-600 text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center gap-2 group">
                         Save Changes
                         <svg class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>

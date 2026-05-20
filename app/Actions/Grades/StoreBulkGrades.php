@@ -21,7 +21,10 @@ class StoreBulkGrades
     {
         $term = Term::findOrFail($data['term_id']);
         if (!$term->is_grading_open) {
-            throw new \Exception('Grading for this term is currently closed.');
+            $user = \App\Models\User::find($userId);
+            if (!$user || !$user->hasRole(['Super Admin', 'Principal'])) {
+                throw new \Exception('Grading for this term is currently closed.');
+            }
         }
         
         $subject = Subject::findOrFail($data['subject_id']);
@@ -115,8 +118,81 @@ class StoreBulkGrades
                     'user_agent' => request()->userAgent(),
                 ]);
             }
+
+            // SYNCHRONIZATION: Update the TERM_TOTAL mark for all affected students
+            // This ensures the Master Sheet reflects the changes made in the Gradebook.
+            $termTotalTypeId = \App\Models\AssessmentType::where('code', 'TERM_TOTAL')->value('id');
+            if ($termTotalTypeId) {
+                // Get the grade level from the section
+                $section = \App\Models\Section::find($data['section_id']);
+                $gradeLevelId = $section ? $section->grade_level_id : null;
+
+                $termTotalTemplate = \App\Models\AssessmentTemplate::where('academic_year_id', $data['academic_year_id'])
+                    ->where('term_id', $data['term_id'])
+                    ->where('assessment_type_id', $termTotalTypeId)
+                    ->whereHas('assignments', function($q) use ($data, $gradeLevelId) {
+                        $q->where('subject_id', $data['subject_id']);
+                        if ($gradeLevelId) {
+                            $q->where('grade_level_id', $gradeLevelId);
+                        }
+                    })
+                    ->first();
+
+                if ($termTotalTemplate) {
+                    $affectedStudentIds = array_keys($data['marks']);
+                    foreach ($affectedStudentIds as $studentId) {
+                        // Calculate new total from ALL current components in DB
+                        $newSum = StudentMark::where('student_id', $studentId)
+                            ->where('academic_year_id', $data['academic_year_id'])
+                            ->where('term_id', $data['term_id'])
+                            ->where('subject_id', $data['subject_id'])
+                            ->where('assessment_template_id', '!=', $termTotalTemplate->id)
+                            ->sum('score');
+
+                        if ($newSum > 0) {
+                            StudentMark::updateOrCreate(
+                                [
+                                    'student_id' => $studentId,
+                                    'academic_year_id' => $data['academic_year_id'],
+                                    'term_id' => $data['term_id'],
+                                    'subject_id' => $data['subject_id'],
+                                    'assessment_template_id' => $termTotalTemplate->id,
+                                ],
+                                [
+                                    'section_id' => $data['section_id'],
+                                    'teacher_id' => $userId,
+                                    'score' => $newSum,
+                                    'remarks' => 'Auto-calculated from components'
+                                ]
+                            );
+                        } else {
+                            // If sum is 0, delete the Term Total mark to avoid stale data
+                            StudentMark::where([
+                                'student_id' => $studentId,
+                                'academic_year_id' => $data['academic_year_id'],
+                                'term_id' => $data['term_id'],
+                                'subject_id' => $data['subject_id'],
+                                'assessment_template_id' => $termTotalTemplate->id,
+                            ])->delete();
+                        }
+                    }
+                }
+            }
             
             DB::commit();
+            
+            // Trigger recalculation to update TERM_TOTAL and section statistics
+            try {
+                $section = \App\Models\Section::find($data['section_id']);
+                if ($section) {
+                    $academicYear = \App\Models\AcademicYear::find($data['academic_year_id']);
+                    $gradingService = app(\App\Services\GradingService::class);
+                    $gradingService->recalculateSectionStatistics($section, $term, $academicYear);
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Background recalculation failed in StoreBulkGrades: ' . $e->getMessage());
+            }
+
             return ['success' => true, 'message' => 'Marks saved successfully.'];
             
         } catch (\Exception $e) {

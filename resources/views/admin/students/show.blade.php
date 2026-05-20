@@ -72,10 +72,12 @@
                         </div>
 
                         <div class="flex flex-wrap gap-3">
+                            @if(!auth()->user()?->hasRole('Vice Principal') && !auth()->user()?->hasRole('Supervisor'))
                             <a href="{{ route('admin.students.edit', $student) }}" class="px-6 py-3 bg-indigo-600 text-white font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-white hover:text-indigo-600 hover:ring-2 hover:ring-indigo-600 transition-all shadow-lg shadow-indigo-100 flex items-center gap-2 group">
                                 <svg class="w-4 h-4 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                 Edit Profile
                             </a>
+                            @endif
                             <div class="relative z-50" x-data="{ open: false }">
                                 <button @click.stop="open = !open" class="px-6 py-3 bg-white text-slate-700 font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-50 transition-all border border-slate-200 shadow-sm flex items-center gap-2">
                                     Quick Actions

@@ -337,7 +337,9 @@ class GradebookController extends Controller implements HasMiddleware
 
         $term = Term::findOrFail($request->term_id);
         if (!$term->is_grading_open) {
-            return back()->with('error', 'Grading for this term is currently closed.');
+            if (!auth()->user()->hasRole(['Super Admin', 'Principal'])) {
+                return back()->with('error', 'Grading for this term is currently closed.');
+            }
         }
 
         $subject = Subject::findOrFail($request->subject_id);
@@ -503,6 +505,15 @@ class GradebookController extends Controller implements HasMiddleware
             
             DB::commit();
             fclose($file);
+
+            // Recalculate Section Statistics
+            try {
+                $academicYear = AcademicYear::find($request->academic_year_id);
+                $gradingService = app(\App\Services\GradingService::class);
+                $gradingService->recalculateSectionStatistics($section, $term, $academicYear);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Recalculation failed after Gradebook import: ' . $e->getMessage());
+            }
             
             // Check if any grades were actually imported
             if (empty($upsertData)) {

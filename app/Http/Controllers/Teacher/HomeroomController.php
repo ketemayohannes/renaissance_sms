@@ -172,7 +172,9 @@ class HomeroomController extends Controller
 
         $term = \App\Models\Term::findOrFail($request->term_id);
         if (!$term->is_grading_open) {
-            return back()->with('error', 'Entry for this term is currently closed.');
+            if (!Auth::user()->hasRole(['Super Admin', 'Principal'])) {
+                return back()->with('error', 'Entry for this term is currently closed.');
+            }
         }
 
         $section = $this->teacherService->getHomeroomSection(Auth::user());

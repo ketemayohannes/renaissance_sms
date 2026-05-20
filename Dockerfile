@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js (Required for Vite build)
-RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
     apt-get install -y nodejs
 
 # Install Composer
@@ -33,6 +33,10 @@ RUN a2enmod rewrite
 
 # Set Working Directory
 WORKDIR /var/www/html
+
+# Set Composer environment variables to prevent timeout issues on slow connections
+ENV COMPOSER_PROCESS_TIMEOUT=2000
+ENV COMPOSER_HTTP_TIMEOUT=2000
 
 # Copy composer files first for better layer caching
 COPY composer.json composer.lock ./
@@ -59,4 +63,4 @@ RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cac
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
 # Run migrations and start Apache
-CMD bash -c "php artisan config:cache && php artisan route:cache && php artisan view:cache && php artisan migrate --force && php artisan storage:link --force && apache2-foreground"
+CMD bash -c "chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache && php artisan config:cache && php artisan route:cache && php artisan view:cache && php artisan migrate --force && php artisan storage:link --force && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache && apache2-foreground"

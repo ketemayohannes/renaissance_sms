@@ -377,7 +377,9 @@ class GradebookController extends Controller
 
         $term = Term::findOrFail($request->term_id);
         if (!$term->is_grading_open) {
-            return back()->with('error', 'Grading for this term is currently closed.');
+            if (!Auth::user()->hasRole(['Super Admin', 'Principal'])) {
+                return back()->with('error', 'Grading for this term is currently closed.');
+            }
         }
 
         $section = $assignment->section;

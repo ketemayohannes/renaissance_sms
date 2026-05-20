@@ -21,6 +21,16 @@ services:
       - DB_PASSWORD=school_password
     depends_on:
       - db
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /var/www/html
+          ignore:
+            - node_modules/
+            - vendor/
+            - storage/
+            - bootstrap/cache/
 
   db:
     image: mariadb:10.11
