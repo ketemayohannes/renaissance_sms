@@ -248,7 +248,7 @@
                     </form>
                 </div>
 
-                <div x-data="{ selected: [], allSelected: false }">
+                <div x-data="{ selected: [], allSelected: false, showBulkTransferModal: false }">
                     <!-- Bulk Actions -->
                     <div x-show="selected.length > 0" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0"
                          class="bg-indigo-50/50 backdrop-blur-sm border border-indigo-100 p-4 mb-4 rounded-2xl flex flex-wrap justify-between items-center gap-4" style="display: none;">
@@ -258,7 +258,25 @@
                             </div>
                             <span class="text-sm font-semibold text-indigo-900">Students Selected</span>
                         </div>
-                        <div class="flex gap-2">
+                        <div class="flex gap-2 flex-wrap">
+                            @if(!auth()->user()?->hasRole('Vice Principal') && !auth()->user()?->hasRole('Supervisor'))
+                            <form action="{{ route('admin.students.bulk-deactivate') }}" method="POST" class="confirm-form" data-confirm-message="Are you sure you want to deactivate the selected students?" data-confirm-title="Bulk Deactivate Students" data-confirm-button="Deactivate Selected">
+                                @csrf
+                                <template x-for="id in selected">
+                                    <input type="hidden" name="ids[]" :value="id">
+                                </template>
+                                <button type="submit" class="px-4 py-2 bg-amber-100 hover:bg-amber-200 text-amber-700 text-xs font-bold rounded-xl transition-all">
+                                    Deactivate Selected
+                                </button>
+                            </form>
+                            @endif
+
+                            @if(!auth()->user()?->hasRole('Vice Principal') && !auth()->user()?->hasRole('Supervisor'))
+                            <button @click="showBulkTransferModal = true" type="button" class="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl transition-all">
+                                Bulk Transfer
+                            </button>
+                            @endif
+
                             @if(!auth()->user()?->hasRole('Vice Principal') && !auth()->user()?->hasRole('Supervisor'))
                             <form action="{{ route('admin.students.bulk-destroy') }}" method="POST" class="confirm-form" data-confirm-message="Are you sure you want to delete the selected students?" data-confirm-title="Bulk Delete Students" data-confirm-button="Delete Selected">
                                 @csrf
@@ -270,6 +288,7 @@
                                 </button>
                             </form>
                             @endif
+
                             <form action="{{ route('admin.students.bulk-id-cards-selected') }}" method="POST" target="_blank">
                                 @csrf
                                 <template x-for="id in selected">
@@ -408,6 +427,116 @@
                                 @endforelse
                             </tbody>
                         </table>
+                    </div>
+
+                    <!-- Bulk Transfer Modal -->
+                    <div x-show="showBulkTransferModal" 
+                         class="fixed inset-0 z-[100] overflow-y-auto" 
+                         x-cloak>
+                        <div class="flex items-center justify-center min-h-screen p-4 text-center sm:p-0">
+                            <div x-show="showBulkTransferModal" 
+                                 x-transition:enter="ease-out duration-300" 
+                                 x-transition:enter-start="opacity-0" 
+                                 x-transition:enter-end="opacity-100" 
+                                 x-transition:leave="ease-in duration-200" 
+                                 x-transition:leave-start="opacity-100" 
+                                 x-transition:leave-end="opacity-0" 
+                                 class="fixed inset-0 transition-opacity bg-slate-900/60 backdrop-blur-sm" 
+                                 @click="showBulkTransferModal = false"></div>
+
+                            <div x-show="showBulkTransferModal" 
+                                 x-transition:enter="ease-out duration-300" 
+                                 x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" 
+                                 x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100" 
+                                 x-transition:leave="ease-in duration-200" 
+                                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100" 
+                                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" 
+                                 class="relative inline-block w-full max-w-lg p-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-2xl rounded-3xl sm:my-8">
+                                
+                                <div class="flex justify-between items-center mb-6">
+                                    <div>
+                                        <h3 class="text-xl font-bold text-slate-900">Bulk Transfer Students</h3>
+                                        <p class="text-sm text-slate-500 mt-1">Transfer <span class="font-bold text-indigo-600" x-text="selected.length"></span> selected students to a new section.</p>
+                                    </div>
+                                    <button @click="showBulkTransferModal = false" class="p-2 hover:bg-slate-100 text-slate-400 hover:text-slate-600 rounded-full transition-all">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                    </button>
+                                </div>
+
+                                <form action="{{ route('admin.students.bulk-transfer') }}" method="POST"
+                                      x-data="{
+                                          selectedGrade: '',
+                                          selectedSectionId: '',
+                                          transferDate: '{{ date('Y-m-d') }}',
+                                          reason: '',
+                                          allGrades: {{ $gradeLevels->map(fn($g) => ['id' => $g->id, 'name' => $g->name])->values()->toJson() }},
+                                          allSections: {{ $allSections->map(fn($s) => ['id' => $s->id, 'name' => $s->name, 'grade_level_id' => $s->grade_level_id])->values()->toJson() }},
+                                          get filteredSections() {
+                                              if (!this.selectedGrade) return [];
+                                              return this.allSections.filter(s => String(s.grade_level_id) === String(this.selectedGrade));
+                                          }
+                                      }">
+                                    @csrf
+                                    
+                                    <template x-for="id in selected">
+                                        <input type="hidden" name="ids[]" :value="id">
+                                    </template>
+                                    
+                                    <div class="space-y-5">
+                                        <div class="grid grid-cols-1 gap-5">
+                                            <!-- Grade Level Select -->
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Target Grade Level</label>
+                                                <select x-model="selectedGrade" @change="selectedSectionId = ''" required
+                                                        class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-medium">
+                                                    <option value="">Select Grade Level</option>
+                                                    <template x-for="grade in allGrades" :key="grade.id">
+                                                        <option :value="grade.id" x-text="grade.name"></option>
+                                                    </template>
+                                                </select>
+                                            </div>
+
+                                            <!-- Section Select -->
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Target Section</label>
+                                                <select name="new_section_id" x-model="selectedSectionId" required :disabled="!selectedGrade"
+                                                        class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-medium disabled:opacity-50">
+                                                    <option value="">Select Section</option>
+                                                    <template x-for="sect in filteredSections" :key="sect.id">
+                                                        <option :value="sect.id" x-text="sect.name"></option>
+                                                    </template>
+                                                </select>
+                                            </div>
+
+                                            <!-- Transfer Date -->
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Transfer Date</label>
+                                                <input type="date" name="transfer_date" x-model="transferDate" required
+                                                       class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-medium">
+                                            </div>
+
+                                            <!-- Reason / Notes -->
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Reason</label>
+                                                <textarea name="reason" x-model="reason" rows="3" placeholder="Reason for transfer..."
+                                                          class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-medium"></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-8 flex gap-3">
+                                        <button type="button" @click="showBulkTransferModal = false" 
+                                                class="flex-1 px-6 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl transition-all">
+                                            Cancel
+                                        </button>
+                                        <button type="submit" :disabled="!selectedSectionId"
+                                                class="flex-1 px-6 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-xl shadow-indigo-200 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
+                                            Transfer Students
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

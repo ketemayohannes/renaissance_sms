@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     git \
     curl \
+    openssl \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) gd pdo_mysql pdo_pgsql zip bcmath intl calendar exif pcntl \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -30,6 +31,17 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.
 
 # Enable Apache Rewrite Module
 RUN a2enmod rewrite
+
+# Enable Apache SSL Module, generate a self-signed cert, and configure default-ssl
+RUN a2enmod ssl socache_shmcb \
+    && openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -keyout /etc/ssl/private/apache-selfsigned.key \
+    -out /etc/ssl/certs/apache-selfsigned.crt \
+    -subj "/C=ET/ST=Addis/L=Addis Ababa/O=Renaissance/CN=localhost" \
+    && sed -i 's|/etc/ssl/certs/ssl-cert-snakeoil.pem|/etc/ssl/certs/apache-selfsigned.crt|g' /etc/apache2/sites-available/default-ssl.conf \
+    && sed -i 's|/etc/ssl/private/ssl-cert-snakeoil.key|/etc/ssl/private/apache-selfsigned.key|g' /etc/apache2/sites-available/default-ssl.conf \
+    && sed -ri -e 's|/var/www/html|${APACHE_DOCUMENT_ROOT}|g' /etc/apache2/sites-available/default-ssl.conf \
+    && a2ensite default-ssl
 
 # Set Working Directory
 WORKDIR /var/www/html

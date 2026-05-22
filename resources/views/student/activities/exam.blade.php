@@ -1,9 +1,4 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Examination Interface') }}
-        </h2>
-    </x-slot>
+<x-student-layout header="Examination Interface">
 
     <div class="px-6 py-8" x-data="{ 
     timeLeft: {{ $activity->config['time_limit'] ?? 60 }} * 60,
@@ -144,4 +139,4 @@
         </div>
     </div>
 </div>
-</x-app-layout>
+</x-student-layout>

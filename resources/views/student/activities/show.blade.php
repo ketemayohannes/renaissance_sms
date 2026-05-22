@@ -1,9 +1,4 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ $activity->title }}
-        </h2>
-    </x-slot>
+<x-student-layout header="Activity Details">
 
     <div class="px-6 py-8">
     <!-- Header -->
@@ -173,4 +168,4 @@
         </div>
     </div>
 </div>
-</x-app-layout>
+</x-student-layout>

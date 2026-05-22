@@ -741,6 +741,103 @@ class StudentController extends Controller
         }
     }
 
+    public function bulkDeactivate(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'exists:students,id',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $count = 0;
+            foreach ($request->ids as $id) {
+                $student = Student::findOrFail($id);
+                if ($student->is_active) {
+                    $student->update(['is_active' => false]);
+                    
+                    \App\Models\StudentStatusHistory::create([
+                        'student_id' => $student->id,
+                        'old_status' => 'active',
+                        'new_status' => 'inactive',
+                        'reason' => 'Bulk Deactivation',
+                        'notes' => 'Deactivated via bulk action.',
+                        'effective_date' => now(),
+                        'changed_by' => auth()->id(),
+                    ]);
+
+                    // Close current active enrollment as well
+                    $enrollment = $student->enrollments()->whereNull('end_date')->first();
+                    if ($enrollment) {
+                        $enrollment->update([
+                            'status' => 'withdrawn',
+                            'end_date' => now(),
+                        ]);
+                    }
+
+                    $count++;
+                }
+            }
+            DB::commit();
+            return redirect()->route('admin.students.index')->with('success', "$count students deactivated successfully.");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Error deactivating students: ' . $e->getMessage());
+        }
+    }
+
+    public function bulkTransfer(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'exists:students,id',
+            'new_section_id' => 'required|exists:sections,id',
+            'transfer_date' => 'required|date',
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        $newSection = Section::findOrFail($request->new_section_id);
+
+        DB::beginTransaction();
+        try {
+            $count = 0;
+            foreach ($request->ids as $id) {
+                $student = Student::findOrFail($id);
+                $currentEnrollment = $student->enrollments()->whereNull('end_date')->first();
+
+                // If already in that section, skip
+                if ($currentEnrollment && $currentEnrollment->section_id == $request->new_section_id) {
+                    continue;
+                }
+
+                if ($currentEnrollment) {
+                    // Close the current enrollment
+                    $currentEnrollment->update([
+                        'end_date' => $request->transfer_date,
+                        'status' => 'transferred',
+                    ]);
+                }
+
+                // Create new enrollment in the target section
+                $student->enrollments()->create([
+                    'section_id' => $request->new_section_id,
+                    'academic_year_id' => $newSection->academic_year_id,
+                    'enrollment_date' => $request->transfer_date,
+                    'status' => 'active',
+                ]);
+
+                $count++;
+            }
+
+            DB::commit();
+            return redirect()->route('admin.students.index')->with('success', "$count students transferred successfully to {$newSection->gradeLevel->name} - {$newSection->name}.");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Bulk transfer failed: ' . $e->getMessage());
+        }
+    }
+
+
     public function idCardsIndex()
     {
         $academicYear = \App\Helpers\CachedData::activeAcademicYear();

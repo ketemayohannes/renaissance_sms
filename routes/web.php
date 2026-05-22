@@ -101,6 +101,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('students/{student}/siblings', [App\Http\Controllers\Admin\StudentController::class, 'linkSibling'])->name('students.siblings.link');
         Route::delete('students/{student}/siblings/{sibling}', [App\Http\Controllers\Admin\StudentController::class, 'unlinkSibling'])->name('students.siblings.unlink');
         Route::post('students/bulk-destroy', [App\Http\Controllers\Admin\StudentController::class, 'bulkDestroy'])->name('students.bulk-destroy');
+        Route::post('students/bulk-deactivate', [App\Http\Controllers\Admin\StudentController::class, 'bulkDeactivate'])->name('students.bulk-deactivate');
+        Route::post('students/bulk-transfer', [App\Http\Controllers\Admin\StudentController::class, 'bulkTransfer'])->name('students.bulk-transfer');
         Route::get('students/{student}/withdraw', [App\Http\Controllers\Admin\StudentController::class, 'withdrawForm'])->name('students.withdraw');
         Route::post('students/{student}/withdraw', [App\Http\Controllers\Admin\StudentController::class, 'processWithdrawal'])->name('students.withdraw.store');
         Route::get('students/{student}/status-history', [App\Http\Controllers\Admin\StudentController::class, 'statusHistory'])->name('students.status-history');
