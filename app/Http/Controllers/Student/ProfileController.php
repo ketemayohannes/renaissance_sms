@@ -18,6 +18,13 @@ class ProfileController extends Controller
         }
 
         $student = $user->student;
+        $student->load([
+            'guardians',
+            'medicalInfo',
+            'transportation',
+            'enrollments.section.gradeLevel.division',
+            'enrollments.academicYear'
+        ]);
         
         return view('student.profile.show', compact('student', 'user'));
     }

@@ -37,8 +37,10 @@
                     <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
                         <!-- Classroom Badge -->
                         <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 flex items-center gap-4 shadow-lg">
-                            <div class="w-12 h-12 rounded-xl bg-indigo-500/30 flex items-center justify-center text-white text-xl">
-                                🏫
+                            <div class="w-12 h-12 rounded-xl bg-indigo-500/30 flex items-center justify-center text-indigo-200">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                </svg>
                             </div>
                             <div>
                                 <span class="block text-[10px] font-black text-indigo-200 uppercase tracking-widest leading-none mb-1">Classroom</span>
@@ -51,8 +53,10 @@
                         <!-- Active Term Badge -->
                         @if($activeTerm)
                             <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 flex items-center gap-4 shadow-lg">
-                                <div class="w-12 h-12 rounded-xl bg-emerald-500/30 flex items-center justify-center text-white text-xl">
-                                    📅
+                                <div class="w-12 h-12 rounded-xl bg-emerald-500/30 flex items-center justify-center text-emerald-200">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                    </svg>
                                 </div>
                                 <div>
                                     <span class="block text-[10px] font-black text-emerald-200 uppercase tracking-widest leading-none mb-1">Active Term</span>
@@ -174,8 +178,10 @@
             <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
                 
                 <a href="{{ route('student.grades.index') }}" class="flex items-center gap-4 p-5 rounded-3xl bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-500/5 hover:-translate-y-1 transition duration-300 group/nav">
-                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 text-white flex items-center justify-center text-xl shadow-lg shadow-indigo-500/30 group-hover/nav:scale-110 transition duration-300 flex-shrink-0">
-                        📊
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30 group-hover/nav:scale-110 transition duration-300 flex-shrink-0">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
                     </div>
                     <div class="text-left min-w-0">
                         <span class="block text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest leading-none mb-1">Grades</span>
@@ -184,8 +190,10 @@
                 </a>
 
                 <a href="{{ route('student.activities.index') }}" class="flex items-center gap-4 p-5 rounded-3xl bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-500/50 hover:shadow-xl hover:shadow-emerald-500/5 hover:-translate-y-1 transition duration-300 group/nav">
-                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center text-xl shadow-lg shadow-emerald-500/30 group-hover/nav:scale-110 transition duration-300 flex-shrink-0">
-                        📝
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30 group-hover/nav:scale-110 transition duration-300 flex-shrink-0">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                        </svg>
                     </div>
                     <div class="text-left min-w-0">
                         <span class="block text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest leading-none mb-1">Activities</span>
@@ -194,8 +202,10 @@
                 </a>
 
                 <a href="{{ route('student.profile') }}" class="flex items-center gap-4 p-5 rounded-3xl bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-500/50 hover:shadow-xl hover:shadow-purple-500/5 hover:-translate-y-1 transition duration-300 group/nav">
-                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white flex items-center justify-center text-xl shadow-lg shadow-purple-500/30 group-hover/nav:scale-110 transition duration-300 flex-shrink-0">
-                        👤
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-purple-500/30 group-hover/nav:scale-110 transition duration-300 flex-shrink-0">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
                     </div>
                     <div class="text-left min-w-0">
                         <span class="block text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest leading-none mb-1">Profile</span>
@@ -204,12 +214,14 @@
                 </a>
 
                 <div class="flex items-center gap-4 p-5 rounded-3xl bg-slate-50/50 dark:bg-slate-900/30 opacity-50 border border-slate-100 dark:border-slate-800 cursor-not-allowed">
-                    <div class="w-12 h-12 rounded-2xl bg-slate-400 dark:bg-slate-800 text-white dark:text-slate-600 flex items-center justify-center text-xl flex-shrink-0">
-                        📅
+                    <div class="w-12 h-12 rounded-2xl bg-slate-400 dark:bg-slate-800 text-white dark:text-slate-600 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
                     </div>
                     <div class="text-left min-w-0">
                         <span class="block text-xs font-black text-slate-600 dark:text-slate-500 uppercase tracking-widest leading-none mb-1">Schedule</span>
-                        <span class="block text-[10px] text-slate-400 dark:text-slate-650 font-bold uppercase tracking-wider truncate">Timetable</span>
+                        <span class="block text-[10px] text-slate-400 dark:text-slate-655 font-bold uppercase tracking-wider truncate">Timetable</span>
                     </div>
                 </div>
 
@@ -219,8 +231,12 @@
         <!-- Announcements / Live Notices Board -->
         @if($activeNotices->count() > 0)
             <div class="glass-panel border-white bg-white/60 dark:bg-slate-900/60 p-8 rounded-[2.5rem] shadow-sm">
-                <div class="flex items-center gap-3 mb-6">
-                    <span class="text-2xl">📢</span>
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0 shadow-sm border border-indigo-100/30 dark:border-indigo-950/20">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path>
+                        </svg>
+                    </div>
                     <div>
                         <h3 class="text-lg font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight font-heading">Notice Board</h3>
                         <p class="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-0.5">Live school announcements</p>
@@ -258,8 +274,12 @@
                 <!-- Schedule / Timetable Section -->
                 <div class="glass-panel border-white bg-white/60 dark:bg-slate-900/60 p-8 rounded-[2.5rem] shadow-sm space-y-6">
                     <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
-                        <div class="flex items-center gap-3">
-                            <span class="text-2xl">📅</span>
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0 shadow-sm border border-indigo-100/30 dark:border-indigo-950/20">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                            </div>
                             <div>
                                 <h3 class="text-lg font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight font-heading">Weekly Timetable</h3>
                                 <p class="text-[9px] text-slate-400 dark:text-slate-555 font-bold uppercase tracking-widest mt-0.5">Your daily class schedule</p>
@@ -331,8 +351,12 @@
                 <!-- Recent Grades Section -->
                 <div class="glass-panel border-white bg-white/60 dark:bg-slate-900/60 p-8 rounded-[2.5rem] shadow-sm space-y-6">
                     <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
-                        <div class="flex items-center gap-3">
-                            <span class="text-2xl">📊</span>
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0 shadow-sm border border-indigo-100/30 dark:border-indigo-950/20">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                            </div>
                             <div>
                                 <h3 class="text-lg font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight font-heading">Recent Grades</h3>
                                 <p class="text-[9px] text-slate-400 dark:text-slate-555 font-bold uppercase tracking-widest mt-0.5">Your latest academic marks</p>
@@ -405,8 +429,12 @@
                 <!-- Homework & Activities Board -->
                 <div class="glass-panel border-white bg-white/60 dark:bg-slate-900/60 p-8 rounded-[2.5rem] shadow-sm space-y-6">
                     <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
-                        <div class="flex items-center gap-3">
-                            <span class="text-2xl">📝</span>
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0 shadow-sm border border-indigo-100/30 dark:border-indigo-950/20">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                                </svg>
+                            </div>
                             <div>
                                 <h3 class="text-lg font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight font-heading font-heading">Homework & Tasks</h3>
                                 <p class="text-[9px] text-slate-400 dark:text-slate-555 font-bold uppercase tracking-widest mt-0.5">Upcoming academic activities</p>

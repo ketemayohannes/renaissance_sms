@@ -36,8 +36,10 @@
 
                     <!-- Academic Year Badge -->
                     <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-3 flex items-center gap-3 shadow-lg">
-                        <div class="w-10 h-10 rounded-xl bg-indigo-500/30 flex items-center justify-center text-white text-lg">
-                            🗓️
+                        <div class="w-10 h-10 rounded-xl bg-indigo-500/30 flex items-center justify-center text-indigo-200">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
                         </div>
                         <div>
                             <span class="block text-[8px] font-black text-indigo-200 uppercase tracking-widest leading-none mb-1">Academic Year</span>
@@ -55,7 +57,9 @@
             <h2 class="text-xl font-black text-slate-800 dark:text-slate-100 font-heading uppercase tracking-widest">{{ $periodName }}</h2>
             @if($selectedPeriod !== 'all')
                 <a href="{{ route('student.grades.download', ['period' => $selectedPeriod]) }}" class="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-indigo-600 border border-transparent rounded-2xl font-bold text-xs text-white uppercase tracking-widest hover:from-indigo-600 hover:to-indigo-700 active:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition duration-150 shadow-md shadow-indigo-200 dark:shadow-none">
-                    <span class="mr-2">📥</span> Download PDF
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg> Download PDF
                 </a>
             @endif
         </div>
@@ -77,8 +81,12 @@
                 <div class="flex items-center justify-between cursor-pointer select-none pb-4 transition-all duration-300 group"
                      :class="expanded ? 'border-b border-slate-100 dark:border-slate-800' : ''"
                      @click="expanded = !expanded">
-                    <div class="flex items-center gap-3">
-                        <span class="text-2xl">📊</span>
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0 shadow-sm border border-indigo-100/30 dark:border-indigo-950/20">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                        </div>
                         <div>
                             <div class="flex items-center gap-2">
                                 <h3 class="text-lg font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight font-heading">{{ $termName }}</h3>

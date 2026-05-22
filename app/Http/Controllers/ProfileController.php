@@ -14,8 +14,12 @@ class ProfileController extends Controller
     /**
      * Display the user's profile form.
      */
-    public function edit(Request $request): View
+    public function edit(Request $request): \Illuminate\View\View|\Illuminate\Http\RedirectResponse
     {
+        if ($request->user()->hasRole('Student')) {
+            return redirect()->route('student.profile');
+        }
+
         return view('profile.edit', [
             'user' => $request->user(),
         ]);
@@ -26,6 +30,10 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
+        if ($request->user()->hasRole('Student')) {
+            return redirect()->route('student.profile');
+        }
+
         $request->user()->fill($request->validated());
 
         if ($request->user()->isDirty('email')) {
@@ -42,6 +50,10 @@ class ProfileController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        if ($request->user() && $request->user()->hasRole('Student')) {
+            abort(403, 'Students cannot delete their accounts.');
+        }
+
         if ($request->user() && $request->user()->hasRole('Teacher')) {
             abort(403, 'Teachers cannot delete their accounts.');
         }
