@@ -24,3 +24,6 @@ Homestead.yaml
 Thumbs.db
 /doc
 /dock
+/composer
+*.tmp
+.phpunit.result.cache
