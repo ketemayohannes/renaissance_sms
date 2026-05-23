@@ -36,7 +36,7 @@ class RedirectController extends Controller
 
         // 4. Parents (Future)
         if ($user->hasRole('Parent')) {
-            // return redirect()->route('parent.dashboard');
+            return redirect()->route('parent.dashboard');
         }
 
         // 5. Staff / Other Employees (Future)

@@ -15,36 +15,35 @@
     <div class="space-y-8">
         
         <!-- Welcome Section -->
-        <div class="relative overflow-hidden rounded-[3rem] bg-slate-900 p-10 md:p-14 shadow-2xl glass-panel border-0">
-            <div class="absolute inset-0 bg-gradient-to-br from-indigo-600/30 via-transparent to-emerald-500/30 opacity-70"></div>
-            <!-- Decorative blur -->
-            <div class="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl mix-blend-screen pointer-events-none"></div>
-
+        <div class="relative bg-gradient-to-r from-indigo-600 to-violet-700 rounded-2xl p-6 lg:p-8 text-white overflow-hidden shadow-xl shadow-indigo-100 dark:shadow-none">
+            <div class="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-xl"></div>
+            <div class="absolute -right-20 -bottom-20 w-60 h-60 bg-indigo-500/20 rounded-full blur-2xl"></div>
+            
             <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div>
-                    <h1 class="text-3xl md:text-5xl font-black text-white font-heading tracking-tight mb-2">Welcome back, {{ $student->first_name }}! 👋</h1>
-                    <p class="text-indigo-100/80 text-lg font-medium">
+                <div class="space-y-2">
+                    <span class="text-indigo-100 text-xs font-semibold tracking-wider uppercase">Renaissance School Portal</span>
+                    <h2 class="text-2xl lg:text-3xl font-bold font-heading">Welcome Back, {{ $student->first_name }}! 👋</h2>
+                    <p class="text-indigo-150 max-w-2xl text-sm leading-relaxed">
                         @if($student->currentEnrollment)
-                            You are enrolled in <span class="font-extrabold text-indigo-400">{{ $student->currentEnrollment->section->gradeLevel->name }} - Section {{ $student->currentEnrollment->section->name }}</span>.
+                            Enrolled in <span class="font-extrabold text-white">{{ $student->currentEnrollment->section->gradeLevel->name }}</span> - Section <span class="font-extrabold text-white">{{ $student->currentEnrollment->section->name }}</span>. Keep track of your classes, attendance, recent grades, and homework tasks below.
                         @else
-                            You are not currently enrolled in any active section. Please contact the registrar.
+                            You are not currently enrolled in any active section. Please contact the registrar's office.
                         @endif
                     </p>
-                    <p class="text-indigo-200/60 text-sm mt-2 font-medium">Keep track of your classes, attendance, recent grades, and homework below.</p>
                 </div>
                 
                 @if($student->currentEnrollment)
-                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                         <!-- Classroom Badge -->
-                        <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 flex items-center gap-4 shadow-lg">
-                            <div class="w-12 h-12 rounded-xl bg-indigo-500/30 flex items-center justify-center text-indigo-200">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="bg-white/10 backdrop-blur-md border border-white/15 rounded-xl px-4 py-2 flex items-center gap-3 shadow-md">
+                            <div class="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-200">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                 </svg>
                             </div>
                             <div>
-                                <span class="block text-[10px] font-black text-indigo-200 uppercase tracking-widest leading-none mb-1">Classroom</span>
-                                <span class="text-sm font-black text-white uppercase tracking-wider">
+                                <span class="block text-[8px] font-black text-indigo-250 uppercase tracking-widest leading-none mb-0.5">Classroom</span>
+                                <span class="text-xs font-bold text-white uppercase tracking-wider">
                                     Section {{ $student->currentEnrollment->section->name }}
                                 </span>
                             </div>
@@ -52,15 +51,15 @@
 
                         <!-- Active Term Badge -->
                         @if($activeTerm)
-                            <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 flex items-center gap-4 shadow-lg">
-                                <div class="w-12 h-12 rounded-xl bg-emerald-500/30 flex items-center justify-center text-emerald-200">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="bg-white/10 backdrop-blur-md border border-white/15 rounded-xl px-4 py-2 flex items-center gap-3 shadow-md">
+                                <div class="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-250">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                     </svg>
                                 </div>
                                 <div>
-                                    <span class="block text-[10px] font-black text-emerald-200 uppercase tracking-widest leading-none mb-1">Active Term</span>
-                                    <span class="text-sm font-black text-white uppercase tracking-wider">
+                                    <span class="block text-[8px] font-black text-emerald-250 uppercase tracking-widest leading-none mb-0.5">Active Term</span>
+                                    <span class="text-xs font-bold text-white uppercase tracking-wider">
                                         {{ $activeTerm->name }}
                                     </span>
                                 </div>
@@ -249,9 +248,12 @@
                             <div class="space-y-1">
                                 <h4 class="text-sm font-extrabold text-slate-800 dark:text-slate-200 leading-snug">{{ $notice->title }}</h4>
                                 <p class="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed">{{ $notice->content }}</p>
-                                @if($notice->attachment)
-                                    <a href="/storage/{{ $notice->attachment }}" target="_blank" class="inline-flex items-center text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mt-2 hover:underline">
-                                        📎 Download Attachment
+                                 @if($notice->attachment)
+                                    <a href="/storage/{{ $notice->attachment }}" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/40 border border-indigo-100 dark:border-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-[10px] font-black uppercase tracking-widest rounded-lg transition-colors mt-2">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
+                                        Attachment
                                     </a>
                                 @endif
                             </div>
@@ -294,7 +296,7 @@
                                 @foreach([1, 2, 3, 4, 5] as $dayIndex)
                                     <button 
                                         @click="activeDay = {{ $dayIndex }}"
-                                        :class="activeDay === {{ $dayIndex }} ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 border border-slate-100 dark:border-slate-800'"
+                                        :class="activeDay === {{ $dayIndex }} ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 border border-slate-100 dark:border-slate-800'"
                                         class="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition duration-300">
                                         {{ $daysOfWeekMap[$dayIndex] }}
                                     </button>

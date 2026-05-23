@@ -283,6 +283,49 @@ Route::middleware(['auth'])->group(function () {
         });
     });
 
+        // Parent Portal Routes
+    Route::middleware(['auth', 'role:Parent'])->prefix('parent')->name('parent.')->group(function () {
+        // Dashboard
+        Route::get('/dashboard', [App\Http\Controllers\Parent\DashboardController::class, 'index'])->name('dashboard');
+
+        // Settings & General Communications
+        Route::get('/profile', [App\Http\Controllers\Parent\ProfileController::class, 'show'])->name('profile');
+        Route::patch('/preferences', [App\Http\Controllers\Parent\ProfileController::class, 'updatePreferences'])->name('preferences.update');
+        Route::put('/password', [App\Http\Controllers\Parent\ProfileController::class, 'updatePassword'])->name('password.update');
+        Route::get('/notices', [App\Http\Controllers\Parent\CommunicationController::class, 'notices'])->name('notices.index');
+        Route::get('/notices/{notice}', [App\Http\Controllers\Parent\CommunicationController::class, 'showNotice'])->name('notices.show');
+        Route::get('/contact-teacher', [App\Http\Controllers\Parent\CommunicationController::class, 'contactForm'])->name('contact.form');
+        Route::post('/contact-teacher', [App\Http\Controllers\Parent\CommunicationController::class, 'sendMessage'])->name('contact.send');
+        Route::get('/search', function (Illuminate\Http\Request $request) {
+            $q = $request->query('q', '');
+            if (strlen($q) < 2) {
+                return response()->json([]);
+            }
+            $user = auth()->user();
+            $results = [];
+            foreach ($user->linked_students as $child) {
+                if (stripos($child->full_name, $q) !== false || stripos($child->student_id, $q) !== false) {
+                    $results[] = [
+                        'type' => 'Student',
+                        'title' => $child->full_name,
+                        'subtitle' => 'Grade ' . ($child->gradeLevel->name ?? 'N/A') . ' • Section ' . ($child->section->name ?? 'N/A'),
+                        'url' => route('parent.student.dashboard', $child),
+                    ];
+                }
+            }
+            return response()->json($results);
+        })->name('search');
+
+        // Child‑scoped routes (protected by custom middleware)
+        Route::middleware(['parent_access'])->prefix('student/{student}')->name('student.')->group(function () {
+            Route::get('/dashboard', [App\Http\Controllers\Parent\ChildPortalController::class, 'dashboard'])->name('dashboard');
+            Route::get('/grades', [App\Http\Controllers\Parent\ChildPortalController::class, 'grades'])->name('grades.index');
+            Route::get('/grades/download', [App\Http\Controllers\Parent\ChildPortalController::class, 'downloadReport'])->name('grades.download');
+            Route::get('/attendance', [App\Http\Controllers\Parent\ChildPortalController::class, 'attendance'])->name('attendance.index');
+            Route::get('/conduct', [App\Http\Controllers\Parent\ChildPortalController::class, 'conduct'])->name('conduct.index');
+            Route::get('/info', [App\Http\Controllers\Parent\ChildPortalController::class, 'info'])->name('info.show');
+        });
+    });
     // Teacher Portal Routes
     Route::middleware(['auth', 'role_or_permission:Teacher|enter marks'])->prefix('teacher')->name('teacher.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Teacher\DashboardController::class, 'index'])->name('dashboard');

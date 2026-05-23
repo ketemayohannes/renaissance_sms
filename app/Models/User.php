@@ -6,6 +6,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use App\Models\StudentGuardian;
+use App\Models\Student;
 
 class User extends Authenticatable
 {
@@ -35,6 +37,7 @@ class User extends Authenticatable
         'password',
         'temp_password',
         'last_login_at',
+        'preferences',
     ];
 
     /**
@@ -80,5 +83,15 @@ class User extends Authenticatable
     public function teacherAssignments()
     {
         return $this->hasMany(TeacherAssignment::class, 'teacher_id');
+    }
+
+    public function guardianProfiles()
+    {
+        return $this->hasMany(StudentGuardian::class, 'user_id');
+    }
+
+    public function getLinkedStudentsAttribute()
+    {
+        return Student::whereIn('id', $this->guardianProfiles->pluck('student_id'))->get();
     }
 }

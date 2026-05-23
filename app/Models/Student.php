@@ -134,6 +134,22 @@ class Student extends Model
     }
 
     /**
+     * Get the student's active grade level.
+     */
+    public function getGradeLevelAttribute()
+    {
+        return $this->currentEnrollment?->section?->gradeLevel;
+    }
+
+    /**
+     * Get the student's active section.
+     */
+    public function getSectionAttribute()
+    {
+        return $this->currentEnrollment?->section;
+    }
+
+    /**
      * Get the student's full address.
      */
     public function getFullAddressAttribute()
