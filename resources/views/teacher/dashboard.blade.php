@@ -1,19 +1,21 @@
 <x-teacher-layout>
     <div class="space-y-8">
         <!-- Welcome Section -->
-        <div class="relative overflow-hidden rounded-[3rem] bg-slate-900 p-10 md:p-14 shadow-2xl glass-panel border-0">
-            <div class="absolute inset-0 bg-gradient-to-br from-indigo-600/30 via-transparent to-emerald-500/30 opacity-70"></div>
-            <!-- Decorative blur -->
-            <div class="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl mix-blend-screen pointer-events-none"></div>
-
+        <div class="relative bg-gradient-to-r from-indigo-600 to-violet-700 rounded-2xl p-6 lg:p-8 text-white overflow-hidden shadow-xl shadow-indigo-100 dark:shadow-none">
+            <div class="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-xl"></div>
+            <div class="absolute -right-20 -bottom-20 w-60 h-60 bg-indigo-500/20 rounded-full blur-2xl"></div>
+            
             <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div>
-                    <h1 class="text-3xl md:text-5xl font-black text-white font-heading tracking-tight mb-2">Welcome back, {{ Auth::user()->name }}!</h1>
-                    <p class="text-indigo-100/80 text-lg font-medium">Ready to inspire? Here's your overview for today.</p>
+                <div class="space-y-2">
+                    <span class="text-indigo-100 text-xs font-semibold tracking-wider uppercase">Renaissance School Portal</span>
+                    <h2 class="text-2xl lg:text-3xl font-bold font-heading">Welcome Back, {{ Auth::user()->name }}!</h2>
+                    <p class="text-indigo-150 max-w-xl text-sm leading-relaxed">
+                        Ready to inspire? Monitor class performance charts, take homeroom attendance, view lessons, and organize your schedules from your personal workspace.
+                    </p>
                 </div>
-                <div class="flex gap-4">
-                    <a href="{{ route('teacher.schedule.index') }}" class="px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-2xl font-bold backdrop-blur-md transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center gap-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                <div class="flex gap-4 flex-shrink-0">
+                    <a href="{{ route('teacher.schedule.index') }}" class="px-5 py-2.5 bg-white/15 hover:bg-white/25 border border-white/20 text-white rounded-xl text-sm font-semibold transition-all shadow-md hover:shadow-lg flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                         Schedule
                     </a>
                 </div>

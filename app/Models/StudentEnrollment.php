@@ -27,6 +27,32 @@ class StudentEnrollment extends Model
         'end_date' => 'date',
     ];
 
+    /**
+     * Get the student's roll number. If null, dynamically compute the alphabetical rank.
+     */
+    public function getRollNumberAttribute($value)
+    {
+        if ($value !== null) {
+            return $value;
+        }
+
+        if (!$this->section_id || !$this->academic_year_id) {
+            return null;
+        }
+
+        $rank = self::where('section_id', $this->section_id)
+            ->where('academic_year_id', $this->academic_year_id)
+            ->where('status', 'active')
+            ->join('students', 'student_enrollments.student_id', '=', 'students.id')
+            ->orderBy('students.first_name')
+            ->orderBy('students.father_name')
+            ->orderBy('students.grandfather_name')
+            ->pluck('student_enrollments.student_id')
+            ->search($this->student_id);
+
+        return $rank !== false ? $rank + 1 : null;
+    }
+
     public function student()
     {
         return $this->belongsTo(Student::class);
