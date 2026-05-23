@@ -128,8 +128,16 @@ class ReportCardService
         }
         $semesters = $isYearly ? Term::where('academic_year_id', $academicYear->id)->where('type', 'semester')->orderBy('start_date')->get() : collect();
 
-        $preparedQuarters = $this->prepareSubTermData($reportData['quarters'] ?? [], $reportData['rank_out_of']);
-        $preparedSemesters = $this->prepareSubTermData($reportData['semesters'] ?? [], $reportData['rank_out_of']);
+        $totalStudents = $reportData['rank_out_of'];
+        if (!$totalStudents || $totalStudents === '-' || $totalStudents === 0) {
+            $totalStudents = $reportData['section'] ? $reportData['section']->students()
+                ->wherePivot('academic_year_id', $academicYear->id)
+                ->whereIn('student_enrollments.status', ['active', 'completed'])
+                ->count() : 0;
+        }
+
+        $preparedQuarters = $this->prepareSubTermData($reportData['quarters'] ?? [], $totalStudents);
+        $preparedSemesters = $this->prepareSubTermData($reportData['semesters'] ?? [], $totalStudents);
 
         // Filter and prepare subjects
         $subjects = $reportData['subjects']->filter(function($subject) use ($reportData, $preparedQuarters, $preparedSemesters, $isSemester, $isYearly) {
@@ -153,7 +161,7 @@ class ReportCardService
             'average' => $reportData['average'],
             'section' => $reportData['section'],
             'rank' => $reportData['rank'],
-            'totalStudents' => $reportData['rank_out_of'],
+            'totalStudents' => $totalStudents,
             'isSemester' => $isSemester,
             'isYearly' => $isYearly,
             'quarters' => $quarters,
@@ -211,8 +219,13 @@ class ReportCardService
             $reportData = $sectionReportData[$student->id] ?? null;
             if (!$reportData) continue;
 
-            $preparedQuarters = $this->prepareSubTermData($reportData['quarters'] ?? [], $reportData['rank_out_of']);
-            $preparedSemesters = $this->prepareSubTermData($reportData['semesters'] ?? [], $reportData['rank_out_of']);
+            $totalStudents = $reportData['rank_out_of'];
+            if (!$totalStudents || $totalStudents === '-' || $totalStudents === 0) {
+                $totalStudents = $students->count();
+            }
+
+            $preparedQuarters = $this->prepareSubTermData($reportData['quarters'] ?? [], $totalStudents);
+            $preparedSemesters = $this->prepareSubTermData($reportData['semesters'] ?? [], $totalStudents);
 
             $studentSubjects = $reportData['subjects']->filter(function($subject) use ($reportData, $preparedQuarters, $preparedSemesters, $isSemester, $isYearly) {
                 if (!$subject->is_elective) return true;
@@ -306,7 +319,7 @@ class ReportCardService
             }
             $data['totals'][$id] = $subTermData['total'];
             $data['averages'][$id] = $subTermData['average'];
-            $data['ranks'][$id] = $subTermData['rank'] . " / " . $totalStudents;
+            $data['ranks'][$id] = ($subTermData['rank'] && $subTermData['rank'] !== '-') ? ($subTermData['rank'] . " / " . $totalStudents) : '-';
             $data['records'][$id] = $subTermData['record'] ?? null;
         }
 

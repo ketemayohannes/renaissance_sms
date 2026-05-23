@@ -38,7 +38,7 @@
             }
             body { background: white; }
             .page-container { margin: 0 !important; padding: 0 !important; border: none !important; }
-            .page { margin-bottom: 0 !important; padding-top: 2mm !important; }
+            .page { margin-bottom: 0 !important; padding-top: 10mm !important; }
         }
         .page-container {
             background: white;
@@ -172,7 +172,7 @@
         .school-header-box-new {
             border: 1px solid black;
             padding: 8px 15px;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
             text-align: center;
         }
         .school-name-large-new {
@@ -196,7 +196,7 @@
         .student-details-box-new {
             border: 1px solid black;
             padding: 10px 25px;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
         }
         .card-title-new {
             text-align: center;
@@ -456,7 +456,7 @@
                     </tbody>
                 </table>
                 
-                <div style="margin-top: 35px; width: 100%;">
+                <div style="margin-top: 20px; width: 100%;">
                     <table width="100%">
                         <tr>
                             <td width="50%" style="text-align: center;">
@@ -519,7 +519,7 @@
                                 <td colspan="4">Homeroom Teacher Name: <span style="border-bottom: 1px solid black; display: inline-block; width: 400px;">{{ $section->homeroomTeacher->full_name ?? '' }}&nbsp;</span></td>
                             </tr>
                             <tr>
-                                <td colspan="2">Academic Year: <span class="underlined-val-new">{{ $academicYear->name }}G.C 2017E.C</span></td>
+                                <td colspan="2">Academic Year: <span class="underlined-val-new">{{ $academicYear->name }}G.C {{ \App\Helpers\EthiopianDateHelper::fromGregorian($academicYear->start_date)->format('Y') }}E.C</span></td>
                                 <td colspan="2" style="text-align: right;">Grade & Section: <span class="underlined-val-new" style="min-width: 80px;">{{ str_replace('Grade ', '', $section->gradeLevel->name) }}{{ $section->name }}</span></td>
                             </tr>
                             <tr>
@@ -551,7 +551,7 @@
                     </div>
 
                     <!-- Box 4: Parent Signature -->
-                    <div class="signature-box-new" style="margin-top: 15px;">
+                    <div class="signature-box-new" style="margin-top: 8px;">
                         <div class="sig-header-new">Parent's Signature</div>
                         <table class="sig-table-new">
                             <thead>

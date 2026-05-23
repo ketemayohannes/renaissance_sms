@@ -64,8 +64,11 @@ COPY . /var/www/html
 # Create .env from template for Docker
 RUN cp docker/.env.docker .env
 
-# Run composer scripts (post-install) now that all files are present
-RUN composer dump-autoload --optimize
+# Run composer scripts now that all files are present
+# dump-autoload regenerates the classmap; package:discover rebuilds
+# the package manifest WITHOUT dev packages (since --no-dev was used)
+RUN composer dump-autoload --optimize \
+    && php artisan package:discover --ansi
 
 # Build frontend assets
 RUN npm run build

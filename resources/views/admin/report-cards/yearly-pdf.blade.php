@@ -28,7 +28,11 @@
             overflow: hidden;
         }
         @media print {
-            .page { margin-bottom: 0 !important; padding-top: 2mm !important; }
+            .page { 
+                margin-bottom: 0 !important; 
+                padding-top: 15mm !important; 
+                padding-bottom: 12mm !important; 
+            }
         }
         
         /* General Utils */
@@ -69,7 +73,7 @@
         }
         
         .comment-box {
-            padding: 4px 6px;
+            padding: 3px 5px;
             border-bottom: 1px solid black;
             font-size: 8.5pt;
             line-height: 1.2;
@@ -82,7 +86,7 @@
             text-decoration: underline;
         }
         .checkbox-line { 
-            margin-bottom: 5px; 
+            margin-bottom: 3px; 
             display: flex;
             align-items: start;
             font-size: 8.5pt;
@@ -105,8 +109,8 @@
         .remark-box { border-bottom: none; height: 100%; }
         
         .student-strip {
-            margin-top: 5px;
-            margin-bottom: 5px;
+            margin-top: 4px;
+            margin-bottom: 4px;
             font-size: 10pt;
         }
         
@@ -140,8 +144,8 @@
         }
         .school-header-box-new {
             border: 1px solid black;
-            padding: 8px 15px;
-            margin-bottom: 12px;
+            padding: 6px 12px;
+            margin-bottom: 6px;
             text-align: center;
         }
         .school-name-large-new {
@@ -151,7 +155,7 @@
             letter-spacing: 1px;
         }
         .logo-img-new {
-            height: 150px;
+            height: 120px;
             width: auto;
             display: inline-block;
             margin: 2px 0;
@@ -164,20 +168,20 @@
         
         .student-details-box-new {
             border: 1px solid black;
-            padding: 10px 25px;
-            margin-bottom: 10px;
+            padding: 8px 20px;
+            margin-bottom: 5px;
         }
         .card-title-new {
             text-align: center;
             font-weight: bold;
             text-decoration: underline;
             font-size: 14pt;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
         .details-grid-new {
             width: 100%;
             font-size: 11pt;
-            line-height: 2.0;
+            line-height: 1.7;
         }
         .underlined-val-new {
             border-bottom: 1px solid black;
@@ -187,10 +191,10 @@
         
         .signature-box-new {
             border: 1px solid black;
-            margin-top: 8px;
+            margin-top: 6px;
         }
         .sig-header-new {
-            padding: 6px 12px;
+            padding: 4px 10px;
             font-weight: normal;
             font-size: 11pt;
             border-bottom: 1px solid black;
@@ -201,7 +205,7 @@
         }
         .sig-table-new th, .sig-table-new td {
             border: 1px solid black;
-            padding: 5px 5px;
+            padding: 4px 4px;
             text-align: center;
             font-size: 9.5pt;
         }
@@ -209,7 +213,7 @@
         .sig-table-new td:first-child { text-align: left; padding-left: 10px; }
         
         .footer-note-new {
-            padding: 10px 12px;
+            padding: 8px 10px;
             font-size: 8.5pt;
             text-align: justify;
             line-height: 1.3;
@@ -469,7 +473,7 @@
             </tbody>
         </table>
         
-        <div style="margin-top: 35px; width: 100%;">
+        <div style="margin-top: 10px; width: 100%;">
             <table width="100%">
                 <tr>
                     <td width="50%" style="text-align: center;">
@@ -532,7 +536,7 @@
                         <td colspan="4">Homeroom Teacher Name: <span style="border-bottom: 1px solid black; display: inline-block; width: 400px;">{{ $section->homeroomTeacher->full_name ?? '' }}&nbsp;</span></td>
                     </tr>
                     <tr>
-                        <td colspan="2">Academic Year: <span class="underlined-val-new">{{ $academicYear->name }}G.C 2017E.C</span></td>
+                        <td colspan="2">Academic Year: <span class="underlined-val-new">{{ $academicYear->name }}G.C {{ \App\Helpers\EthiopianDateHelper::fromGregorian($academicYear->start_date)->format('Y') }}E.C</span></td>
                         <td colspan="2" style="text-align: right;">Grade & Section: <span class="underlined-val-new" style="min-width: 80px;">{{ str_replace('Grade ', '', $section->gradeLevel->name) }}{{ $section->name }}</span></td>
                     </tr>
                     <tr>
@@ -564,7 +568,7 @@
             </div>
 
             <!-- Box 4: Parent Signature -->
-            <div class="signature-box-new" style="margin-top: 15px;">
+            <div class="signature-box-new" style="margin-top: 8px;">
                 <div class="sig-header-new">Parent's Signature</div>
                 <table class="sig-table-new">
                     <thead>

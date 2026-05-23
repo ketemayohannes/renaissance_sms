@@ -64,6 +64,17 @@ class GenerateSectionReportCards implements ShouldQueue
             $isSemester = $this->term->isSemester();
             $isYearly = $this->term->type === 'yearly';
 
+            $quarters = collect();
+            if ($isSemester) {
+                $quarters = $this->term->quarters()->orderBy('term_number')->get();
+            } elseif ($isYearly) {
+                $quarters = Term::where('academic_year_id', $this->academicYear->id)
+                    ->where('type', 'quarter')
+                    ->orderBy('term_number')
+                    ->get();
+            }
+            $semesters = $isYearly ? Term::where('academic_year_id', $this->academicYear->id)->where('type', 'semester')->orderBy('start_date')->get() : collect();
+
             $reportCardService = app(\App\Services\ReportCardService::class);
             $targetTermsForAttendance = collect([$this->term])->concat($quarters)->concat($semesters)->unique('id');
             $batchAttendance = $reportCardService->getBatchAttendanceSummary($students, $targetTermsForAttendance, $this->academicYear);
@@ -131,6 +142,12 @@ class GenerateSectionReportCards implements ShouldQueue
         $average = $reportData['average'];
         $rank = $reportData['rank'];
         $totalStudents = $reportData['rank_out_of'];
+        if (!$totalStudents || $totalStudents === '-' || $totalStudents === 0) {
+            $totalStudents = $section->students()
+                ->wherePivot('academic_year_id', $academicYear->id)
+                ->whereIn('student_enrollments.status', ['active', 'completed'])
+                ->count();
+        }
         
         $quarters = collect();
         if ($isSemester) {
@@ -157,7 +174,7 @@ class GenerateSectionReportCards implements ShouldQueue
                 }
                 $quarterTotals[$qId] = $qData['total'];
                 $quarterAverages[$qId] = $qData['average'];
-                $quarterRanks[$qId] = $qData['rank'] . " / " . $totalStudents;
+                $quarterRanks[$qId] = ($qData['rank'] && $qData['rank'] !== '-') ? ($qData['rank'] . " / " . $totalStudents) : '-';
                 $quarterRecords[$qId] = $qData['record'];
             }
         }
@@ -173,7 +190,7 @@ class GenerateSectionReportCards implements ShouldQueue
                 }
                 $semesterTotals[$sId] = $sData['total'];
                 $semesterAverages[$sId] = $sData['average'];
-                $semesterRanks[$sId] = $sData['rank'] . " / " . $totalStudents;
+                $semesterRanks[$sId] = ($sData['rank'] && $sData['rank'] !== '-') ? ($sData['rank'] . " / " . $totalStudents) : '-';
             }
         }
 
