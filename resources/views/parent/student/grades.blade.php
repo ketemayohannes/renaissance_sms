@@ -1,27 +1,41 @@
 <x-parent-layout header="{{ $student->full_name }}'s Academic Report">
     <div class="space-y-6">
-        <!-- PDF Report Download Card -->
+        <!-- Academic Report Filter Card -->
         <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div class="space-y-1">
                     <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100 font-heading">Official Report Card</h3>
-                    <p class="text-sm text-slate-500 dark:text-slate-400">Select a term to view or download a printable PDF copy of the report card.</p>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">Select a term to view the student's grades and assessment breakdown.</p>
                 </div>
-                <form action="{{ route('parent.student.grades.download', $student) }}" method="GET" target="_blank" class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-                    <select name="term_id" required class="px-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-full sm:w-64">
-                        @foreach($terms as $t)
-                            <option value="{{ $t->id }}">{{ $t->name }}</option>
+                <form action="{{ route('parent.student.grades', $student) }}" method="GET" class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                    <select name="period" onchange="this.form.submit()" class="px-4 py-2.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-750 dark:text-slate-200 rounded-xl font-bold text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-full sm:w-64 transition-all shadow-sm">
+                        <option value="all" {{ $selectedPeriod == 'all' ? 'selected' : '' }}>All Records</option>
+                        <option disabled class="text-slate-400">── Quarters ──</option>
+                        @foreach($quarters as $quarter)
+                            <option value="term_{{ $quarter->id }}" {{ $selectedPeriod == 'term_'.$quarter->id ? 'selected' : '' }}>{{ $quarter->name }}</option>
                         @endforeach
-                        <option value="yearly">Yearly Report Card</option>
+                        <option disabled class="text-slate-400">── Semesters ──</option>
+                        @foreach($semesters as $semester)
+                            <option value="semester_{{ $semester->id }}" {{ $selectedPeriod == 'semester_'.$semester->id ? 'selected' : '' }}>{{ $semester->name }}</option>
+                        @endforeach
+                        <option disabled class="text-slate-400">── Yearly ──</option>
+                        <option value="yearly" {{ $selectedPeriod == 'yearly' ? 'selected' : '' }}>Yearly Report</option>
                     </select>
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap shadow-sm">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                        </svg>
-                        Download PDF
-                    </button>
                 </form>
             </div>
+        </div>
+
+        <!-- Period Action Row -->
+        <div class="flex justify-between items-center px-2">
+            <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100 font-heading uppercase tracking-wide">{{ $periodName }}</h2>
+            @if($selectedPeriod !== 'all')
+                <a href="{{ route('parent.student.grades.download', [$student, 'period' => $selectedPeriod]) }}" target="_blank" class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold text-xs transition-colors flex items-center justify-center gap-2 shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Download PDF
+                </a>
+            @endif
         </div>
 
         <!-- Gradebook Details -->

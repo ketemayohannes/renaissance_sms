@@ -44,7 +44,18 @@ class ChildPortalController extends Controller
     {
         $student->load(['marks.subject', 'marks.assessmentTemplate', 'marks.term', 'currentEnrollment']);
         
-        $allMarks = $student->marks;
+        $enrollment = $student->currentEnrollment;
+        $academicYearId = $enrollment->academic_year_id ?? \App\Helpers\CachedData::activeAcademicYear()?->id;
+
+        // Get all terms for filter dropdown
+        $allTerms = \App\Models\Term::where('academic_year_id', $academicYearId)->get();
+        $quarters = $allTerms->where('type', 'quarter');
+        $semesters = $allTerms->where('type', 'semester');
+
+        $selectedPeriod = request('period', 'all'); // 'all', 'term_X', 'semester_X', 'yearly'
+        $periodName = 'All Records';
+
+        $allMarks = $student->marks()->where('academic_year_id', $academicYearId)->get();
 
         // Filter out Term Totals for subjects that have component marks in that term
         $filteredMarks = collect();
@@ -67,15 +78,24 @@ class ChildPortalController extends Controller
             }
         }
 
+        // Apply Filter
+        if (str_starts_with($selectedPeriod, 'term_')) {
+            $termId = (int) str_replace('term_', '', $selectedPeriod);
+            $filteredMarks = $filteredMarks->where('term_id', $termId);
+            $periodName = $quarters->find($termId)->name ?? 'Selected Term';
+        } elseif (str_starts_with($selectedPeriod, 'semester_')) {
+            $semesterId = (int) str_replace('semester_', '', $selectedPeriod);
+            $childTermIds = $quarters->where('parent_term_id', $semesterId)->pluck('id')->toArray();
+            $filteredMarks = $filteredMarks->whereIn('term_id', $childTermIds);
+            $periodName = $semesters->find($semesterId)->name ?? 'Selected Semester';
+        } elseif ($selectedPeriod === 'yearly') {
+            $periodName = 'Yearly Report';
+        }
+
         // Group marks by term for display
         $groupedMarks = $filteredMarks->groupBy(function($mark) {
             return $mark->term->name ?? 'Other';
         });
-
-        $academicYearId = $student->currentEnrollment->academic_year_id ?? \App\Helpers\CachedData::activeAcademicYear()?->id;
-
-        // Also fetch all available terms for report download selection
-        $terms = \App\Models\Term::where('academic_year_id', $academicYearId)->get();
 
         // Fetch term records (rank, average) for this student
         $termRecords = \App\Models\StudentTermRecord::where('student_id', $student->id)
@@ -86,13 +106,37 @@ class ChildPortalController extends Controller
                 return $record->term->name ?? '';
             });
         
-        return view('parent.student.grades', compact('student', 'groupedMarks', 'terms', 'termRecords'));
+        return view('parent.student.grades', compact(
+            'student', 
+            'groupedMarks', 
+            'quarters', 
+            'semesters', 
+            'selectedPeriod', 
+            'periodName', 
+            'termRecords'
+        ));
     }
 
     public function downloadReport(Request $request, Student $student)
     {
-        $termId = $request->input('term_id') ?? \App\Models\Term::where('is_active', true)->value('id');
-        $academicYearId = $request->input('academic_year_id') ?? \App\Helpers\CachedData::activeAcademicYear()?->id;
+        $period = $request->input('period');
+        $academicYearId = $student->currentEnrollment->academic_year_id ?? \App\Helpers\CachedData::activeAcademicYear()?->id;
+
+        $termId = null;
+        if ($period) {
+            if (str_starts_with($period, 'term_')) {
+                $termId = (int) str_replace('term_', '', $period);
+            } elseif (str_starts_with($period, 'semester_')) {
+                $termId = (int) str_replace('semester_', '', $period);
+            } elseif ($period === 'yearly') {
+                $termId = 'yearly';
+            }
+        }
+
+        if (!$termId) {
+            $termId = \App\Models\Term::where('academic_year_id', $academicYearId)->where('is_active', true)->value('id')
+                ?? \App\Models\Term::where('academic_year_id', $academicYearId)->value('id');
+        }
 
         // Create a new Request object for the admin controller
         $newRequest = new Request();
