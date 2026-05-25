@@ -7,7 +7,7 @@
                     <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100 font-heading">Official Report Card</h3>
                     <p class="text-sm text-slate-500 dark:text-slate-400">Select a term to view the student's grades and assessment breakdown.</p>
                 </div>
-                <form action="{{ route('parent.student.grades', $student) }}" method="GET" class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                <form action="{{ route('parent.student.grades.index', $student) }}" method="GET" class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
                     <select name="period" onchange="this.form.submit()" class="px-4 py-2.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-750 dark:text-slate-200 rounded-xl font-bold text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-full sm:w-64 transition-all shadow-sm">
                         <option value="all" {{ $selectedPeriod == 'all' ? 'selected' : '' }}>All Records</option>
                         <option disabled class="text-slate-400">── Quarters ──</option>
