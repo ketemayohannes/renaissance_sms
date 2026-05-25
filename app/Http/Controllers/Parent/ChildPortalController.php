@@ -42,7 +42,7 @@ class ChildPortalController extends Controller
 
     public function grades(Student $student)
     {
-        $student->load(['marks.subject', 'marks.assessmentTemplate', 'marks.term']);
+        $student->load(['marks.subject', 'marks.assessmentTemplate', 'marks.term', 'currentEnrollment']);
         
         $allMarks = $student->marks;
 
@@ -72,10 +72,21 @@ class ChildPortalController extends Controller
             return $mark->term->name ?? 'Other';
         });
 
+        $academicYearId = $student->currentEnrollment->academic_year_id ?? \App\Helpers\CachedData::activeAcademicYear()?->id;
+
         // Also fetch all available terms for report download selection
-        $terms = \App\Models\Term::where('academic_year_id', \App\Helpers\CachedData::activeAcademicYear()?->id)->get();
+        $terms = \App\Models\Term::where('academic_year_id', $academicYearId)->get();
+
+        // Fetch term records (rank, average) for this student
+        $termRecords = \App\Models\StudentTermRecord::where('student_id', $student->id)
+            ->where('academic_year_id', $academicYearId)
+            ->with('term')
+            ->get()
+            ->keyBy(function($record) {
+                return $record->term->name ?? '';
+            });
         
-        return view('parent.student.grades', compact('student', 'groupedMarks', 'terms'));
+        return view('parent.student.grades', compact('student', 'groupedMarks', 'terms', 'termRecords'));
     }
 
     public function downloadReport(Request $request, Student $student)

@@ -40,9 +40,31 @@
                         <!-- Card Header toggles collapse -->
                         <button @click="open = !open" class="w-full flex items-center justify-between px-6 py-4 bg-slate-50/50 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 text-left">
                             <span class="font-bold text-slate-800 dark:text-slate-100 font-heading">{{ $termName }} Scores</span>
-                            <svg class="w-5 h-5 text-slate-400 transition-transform duration-300" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
+                            
+                            @php
+                                $termRecord = isset($termRecords) ? ($termRecords[$termName] ?? null) : null;
+                            @endphp
+                            
+                            <div class="flex items-center gap-3">
+                                @if($termRecord && $termRecord->average_score !== null)
+                                    <div class="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100/50 dark:border-indigo-900/30 rounded-xl px-3 py-1.5 text-center flex items-center gap-1.5">
+                                        <span class="text-[9px] font-black text-indigo-400 dark:text-indigo-500 uppercase tracking-wider hidden sm:inline">Average:</span>
+                                        <span class="text-xs font-black text-indigo-600 dark:text-indigo-300">{{ number_format($termRecord->average_score, 1) }}%</span>
+                                    </div>
+                                @endif
+                                @if($termRecord && $termRecord->rank !== null)
+                                    <div class="bg-amber-50 dark:bg-amber-950/40 border border-amber-100/50 dark:border-amber-900/30 rounded-xl px-3 py-1.5 text-center flex items-center gap-1.5">
+                                        <span class="text-[9px] font-black text-amber-400 dark:text-amber-500 uppercase tracking-wider hidden sm:inline">Rank:</span>
+                                        <span class="text-xs font-black text-amber-600 dark:text-amber-300">{{ $termRecord->rank }}<span class="text-[10px] font-bold opacity-60">/{{ $termRecord->rank_out_of }}</span></span>
+                                    </div>
+                                @endif
+                                
+                                <div class="w-8 h-8 rounded-lg bg-slate-100/80 dark:bg-slate-800/80 flex items-center justify-center text-slate-500 dark:text-slate-400 shadow-sm border border-slate-200/50 dark:border-slate-700/50">
+                                    <svg class="w-4 h-4 transition-transform duration-300" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </div>
+                            </div>
                         </button>
                         
                         @php
