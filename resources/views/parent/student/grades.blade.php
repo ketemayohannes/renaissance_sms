@@ -45,36 +45,103 @@
                             </svg>
                         </button>
                         
+                        @php
+                            $uniqueAssessments = $marks->map(fn($m) => $m->assessmentTemplate)
+                                                             ->filter()
+                                                             ->unique('name')
+                                                             ->sortBy('id')
+                                                             ->values();
+                            $groupedBySubject = $marks->groupBy('subject.name');
+                        @endphp
+                        
                         <!-- Table Content -->
                         <div x-show="open" x-transition class="overflow-x-auto">
                             <table class="w-full text-sm">
                                 <thead>
                                     <tr class="bg-slate-50/30 dark:bg-slate-900/30 text-slate-450 dark:text-slate-400 uppercase tracking-wider text-[10px] font-bold border-b border-slate-150 dark:border-slate-800">
                                         <th class="text-left px-6 py-3">Subject</th>
-                                        <th class="text-left px-6 py-3">Assessment Type</th>
-                                        <th class="text-right px-6 py-3">Weight</th>
-                                        <th class="text-right px-6 py-3">Score</th>
+                                        @foreach($uniqueAssessments as $assessment)
+                                            <th class="text-center px-4 py-3">
+                                                {{ $assessment->name }}
+                                                <span class="block text-[8px] font-bold text-slate-400 dark:text-slate-500 mt-0.5">(Max {{ number_format($assessment->max_score, 0) }} pts)</span>
+                                            </th>
+                                        @endforeach
+                                        <th class="text-center px-4 py-3">Total</th>
+                                        <th class="text-center px-4 py-3">Status</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-slate-100 dark:divide-slate-850">
-                                    @foreach($marks as $mark)
+                                    @foreach($groupedBySubject as $subjectName => $subjectMarks)
+                                        @php
+                                            $subjectTotal = 0;
+                                            $subjectMax = 0;
+                                            $hasComponents = $subjectMarks->contains(function($m) {
+                                                return $m->assessmentTemplate && $m->assessmentTemplate->name !== 'Term Total';
+                                            });
+                                        @endphp
                                         <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                                             <td class="px-6 py-4 font-semibold text-slate-800 dark:text-slate-200">
-                                                {{ $mark->subject->name ?? 'N/A' }}
+                                                {{ $subjectName }}
                                             </td>
-                                            <td class="px-6 py-4 text-slate-500 dark:text-slate-450">
-                                                {{ $mark->assessmentTemplate->name ?? 'N/A' }}
-                                            </td>
-                                            <td class="px-6 py-4 text-right text-slate-500 dark:text-slate-450">
-                                                {{ $mark->assessmentTemplate->weight ?? 100 }}%
-                                            </td>
-                                            <td class="px-6 py-4 text-right font-bold">
+                                            @foreach($uniqueAssessments as $assessment)
                                                 @php
-                                                    $percentage = ($mark->score / ($mark->assessmentTemplate->max_score ?? 100)) * 100;
-                                                    $colorClass = $percentage >= 80 ? 'text-emerald-600' : ($percentage >= 50 ? 'text-indigo-600' : 'text-rose-600');
+                                                    $isRelevant = $hasComponents 
+                                                        ? ($assessment->name !== 'Term Total')
+                                                        : ($assessment->name === 'Term Total');
+                                                    
+                                                    $score = null;
+                                                    if ($isRelevant) {
+                                                        $mark = $subjectMarks->first(function($m) use ($assessment) {
+                                                            return $m->assessmentTemplate && $m->assessmentTemplate->name === $assessment->name;
+                                                        });
+                                                        $score = $mark ? $mark->score : null;
+                                                        if ($score !== null) {
+                                                            $subjectTotal += $score;
+                                                        }
+                                                        $subjectMax += $assessment->max_score;
+                                                    }
                                                 @endphp
-                                                <span class="{{ $colorClass }}">{{ number_format($mark->score, 1) }}</span>
-                                                <span class="text-slate-400 text-xs">/ {{ $mark->assessmentTemplate->max_score ?? 100 }}</span>
+                                                <td class="px-4 py-4 text-center">
+                                                    @if($isRelevant)
+                                                        @if($score !== null)
+                                                            <span class="font-bold text-slate-800 dark:text-slate-200">
+                                                                {{ number_format($score, 1) }}
+                                                            </span>
+                                                        @else
+                                                            <span class="text-slate-400 dark:text-slate-600">-</span>
+                                                        @endif
+                                                    @else
+                                                        <span class="text-slate-300 dark:text-slate-800/50 font-bold opacity-30">—</span>
+                                                    @endif
+                                                </td>
+                                            @endforeach
+                                            
+                                            <!-- Total Score cell -->
+                                            @php
+                                                $percentage = $subjectMax > 0 ? ($subjectTotal / $subjectMax) * 100 : 0;
+                                                $scoreColor = match(true) {
+                                                    $percentage >= 75 => 'text-emerald-600',
+                                                    $percentage >= 50 => 'text-indigo-600',
+                                                    default => 'text-rose-600'
+                                                };
+                                            @endphp
+                                            <td class="px-4 py-4 text-center font-bold">
+                                                <span class="{{ $scoreColor }}">{{ number_format($subjectTotal, 1) }}</span>
+                                                <span class="text-slate-400 text-xs">/ {{ number_format($subjectMax, 0) }}</span>
+                                            </td>
+                                            
+                                            <!-- Status cell -->
+                                            <td class="px-4 py-4 text-center">
+                                                @php
+                                                    $status = match(true) {
+                                                        $percentage >= 75 => ['Excellent', 'text-emerald-700 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-950/60 border border-emerald-100/50 dark:border-emerald-900/30'],
+                                                        $percentage >= 50 => ['Passing', 'text-indigo-700 bg-indigo-50 dark:text-indigo-300 dark:bg-indigo-950/60 border border-indigo-100/50 dark:border-indigo-900/30'],
+                                                        default => ['Failing', 'text-rose-700 bg-rose-50 dark:text-rose-300 dark:bg-rose-950/60 border border-rose-100/50 dark:border-rose-900/30']
+                                                    };
+                                                @endphp
+                                                <span class="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider {{ $status[1] }}">
+                                                    {{ $status[0] }}
+                                                </span>
                                             </td>
                                         </tr>
                                     @endforeach

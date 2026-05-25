@@ -38,7 +38,11 @@
             }
             body { background: white; }
             .page-container { margin: 0 !important; padding: 0 !important; border: none !important; }
-            .page { margin-bottom: 0 !important; padding-top: 10mm !important; }
+            .page { 
+                height: auto !important;
+                margin-bottom: 0 !important; 
+                padding-top: 8.7mm !important; 
+            }
         }
         .page-container {
             background: white;
@@ -456,7 +460,7 @@
                     </tbody>
                 </table>
                 
-                <div style="margin-top: 20px; width: 100%;">
+                <div style="margin-top: 25px; width: 100%;">
                     <table width="100%">
                         <tr>
                             <td width="50%" style="text-align: center;">

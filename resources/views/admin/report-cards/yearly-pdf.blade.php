@@ -29,8 +29,9 @@
         }
         @media print {
             .page { 
+                height: auto !important;
                 margin-bottom: 0 !important; 
-                padding-top: 15mm !important; 
+                padding-top: 13.7mm !important; 
                 padding-bottom: 12mm !important; 
             }
         }
@@ -473,7 +474,7 @@
             </tbody>
         </table>
         
-        <div style="margin-top: 10px; width: 100%;">
+        <div style="margin-top: 25px; width: 100%;">
             <table width="100%">
                 <tr>
                     <td width="50%" style="text-align: center;">

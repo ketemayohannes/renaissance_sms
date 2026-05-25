@@ -44,8 +44,31 @@ class ChildPortalController extends Controller
     {
         $student->load(['marks.subject', 'marks.assessmentTemplate', 'marks.term']);
         
-        // Group marks by term, and then by subject for display
-        $groupedMarks = $student->marks->groupBy(function($mark) {
+        $allMarks = $student->marks;
+
+        // Filter out Term Totals for subjects that have component marks in that term
+        $filteredMarks = collect();
+        foreach ($allMarks->groupBy('term_id') as $termId => $termMarks) {
+            foreach ($termMarks->groupBy('subject_id') as $subjectId => $subjectMarks) {
+                $components = $subjectMarks->filter(function($m) {
+                    return $m->assessmentTemplate && $m->assessmentTemplate->name !== 'Term Total';
+                });
+                
+                if ($components->isNotEmpty()) {
+                    $filteredMarks = $filteredMarks->concat($components);
+                } else {
+                    $termTotal = $subjectMarks->first(function($m) {
+                        return $m->assessmentTemplate && $m->assessmentTemplate->name === 'Term Total';
+                    });
+                    if ($termTotal) {
+                        $filteredMarks->push($termTotal);
+                    }
+                }
+            }
+        }
+
+        // Group marks by term for display
+        $groupedMarks = $filteredMarks->groupBy(function($mark) {
             return $mark->term->name ?? 'Other';
         });
 

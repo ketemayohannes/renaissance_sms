@@ -180,5 +180,4 @@
             .bg-indigo-50\/30 { background-color: transparent !important; }
         }
     </style>
-    </div>
 </x-admin-layout>
