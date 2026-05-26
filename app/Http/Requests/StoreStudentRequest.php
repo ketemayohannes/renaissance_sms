@@ -56,7 +56,16 @@ class StoreStudentRequest extends FormRequest
             'guardians.*.father_name' => 'required|string|max:255',
             'guardians.*.grandfather_name' => 'required|string|max:255',
             'guardians.*.phone' => 'required|string|max:20',
-            'guardians.*.email' => 'nullable|email',
+            'guardians.*.email' => [
+                'nullable',
+                'email',
+                function ($attribute, $value, $fail) {
+                    $user = \App\Models\User::where('email', $value)->first();
+                    if ($user && !$user->hasRole('Parent')) {
+                        $fail('This email address belongs to a staff or administrative account and cannot be used for a guardian.');
+                    }
+                }
+            ],
             'guardians.*.relationship' => 'required|string',
             'guardians.*.communication_preferences' => 'nullable|array',
             'guardians.*.is_emergency_contact' => 'nullable|boolean',

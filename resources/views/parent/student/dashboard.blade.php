@@ -11,7 +11,7 @@
                 <div class="space-y-3">
                     <span class="text-indigo-200 text-xs font-bold tracking-wider uppercase">Renaissance School Portal</span>
                     <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center font-bold text-lg border border-white/10 shadow-inner uppercase tracking-wider">
+                        <div class="w-12 h-12 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center font-bold text-lg border border-white/10 shadow-inner uppercase tracking-wider relative">
                             @if($student->photo)
                                 <img src="/storage/{{ $student->photo }}" alt="{{ $student->full_name }}" class="w-full h-full object-cover rounded-xl">
                             @else
@@ -31,7 +31,7 @@
                 </div>
 
                 <!-- Right Cards -->
-                <div class="flex flex-wrap sm:flex-nowrap gap-3">
+                <div class="grid grid-cols-1 min-[380px]:grid-cols-2 lg:flex lg:flex-nowrap gap-3 w-full lg:w-auto mt-4 lg:mt-0">
                     <!-- Classroom Card -->
                     <div class="flex items-center gap-3 px-4 py-3 bg-white/10 dark:bg-black/20 backdrop-blur-md rounded-2xl border border-white/10 min-w-[140px] flex-1 sm:flex-initial">
                         <div class="p-2 bg-white/10 rounded-xl text-white">
@@ -57,6 +57,27 @@
                             <span class="block text-sm font-extrabold text-white mt-1">#{{ $student->currentEnrollment->roll_number ?? 'N/A' }}</span>
                         </div>
                     </div>
+
+                    @if($nearlyClosedTermRank)
+                        <!-- Rank Card -->
+                        <div class="flex items-center gap-3 px-4 py-3 {{ $nearlyClosedTermRank <= 10 ? 'bg-gradient-to-br from-amber-500/20 to-yellow-500/10 border-amber-400/40 ring-1 ring-amber-400/30' : 'bg-white/10 dark:bg-black/20' }} backdrop-blur-md rounded-2xl border border-white/10 min-w-[140px] flex-1 sm:flex-initial">
+                            <div class="p-2 {{ $nearlyClosedTermRank <= 10 ? 'bg-amber-500/20 text-yellow-300' : 'bg-white/10 text-white' }} rounded-xl">
+                                @if($nearlyClosedTermRank <= 3)
+                                    <span class="text-base leading-none">{{ ['🥇', '🥈', '🥉'][$nearlyClosedTermRank - 1] }}</span>
+                                @else
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
+                                    </svg>
+                                @endif
+                            </div>
+                            <div>
+                                <span class="block text-[10px] font-bold {{ $nearlyClosedTermRank <= 10 ? 'text-amber-200' : 'text-indigo-200' }} uppercase tracking-widest leading-none">
+                                    {{ $nearlyClosedTermName ? $nearlyClosedTermName : 'Term' }} Rank
+                                </span>
+                                <span class="block text-sm font-extrabold text-white mt-1">#{{ $nearlyClosedTermRank }}</span>
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -64,7 +85,7 @@
         <!-- Metric Cards Grid -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <!-- Academic/Grade Level Card -->
-            <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex items-center justify-between gap-5 transition-all duration-300 hover:shadow-md relative overflow-hidden group">
+            <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-5 transition-all duration-300 hover:shadow-md relative overflow-hidden group">
                 <div class="flex items-center gap-4">
                     <div class="p-4 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-500/30 flex-shrink-0">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -74,7 +95,11 @@
                     <div>
                         <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Grade & Division</span>
                         <h3 class="text-2xl font-black text-slate-800 dark:text-slate-100 mt-1 font-heading leading-none">
-                            Grade {{ $student->gradeLevel->name ?? 'N/A' }}
+                            @if(str_starts_with(strtolower($student->gradeLevel->name ?? ''), 'grade'))
+                                {{ $student->gradeLevel->name }}
+                            @else
+                                Grade {{ $student->gradeLevel->name ?? 'N/A' }}
+                            @endif
                         </h3>
                     </div>
                 </div>
@@ -85,7 +110,7 @@
             </div>
 
             <!-- Attendance Rate Card -->
-            <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex items-center justify-between gap-5 transition-all duration-300 hover:shadow-md relative overflow-hidden group">
+            <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-5 transition-all duration-300 hover:shadow-md relative overflow-hidden group">
                 <div class="flex items-center gap-4">
                     <div class="p-4 bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-500/30 flex-shrink-0">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -106,7 +131,7 @@
             </div>
 
             <!-- Conduct Status Card -->
-            <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex items-center justify-between gap-5 transition-all duration-300 hover:shadow-md relative overflow-hidden group">
+            <div class="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-5 transition-all duration-300 hover:shadow-md relative overflow-hidden group">
                 <div class="flex items-center gap-4">
                     <div class="p-4 bg-purple-600 text-white rounded-2xl shadow-lg shadow-purple-500/30 flex-shrink-0">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

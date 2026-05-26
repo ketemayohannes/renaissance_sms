@@ -78,8 +78,7 @@ class GradeController extends Controller
                 $periodName = $quarters->find($termId)->name ?? 'Selected Term';
             } elseif (str_starts_with($selectedPeriod, 'semester_')) {
                 $semesterId = (int) str_replace('semester_', '', $selectedPeriod);
-                $childTermIds = $quarters->where('parent_term_id', $semesterId)->pluck('id')->toArray();
-                $filteredMarks = $filteredMarks->whereIn('term_id', $childTermIds);
+                $filteredMarks = $filteredMarks->where('term_id', $semesterId);
                 $periodName = $semesters->find($semesterId)->name ?? 'Selected Semester';
             } elseif ($selectedPeriod === 'yearly') {
                 $periodName = 'Yearly Report';

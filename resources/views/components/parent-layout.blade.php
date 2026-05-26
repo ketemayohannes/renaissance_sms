@@ -33,6 +33,8 @@
     <style>
         .font-heading { font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; }
         [x-cloak] { display: none !important; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 
     <!-- Performance Monitoring Baseline -->
@@ -126,23 +128,23 @@
             <!-- Top Header -->
             <header class="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-[90] transition-colors duration-300">
                 <!-- Left: Mobile menu + Page Title -->
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 sm:gap-4 min-w-0 flex-1 mr-3 sm:mr-4">
                     <!-- Mobile menu button -->
                     <button @click="$store.ui.toggleSidebar()" 
-                            class="lg:hidden p-2 rounded-lg hover:bg-slate-100 text-slate-500">
+                            class="lg:hidden p-2 rounded-lg hover:bg-slate-100 text-slate-500 flex-shrink-0">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                         </svg>
                     </button>
                     
                     @if($header)
-                        <h1 class="text-lg font-semibold text-slate-900 dark:text-slate-100 font-heading">{{ $header }}</h1>
+                        <h1 class="text-sm sm:text-lg font-semibold text-slate-900 dark:text-slate-100 font-heading truncate max-w-[80px] sm:max-w-xs md:max-w-none flex-shrink-0">{{ $header }}</h1>
                     @endif
                     @if(auth()->user() && auth()->user()->linked_students->count() > 0)
-                        <div class="flex items-center gap-2 ml-4 overflow-x-auto" x-data="{ selected: '{{ optional(request()->route('student'))->id ?? request()->route('student') }}' }">
+                        <div class="flex items-center gap-1.5 ml-1.5 sm:ml-4 overflow-x-auto no-scrollbar scroll-smooth min-w-0 flex-1" style="-webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none;" x-data="{ selected: '{{ optional(request()->route('student'))->id ?? request()->route('student') }}' }">
                             @foreach(auth()->user()->linked_students as $child)
                                 <a href="{{ route('parent.student.dashboard', $child) }}"
-                                   class="px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap transition-colors duration-200"
+                                   class="px-2.5 py-1 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap transition-colors duration-200"
                                    :class="selected == '{{ $child->id }}' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'">
                                     {{ $child->first_name }}
                                 </a>
@@ -251,7 +253,7 @@
                     </div>
                 </div>
                 
-                <div class="flex items-center gap-3 lg:gap-4">
+                <div class="flex items-center gap-2 sm:gap-3 lg:gap-4 flex-shrink-0">
                     @php $t = microtime(true); @endphp
                     <!-- Academic Year Badge -->
                     @if($academicYear)

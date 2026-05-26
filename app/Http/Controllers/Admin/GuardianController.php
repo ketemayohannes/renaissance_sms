@@ -107,7 +107,17 @@ class GuardianController extends Controller
             'father_name' => 'required|string|max:255',
             'grandfather_name' => 'nullable|string|max:255',
             'phone' => 'required|string|max:20',
-            'email' => 'nullable|email|max:255',
+            'email' => [
+                'nullable',
+                'email',
+                'max:255',
+                function ($attribute, $value, $fail) {
+                    $user = \App\Models\User::where('email', $value)->first();
+                    if ($user && !$user->hasRole('Parent')) {
+                        $fail('This email address belongs to a staff or administrative account and cannot be used for a guardian.');
+                    }
+                }
+            ],
             'relationship' => 'required|string|max:50',
             'address' => 'nullable|string|max:500',
             'photo' => 'nullable|image|max:2048',

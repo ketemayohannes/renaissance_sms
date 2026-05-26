@@ -475,7 +475,12 @@ class StudentService
 
         $user = User::where('email', $guardian->email)->first();
 
-        if (!$user) {
+        if ($user) {
+            // Block linking if existing user belongs to staff/admin role and is not a Parent
+            if (!$user->hasRole('Parent')) {
+                throw new \Exception("The email {$guardian->email} belongs to a staff or administrative account and cannot be linked as a guardian.");
+            }
+        } else {
             $password = $password ?? 'guardian123'; // Default password
             $user = User::create([
                 'name' => "{$guardian->first_name} {$guardian->father_name}",

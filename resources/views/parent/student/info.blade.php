@@ -2,13 +2,13 @@
     <div class="space-y-8 max-w-6xl mx-auto" x-data="{ tab: 'overview' }">
         
         <!-- Profile Header Banner -->
-        <div class="relative bg-gradient-to-r from-indigo-900 to-slate-900 dark:from-slate-900 dark:to-slate-950 rounded-3xl p-6 lg:p-8 text-white overflow-hidden shadow-xl border border-white/10">
-            <div class="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-xl"></div>
-            <div class="absolute -right-20 -bottom-20 w-60 h-60 bg-indigo-500/20 rounded-full blur-2xl"></div>
+        <div class="relative bg-gradient-to-r from-violet-600 via-indigo-600 to-indigo-700 rounded-3xl p-5 sm:p-6 lg:p-8 text-white overflow-hidden shadow-lg shadow-indigo-100 dark:shadow-none">
+            <div class="absolute -right-10 -top-10 w-32 sm:w-40 h-32 sm:h-40 bg-white/10 rounded-full blur-xl"></div>
+            <div class="absolute -right-20 -bottom-20 w-48 sm:w-60 h-48 sm:h-60 bg-indigo-500/20 rounded-full blur-2xl"></div>
             
             <div class="relative z-10 flex flex-col sm:flex-row items-center gap-6">
                 <!-- Avatar -->
-                <div class="w-24 h-24 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-extrabold text-3xl shadow-lg border border-white/20 overflow-hidden flex-shrink-0">
+                <div class="w-16 h-16 sm:w-24 sm:h-24 rounded-xl sm:rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-extrabold text-xl sm:text-3xl shadow-lg border border-white/20 overflow-hidden flex-shrink-0">
                     @if($student->photo)
                         <img src="/storage/{{ $student->photo }}" alt="{{ $student->full_name }}" class="w-full h-full object-cover">
                     @else
@@ -19,7 +19,7 @@
                 <!-- Info -->
                 <div class="flex-grow text-center sm:text-left space-y-2">
                     <div class="flex flex-wrap items-center gap-2 justify-center sm:justify-start">
-                        <h2 class="text-2xl font-bold font-heading tracking-tight text-slate-100">{{ $student->full_name }}</h2>
+                        <h2 class="text-lg sm:text-2xl font-bold font-heading tracking-tight text-slate-100">{{ $student->full_name }}</h2>
                         <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider {{ $student->is_active ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30' }}">
                             {{ $student->is_active ? 'Active Student' : 'Inactive' }}
                         </span>
@@ -34,40 +34,40 @@
         </div>
 
         <!-- Glass Navigation Tabs -->
-        <div class="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white dark:border-slate-800 rounded-2xl shadow-sm p-1.5 overflow-x-auto no-scrollbar">
-            <nav class="flex gap-1 min-w-max">
+        <div class="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white dark:border-slate-800 rounded-2xl shadow-sm p-1 sm:p-1.5 overflow-x-auto no-scrollbar">
+            <nav class="flex gap-0.5 sm:gap-1 min-w-max">
                 <button @click="tab = 'overview'" 
                         :class="tab === 'overview' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'"
-                        class="px-5 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all duration-200 flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        class="px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-bold text-[9px] sm:text-[10px] uppercase tracking-widest transition-all duration-200 flex items-center gap-1.5 sm:gap-2">
+                    <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                     </svg>
                     Overview
                 </button>
                 <button @click="tab = 'academic'" 
                         :class="tab === 'academic' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'"
-                        class="px-5 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all duration-200 flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        class="px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-bold text-[9px] sm:text-[10px] uppercase tracking-widest transition-all duration-200 flex items-center gap-1.5 sm:gap-2">
+                    <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.247 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                     </svg>
                     Academics
                 </button>
                 <button @click="tab = 'guardians'" 
                         :class="tab === 'guardians' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'"
-                        class="px-5 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all duration-200 flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        class="px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-bold text-[9px] sm:text-[10px] uppercase tracking-widest transition-all duration-200 flex items-center gap-1.5 sm:gap-2">
+                    <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                     </svg>
-                    Family Connections
+                    <span class="hidden sm:inline">Family Connections</span><span class="sm:hidden">Family</span>
                     <span class="py-0.5 px-1.5 rounded-md text-[8px] font-black" :class="tab === 'guardians' ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'">{{ $student->guardians->count() }}</span>
                 </button>
                 <button @click="tab = 'medical_transport'" 
                         :class="tab === 'medical_transport' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'"
-                        class="px-5 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all duration-200 flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        class="px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-bold text-[9px] sm:text-[10px] uppercase tracking-widest transition-all duration-200 flex items-center gap-1.5 sm:gap-2">
+                    <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
                     </svg>
-                    Health & Commute
+                    <span class="hidden sm:inline">Health & Commute</span><span class="sm:hidden">Health</span>
                 </button>
             </nav>
         </div>
@@ -91,7 +91,7 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" x-data="{ showMore: false }">
                             <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-850/40 border border-slate-100 dark:border-slate-800">
                                 <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Official Name</span>
                                 <span class="text-sm font-extrabold text-slate-700 dark:text-slate-200">{{ $student->full_name }}</span>
@@ -107,20 +107,35 @@
                                 <span class="text-sm font-extrabold text-slate-700 dark:text-slate-200">{{ $student->date_of_birth ? $student->date_of_birth->age . ' Years Old' : 'N/A' }}</span>
                             </div>
 
-                            <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-850/40 border border-slate-100 dark:border-slate-800">
-                                <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Gender</span>
-                                <span class="text-sm font-extrabold text-slate-700 dark:text-slate-200">{{ $student->gender == 'M' ? 'Male' : ($student->gender == 'F' ? 'Female' : $student->gender) }}</span>
+                            <!-- Mobile Accordion Details -->
+                            <div class="sm:block sm:col-span-1" x-show="showMore" x-cloak x-transition>
+                                <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-850/40 border border-slate-100 dark:border-slate-800 h-full">
+                                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Gender</span>
+                                    <span class="text-sm font-extrabold text-slate-700 dark:text-slate-200">{{ $student->gender == 'M' ? 'Male' : ($student->gender == 'F' ? 'Female' : $student->gender) }}</span>
+                                </div>
                             </div>
 
-                            <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-850/40 border border-slate-100 dark:border-slate-800">
-                                <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Birthplace / Country</span>
-                                <span class="text-sm font-extrabold text-slate-700 dark:text-slate-200">{{ $student->birth_city ? $student->birth_city . ', ' : '' }}{{ $student->birth_country ?? 'N/A' }}</span>
+                            <div class="sm:block sm:col-span-1" x-show="showMore" x-cloak x-transition>
+                                <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-850/40 border border-slate-100 dark:border-slate-800 h-full">
+                                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Birthplace / Country</span>
+                                    <span class="text-sm font-extrabold text-slate-700 dark:text-slate-200">{{ $student->birth_city ? $student->birth_city . ', ' : '' }}{{ $student->birth_country ?? 'N/A' }}</span>
+                                </div>
                             </div>
 
-                            <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-850/40 border border-slate-100 dark:border-slate-800">
-                                <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Nationality / Language</span>
-                                <span class="text-sm font-extrabold text-slate-700 dark:text-slate-200">{{ $student->nationality ?? 'Ethiopian' }} • {{ $student->language_spoken ?? 'N/A' }}</span>
+                            <div class="sm:block sm:col-span-1" x-show="showMore" x-cloak x-transition>
+                                <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-850/40 border border-slate-100 dark:border-slate-800 h-full">
+                                    <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Nationality / Language</span>
+                                    <span class="text-sm font-extrabold text-slate-700 dark:text-slate-200">{{ $student->nationality ?? 'Ethiopian' }} • {{ $student->language_spoken ?? 'N/A' }}</span>
+                                </div>
                             </div>
+
+                            <!-- Mobile Toggle Trigger -->
+                            <button type="button" @click="showMore = !showMore" class="sm:hidden col-span-full py-2.5 px-4 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-slate-800 text-indigo-650 dark:text-indigo-400 font-extrabold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 border border-indigo-100/50 dark:border-slate-700 transition-colors">
+                                <span x-text="showMore ? 'Show Less Details' : 'Show More Details'"></span>
+                                <svg class="w-3.5 h-3.5 transition-transform" :class="showMore ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
                         </div>
                     </div>
 
@@ -236,7 +251,8 @@
                         </div>
                     </div>
 
-                    <div class="overflow-x-auto">
+                    {{-- Desktop Table --}}
+                    <div class="hidden sm:block overflow-x-auto">
                         <table class="w-full text-left">
                             <thead>
                                 <tr class="border-b border-slate-100 dark:border-slate-800 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
@@ -278,6 +294,32 @@
                                 @endforelse
                             </tbody>
                         </table>
+                    </div>
+
+                    {{-- Mobile Card Layout --}}
+                    <div class="sm:hidden space-y-3">
+                        @forelse($student->enrollments->sortByDesc('enrollment_date') as $enrollment)
+                            <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-850/40 border border-slate-100 dark:border-slate-800 space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="font-bold text-sm text-slate-800 dark:text-slate-200">{{ $enrollment->academicYear->name }}</span>
+                                    <span class="inline-flex px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider {{ $enrollment->status == 'active' ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-500' }}">
+                                        {{ $enrollment->status }}
+                                    </span>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="font-extrabold text-sm text-slate-800 dark:text-slate-100">{{ $enrollment->section->gradeLevel->name }}</span>
+                                    <span class="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-350 rounded text-[10px] font-black">{{ $enrollment->section->name }}</span>
+                                    <span class="text-slate-300 dark:text-slate-600">•</span>
+                                    <span class="text-xs font-semibold text-slate-500">{{ $enrollment->section->gradeLevel->division->name }}</span>
+                                    <span class="text-slate-300 dark:text-slate-600">•</span>
+                                    <span class="text-xs font-black text-slate-700 dark:text-slate-300">#{{ $enrollment->roll_number ?? '-' }}</span>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="py-12 text-center text-slate-400">
+                                No prior school enrollments logged.
+                            </div>
+                        @endforelse
                     </div>
                 </div>
             </div>
@@ -370,12 +412,12 @@
 
                         <div class="space-y-4">
                             @if($student->medicalInfo)
-                                <div class="grid grid-cols-3 gap-4 items-center p-4 rounded-2xl bg-rose-500/5 dark:bg-rose-950/15 border border-rose-500/10">
-                                    <div class="col-span-1 text-center border-r border-rose-500/10 dark:border-rose-900/25">
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 items-center p-4 rounded-2xl bg-rose-500/5 dark:bg-rose-950/15 border border-rose-500/10">
+                                    <div class="col-span-1 text-center sm:border-r border-b sm:border-b-0 border-rose-500/10 dark:border-rose-900/25 pb-3 sm:pb-0">
                                         <span class="block text-[8px] font-black text-rose-500 uppercase tracking-widest mb-0.5">Blood Type</span>
                                         <span class="text-2xl font-black text-rose-600 dark:text-rose-455">{{ $student->medicalInfo->blood_group ?? 'N/A' }}</span>
                                     </div>
-                                    <div class="col-span-2 pl-2">
+                                    <div class="col-span-1 sm:col-span-2 sm:pl-2">
                                         <span class="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Emergency Contact</span>
                                         <span class="text-sm font-extrabold text-slate-700 dark:text-slate-300 leading-tight block">{{ $student->medicalInfo->emergency_contact ?? 'N/A' }}</span>
                                     </div>
@@ -420,7 +462,7 @@
                         <div class="space-y-6">
                             @if($student->transportation)
                                 <!-- Driver & Bus Card -->
-                                <div class="p-4 bg-slate-50 dark:bg-slate-950/30 rounded-2xl border border-slate-100 dark:border-slate-850 flex items-center gap-4">
+                                <div class="p-4 bg-slate-50 dark:bg-slate-950/30 rounded-2xl border border-slate-100 dark:border-slate-850 flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
                                     <div class="w-16 h-16 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden flex-shrink-0 flex items-center justify-center">
                                         @if($student->transportation->driver_photo)
                                             <img src="/storage/{{ $student->transportation->driver_photo }}" alt="Driver Photo" class="w-full h-full object-cover">
@@ -430,7 +472,7 @@
                                             </div>
                                         @endif
                                     </div>
-                                    <div class="flex-grow">
+                                    <div class="flex-grow text-center sm:text-left">
                                         <span class="inline-flex px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded text-[8px] font-bold uppercase tracking-wider border border-emerald-500/20 mb-1">Active Commuter</span>
                                         <h4 class="text-sm font-bold text-slate-800 dark:text-slate-150 leading-tight">{{ $student->transportation->driver_full_name }}</h4>
                                         <span class="text-xs text-slate-400 block mt-0.5">Bus Direct Commuter Driver</span>
