@@ -27,3 +27,5 @@ Thumbs.db
 /composer
 *.tmp
 .phpunit.result.cache
+db_backup.sql
+
