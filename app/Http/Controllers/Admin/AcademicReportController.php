@@ -75,6 +75,7 @@ class AcademicReportController extends Controller
 
             if ($termId === 'yearly') {
                 $term = new Term(['type' => 'yearly', 'name' => 'Yearly', 'academic_year_id' => $academicYear->id]);
+                $term->incrementing = false;
                 $term->id = 'yearly';
             } else {
                 $term = Term::findOrFail($termId);
@@ -162,6 +163,7 @@ class AcademicReportController extends Controller
         $termId = $request->term_id;
         if ($termId === 'yearly') {
             $term = new Term(['type' => 'yearly', 'name' => 'Yearly', 'academic_year_id' => $academicYear->id]);
+            $term->incrementing = false;
             $term->id = 'yearly';
         } else {
             $term = Term::findOrFail($termId);
@@ -187,6 +189,7 @@ class AcademicReportController extends Controller
         $termId = $request->term_id;
         if ($termId === 'yearly') {
             $term = new Term(['type' => 'yearly', 'name' => 'Yearly', 'academic_year_id' => $academicYear->id]);
+            $term->incrementing = false;
             $term->id = 'yearly';
         } else {
             $term = Term::findOrFail($termId);
@@ -249,6 +252,7 @@ class AcademicReportController extends Controller
 
             if ($termId === 'yearly') {
                 $term = new Term(['type' => 'yearly', 'academic_year_id' => $academicYear->id]);
+                $term->incrementing = false;
                 $term->id = 'yearly';
             } else {
                 $term = Term::findOrFail($termId);

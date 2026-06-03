@@ -111,6 +111,7 @@ class PromotionController extends Controller
         if (!$yearlyTerm) {
             // Virtual yearly term for calculation if not in DB
             $yearlyTerm = new Term(['type' => 'yearly', 'name' => 'Yearly', 'academic_year_id' => $academicYear->id]);
+            $yearlyTerm->incrementing = false;
             $yearlyTerm->id = 'yearly';
         }
 

@@ -286,6 +286,7 @@ class ReportCardService
         
         if ($termId === 'yearly') {
             $term = new Term(['type' => 'yearly', 'name' => 'Yearly Report', 'academic_year_id' => $academicYearId]);
+            $term->incrementing = false;
             $term->id = 'yearly';
         } else {
             $term = Term::findOrFail($termId);
