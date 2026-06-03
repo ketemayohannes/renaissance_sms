@@ -469,11 +469,44 @@ class GradingService
             return ['total' => round($total, 2), 'average' => $average, 'marks' => $subjectScores];
 
         } else {
-            $marks = StudentMark::where('student_id', $student->id)
-                ->where('term_id', $term->id)
-                ->get();
-            $total = $marks->sum('score');
-            $subjectScores = $marks->pluck('score', 'subject_id')->toArray();
+            if ($term->type === 'yearly' || $term->id === 'yearly') {
+                $semesters = Term::where('academic_year_id', $academicYear->id)
+                    ->where('type', 'semester')
+                    ->with('quarters')
+                    ->get();
+                
+                $allChildTermIds = $semesters->pluck('id')->concat($semesters->flatMap->quarters->pluck('id'))->unique();
+                $termTotalTypeId = $this->getTermTotalTypeId();
+                $rawMarks = StudentMark::where('student_id', $student->id)
+                    ->whereIn('term_id', $allChildTermIds)
+                    ->with('assessmentTemplate')
+                    ->get()
+                    ->groupBy('subject_id');
+
+                $total = 0;
+                $subjectScores = [];
+                foreach ($subjects as $subject) {
+                    $subMarks = $rawMarks->get($subject->id, collect());
+                    if ($subMarks->isNotEmpty()) {
+                        $quarterSums = [];
+                        foreach ($subMarks->groupBy('term_id') as $tId => $termMarks) {
+                            $termTotal = $termMarks->first(fn($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
+                            $quarterSums[$tId] = $termTotal ? $termTotal->score : $termMarks->sum('score');
+                        }
+                        $count = count($quarterSums);
+                        $score = $count > 0 ? array_sum($quarterSums) / $count : 0;
+                        
+                        $subjectScores[$subject->id] = $score;
+                        $total += $score;
+                    }
+                }
+            } else {
+                $marks = StudentMark::where('student_id', $student->id)
+                    ->where('term_id', $term->id)
+                    ->get();
+                $total = $marks->sum('score');
+                $subjectScores = $marks->pluck('score', 'subject_id')->toArray();
+            }
             
             // Determine effective elective count
             $enrolledElectiveIds = DB::table('student_electives')
@@ -576,24 +609,22 @@ class GradingService
 
         // On-the-fly ranking if records are missing ranks in the database
         // This ensures the roster (Academic Report) shows ranks even before a manual sync
-        if (!$isYearly) {
-            $hasMissingRanks = false;
-            foreach ($reports as $r) {
-                if ($r['rank'] === '-' || $r['rank'] === null || $r['rank'] === 0) {
-                    $hasMissingRanks = true;
-                    break;
-                }
+        $hasMissingRanks = false;
+        foreach ($reports as $r) {
+            if ($r['rank'] === '-' || $r['rank'] === null || $r['rank'] === 0) {
+                $hasMissingRanks = true;
+                break;
             }
+        }
 
-            if ($hasMissingRanks) {
-                $sortedTotals = collect($reports)->pluck('totalScore')->sortDesc();
-                $totalStudents = $sortedTotals->count();
-                foreach ($reports as $sid => &$report) {
-                    if ($report['rank'] === '-' || $report['rank'] === null || $report['rank'] === 0) {
-                        $rank = $sortedTotals->filter(fn($score) => $score > $report['totalScore'])->count() + 1;
-                        $report['rank'] = $rank;
-                        $report['rank_out_of'] = $totalStudents;
-                    }
+        if ($hasMissingRanks) {
+            $sortedTotals = collect($reports)->pluck('totalScore')->sortDesc();
+            $totalStudents = $sortedTotals->count();
+            foreach ($reports as $sid => &$report) {
+                if ($report['rank'] === '-' || $report['rank'] === null || $report['rank'] === 0) {
+                    $rank = $sortedTotals->filter(fn($score) => $score > $report['totalScore'])->count() + 1;
+                    $report['rank'] = $rank;
+                    $report['rank_out_of'] = $totalStudents;
                 }
             }
         }
@@ -782,6 +813,30 @@ class GradingService
             foreach ($components as $subId => $total) {
                 $marks[$subId] = $total;
             }
+        }
+
+        if ($isYearly) {
+            $regularCount = $subjects->where('is_elective', false)->count();
+            
+            $electiveIdsWithScores = $marks->keys()->filter(function($id) use ($subjects) {
+                $s = $subjects->firstWhere('id', $id);
+                return $s && $s->is_elective;
+            })->toArray();
+
+            if ($isGrade11Or12) {
+                $effectiveElectiveCount = count($electiveIdsWithScores);
+            } else {
+                $enrolledElectiveIds = DB::table('student_electives')
+                    ->where('student_id', $student->id)
+                    ->where('academic_year_id', $academicYear->id)
+                    ->pluck('subject_id')
+                    ->toArray();
+                $effectiveElectiveCount = count(array_unique(array_merge($enrolledElectiveIds, $electiveIdsWithScores)));
+            }
+            
+            $denominator = $regularCount + $effectiveElectiveCount;
+            $totalScore = round($marks->sum(), 2);
+            $average = $denominator > 0 ? round($totalScore / $denominator, 2) : 0;
         }
 
         return [
