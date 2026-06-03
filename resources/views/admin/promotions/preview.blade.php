@@ -39,23 +39,47 @@
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 @foreach($previewData as $data)
-                                    <tr class="{{ $data['recommended'] === 'retained' ? 'bg-red-50' : '' }}">
-                                        <td class="px-6 py-4 whitespace-nowrap">{{ $data['student']->full_name }}</td>
+                                    @php
+                                        $rowClass = '';
+                                        if ($data['recommended'] === 'retained') {
+                                            $rowClass = 'bg-red-50/50';
+                                        } elseif ($data['recommended'] === 're_exam') {
+                                            $rowClass = 'bg-amber-50/50';
+                                        } elseif ($data['recommended'] === 'graduated') {
+                                            $rowClass = 'bg-emerald-50/30';
+                                        }
+                                    @endphp
+                                    <tr class="{{ $rowClass }}">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="font-bold text-slate-700">{{ $data['student']->full_name }}</div>
+                                            @if($data['failedSubjects'] > 0)
+                                                <span class="block text-[10px] text-slate-400 font-bold uppercase mt-0.5">
+                                                    {{ $data['failedSubjects'] }} {{ Str::plural('Fail', $data['failedSubjects']) }}
+                                                    ({{ $data['failedMajorCount'] }} Major, {{ $data['failedNonMajorCount'] }} Non-major)
+                                                </span>
+                                            @endif
+                                        </td>
                                         <td class="px-6 py-4 text-center font-bold {{ $data['passesAverage'] ? 'text-green-600' : 'text-red-600' }}">
                                             {{ \App\Helpers\NumberFormatter::format($data['average']) }}%
                                         </td>
                                         <td class="px-6 py-4 text-center">
-                                            @if($data['passesAverage'])
-                                                <span class="px-2 py-1 text-xs font-semibold bg-green-100 text-green-800 rounded-full">Passes</span>
+                                            @if($data['recommended'] === 'promoted')
+                                                <span class="px-2.5 py-1 text-xs font-bold bg-green-100 text-green-800 rounded-full uppercase tracking-wider">Promoted</span>
+                                            @elseif($data['recommended'] === 'graduated')
+                                                <span class="px-2.5 py-1 text-xs font-bold bg-emerald-100 text-emerald-800 rounded-full uppercase tracking-wider">Graduate</span>
+                                            @elseif($data['recommended'] === 're_exam')
+                                                <span class="px-2.5 py-1 text-xs font-bold bg-amber-100 text-amber-800 rounded-full uppercase tracking-wider">Re-exam</span>
                                             @else
-                                                <span class="px-2 py-1 text-xs font-semibold bg-red-100 text-red-800 rounded-full">Below Min</span>
+                                                <span class="px-2.5 py-1 text-xs font-bold bg-red-100 text-red-800 rounded-full uppercase tracking-wider">Retained</span>
                                             @endif
                                         </td>
                                         <td class="px-6 py-4 text-center">
-                                            <select name="decisions[{{ $data['student']->id }}]" class="border-gray-300 rounded-md shadow-sm text-sm">
+                                            <select name="decisions[{{ $data['student']->id }}]" class="border-slate-300 rounded-lg shadow-sm text-sm">
                                                 <option value="promoted" {{ $data['recommended'] === 'promoted' ? 'selected' : '' }}>Promote</option>
                                                 <option value="retained" {{ $data['recommended'] === 'retained' ? 'selected' : '' }}>Retain</option>
-                                                <option value="conditionally_promoted">Conditional</option>
+                                                <option value="re_exam" {{ $data['recommended'] === 're_exam' ? 'selected' : '' }}>Re-exam</option>
+                                                <option value="graduated" {{ $data['recommended'] === 'graduated' ? 'selected' : '' }}>Graduate</option>
+                                                <option value="conditionally_promoted" {{ $data['recommended'] === 'conditionally_promoted' ? 'selected' : '' }}>Conditional</option>
                                             </select>
                                         </td>
                                         <td class="px-6 py-4">

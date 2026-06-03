@@ -39,10 +39,12 @@ return new class extends Migration
             $table->dropUnique('sm_stud_templ_unique');
             
             // Check if this one exists before dropping
-            $sm = Schema::getConnection()->getDoctrineSchemaManager();
-            $indexes = $sm->listTableIndexes('student_marks');
-            if (array_key_exists('student_component_unique', $indexes)) {
-                $table->dropUnique('student_component_unique');
+            if (DB::getDriverName() !== 'sqlite') {
+                $sm = Schema::getConnection()->getDoctrineSchemaManager();
+                $indexes = $sm->listTableIndexes('student_marks');
+                if (array_key_exists('student_component_unique', $indexes)) {
+                    $table->dropUnique('student_component_unique');
+                }
             }
 
             // Create new robust unique index

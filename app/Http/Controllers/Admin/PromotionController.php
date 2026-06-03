@@ -23,7 +23,7 @@ class PromotionController extends Controller
         $promotionRules = PromotionRule::with(['fromGradeLevel', 'toGradeLevel'])
             ->where('academic_year_id', $academicYear->id)
             ->get();
-        $gradeLevels = GradeLevel::orderBy('sort_order')->get();
+        $gradeLevels = GradeLevel::with('subjects')->orderBy('sort_order')->get();
         
         return view('admin.promotions.index', compact('promotionRules', 'gradeLevels', 'academicYear'));
     }
@@ -32,14 +32,29 @@ class PromotionController extends Controller
     {
         $request->validate([
             'from_grade_level_id' => 'required|exists:grade_levels,id',
-            'to_grade_level_id' => 'required|exists:grade_levels,id',
+            'to_grade_level_id' => 'nullable|exists:grade_levels,id',
             'min_average' => 'required|numeric|min:0|max:100',
             'min_attendance_percent' => 'nullable|numeric|min:0|max:100',
             'max_failed_subjects' => 'nullable|integer|min:0',
             'description' => 'nullable|string',
+            'major_subjects' => 'nullable|array',
+            'conditional_rules' => 'nullable|array',
+            'failed_action' => 'required|string|in:retained,re_exam',
         ]);
 
         $academicYear = AcademicYear::where('is_active', true)->first();
+
+        $conditionalRules = [];
+        if ($request->has('conditional_rules') && is_array($request->conditional_rules)) {
+            foreach ($request->conditional_rules as $rule) {
+                if (isset($rule['fails']) && isset($rule['avg'])) {
+                    $conditionalRules[] = [
+                        'fails' => (int) $rule['fails'],
+                        'avg' => (float) $rule['avg'],
+                    ];
+                }
+            }
+        }
 
         PromotionRule::updateOrCreate(
             [
@@ -52,11 +67,14 @@ class PromotionController extends Controller
                 'min_attendance_percent' => $request->min_attendance_percent ?? 75,
                 'max_failed_subjects' => $request->max_failed_subjects ?? 0,
                 'description' => $request->description,
+                'major_subjects' => $request->major_subjects ?? [],
+                'conditional_rules' => $conditionalRules,
+                'failed_action' => $request->failed_action ?? 'retained',
             ]
         );
 
         return redirect()->route('admin.promotions.index')
-            ->with('success', 'Promotion rule saved successfully hideously!');
+            ->with('success', 'Promotion rule saved successfully!');
     }
 
     public function deleteRule(PromotionRule $promotionRule)
@@ -117,23 +135,71 @@ class PromotionController extends Controller
             $res = $batchResults[$student->id] ?? ['total' => 0, 'average' => 0, 'marks' => []];
             $average = $res['average'];
             
+            $failedMajorCount = 0;
+            $failedNonMajorCount = 0;
             $failedSubjects = 0;
+
+            $majorSubjectIds = $promotionRule ? ($promotionRule->major_subjects ?? []) : [];
+            $majorSubjectIds = array_map('strval', $majorSubjectIds);
+
             foreach ($res['marks'] as $subId => $mark) {
                 if ($mark < $passMark) {
                     $failedSubjects++;
+                    if (in_array((string)$subId, $majorSubjectIds)) {
+                        $failedMajorCount++;
+                    } else {
+                        $failedNonMajorCount++;
+                    }
                 }
             }
 
-            $passesAverage = $promotionRule ? ($average >= $promotionRule->min_average) : ($average >= 50);
-            $passesFailedLimit = $promotionRule ? ($failedSubjects <= $promotionRule->max_failed_subjects) : true;
+            $recommended = 'retained';
+            $passesAverage = false;
 
-            $recommended = ($passesAverage && $passesFailedLimit) ? 'promoted' : 'retained';
+            if (!$promotionRule) {
+                $passesAverage = ($average >= 50);
+                $recommended = ($passesAverage && $failedSubjects === 0) ? 'promoted' : 'retained';
+            } else {
+                if (empty($promotionRule->to_grade_level_id)) {
+                    $recommended = 'graduated';
+                    $passesAverage = true;
+                } else {
+                    $failedAction = $promotionRule->failed_action ?? 'retained';
+
+                    if ($failedSubjects === 0) {
+                        $passesAverage = ($average >= $promotionRule->min_average);
+                        $recommended = $passesAverage ? 'promoted' : $failedAction;
+                    } else {
+                        if ($failedMajorCount > 0) {
+                            $recommended = $failedAction;
+                        } else {
+                            $matchedRule = null;
+                            $conditionalRules = $promotionRule->conditional_rules ?? [];
+                            foreach ($conditionalRules as $cRule) {
+                                if (isset($cRule['fails']) && (int)$cRule['fails'] === $failedNonMajorCount) {
+                                    $matchedRule = $cRule;
+                                    break;
+                                }
+                            }
+
+                            if ($matchedRule) {
+                                $passesAverage = ($average >= (float)$matchedRule['avg']);
+                                $recommended = $passesAverage ? 'promoted' : $failedAction;
+                            } else {
+                                $recommended = $failedAction;
+                            }
+                        }
+                    }
+                }
+            }
 
             $previewData[] = [
                 'student' => $student,
                 'average' => $average,
                 'passesAverage' => $passesAverage,
                 'failedSubjects' => $failedSubjects,
+                'failedMajorCount' => $failedMajorCount,
+                'failedNonMajorCount' => $failedNonMajorCount,
                 'recommended' => $recommended,
             ];
         }
@@ -167,8 +233,10 @@ class PromotionController extends Controller
 
         $promotedCount = 0;
         $retainedCount = 0;
+        $graduatedCount = 0;
+        $reExamCount = 0;
 
-        DB::transaction(function() use ($request, $section, $academicYear, $nextAcademicYear, $nextGradeLevel, &$promotedCount, &$retainedCount) {
+        DB::transaction(function() use ($request, $section, $academicYear, $nextAcademicYear, $nextGradeLevel, &$promotedCount, &$retainedCount, &$graduatedCount, &$reExamCount) {
             foreach ($request->decisions as $studentId => $decision) {
                 
                 $toGradeLevelId = null;
@@ -189,11 +257,12 @@ class PromotionController extends Controller
                         
                         $toSectionId = $targetSection?->id;
                     } else {
-                        // For graduating students, we don't pick a next grade level
                         $decision = 'graduated';
                     }
+                } elseif ($decision === 'graduated') {
+                    $toGradeLevelId = null;
+                    $toSectionId = null;
                 } else {
-                    // Retained students stay in the same grade level and potentially same section
                     $toGradeLevelId = $section->grade_level_id;
                     $toSectionId = $section->id;
                 }
@@ -209,40 +278,74 @@ class PromotionController extends Controller
                     'processed_by' => auth()->id(),
                 ]);
 
-                // Mark current enrollment as completed
+                // Update current enrollment status
+                $currentEnrollmentStatus = 'completed';
+                if ($decision === 'graduated') {
+                    $currentEnrollmentStatus = 'graduated';
+                }
+
                 StudentEnrollment::where('student_id', $studentId)
                     ->where('section_id', $section->id)
                     ->where('academic_year_id', $academicYear->id)
-                    ->update(['status' => 'completed', 'end_date' => now()]);
+                    ->update(['status' => $currentEnrollmentStatus, 'end_date' => now()]);
 
-                // Create NEW enrollment for next year
-                if ($toSectionId) {
-                    StudentEnrollment::updateOrCreate(
-                        [
-                            'student_id' => $studentId,
-                            'academic_year_id' => $nextAcademicYear->id,
-                        ],
-                        [
-                            'section_id' => $toSectionId,
-                            'enrollment_date' => $nextAcademicYear->start_date,
-                            'status' => 'active'
-                        ]
-                    );
+                if ($decision === 'graduated') {
+                    // Update student status to inactive
+                    $student = Student::findOrFail($studentId);
+                    $student->update(['is_active' => false]);
 
-                    // Recalculate roll numbers for the NEW section
-                    StudentEnrollment::recalculateRollNumbers($toSectionId, $nextAcademicYear->id);
-                }
+                    // Create status history log
+                    \App\Models\StudentStatusHistory::create([
+                        'student_id' => $studentId,
+                        'old_status' => 'active',
+                        'new_status' => 'graduated',
+                        'reason' => 'academic',
+                        'notes' => 'Graduated through promotion process.',
+                        'effective_date' => now(),
+                        'changed_by' => auth()->id(),
+                    ]);
 
-                if ($decision === 'promoted') {
-                    $promotedCount++;
+                    $graduatedCount++;
                 } else {
-                    $retainedCount++;
+                    // Create NEW enrollment for next year if NOT graduated
+                    if ($toSectionId) {
+                        StudentEnrollment::updateOrCreate(
+                            [
+                                'student_id' => $studentId,
+                                'academic_year_id' => $nextAcademicYear->id,
+                            ],
+                            [
+                                'section_id' => $toSectionId,
+                                'enrollment_date' => $nextAcademicYear->start_date,
+                                'status' => 'active'
+                            ]
+                        );
+
+                        // Recalculate roll numbers for the NEW section
+                        StudentEnrollment::recalculateRollNumbers($toSectionId, $nextAcademicYear->id);
+                    }
+
+                    if ($decision === 'promoted') {
+                        $promotedCount++;
+                    } elseif ($decision === 're_exam') {
+                        $reExamCount++;
+                    } else {
+                        $retainedCount++;
+                    }
                 }
             }
         });
 
-        return redirect()->route('admin.promotions.index')
-            ->with('success', "Promotion processed: {$promotedCount} promoted, {$retainedCount} retained. Automated enrollments created for {$nextAcademicYear->name}.");
+        $msg = "Promotion processed: {$promotedCount} promoted, {$retainedCount} retained";
+        if ($reExamCount > 0) {
+            $msg .= ", {$reExamCount} scheduled for re-exam";
+        }
+        if ($graduatedCount > 0) {
+            $msg .= ", {$graduatedCount} graduated";
+        }
+        $msg .= ". Automated enrollments created for {$nextAcademicYear->name}.";
+
+        return redirect()->route('admin.promotions.index')->with('success', $msg);
     }
 
     public function history(Request $request)
