@@ -274,6 +274,106 @@ class GradingServiceTest extends TestCase
         $this->assertEquals($expectedAverage, round($result['average'], 2));
     }
 
+    /** @test */
+    public function it_calculates_yearly_subject_average_correctly_by_averaging_semesters_rather_than_all_quarters_directly(): void
+    {
+        $student = Student::factory()->create();
+        $this->enrollStudent($student);
+
+        // Set up Semesters and Quarters
+        $semester1 = Term::factory()->create([
+            'academic_year_id' => $this->academicYear->id,
+            'type' => 'semester',
+            'term_number' => 1,
+        ]);
+        $semester2 = Term::factory()->create([
+            'academic_year_id' => $this->academicYear->id,
+            'type' => 'semester',
+            'term_number' => 2,
+        ]);
+
+        $q1 = Term::factory()->create([
+            'academic_year_id' => $this->academicYear->id,
+            'parent_term_id' => $semester1->id,
+            'type' => 'quarter',
+            'term_number' => 1,
+        ]);
+        $q2 = Term::factory()->create([
+            'academic_year_id' => $this->academicYear->id,
+            'parent_term_id' => $semester1->id,
+            'type' => 'quarter',
+            'term_number' => 2,
+        ]);
+        $q3 = Term::factory()->create([
+            'academic_year_id' => $this->academicYear->id,
+            'parent_term_id' => $semester2->id,
+            'type' => 'quarter',
+            'term_number' => 3,
+        ]);
+
+        $subject = Subject::factory()->create();
+        $this->gradeLevel->subjects()->attach($subject->id, [
+            'academic_year_id' => $this->academicYear->id,
+            'is_required' => true,
+            'sort_order' => 1,
+        ]);
+
+        // Q1 = 53, Q2 = 51 => Semester 1 Average = 52
+        // Q3 = 46          => Semester 2 Average = 46
+        // Expected Yearly Subject Average = (52 + 46) / 2 = 49
+        $scores = [
+            $q1->id => 53,
+            $q2->id => 51,
+            $q3->id => 46,
+        ];
+
+        foreach ($scores as $termId => $score) {
+            $template = AssessmentTemplate::factory()->termTotal()->create([
+                'academic_year_id' => $this->academicYear->id,
+                'term_id' => $termId,
+            ]);
+
+            StudentMark::factory()->create([
+                'student_id' => $student->id,
+                'academic_year_id' => $this->academicYear->id,
+                'term_id' => $termId,
+                'subject_id' => $subject->id,
+                'assessment_template_id' => $template->id,
+                'section_id' => $this->section->id,
+                'score' => $score,
+            ]);
+        }
+
+        $yearlyTerm = new Term([
+            'type' => 'yearly',
+            'name' => 'Yearly',
+            'academic_year_id' => $this->academicYear->id,
+        ]);
+        $yearlyTerm->incrementing = false;
+        $yearlyTerm->id = 'yearly';
+
+        // Act 1: calculateStudentTotals
+        $result = $this->gradingService->calculateStudentTotals(
+            $student,
+            $yearlyTerm,
+            $this->academicYear,
+            collect([$subject])
+        );
+
+        // Assert
+        $this->assertEquals(49, $result['marks'][$subject->id]);
+
+        // Act 2: getStudentReportData / prepareReportData
+        $reportData = $this->gradingService->getStudentReportData(
+            $student,
+            $yearlyTerm,
+            $this->academicYear
+        );
+
+        // Assert
+        $this->assertEquals(49, $reportData['marks'][$subject->id]);
+    }
+
     /**
      * Helper to enroll a student in the test section
      */

@@ -13,6 +13,7 @@ use App\Models\StudentMark;
 use App\Models\Subject;
 use App\Models\Term;
 use App\Models\User;
+use App\Models\StudentEnrollment;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -313,7 +314,7 @@ class PromotionControllerTest extends TestCase
     }
 
     /** @test */
-    public function executes_promotion_and_reexam_decisions_correctly(): void
+    public function executes_promotion_and_reexam_decisions_correctly_and_allows_enrollment_and_reversal(): void
     {
         // Setup a next grade level section (so promoted students can be enrolled)
         $nextSection = Section::factory()->create([
@@ -356,12 +357,10 @@ class PromotionControllerTest extends TestCase
             'academic_year_id' => $this->academicYear->id,
             'status' => 'completed',
         ]);
-        // 2. Next year enrollment should be 'active' in Grade 5 section
-        $this->assertDatabaseHas('student_enrollments', [
+        // 2. Next year enrollment should NOT be created automatically (held until registrar clicks enroll)
+        $this->assertDatabaseMissing('student_enrollments', [
             'student_id' => $this->student->id,
-            'section_id' => $nextSection->id,
             'academic_year_id' => $this->nextAcademicYear->id,
-            'status' => 'active',
         ]);
 
         // Re-exam student check:
@@ -372,12 +371,10 @@ class PromotionControllerTest extends TestCase
             'academic_year_id' => $this->academicYear->id,
             'status' => 'completed',
         ]);
-        // 2. Next year enrollment should be retained in Grade 4 section
-        $this->assertDatabaseHas('student_enrollments', [
+        // 2. Next year enrollment should NOT be created automatically
+        $this->assertDatabaseMissing('student_enrollments', [
             'student_id' => $studentReExam->id,
-            'section_id' => $this->section->id,
             'academic_year_id' => $this->nextAcademicYear->id,
-            'status' => 'active',
         ]);
         // 3. Promotion history status should be 're_exam'
         $this->assertDatabaseHas('student_promotions', [
@@ -385,6 +382,249 @@ class PromotionControllerTest extends TestCase
             'from_grade_level_id' => $this->gradeLevel->id,
             'to_grade_level_id' => $this->gradeLevel->id,
             'status' => 're_exam',
+            'is_enrolled' => false,
+        ]);
+
+        // Retrieve the promotion record for student
+        $promo = \App\Models\StudentPromotion::where('student_id', $this->student->id)->first();
+        $this->assertNotNull($promo);
+        $this->assertFalse($promo->is_enrolled);
+
+        // 3. Admin/Registrar enrolls the student
+        $enrollResponse = $this->actingAs($this->adminUser)
+            ->post(route('admin.promotions.enroll', $promo));
+
+        $enrollResponse->assertRedirect(route('admin.promotions.history'));
+
+        // Next year enrollment should now exist
+        $this->assertDatabaseHas('student_enrollments', [
+            'student_id' => $this->student->id,
+            'section_id' => $nextSection->id,
+            'academic_year_id' => $this->nextAcademicYear->id,
+            'status' => 'active',
+        ]);
+
+        // Promotion record should show is_enrolled = true
+        $promo->refresh();
+        $this->assertTrue($promo->is_enrolled);
+
+        // 4. Test Reverse Promotion
+        $reverseResponse = $this->actingAs($this->adminUser)
+            ->post(route('admin.promotions.reverse', $promo));
+
+        $reverseResponse->assertRedirect(route('admin.promotions.history'));
+
+        // Next year enrollment should be deleted
+        $this->assertDatabaseMissing('student_enrollments', [
+            'student_id' => $this->student->id,
+            'academic_year_id' => $this->nextAcademicYear->id,
+        ]);
+
+        // Previous enrollment should be restored to 'active'
+        $this->assertDatabaseHas('student_enrollments', [
+            'student_id' => $this->student->id,
+            'section_id' => $this->section->id,
+            'academic_year_id' => $this->academicYear->id,
+            'status' => 'active',
+        ]);
+
+        // Promotion record should be deleted
+        $this->assertDatabaseMissing('student_promotions', [
+            'id' => $promo->id,
+        ]);
+    }
+
+    /** @test */
+    public function admin_can_filter_promotion_history(): void
+    {
+        // Create another student promotion record
+        $anotherStudent = Student::factory()->create();
+        $promo1 = \App\Models\StudentPromotion::create([
+            'student_id' => $this->student->id,
+            'from_academic_year_id' => $this->academicYear->id,
+            'to_academic_year_id' => $this->nextAcademicYear->id,
+            'from_grade_level_id' => $this->gradeLevel->id,
+            'to_grade_level_id' => $this->nextGradeLevel->id,
+            'status' => 'promoted',
+            'is_enrolled' => false,
+            'processed_by' => $this->adminUser->id,
+        ]);
+
+        $promo2 = \App\Models\StudentPromotion::create([
+            'student_id' => $anotherStudent->id,
+            'from_academic_year_id' => $this->academicYear->id,
+            'to_academic_year_id' => $this->nextAcademicYear->id,
+            'from_grade_level_id' => $this->gradeLevel->id,
+            'to_grade_level_id' => $this->gradeLevel->id,
+            'status' => 'retained',
+            'is_enrolled' => false,
+            'processed_by' => $this->adminUser->id,
+        ]);
+
+        // Filter by status = 'retained'
+        $response = $this->actingAs($this->adminUser)
+            ->get(route('admin.promotions.history', ['status' => 'retained']));
+
+        $response->assertStatus(200);
+        $response->assertSee($anotherStudent->full_name);
+        $response->assertDontSee($this->student->full_name);
+
+        // Filter by search name
+        $response = $this->actingAs($this->adminUser)
+            ->get(route('admin.promotions.history', ['search' => $this->student->first_name]));
+
+        $response->assertStatus(200);
+        $response->assertSee($this->student->full_name);
+        $response->assertDontSee($anotherStudent->full_name);
+    }
+
+    /** @test */
+    public function admin_can_bulk_enroll_students(): void
+    {
+        $nextSection = Section::factory()->create([
+            'grade_level_id' => $this->nextGradeLevel->id,
+            'academic_year_id' => $this->nextAcademicYear->id,
+            'name' => 'A',
+        ]);
+
+        $anotherStudent = Student::factory()->create();
+        $anotherStudent->sections()->attach($this->section->id, [
+            'academic_year_id' => $this->academicYear->id,
+            'enrollment_date' => now(),
+            'status' => 'active',
+        ]);
+
+        $promo1 = \App\Models\StudentPromotion::create([
+            'student_id' => $this->student->id,
+            'from_academic_year_id' => $this->academicYear->id,
+            'to_academic_year_id' => $this->nextAcademicYear->id,
+            'from_grade_level_id' => $this->gradeLevel->id,
+            'to_grade_level_id' => $this->nextGradeLevel->id,
+            'to_section_id' => $nextSection->id,
+            'status' => 'promoted',
+            'is_enrolled' => false,
+            'processed_by' => $this->adminUser->id,
+        ]);
+
+        $promo2 = \App\Models\StudentPromotion::create([
+            'student_id' => $anotherStudent->id,
+            'from_academic_year_id' => $this->academicYear->id,
+            'to_academic_year_id' => $this->nextAcademicYear->id,
+            'from_grade_level_id' => $this->gradeLevel->id,
+            'to_grade_level_id' => $this->nextGradeLevel->id,
+            'to_section_id' => $nextSection->id,
+            'status' => 'promoted',
+            'is_enrolled' => false,
+            'processed_by' => $this->adminUser->id,
+        ]);
+
+        $response = $this->actingAs($this->adminUser)
+            ->post(route('admin.promotions.bulk-enroll', [
+                'ids' => [$promo1->id, $promo2->id]
+            ]));
+
+        $response->assertRedirect(route('admin.promotions.history'));
+
+        // Both should be enrolled
+        $this->assertDatabaseHas('student_enrollments', [
+            'student_id' => $this->student->id,
+            'section_id' => $nextSection->id,
+            'academic_year_id' => $this->nextAcademicYear->id,
+            'status' => 'active',
+        ]);
+
+        $this->assertDatabaseHas('student_enrollments', [
+            'student_id' => $anotherStudent->id,
+            'section_id' => $nextSection->id,
+            'academic_year_id' => $this->nextAcademicYear->id,
+            'status' => 'active',
+        ]);
+
+        $this->assertTrue($promo1->refresh()->is_enrolled);
+        $this->assertTrue($promo2->refresh()->is_enrolled);
+    }
+
+    /** @test */
+    public function admin_can_bulk_reverse_promotions(): void
+    {
+        $nextSection = Section::factory()->create([
+            'grade_level_id' => $this->nextGradeLevel->id,
+            'academic_year_id' => $this->nextAcademicYear->id,
+            'name' => 'A',
+        ]);
+
+        $anotherStudent = Student::factory()->create();
+        $anotherStudent->sections()->attach($this->section->id, [
+            'academic_year_id' => $this->academicYear->id,
+            'enrollment_date' => now(),
+            'status' => 'active',
+        ]);
+
+        $promo1 = \App\Models\StudentPromotion::create([
+            'student_id' => $this->student->id,
+            'from_academic_year_id' => $this->academicYear->id,
+            'to_academic_year_id' => $this->nextAcademicYear->id,
+            'from_grade_level_id' => $this->gradeLevel->id,
+            'to_grade_level_id' => $this->nextGradeLevel->id,
+            'to_section_id' => $nextSection->id,
+            'status' => 'promoted',
+            'is_enrolled' => true,
+            'processed_by' => $this->adminUser->id,
+        ]);
+
+        $promo2 = \App\Models\StudentPromotion::create([
+            'student_id' => $anotherStudent->id,
+            'from_academic_year_id' => $this->academicYear->id,
+            'to_academic_year_id' => $this->nextAcademicYear->id,
+            'from_grade_level_id' => $this->gradeLevel->id,
+            'to_grade_level_id' => $this->nextGradeLevel->id,
+            'to_section_id' => $nextSection->id,
+            'status' => 'promoted',
+            'is_enrolled' => true,
+            'processed_by' => $this->adminUser->id,
+        ]);
+
+        // Create the active next-year enrollments that we are going to reverse
+        StudentEnrollment::create([
+            'student_id' => $this->student->id,
+            'academic_year_id' => $this->nextAcademicYear->id,
+            'section_id' => $nextSection->id,
+            'enrollment_date' => $this->nextAcademicYear->start_date,
+            'status' => 'active',
+        ]);
+
+        StudentEnrollment::create([
+            'student_id' => $anotherStudent->id,
+            'academic_year_id' => $this->nextAcademicYear->id,
+            'section_id' => $nextSection->id,
+            'enrollment_date' => $this->nextAcademicYear->start_date,
+            'status' => 'active',
+        ]);
+
+        $response = $this->actingAs($this->adminUser)
+            ->post(route('admin.promotions.bulk-reverse', [
+                'ids' => [$promo1->id, $promo2->id]
+            ]));
+
+        $response->assertRedirect(route('admin.promotions.history'));
+
+        // Next-year enrollments must be deleted
+        $this->assertDatabaseMissing('student_enrollments', [
+            'student_id' => $this->student->id,
+            'academic_year_id' => $this->nextAcademicYear->id,
+        ]);
+
+        $this->assertDatabaseMissing('student_enrollments', [
+            'student_id' => $anotherStudent->id,
+            'academic_year_id' => $this->nextAcademicYear->id,
+        ]);
+
+        // Promotion logs should be deleted
+        $this->assertDatabaseMissing('student_promotions', [
+            'id' => $promo1->id,
+        ]);
+        $this->assertDatabaseMissing('student_promotions', [
+            'id' => $promo2->id,
         ]);
     }
 }

@@ -222,6 +222,10 @@ Route::middleware(['auth'])->group(function () {
         Route::post('promotions/preview', [App\Http\Controllers\Admin\PromotionController::class, 'preview'])->name('promotions.preview');
         Route::post('promotions/execute', [App\Http\Controllers\Admin\PromotionController::class, 'execute'])->name('promotions.execute');
         Route::get('promotions/history', [App\Http\Controllers\Admin\PromotionController::class, 'history'])->name('promotions.history');
+        Route::post('promotions/history/{studentPromotion}/enroll', [App\Http\Controllers\Admin\PromotionController::class, 'enrollStudent'])->name('promotions.enroll');
+        Route::post('promotions/history/{studentPromotion}/reverse', [App\Http\Controllers\Admin\PromotionController::class, 'reversePromotion'])->name('promotions.reverse');
+        Route::post('promotions/history/bulk-enroll', [App\Http\Controllers\Admin\PromotionController::class, 'bulkEnroll'])->name('promotions.bulk-enroll');
+        Route::post('promotions/history/bulk-reverse', [App\Http\Controllers\Admin\PromotionController::class, 'bulkReverse'])->name('promotions.bulk-reverse');
 
         // Disciplinary Records
         Route::get('disciplinary', [App\Http\Controllers\Admin\DisciplinaryController::class, 'index'])->name('disciplinary.index');

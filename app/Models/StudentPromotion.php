@@ -12,9 +12,15 @@ class StudentPromotion extends Model
         'to_academic_year_id',
         'from_grade_level_id',
         'to_grade_level_id',
+        'to_section_id',
         'status',
+        'is_enrolled',
         'remarks',
         'processed_by',
+    ];
+
+    protected $casts = [
+        'is_enrolled' => 'boolean',
     ];
 
     public function student()
@@ -40,6 +46,11 @@ class StudentPromotion extends Model
     public function toGradeLevel()
     {
         return $this->belongsTo(GradeLevel::class, 'to_grade_level_id');
+    }
+
+    public function toSection()
+    {
+        return $this->belongsTo(Section::class, 'to_section_id');
     }
 
     public function processor()

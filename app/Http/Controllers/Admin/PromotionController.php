@@ -132,6 +132,8 @@ class PromotionController extends Controller
 
         $passMark = 50; 
         $previewData = [];
+        $subjectsMap = $subjects->keyBy('id');
+
         foreach ($students as $student) {
             $res = $batchResults[$student->id] ?? ['total' => 0, 'average' => 0, 'marks' => []];
             $average = $res['average'];
@@ -139,6 +141,7 @@ class PromotionController extends Controller
             $failedMajorCount = 0;
             $failedNonMajorCount = 0;
             $failedSubjects = 0;
+            $failedSubjectNames = [];
 
             $majorSubjectIds = $promotionRule ? ($promotionRule->major_subjects ?? []) : [];
             $majorSubjectIds = array_map('strval', $majorSubjectIds);
@@ -146,6 +149,9 @@ class PromotionController extends Controller
             foreach ($res['marks'] as $subId => $mark) {
                 if ($mark < $passMark) {
                     $failedSubjects++;
+                    $subjectName = $subjectsMap->get($subId)->name ?? 'Unknown';
+                    $failedSubjectNames[] = $subjectName;
+
                     if (in_array((string)$subId, $majorSubjectIds)) {
                         $failedMajorCount++;
                     } else {
@@ -201,6 +207,7 @@ class PromotionController extends Controller
                 'failedSubjects' => $failedSubjects,
                 'failedMajorCount' => $failedMajorCount,
                 'failedNonMajorCount' => $failedNonMajorCount,
+                'failedSubjectNames' => $failedSubjectNames,
                 'recommended' => $recommended,
             ];
         }
@@ -264,6 +271,7 @@ class PromotionController extends Controller
                     $toGradeLevelId = null;
                     $toSectionId = null;
                 } else {
+                    // retained or re_exam — stay in the same grade
                     $toGradeLevelId = $section->grade_level_id;
                     $toSectionId = $section->id;
                 }
@@ -274,7 +282,9 @@ class PromotionController extends Controller
                     'to_academic_year_id' => $nextAcademicYear->id,
                     'from_grade_level_id' => $section->grade_level_id,
                     'to_grade_level_id' => $toGradeLevelId ?? $section->grade_level_id,
+                    'to_section_id' => $toSectionId,
                     'status' => $decision,
+                    'is_enrolled' => ($decision === 'graduated'), // graduates are finalized immediately
                     'remarks' => $request->remarks[$studentId] ?? null,
                     'processed_by' => auth()->id(),
                 ]);
@@ -308,24 +318,7 @@ class PromotionController extends Controller
 
                     $graduatedCount++;
                 } else {
-                    // Create NEW enrollment for next year if NOT graduated
-                    if ($toSectionId) {
-                        StudentEnrollment::updateOrCreate(
-                            [
-                                'student_id' => $studentId,
-                                'academic_year_id' => $nextAcademicYear->id,
-                            ],
-                            [
-                                'section_id' => $toSectionId,
-                                'enrollment_date' => $nextAcademicYear->start_date,
-                                'status' => 'active'
-                            ]
-                        );
-
-                        // Recalculate roll numbers for the NEW section
-                        StudentEnrollment::recalculateRollNumbers($toSectionId, $nextAcademicYear->id);
-                    }
-
+                    // Do NOT auto-enroll — hold until registrar clicks "Enroll"
                     if ($decision === 'promoted') {
                         $promotedCount++;
                     } elseif ($decision === 're_exam') {
@@ -344,18 +337,278 @@ class PromotionController extends Controller
         if ($graduatedCount > 0) {
             $msg .= ", {$graduatedCount} graduated";
         }
-        $msg .= ". Automated enrollments created for {$nextAcademicYear->name}.";
+        $msg .= ". Students are on hold — use History to enroll them.";
 
         return redirect()->route('admin.promotions.index')->with('success', $msg);
     }
 
+    /**
+     * Registrar enrolls a promoted student into their target section.
+     */
+    public function enrollStudent(StudentPromotion $studentPromotion)
+    {
+        if ($studentPromotion->is_enrolled) {
+            return redirect()->route('admin.promotions.history')
+                ->with('error', 'This student has already been enrolled.');
+        }
+
+        if ($studentPromotion->status === 'graduated') {
+            return redirect()->route('admin.promotions.history')
+                ->with('error', 'Graduated students do not need enrollment.');
+        }
+
+        DB::transaction(function() use ($studentPromotion) {
+            $toSectionId = $studentPromotion->to_section_id;
+            $nextAcademicYear = $studentPromotion->toAcademicYear;
+
+            if ($toSectionId && $nextAcademicYear) {
+                StudentEnrollment::updateOrCreate(
+                    [
+                        'student_id' => $studentPromotion->student_id,
+                        'academic_year_id' => $nextAcademicYear->id,
+                    ],
+                    [
+                        'section_id' => $toSectionId,
+                        'enrollment_date' => $nextAcademicYear->start_date,
+                        'status' => 'active',
+                    ]
+                );
+
+                // Recalculate roll numbers for the target section
+                StudentEnrollment::recalculateRollNumbers($toSectionId, $nextAcademicYear->id);
+            }
+
+            $studentPromotion->update(['is_enrolled' => true]);
+        });
+
+        $studentName = $studentPromotion->student->full_name ?? 'Student';
+        return redirect()->route('admin.promotions.history')
+            ->with('success', "{$studentName} has been enrolled successfully.");
+    }
+
+    /**
+     * Reverse a promotion decision — undo enrollment, restore previous state.
+     */
+    public function reversePromotion(StudentPromotion $studentPromotion)
+    {
+        DB::transaction(function() use ($studentPromotion) {
+            // 1. Remove any next-year enrollment that was created
+            if ($studentPromotion->is_enrolled && $studentPromotion->to_section_id) {
+                $deleted = StudentEnrollment::where('student_id', $studentPromotion->student_id)
+                    ->where('academic_year_id', $studentPromotion->to_academic_year_id)
+                    ->where('section_id', $studentPromotion->to_section_id)
+                    ->delete();
+
+                if ($deleted && $studentPromotion->to_section_id) {
+                    StudentEnrollment::recalculateRollNumbers(
+                        $studentPromotion->to_section_id,
+                        $studentPromotion->to_academic_year_id
+                    );
+                }
+            }
+
+            // 2. Restore the previous enrollment to 'active'
+            StudentEnrollment::where('student_id', $studentPromotion->student_id)
+                ->where('academic_year_id', $studentPromotion->from_academic_year_id)
+                ->update(['status' => 'active', 'end_date' => null]);
+
+            // 3. If student was graduated, restore their active status
+            if ($studentPromotion->status === 'graduated') {
+                Student::where('id', $studentPromotion->student_id)
+                    ->update(['is_active' => true]);
+
+                // Remove the graduation status history entry
+                \App\Models\StudentStatusHistory::where('student_id', $studentPromotion->student_id)
+                    ->where('new_status', 'graduated')
+                    ->where('reason', 'academic')
+                    ->latest()
+                    ->first()
+                    ?->delete();
+            }
+
+            // 4. Delete the promotion record itself
+            $studentPromotion->delete();
+        });
+
+        return redirect()->route('admin.promotions.history')
+            ->with('success', 'Promotion has been reversed successfully.');
+    }
+
     public function history(Request $request)
     {
-        $promotions = StudentPromotion::with([
+        $query = StudentPromotion::with([
             'student', 'fromAcademicYear', 'toAcademicYear', 
-            'fromGradeLevel', 'toGradeLevel', 'processor'
-        ])->orderBy('created_at', 'desc')->paginate(50);
+            'fromGradeLevel', 'toGradeLevel', 'toSection', 'processor'
+        ]);
 
-        return view('admin.promotions.history', compact('promotions'));
+        if ($request->filled('search')) {
+            $query->whereHas('student', function ($q) use ($request) {
+                $q->search($request->search);
+            });
+        }
+
+        if ($request->filled('from_academic_year_id')) {
+            $query->where('from_academic_year_id', $request->from_academic_year_id);
+        }
+
+        if ($request->filled('to_academic_year_id')) {
+            $query->where('to_academic_year_id', $request->to_academic_year_id);
+        }
+
+        if ($request->filled('from_grade_level_id')) {
+            $query->where('from_grade_level_id', $request->from_grade_level_id);
+        }
+
+        if ($request->filled('to_grade_level_id')) {
+            $query->where('to_grade_level_id', $request->to_grade_level_id);
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('is_enrolled')) {
+            if ($request->is_enrolled === 'graduated') {
+                $query->where('status', 'graduated');
+            } elseif ($request->is_enrolled === '1') {
+                $query->where('is_enrolled', true)->where('status', '!=', 'graduated');
+            } elseif ($request->is_enrolled === '0') {
+                $query->where('is_enrolled', false);
+            }
+        }
+
+        $promotions = $query->orderBy('created_at', 'desc')->paginate(50)->withQueryString();
+
+        $academicYears = AcademicYear::orderBy('start_date', 'desc')->get();
+        $gradeLevels = GradeLevel::orderBy('sort_order')->get();
+
+        return view('admin.promotions.history', compact('promotions', 'academicYears', 'gradeLevels'));
+    }
+
+    /**
+     * Registrar bulk enrolls multiple promoted students.
+     */
+    public function bulkEnroll(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'exists:student_promotions,id',
+        ]);
+
+        $promotions = StudentPromotion::with('toAcademicYear')
+            ->whereIn('id', $request->ids)
+            ->where('is_enrolled', false)
+            ->where('status', '!=', 'graduated')
+            ->get();
+
+        if ($promotions->isEmpty()) {
+            return redirect()->route('admin.promotions.history')
+                ->with('error', 'No pending promotion records selected.');
+        }
+
+        $enrolledCount = 0;
+
+        DB::transaction(function() use ($promotions, &$enrolledCount) {
+            $sectionsToRecalculate = [];
+
+            foreach ($promotions as $promo) {
+                $toSectionId = $promo->to_section_id;
+                $nextAcademicYear = $promo->toAcademicYear;
+
+                if ($toSectionId && $nextAcademicYear) {
+                    StudentEnrollment::updateOrCreate(
+                        [
+                            'student_id' => $promo->student_id,
+                            'academic_year_id' => $nextAcademicYear->id,
+                        ],
+                        [
+                            'section_id' => $toSectionId,
+                            'enrollment_date' => $nextAcademicYear->start_date,
+                            'status' => 'active',
+                        ]
+                    );
+
+                    $sectionsToRecalculate[$toSectionId] = $nextAcademicYear->id;
+                }
+
+                $promo->update(['is_enrolled' => true]);
+                $enrolledCount++;
+            }
+
+            foreach ($sectionsToRecalculate as $sectionId => $academicYearId) {
+                StudentEnrollment::recalculateRollNumbers($sectionId, $academicYearId);
+            }
+        });
+
+        return redirect()->route('admin.promotions.history')
+            ->with('success', "Successfully enrolled {$enrolledCount} students.");
+    }
+
+    /**
+     * Registrar bulk reverses multiple promotion decisions.
+     */
+    public function bulkReverse(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'exists:student_promotions,id',
+        ]);
+
+        $promotions = StudentPromotion::whereIn('id', $request->ids)->get();
+
+        if ($promotions->isEmpty()) {
+            return redirect()->route('admin.promotions.history')
+                ->with('error', 'No promotion records selected.');
+        }
+
+        $reversedCount = 0;
+
+        DB::transaction(function() use ($promotions, &$reversedCount) {
+            $sectionsToRecalculate = [];
+
+            foreach ($promotions as $promo) {
+                // 1. Remove next-year enrollment
+                if ($promo->is_enrolled && $promo->to_section_id) {
+                    $deleted = StudentEnrollment::where('student_id', $promo->student_id)
+                        ->where('academic_year_id', $promo->to_academic_year_id)
+                        ->where('section_id', $promo->to_section_id)
+                        ->delete();
+
+                    if ($deleted) {
+                        $sectionsToRecalculate[$promo->to_section_id] = $promo->to_academic_year_id;
+                    }
+                }
+
+                // 2. Restore previous enrollment
+                StudentEnrollment::where('student_id', $promo->student_id)
+                    ->where('academic_year_id', $promo->from_academic_year_id)
+                    ->update(['status' => 'active', 'end_date' => null]);
+
+                // 3. If student was graduated, restore status
+                if ($promo->status === 'graduated') {
+                    Student::where('id', $promo->student_id)
+                        ->update(['is_active' => true]);
+
+                    \App\Models\StudentStatusHistory::where('student_id', $promo->student_id)
+                        ->where('new_status', 'graduated')
+                        ->where('reason', 'academic')
+                        ->latest()
+                        ->first()
+                        ?->delete();
+                }
+
+                // 4. Delete promotion record
+                $promo->delete();
+                $reversedCount++;
+            }
+
+            foreach ($sectionsToRecalculate as $sectionId => $academicYearId) {
+                StudentEnrollment::recalculateRollNumbers($sectionId, $academicYearId);
+            }
+        });
+
+        return redirect()->route('admin.promotions.history')
+            ->with('success', "Successfully reversed {$reversedCount} promotions.");
     }
 }
+

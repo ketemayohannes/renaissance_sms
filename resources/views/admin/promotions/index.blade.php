@@ -101,25 +101,25 @@
         </div>
 
         <!-- Table Panel -->
-        <div class="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-xl shadow-slate-200/50 overflow-hidden">
+        <div class="glass-panel overflow-hidden">
             <div class="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
                 <h2 class="text-xl font-black text-slate-900 uppercase tracking-tight">Active Rules ({{ $academicYear->name }})</h2>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full text-left border-separate border-spacing-0">
+                <table class="premium-table">
                     <thead>
                         <tr>
-                            <th class="px-8 py-6 bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Source Grade</th>
-                            <th class="px-8 py-6 bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-center">Direction</th>
-                            <th class="px-8 py-6 bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Target Grade</th>
-                            <th class="px-8 py-6 bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Criteria & Customizable Policy</th>
-                            <th class="px-8 py-6 bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Actions</th>
+                            <th class="premium-table-header">Source Grade</th>
+                            <th class="premium-table-header text-center">Direction</th>
+                            <th class="premium-table-header">Target Grade</th>
+                            <th class="premium-table-header">Criteria & Customizable Policy</th>
+                            <th class="premium-table-header text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-50">
+                    <tbody>
                         @forelse($promotionRules as $rule)
-                            <tr class="group hover:bg-slate-50/50 transition-all">
-                                <td class="px-8 py-6">
+                            <tr class="premium-table-row group">
+                                <td class="premium-table-cell">
                                     <div class="flex items-center gap-3">
                                         <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 font-black text-xs shadow-sm border border-slate-200/50 group-hover:scale-110 transition-transform">
                                             {{ substr($rule->fromGradeLevel->name, 0, 2) }}
@@ -130,12 +130,12 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-8 py-6 text-center">
+                                <td class="premium-table-cell text-center">
                                     <div class="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-400 mx-auto">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
                                     </div>
                                 </td>
-                                <td class="px-8 py-6">
+                                <td class="premium-table-cell">
                                     @if($rule->toGradeLevel)
                                         <div class="flex items-center gap-3">
                                             <div class="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-black text-xs shadow-sm border border-indigo-100/50 group-hover:scale-110 transition-transform">
@@ -158,7 +158,7 @@
                                         </div>
                                     @endif
                                 </td>
-                                <td class="px-8 py-6">
+                                <td class="premium-table-cell">
                                     <div class="flex flex-col gap-2">
                                         <div class="flex items-center gap-3">
                                             <div class="inline-flex flex-col items-start px-3 py-1 bg-slate-50 rounded-lg border border-slate-100">
@@ -199,7 +199,7 @@
                                         @endif
                                     </div>
                                 </td>
-                                <td class="px-8 py-6 text-right">
+                                <td class="premium-table-cell text-right">
                                     <div class="flex items-center justify-end gap-2">
                                         <button type="button" onclick="editRule({{ json_encode($rule) }})" class="p-3 hover:bg-white rounded-xl text-slate-400 hover:text-indigo-600 transition-all hover:shadow-sm border border-transparent hover:border-slate-100">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
@@ -216,7 +216,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-8 py-20 text-center">
+                                <td colspan="5" class="premium-table-cell py-20 text-center">
                                     <div class="flex flex-col items-center">
                                         <div class="w-20 h-20 bg-slate-50 rounded-[2rem] flex items-center justify-center text-slate-200 mb-4">
                                             <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0l-3 3m3-3l-3-3M8 17H6a2 2 0 01-2-2V9a2 2 0 012-2h5m4 0h2a2 2 0 012 2v1m-7 7l-3-3m0 0l3-3m-3 3h8"></path></svg>

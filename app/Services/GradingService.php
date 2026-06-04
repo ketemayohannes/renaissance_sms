@@ -486,18 +486,27 @@ class GradingService
                 $total = 0;
                 $subjectScores = [];
                 foreach ($subjects as $subject) {
-                    $subMarks = $rawMarks->get($subject->id, collect());
-                    if ($subMarks->isNotEmpty()) {
-                        $quarterSums = [];
-                        foreach ($subMarks->groupBy('term_id') as $tId => $termMarks) {
-                            $termTotal = $termMarks->first(fn($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
-                            $quarterSums[$tId] = $termTotal ? $termTotal->score : $termMarks->sum('score');
-                        }
-                        $count = count($quarterSums);
-                        $score = $count > 0 ? array_sum($quarterSums) / $count : 0;
+                    $semAverages = [];
+                    foreach ($semesters as $sem) {
+                        $qIds = $sem->quarters->pluck('id');
+                        $subSemMarks = $rawMarks->get($subject->id, collect())->whereIn('term_id', $qIds);
                         
-                        $subjectScores[$subject->id] = $score;
-                        $total += $score;
+                        if ($subSemMarks->isNotEmpty()) {
+                            $quarterSums = [];
+                            foreach ($subSemMarks->groupBy('term_id') as $tId => $termMarks) {
+                                $termTotal = $termMarks->first(fn($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
+                                $quarterSums[$tId] = $termTotal ? $termTotal->score : $termMarks->sum('score');
+                            }
+                            $count = count($quarterSums);
+                            $semAverages[] = $count > 0 ? array_sum($quarterSums) / $count : 0;
+                        }
+                    }
+                    
+                    if (!empty($semAverages)) {
+                        $semCount = count($semAverages);
+                        $yearlyAvg = $semCount > 0 ? array_sum($semAverages) / $semCount : 0;
+                        $subjectScores[$subject->id] = $yearlyAvg;
+                        $total += $yearlyAvg;
                     }
                 }
             } else {
@@ -777,6 +786,17 @@ class GradingService
             // Calculate averages per subject (for yearly average or final semester view)
             if ($isSemester && isset($sStats)) {
                 $marks = collect($sStats['marks']);
+            } elseif ($isYearly) {
+                $marks = collect();
+                foreach ($subjects as $subject) {
+                    $semAverages = isset($marksBySemester[$subject->id]) ? array_values($marksBySemester[$subject->id]) : [];
+                    if (!empty($semAverages)) {
+                        $semCount = count($semAverages);
+                        $marks[$subject->id] = $semCount > 0 ? round(array_sum($semAverages) / $semCount, 2) : 0;
+                    } else {
+                        $marks[$subject->id] = 0;
+                    }
+                }
             } else {
                 foreach ($allQuarterMarks as $subId => $scores) {
                     $count = count($scores);
