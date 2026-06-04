@@ -28,4 +28,5 @@ Thumbs.db
 *.tmp
 .phpunit.result.cache
 db_backup.sql
+db_backup_utf8.sql
 

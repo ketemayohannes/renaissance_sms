@@ -17,9 +17,8 @@ return new class extends Migration
             $table->json('communication_preferences')->nullable()->after('email');
             $table->text('address')->nullable()->after('relationship');
             
-            // Drop the unique constraint if it exists to allow multiple guardians of same "type" if needed, 
-            // though we might still want to keep 'primary' unique? 
-            // The plan said "Drop unique index". Let's drop it to allow flexibility (e.g. 2 uncles).
+            // Create non-unique index first so MySQL doesn't complain about foreign key missing an index
+            $table->index('student_id');
             $table->dropUnique('student_guardians_student_id_guardian_type_unique');
         });
     }
