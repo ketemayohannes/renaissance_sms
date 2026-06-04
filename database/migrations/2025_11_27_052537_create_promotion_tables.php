@@ -31,8 +31,12 @@ return new class extends Migration
             $table->foreignId('from_academic_year_id')->constrained('academic_years')->onDelete('cascade');
             $table->foreignId('to_academic_year_id')->constrained('academic_years')->onDelete('cascade');
             $table->foreignId('from_grade_level_id')->constrained('grade_levels')->onDelete('cascade');
-            $table->foreignId('to_grade_level_id')->constrained('grade_levels')->onDelete('cascade');
-            $table->enum('status', ['promoted', 'retained', 'conditionally_promoted'])->default('promoted');
+            $table->foreignId('to_grade_level_id')->nullable()->constrained('grade_levels')->onDelete('cascade');
+            if (\Illuminate\Support\Facades\DB::getDriverName() === 'sqlite') {
+                $table->string('status')->default('promoted');
+            } else {
+                $table->enum('status', ['promoted', 'retained', 'conditionally_promoted'])->default('promoted');
+            }
             $table->text('remarks')->nullable();
             $table->foreignId('processed_by')->constrained('users')->onDelete('cascade');
             $table->timestamps();

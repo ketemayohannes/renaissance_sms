@@ -39,8 +39,10 @@ return new class extends Migration
             $table->dropUnique('sm_stud_templ_unique');
             
             // Check if this one exists before dropping
-            if (Schema::hasIndex('student_marks', 'student_component_unique')) {
-                $table->dropUnique('student_component_unique');
+            if (DB::getDriverName() !== 'sqlite') {
+                if (Schema::hasIndex('student_marks', 'student_component_unique')) {
+                    $table->dropUnique('student_component_unique');
+                }
             }
 
             // Create new robust unique index

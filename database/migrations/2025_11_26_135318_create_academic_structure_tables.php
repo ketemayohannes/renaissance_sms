@@ -127,7 +127,11 @@ return new class extends Migration
             $table->foreignId('section_id')->constrained()->onDelete('cascade');
             $table->foreignId('academic_year_id')->constrained()->onDelete('cascade');
             $table->date('enrollment_date');
-            $table->enum('status', ['active', 'transferred', 'graduated', 'withdrawn'])->default('active');
+            if (\Illuminate\Support\Facades\DB::getDriverName() === 'sqlite') {
+                $table->string('status')->default('active');
+            } else {
+                $table->enum('status', ['active', 'transferred', 'graduated', 'withdrawn'])->default('active');
+            }
             $table->timestamps();
             $table->unique(['student_id', 'academic_year_id'], 'student_year_unique');
         });

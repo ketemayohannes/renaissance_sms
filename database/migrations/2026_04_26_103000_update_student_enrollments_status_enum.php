@@ -17,7 +17,9 @@ return new class extends Migration
     public function up(): void
     {
         // Using raw SQL for ENUM update as it's more reliable across different Laravel/Doctrine versions
-        DB::statement("ALTER TABLE student_enrollments MODIFY COLUMN status ENUM('active', 'transferred', 'graduated', 'withdrawn', 'dropped_out', 'completed') DEFAULT 'active'");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE student_enrollments MODIFY COLUMN status ENUM('active', 'transferred', 'graduated', 'withdrawn', 'dropped_out', 'completed') DEFAULT 'active'");
+        }
     }
 
     /**
@@ -25,6 +27,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement("ALTER TABLE student_enrollments MODIFY COLUMN status ENUM('active', 'transferred', 'graduated', 'withdrawn') DEFAULT 'active'");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE student_enrollments MODIFY COLUMN status ENUM('active', 'transferred', 'graduated', 'withdrawn') DEFAULT 'active'");
+        }
     }
 };

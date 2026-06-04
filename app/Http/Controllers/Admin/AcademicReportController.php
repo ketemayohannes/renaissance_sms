@@ -75,6 +75,7 @@ class AcademicReportController extends Controller
 
             if ($termId === 'yearly') {
                 $term = new Term(['type' => 'yearly', 'name' => 'Yearly', 'academic_year_id' => $academicYear->id]);
+                $term->incrementing = false;
                 $term->id = 'yearly';
             } else {
                 $term = Term::findOrFail($termId);
@@ -162,6 +163,7 @@ class AcademicReportController extends Controller
         $termId = $request->term_id;
         if ($termId === 'yearly') {
             $term = new Term(['type' => 'yearly', 'name' => 'Yearly', 'academic_year_id' => $academicYear->id]);
+            $term->incrementing = false;
             $term->id = 'yearly';
         } else {
             $term = Term::findOrFail($termId);
@@ -187,6 +189,7 @@ class AcademicReportController extends Controller
         $termId = $request->term_id;
         if ($termId === 'yearly') {
             $term = new Term(['type' => 'yearly', 'name' => 'Yearly', 'academic_year_id' => $academicYear->id]);
+            $term->incrementing = false;
             $term->id = 'yearly';
         } else {
             $term = Term::findOrFail($termId);
@@ -242,23 +245,32 @@ class AcademicReportController extends Controller
             'section_id' => 'required|exists:sections,id',
         ]);
 
-        $academicYear = AcademicYear::findOrFail($request->academic_year_id);
-        $termId = $request->term_id;
-        $section = Section::findOrFail($request->section_id);
+        try {
+            $academicYear = AcademicYear::findOrFail($request->academic_year_id);
+            $termId = $request->term_id;
+            $section = Section::findOrFail($request->section_id);
 
-        if ($termId === 'yearly') {
-            $term = new Term(['type' => 'yearly', 'academic_year_id' => $academicYear->id]);
-            $term->id = 'yearly';
-        } else {
-            $term = Term::findOrFail($termId);
+            if ($termId === 'yearly') {
+                $term = new Term(['type' => 'yearly', 'academic_year_id' => $academicYear->id]);
+                $term->incrementing = false;
+                $term->id = 'yearly';
+            } else {
+                $term = Term::findOrFail($termId);
+            }
+
+            $this->gradingService->recalculateSectionStatistics($section, $term, $academicYear);
+            
+            // Clear roster cache since data changed
+            \Illuminate\Support\Facades\Cache::forget("roster_data_{$section->id}_{$termId}_{$academicYear->id}");
+
+            return back()->withFallback(route('admin.academic-reports.index'))->with('success', 'Statistics recalculated successfully.');
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Recalculate Error: ' . $e->getMessage(), [
+                'exception' => $e,
+                'request' => $request->all(),
+            ]);
+            return back()->withFallback(route('admin.academic-reports.index'))->with('error', 'Error recalculating statistics: ' . $e->getMessage());
         }
-
-        $this->gradingService->recalculateSectionStatistics($section, $term, $academicYear);
-        
-        // Clear roster cache since data changed
-        \Illuminate\Support\Facades\Cache::forget("roster_data_{$section->id}_{$termId}_{$academicYear->id}");
-
-        return back()->with('success', 'Statistics recalculated successfully.');
     }
 
     public function matrixReorder()

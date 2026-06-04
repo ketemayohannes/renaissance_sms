@@ -14,12 +14,17 @@ class PromotionRule extends Model
         'min_attendance_percent',
         'max_failed_subjects',
         'description',
+        'major_subjects',
+        'conditional_rules',
+        'failed_action',
     ];
 
     protected $casts = [
         'min_average' => 'decimal:2',
         'min_attendance_percent' => 'decimal:2',
         'max_failed_subjects' => 'integer',
+        'major_subjects' => 'array',
+        'conditional_rules' => 'array',
     ];
 
     public function fromGradeLevel()
