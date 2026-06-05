@@ -102,7 +102,7 @@ class ReportCardService
 
         // Clear roster cache for this section and term
         if ($section) {
-            \Illuminate\Support\Facades\Cache::forget("roster_data_{$section->id}_{$termId}_{$academicYearId}");
+            \App\Services\AcademicReportService::clearRosterCache($section->id, $termId, $academicYearId);
         }
     }
 

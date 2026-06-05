@@ -539,7 +539,7 @@ class GradebookController extends Controller
             $gradingService->recalculateSectionStatistics($section, $term, \App\Models\AcademicYear::findOrFail($academicYearId));
             
             // Clear roster cache
-            \Illuminate\Support\Facades\Cache::forget("roster_data_{$section->id}_{$term->id}_{$academicYearId}");
+            \App\Services\AcademicReportService::clearRosterCache($section->id, $term->id, $academicYearId);
 
             if (empty($upsertData)) {
                 return back()->with('warning', 'No grades were imported.');
@@ -588,7 +588,7 @@ class GradebookController extends Controller
             $gradingService->recalculateSectionStatistics($assignment->section, Term::findOrFail($request->term_id), \App\Models\AcademicYear::findOrFail($assignment->academic_year_id));
             
             // Clear roster cache
-            \Illuminate\Support\Facades\Cache::forget("roster_data_{$assignment->section_id}_{$request->term_id}_{$assignment->academic_year_id}");
+            \App\Services\AcademicReportService::clearRosterCache($assignment->section_id, $request->term_id, $assignment->academic_year_id);
 
             return back()->with('success', $result['message']);
         } catch (\Exception $e) {

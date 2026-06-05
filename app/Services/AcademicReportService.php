@@ -23,6 +23,18 @@ class AcademicReportService
         $this->gradingService = $gradingService;
     }
 
+    public static function clearRosterCache(int $sectionId, $termId, int $academicYearId): void
+    {
+        \Illuminate\Support\Facades\Cache::forget("roster_data_{$sectionId}_{$termId}_{$academicYearId}");
+        \Illuminate\Support\Facades\Cache::forget("roster_data_{$sectionId}_yearly_{$academicYearId}");
+        
+        $term = Term::find($termId);
+        if ($term && $term->type === 'quarter' && $term->parent_term_id) {
+            \Illuminate\Support\Facades\Cache::forget("roster_data_{$sectionId}_{$term->parent_term_id}_{$academicYearId}");
+        }
+    }
+
+
     /**
      * Update academic report (roster) settings.
      */

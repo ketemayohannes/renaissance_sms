@@ -855,8 +855,28 @@ class GradingService
             }
             
             $denominator = $regularCount + $effectiveElectiveCount;
-            $totalScore = round($marks->sum(), 2);
-            $average = $denominator > 0 ? round($totalScore / $denominator, 2) : 0;
+            $marksSum = round($marks->filter(fn($v) => $v > 0)->sum(), 2);
+
+            // Only override $totalScore/$average from marks when they actually have data.
+            // If the semester-loop produced all-zero marks (e.g. no semester terms found,
+            // or calculateStudentTotals returned empty), we keep the value already set
+            // by calculateStudentTotals (line ~672) or yearlyStatsCache (line ~662).
+            if ($marksSum > 0) {
+                $totalScore = $marksSum;
+                $average = $denominator > 0 ? round($totalScore / $denominator, 2) : 0;
+            } elseif (empty($totalScore) || $totalScore == 0) {
+                // Last-resort fallback: recalculate directly from raw marks
+                $fallback = $this->calculateStudentTotals($student, $term, $academicYear, $subjects);
+                $totalScore = $fallback['total'];
+                $average   = $fallback['average'];
+                // Sync marks collection from fallback so the roster table shows correct per-subject values
+                if (!empty($fallback['marks'])) {
+                    foreach ($fallback['marks'] as $subId => $score) {
+                        $marks[$subId] = $score;
+                    }
+                }
+            }
+            // else: $totalScore > 0 was set earlier (cache / calculateStudentTotals), keep it.
         }
 
         return [
