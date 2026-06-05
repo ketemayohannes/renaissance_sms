@@ -41,23 +41,69 @@
                 Select Section to Process
             </h3>
 
-            <form action="{{ route('admin.promotions.preview') }}" method="POST" class="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+            <form action="{{ route('admin.promotions.preview') }}" method="POST" class="space-y-6" x-data="{
+                divisions: {{ $divisions->toJson() }},
+                selectedDivisionId: '',
+                selectedGradeLevelId: '',
+                selectedSectionId: '',
+                get gradeLevels() {
+                    if (!this.selectedDivisionId) return [];
+                    const div = this.divisions.find(d => d.id == this.selectedDivisionId);
+                    return div ? div.grade_levels : [];
+                },
+                get sections() {
+                    if (!this.selectedGradeLevelId) return [];
+                    const grade = this.gradeLevels.find(g => g.id == this.selectedGradeLevelId);
+                    return grade ? grade.sections : [];
+                },
+                init() {
+                    this.$watch('selectedDivisionId', () => {
+                        this.selectedGradeLevelId = '';
+                        this.selectedSectionId = '';
+                    });
+                    this.$watch('selectedGradeLevelId', () => {
+                        this.selectedSectionId = '';
+                    });
+                }
+            }">
                 @csrf
-                <div class="md:col-span-2">
-                    <label for="section_id" class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Source Section</label>
-                    <select name="section_id" id="section_id" class="premium-select w-full" required>
-                        <option value="">Select Section</option>
-                        @foreach($gradeLevels as $gradeLevel)
-                            <optgroup label="{{ $gradeLevel->name }}" class="font-bold text-slate-700 bg-slate-50">
-                                @foreach($gradeLevel->sections as $section)
-                                    <option value="{{ $section->id }}">{{ $gradeLevel->name }} - {{ $section->name }}</option>
-                                @endforeach
-                            </optgroup>
-                        @endforeach
-                    </select>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Division Dropdown -->
+                    <div>
+                        <label for="division_id" class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Division</label>
+                        <select id="division_id" x-model="selectedDivisionId" class="premium-select w-full" required>
+                            <option value="">Select Division</option>
+                            <template x-for="division in divisions" :key="division.id">
+                                <option :value="division.id" x-text="division.name"></option>
+                            </template>
+                        </select>
+                    </div>
+
+                    <!-- Grade Level Dropdown -->
+                    <div>
+                        <label for="grade_level_id" class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Grade</label>
+                        <select id="grade_level_id" x-model="selectedGradeLevelId" class="premium-select w-full" :disabled="!selectedDivisionId" required>
+                            <option value="">Select Grade</option>
+                            <template x-for="grade in gradeLevels" :key="grade.id">
+                                <option :value="grade.id" x-text="grade.name"></option>
+                            </template>
+                        </select>
+                    </div>
+
+                    <!-- Section Dropdown -->
+                    <div>
+                        <label for="section_id" class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Section</label>
+                        <select name="section_id" id="section_id" x-model="selectedSectionId" class="premium-select w-full" :disabled="!selectedGradeLevelId" required>
+                            <option value="">Select Section</option>
+                            <template x-for="sect in sections" :key="sect.id">
+                                <option :value="sect.id" x-text="sect.name"></option>
+                            </template>
+                        </select>
+                    </div>
                 </div>
-                <div>
-                    <button type="submit" class="vibrant-btn-blue w-full flex items-center justify-center gap-2" {{ !$nextAcademicYear ? 'disabled' : '' }}>
+
+                <div class="flex justify-end pt-4">
+                    <button type="submit" class="vibrant-btn-blue px-8 py-4 flex items-center justify-center gap-2" {{ !$nextAcademicYear ? 'disabled' : '' }}>
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                         Preview Promotions
                     </button>

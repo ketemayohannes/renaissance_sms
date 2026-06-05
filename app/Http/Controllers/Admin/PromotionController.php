@@ -12,6 +12,7 @@ use App\Models\StudentEnrollment;
 use App\Models\StudentTermRecord;
 use App\Models\AcademicYear;
 use App\Models\Term;
+use App\Models\Division;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -90,9 +91,14 @@ class PromotionController extends Controller
         $nextAcademicYear = AcademicYear::where('start_date', '>', $academicYear->end_date)
             ->orderBy('start_date')
             ->first();
-        $gradeLevels = GradeLevel::with('sections')->orderBy('sort_order')->get();
+        
+        $divisions = Division::with(['gradeLevels' => function($q) {
+            $q->orderBy('sort_order');
+        }, 'gradeLevels.sections' => function($q) use ($academicYear) {
+            $q->where('academic_year_id', $academicYear->id)->where('is_active', true);
+        }])->orderBy('sort_order')->get();
 
-        return view('admin.promotions.process', compact('academicYear', 'nextAcademicYear', 'gradeLevels'));
+        return view('admin.promotions.process', compact('academicYear', 'nextAcademicYear', 'divisions'));
     }
 
     public function preview(Request $request)
