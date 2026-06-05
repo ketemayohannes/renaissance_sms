@@ -16,7 +16,7 @@
                             <select name="academic_year_id" id="academic_year_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
                                 <option value="">Select Academic Year</option>
                                 @foreach($academicYears as $year)
-                                    <option value="{{ $year->id }}" {{ old('academic_year_id') == $year->id ? 'selected' : '' }}>
+                                    <option value="{{ $year->id }}" {{ (old('academic_year_id') == $year->id || (!old('academic_year_id') && $year->is_active)) ? 'selected' : '' }}>
                                         {{ $year->name }} {{ $year->is_active ? '(Active)' : '' }}
                                     </option>
                                 @endforeach

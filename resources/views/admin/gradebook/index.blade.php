@@ -40,7 +40,7 @@
                             <label for="academic_year_id" class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Academic Year</label>
                             <select name="academic_year_id" id="academic_year_id" required class="w-full bg-white/50 border-slate-200 rounded-2xl focus:ring-indigo-500 focus:border-indigo-500 font-bold text-sm py-4 px-6 transition-all appearance-none cursor-pointer">
                                 @foreach($academicYears as $year)
-                                    <option value="{{ $year->id }}" {{ $year->is_current ? 'selected' : '' }}>{{ $year->name }}</option>
+                                    <option value="{{ $year->id }}" {{ $year->is_active ? 'selected' : '' }}>{{ $year->name }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -48,7 +48,7 @@
                             <label for="term_id" class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Academic Term</label>
                             <select name="term_id" id="term_id" required class="w-full bg-white/50 border-slate-200 rounded-2xl focus:ring-indigo-500 focus:border-indigo-500 font-bold text-sm py-4 px-6 transition-all appearance-none cursor-pointer">
                                 @foreach($terms as $term)
-                                    <option value="{{ $term->id }}" {{ $term->is_current ? 'selected' : '' }}>{{ $term->name }}</option>
+                                    <option value="{{ $term->id }}" {{ ($term->is_grading_open || $term->is_master_grading_open) ? 'selected' : '' }}>{{ $term->name }}</option>
                                 @endforeach
                             </select>
                         </div>

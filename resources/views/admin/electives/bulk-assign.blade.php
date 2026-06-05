@@ -35,7 +35,7 @@
                                 <label for="academic_year_id" class="block text-sm font-medium text-gray-700">Academic Year</label>
                                 <select id="academic_year_id" name="academic_year_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
                                     @foreach($academicYears as $year)
-                                        <option value="{{ $year->id }}">{{ $year->name }}</option>
+                                        <option value="{{ $year->id }}" {{ $year->is_active ? 'selected' : '' }}>{{ $year->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
