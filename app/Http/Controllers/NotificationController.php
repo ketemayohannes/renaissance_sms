@@ -90,6 +90,7 @@ class NotificationController extends Controller
     public function fetchMessages(\App\Models\Conversation $conversation)
     {
         $user = auth()->user();
+        $conversation->loadMissing('participants');
         abort_unless($conversation->participants->contains('id', $user->id), 403);
 
         $messages = $conversation->messages()
@@ -132,6 +133,7 @@ class NotificationController extends Controller
     public function ajaxReply(Request $request, \App\Models\Conversation $conversation)
     {
         $user = auth()->user();
+        $conversation->loadMissing('participants');
         abort_unless($conversation->participants->contains('id', $user->id), 403);
 
         $validated = $request->validate([
