@@ -34,13 +34,23 @@ class MessagingController extends Controller
 
     public function create()
     {
-        // Admin can message any user with a portal account
-        $users = User::whereHas('roles')
+        // Fetch all roles for the filter tabs
+        $roles = \Spatie\Permission\Models\Role::orderBy('name')->get(['id', 'name']);
+
+        // Admin can message any user with a portal account — include their first role for grouping
+        $users = User::with('roles')
+            ->whereHas('roles')
             ->where('id', '!=', auth()->id())
             ->orderBy('name')
-            ->get(['id', 'name', 'email']);
+            ->get(['id', 'name', 'email'])
+            ->map(fn($u) => [
+                'id'    => $u->id,
+                'name'  => $u->name,
+                'email' => $u->email,
+                'role'  => $u->roles->first()?->name ?? 'Unknown',
+            ]);
 
-        return view('admin.messages.create', compact('users'));
+        return view('admin.messages.create', compact('users', 'roles'));
     }
 
     public function store(Request $request)
