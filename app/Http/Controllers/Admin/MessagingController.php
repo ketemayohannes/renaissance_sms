@@ -37,17 +37,18 @@ class MessagingController extends Controller
         // Fetch all roles for the filter tabs
         $roles = \Spatie\Permission\Models\Role::orderBy('name')->get(['id', 'name']);
 
-        // Admin can message any user with a portal account — include their first role for grouping
+        // Admin can message any user with a portal account — include ALL roles for filtering
         $users = User::with('roles')
             ->whereHas('roles')
             ->where('id', '!=', auth()->id())
             ->orderBy('name')
             ->get(['id', 'name', 'email'])
             ->map(fn($u) => [
-                'id'    => $u->id,
-                'name'  => $u->name,
-                'email' => $u->email,
-                'role'  => $u->roles->first()?->name ?? 'Unknown',
+                'id'         => $u->id,
+                'name'       => $u->name,
+                'email'      => $u->email,
+                'roles'      => $u->roles->pluck('name')->values()->toArray(),
+                'primaryRole'=> $u->roles->first()?->name ?? 'Unknown',
             ]);
 
         return view('admin.messages.create', compact('users', 'roles'));
