@@ -72,29 +72,15 @@ class AttendanceController extends Controller
             'remarks' => 'nullable|array',
         ]);
 
-        $sectionId = $request->section_id;
-        $date = \Carbon\Carbon::parse($request->date)->toDateString();
-        $userId = auth()->id();
-
-        DB::transaction(function() use ($request, $sectionId, $date, $userId) {
-            foreach ($request->attendance as $studentId => $status) {
-                StudentAttendance::updateOrCreate(
-                    [
-                        'student_id' => $studentId,
-                        'attendance_date' => $date,
-                    ],
-                    [
-                        'section_id' => $sectionId,
-                        'status' => $status,
-                        'remarks' => $request->remarks[$studentId] ?? null,
-                        'marked_by' => $userId,
-                    ]
-                );
-            }
-        });
+        $this->attendanceService->saveAttendance(
+            $request->section_id,
+            $request->date,
+            $request->attendance,
+            $request->remarks ?? []
+        );
 
         return redirect()->route('admin.attendance.index')
-            ->with('success', 'Attendance marked successfully for ' . $date);
+            ->with('success', 'Attendance marked successfully for ' . $request->date);
     }
 
     public function report(Request $request)

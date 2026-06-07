@@ -8,6 +8,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Models\StudentGuardian;
 use App\Models\Student;
+use App\Models\Conversation;
 
 class User extends Authenticatable
 {
@@ -62,6 +63,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'last_login_at' => 'datetime',
+            'preferences' => 'array',
         ];
     }
 
@@ -93,5 +95,38 @@ class User extends Authenticatable
     public function getLinkedStudentsAttribute()
     {
         return Student::whereIn('id', $this->guardianProfiles->pluck('student_id'))->get();
+    }
+
+    /**
+     * All conversations this user participates in.
+     */
+    public function conversations()
+    {
+        return $this->belongsToMany(Conversation::class, 'conversation_participants')
+                    ->withPivot(['is_admin', 'joined_at'])
+                    ->withTimestamps()
+                    ->latest('conversations.updated_at');
+    }
+
+    /**
+     * Count of unread database notifications — used by the bell icon in layouts.
+     */
+    public function unreadNotificationsCount(): int
+    {
+        return $this->unreadNotifications()->count();
+    }
+
+    /**
+     * Get the phone number for SMS notifications.
+     */
+    public function routeNotificationForSms()
+    {
+        if ($this->guardianProfiles()->exists()) {
+            return $this->guardianProfiles()->first()->phone;
+        }
+        if ($this->employee()->exists()) {
+            return $this->employee()->first()->phone;
+        }
+        return null;
     }
 }

@@ -19,8 +19,13 @@ class CommunicationController extends Controller
         return view('parent.notices.index', compact('notices'));
     }
 
-    public function showNotice(Notice $notice)
+    public function showNotice($id)
     {
+        $notice = Notice::find($id);
+        if (!$notice || !$notice->is_active) {
+            return redirect()->route('parent.notices.index')
+                ->with('error', 'This announcement is no longer available.');
+        }
         return view('parent.notices.show', compact('notice'));
     }
 

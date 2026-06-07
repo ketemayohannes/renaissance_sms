@@ -6,9 +6,12 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
 use App\Models\AcademicYear;
+use App\Models\ExportRequest;
 use App\Models\ReportCardSetting;
 use App\Models\Section;
 use App\Models\Term;
+use App\Models\User;
+use App\Notifications\ReportCardExportReady;
 use App\Services\GradingService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
@@ -115,10 +118,16 @@ class GenerateSectionReportCards implements ShouldQueue
             }
 
             $this->exportRequest->update([
-                'status' => 'completed',
-                'file_path' => "exports/{$zipName}",
-                'completed_at' => now()
+                'status'       => 'completed',
+                'file_path'    => "exports/{$zipName}",
+                'completed_at' => now(),
             ]);
+
+            // Notify the user who requested the export
+            if ($this->exportRequest->requested_by) {
+                $requester = User::find($this->exportRequest->requested_by);
+                $requester?->notify(new ReportCardExportReady($this->exportRequest));
+            }
 
         } catch (\Exception $e) {
             $this->exportRequest->update([

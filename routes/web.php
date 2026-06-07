@@ -48,6 +48,17 @@ Route::middleware(['auth'])->group(function () {
         
         // Audit Logs
         Route::get('audit-logs', [App\Http\Controllers\Admin\AuditLogController::class, 'index'])->name('audit-logs.index');
+
+        // Notice Board
+        Route::resource('notices', App\Http\Controllers\Admin\NoticeController::class);
+
+        // Messaging
+        Route::get('messages', [App\Http\Controllers\Admin\MessagingController::class, 'index'])->name('messages.index');
+        Route::get('messages/create', [App\Http\Controllers\Admin\MessagingController::class, 'create'])->name('messages.create');
+        Route::post('messages', [App\Http\Controllers\Admin\MessagingController::class, 'store'])->name('messages.store');
+        Route::get('messages/{conversation}', [App\Http\Controllers\Admin\MessagingController::class, 'show'])->name('messages.show');
+        Route::post('messages/{conversation}/reply', [App\Http\Controllers\Admin\MessagingController::class, 'reply'])->name('messages.reply');
+        Route::get('messages/unread-count', [App\Http\Controllers\Admin\MessagingController::class, 'unreadCount'])->name('messages.unread-count');
         
         // Academic Structure
         Route::resource('divisions', App\Http\Controllers\Admin\DivisionController::class)->except(['show']);
@@ -153,6 +164,12 @@ Route::middleware(['auth'])->group(function () {
         // ID Card Settings
         Route::get('id-card-settings', [App\Http\Controllers\Admin\IdCardSettingController::class, 'index'])->name('id-card-settings.index');
         Route::put('id-card-settings', [App\Http\Controllers\Admin\IdCardSettingController::class, 'update'])->name('id-card-settings.update');
+
+        // Communication Settings
+        Route::get('settings/communication', [App\Http\Controllers\Admin\CommunicationSettingController::class, 'index'])->name('settings.communication.index');
+        Route::post('settings/communication', [App\Http\Controllers\Admin\CommunicationSettingController::class, 'update'])->name('settings.communication.update');
+        Route::post('settings/communication/test-sms', [App\Http\Controllers\Admin\CommunicationSettingController::class, 'testSms'])->name('settings.communication.test-sms');
+        Route::post('settings/communication/test-email', [App\Http\Controllers\Admin\CommunicationSettingController::class, 'testEmail'])->name('settings.communication.test-email');
 
 
         // Gradebook AJAX Routes
@@ -298,8 +315,17 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/password', [App\Http\Controllers\Parent\ProfileController::class, 'updatePassword'])->name('password.update');
         Route::get('/notices', [App\Http\Controllers\Parent\CommunicationController::class, 'notices'])->name('notices.index');
         Route::get('/notices/{notice}', [App\Http\Controllers\Parent\CommunicationController::class, 'showNotice'])->name('notices.show');
-        Route::get('/contact-teacher', [App\Http\Controllers\Parent\CommunicationController::class, 'contactForm'])->name('contact.form');
-        Route::post('/contact-teacher', [App\Http\Controllers\Parent\CommunicationController::class, 'sendMessage'])->name('contact.send');
+
+        // Messaging (replaces old contact form — redirect kept for backwards compat)
+        Route::get('/messages', [App\Http\Controllers\Parent\MessagingController::class, 'index'])->name('messages.index');
+        Route::get('/messages/create', [App\Http\Controllers\Parent\MessagingController::class, 'create'])->name('messages.create');
+        Route::post('/messages', [App\Http\Controllers\Parent\MessagingController::class, 'store'])->name('messages.store');
+        Route::get('/messages/{conversation}', [App\Http\Controllers\Parent\MessagingController::class, 'show'])->name('messages.show');
+        Route::post('/messages/{conversation}/reply', [App\Http\Controllers\Parent\MessagingController::class, 'reply'])->name('messages.reply');
+        Route::get('/messages/unread-count', [App\Http\Controllers\Parent\MessagingController::class, 'unreadCount'])->name('messages.unread-count');
+        // Legacy contact routes — redirect to new messaging UI
+        Route::get('/contact-teacher', fn() => redirect()->route('parent.messages.create'))->name('contact.form');
+        Route::post('/contact-teacher', fn() => redirect()->route('parent.messages.create'))->name('contact.send');
         Route::get('/search', function (Illuminate\Http\Request $request) {
             $q = $request->query('q', '');
             if (strlen($q) < 2) {
@@ -335,8 +361,17 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Teacher\DashboardController::class, 'index'])->name('dashboard');
         Route::get('/dashboard/chart-data', [App\Http\Controllers\Teacher\DashboardController::class, 'getChartData'])->name('dashboard.chart-data');
         Route::get('/dashboard/efficiency-data', [App\Http\Controllers\Teacher\DashboardController::class, 'getEfficiencyData'])->name('dashboard.efficiency-data');
-        
-        // Exam Management
+
+        // Notices
+        Route::get('/notices', [App\Http\Controllers\Teacher\NoticeController::class, 'index'])->name('notices.index');
+        Route::get('/notices/{notice}', [App\Http\Controllers\Teacher\NoticeController::class, 'show'])->name('notices.show');
+
+        // Messaging
+        Route::get('/messages', [App\Http\Controllers\Teacher\MessagingController::class, 'index'])->name('messages.index');
+        Route::get('/messages/{conversation}', [App\Http\Controllers\Teacher\MessagingController::class, 'show'])->name('messages.show');
+        Route::post('/messages/{conversation}/reply', [App\Http\Controllers\Teacher\MessagingController::class, 'reply'])->name('messages.reply');
+        Route::get('/messages/unread-count', [App\Http\Controllers\Teacher\MessagingController::class, 'unreadCount'])->name('messages.unread-count');
+
         Route::resource('exams', App\Http\Controllers\Teacher\ExamPaperController::class);
         Route::get('exams/{exam}/download', [App\Http\Controllers\Teacher\ExamPaperController::class, 'download'])->name('exams.download');
 
@@ -380,3 +415,19 @@ Route::middleware(['auth'])->group(function () {
 });
 
 require __DIR__.'/auth.php';
+
+// ─── Shared: Notification API (all authenticated users) ─────────────────────
+Route::middleware('auth')->prefix('notifications')->name('notifications.')->group(function () {
+    Route::get('/',            [App\Http\Controllers\NotificationController::class, 'index'])->name('index');
+    Route::get('/count',       [App\Http\Controllers\NotificationController::class, 'count'])->name('count');
+    Route::get('/latest',      [App\Http\Controllers\NotificationController::class, 'latest'])->name('latest');
+    Route::post('/mark-all',   [App\Http\Controllers\NotificationController::class, 'markAllRead'])->name('mark-all');
+    Route::delete('/clear-all', [App\Http\Controllers\NotificationController::class, 'clearAll'])->name('clear-all');
+    Route::get('/{id}/read',   [App\Http\Controllers\NotificationController::class, 'markRead'])->name('read');
+});
+
+// ─── Shared: Conversation API (all authenticated users) ─────────────────────
+Route::middleware('auth')->prefix('conversations')->name('conversations.')->group(function () {
+    Route::get('/{conversation}/messages', [App\Http\Controllers\NotificationController::class, 'fetchMessages'])->name('messages');
+    Route::post('/{conversation}/reply',   [App\Http\Controllers\NotificationController::class, 'ajaxReply'])->name('reply');
+});

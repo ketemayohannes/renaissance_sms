@@ -121,6 +121,9 @@
                         </svg>
                     </button>
                     
+                    <!-- Notification Bell -->
+                    <x-notification-bell />
+                    
                     <!-- Profile Dropdown -->
                     <x-dropdown align="right" width="48">
                         <x-slot name="trigger">

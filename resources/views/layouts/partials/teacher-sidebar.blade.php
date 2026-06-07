@@ -2,7 +2,8 @@
        x-data="{ 
            openCategories: JSON.parse(localStorage.getItem('teacherOpenCategories')) || { 
                'teaching': true, 
-               'students': true
+               'students': true,
+               'communications': true
            },
            toggleCategory(key) {
                this.openCategories[key] = !this.openCategories[key];
@@ -166,6 +167,36 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                 </svg>
                 <span x-show="!sidebarCollapsed" x-transition>Result Analysis</span>
+            </a>
+        </div>
+
+        <!-- Communication -->
+        <div class="sidebar-category-header flex items-center cursor-pointer group mt-4" 
+             :class="sidebarCollapsed ? 'text-center px-0 justify-center w-full' : 'justify-between sticky top-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md'"
+             @click="toggleCategory('communications')">
+            <span x-show="!sidebarCollapsed" class="group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors uppercase tracking-widest font-black text-[10px] text-slate-400 dark:text-slate-500">Communication</span>
+            <span x-show="!sidebarCollapsed">
+                <svg class="w-3 h-3 text-slate-400 transition-transform duration-200"
+                     :class="openCategories['communications'] ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </span>
+            <span x-show="sidebarCollapsed">•••</span>
+        </div>
+        
+        <div x-show="openCategories['communications'] || sidebarCollapsed" x-collapse>
+            <a href="{{ route('teacher.notices.index') }}" class="sidebar-link {{ request()->routeIs('teacher.notices.*') ? 'sidebar-link-active' : '' }}" title="Notice Board">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path>
+                </svg>
+                <span x-show="!sidebarCollapsed" x-transition>Notice Board</span>
+            </a>
+
+            <a href="{{ route('teacher.messages.index') }}" class="sidebar-link {{ request()->routeIs('teacher.messages.*') ? 'sidebar-link-active' : '' }}" title="Messages">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
+                </svg>
+                <span x-show="!sidebarCollapsed" x-transition>Messages</span>
             </a>
         </div>
     </nav>

@@ -149,7 +149,7 @@ class DashboardController extends Controller
 
         // 5. Fetch active notices targeting all or students
         $activeNotices = Notice::where('is_active', true)
-            ->whereIn('target_audience', ['all', 'students'])
+            ->whereIn('target_audience', ['All', 'Student'])
             ->where(function($q) {
                 $q->whereNull('expiry_date')
                   ->orWhere('expiry_date', '>=', now()->toDateString());

@@ -37,9 +37,6 @@ class Notice extends Model
 
     /**
      * Scope a query to only include active notices.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeActive($query)
     {
@@ -53,11 +50,34 @@ class Notice extends Model
     }
 
     /**
+     * Scope a query to only include notices for a given audience role.
+     * Roles: 'Parent', 'Teacher', 'Student', 'Admin'
+     */
+    public function scopeForAudience($query, string $role)
+    {
+        return $query->whereIn('target_audience', [$role, 'All']);
+    }
+
+    /**
      * Get the user who posted the notice.
      */
     public function postedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'posted_by');
+    }
+
+    /**
+     * Audience badge colour helper for views.
+     */
+    public static function audienceColor(string $audience): string
+    {
+        return match($audience) {
+            'All'     => 'bg-violet-100 text-violet-700',
+            'Parent'  => 'bg-sky-100 text-sky-700',
+            'Teacher' => 'bg-emerald-100 text-emerald-700',
+            'Student' => 'bg-amber-100 text-amber-700',
+            default   => 'bg-slate-100 text-slate-600',
+        };
     }
 }
 

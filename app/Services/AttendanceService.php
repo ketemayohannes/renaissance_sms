@@ -86,6 +86,11 @@ class AttendanceService
             $academicYearId = $section->academic_year_id;
 
             foreach ($attendanceData as $studentId => $status) {
+                // Fetch existing status before update to avoid spamming alerts on updates/edits
+                $existingRecord = StudentAttendance::where('student_id', $studentId)
+                    ->where('attendance_date', $date)
+                    ->first();
+
                 StudentAttendance::updateOrCreate(
                     [
                         'section_id' => $sectionId,
@@ -99,6 +104,15 @@ class AttendanceService
                         'marked_by' => auth()->id(),
                     ]
                 );
+
+                // Dispatch notification if student is newly marked absent
+                if ($status === 'absent' && (!$existingRecord || $existingRecord->status !== 'absent')) {
+                    $student = \App\Models\Student::with('primaryGuardian.user')->find($studentId);
+                    $guardianUser = $student?->primaryGuardian?->user;
+                    if ($guardianUser) {
+                        $guardianUser->notify(new \App\Notifications\StudentAbsent($student, $date));
+                    }
+                }
             }
         });
     }
