@@ -203,8 +203,25 @@ class GenerateSectionReportCards implements ShouldQueue
             }
         }
 
+        $isGrade12 = false;
+        if ($section && $section->gradeLevel && preg_match('/\b12\b/', $section->gradeLevel->name)) {
+            $isGrade12 = true;
+        }
+
+        $enrolledElectiveIds = [];
+        if ($isGrade12 && $isYearly) {
+            $enrolledElectiveIds = \Illuminate\Support\Facades\DB::table('student_electives')
+                ->where('student_id', $student->id)
+                ->where('academic_year_id', $academicYear->id)
+                ->pluck('subject_id')
+                ->toArray();
+        }
+
         // Filter Subjects (Remove those without marks in any pertinent term)
-        $subjects = $subjects->filter(function($subject) use ($marks, $quarterMarks, $semesterMarks, $isSemester, $isYearly) {
+        $subjects = $subjects->filter(function($subject) use ($marks, $quarterMarks, $semesterMarks, $isSemester, $isYearly, $isGrade12, $enrolledElectiveIds) {
+            if ($isGrade12 && $isYearly && $subject->is_elective) {
+                return in_array($subject->id, $enrolledElectiveIds);
+            }
             if ($isSemester) return isset($quarterMarks[$subject->id]);
             if ($isYearly) return isset($semesterMarks[$subject->id]);
             return isset($marks[$subject->id]);

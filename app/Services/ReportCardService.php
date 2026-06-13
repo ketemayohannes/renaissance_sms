@@ -139,8 +139,26 @@ class ReportCardService
         $preparedQuarters = $this->prepareSubTermData($reportData['quarters'] ?? [], $totalStudents);
         $preparedSemesters = $this->prepareSubTermData($reportData['semesters'] ?? [], $totalStudents);
 
+        $isGrade12 = false;
+        $gradeLevel = $reportData['section']?->gradeLevel;
+        if ($gradeLevel && preg_match('/\b12\b/', $gradeLevel->name)) {
+            $isGrade12 = true;
+        }
+
+        $enrolledElectiveIds = [];
+        if ($isGrade12 && $isYearly) {
+            $enrolledElectiveIds = DB::table('student_electives')
+                ->where('student_id', $student->id)
+                ->where('academic_year_id', $academicYear->id)
+                ->pluck('subject_id')
+                ->toArray();
+        }
+
         // Filter and prepare subjects
-        $subjects = $reportData['subjects']->filter(function($subject) use ($reportData, $preparedQuarters, $preparedSemesters, $isSemester, $isYearly) {
+        $subjects = $reportData['subjects']->filter(function($subject) use ($reportData, $preparedQuarters, $preparedSemesters, $isSemester, $isYearly, $isGrade12, $enrolledElectiveIds) {
+            if ($isGrade12 && $isYearly && $subject->is_elective) {
+                return in_array($subject->id, $enrolledElectiveIds);
+            }
             if ($isSemester) return isset($preparedQuarters['marks'][$subject->id]);
             if ($isYearly) return isset($preparedSemesters['marks'][$subject->id]);
             return isset($reportData['marks'][$subject->id]);
@@ -214,6 +232,21 @@ class ReportCardService
         $targetTermsForAttendance = collect([$term])->concat($quarters)->concat($semesters)->unique('id');
         $batchAttendance = $this->getBatchAttendanceSummary($students, $targetTermsForAttendance, $academicYear);
 
+        $isGrade12 = false;
+        if ($section->gradeLevel && preg_match('/\b12\b/', $section->gradeLevel->name)) {
+            $isGrade12 = true;
+        }
+
+        $electiveEnrollments = collect();
+        if ($isGrade12 && $isYearly) {
+            $electiveEnrollments = DB::table('student_electives')
+                ->whereIn('student_id', $students->pluck('id'))
+                ->where('academic_year_id', $academicYear->id)
+                ->get()
+                ->groupBy('student_id')
+                ->map(fn($group) => $group->pluck('subject_id')->toArray());
+        }
+
         $reportCards = [];
         foreach ($students as $student) {
             $reportData = $sectionReportData[$student->id] ?? null;
@@ -227,7 +260,12 @@ class ReportCardService
             $preparedQuarters = $this->prepareSubTermData($reportData['quarters'] ?? [], $totalStudents);
             $preparedSemesters = $this->prepareSubTermData($reportData['semesters'] ?? [], $totalStudents);
 
-            $studentSubjects = $reportData['subjects']->filter(function($subject) use ($reportData, $preparedQuarters, $preparedSemesters, $isSemester, $isYearly) {
+            $enrolledElectiveIds = $electiveEnrollments->get($student->id) ?? [];
+
+            $studentSubjects = $reportData['subjects']->filter(function($subject) use ($reportData, $preparedQuarters, $preparedSemesters, $isSemester, $isYearly, $isGrade12, $enrolledElectiveIds) {
+                if ($isGrade12 && $isYearly && $subject->is_elective) {
+                    return in_array($subject->id, $enrolledElectiveIds);
+                }
                 if (!$subject->is_elective) return true;
                 if (isset($reportData['marks'][$subject->id])) return true;
                 if ($isSemester && isset($preparedQuarters['marks'][$subject->id])) return !empty($preparedQuarters['marks'][$subject->id]);

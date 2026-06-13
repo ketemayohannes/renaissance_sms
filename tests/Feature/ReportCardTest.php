@@ -187,4 +187,74 @@ class ReportCardTest extends TestCase
 
         $response->assertStatus(403);
     }
+
+    /** @test */
+    public function grade_12_yearly_report_card_hides_unassigned_electives(): void
+    {
+        // Change grade level name to Grade 12
+        $this->gradeLevel->update(['name' => 'Grade 12']);
+
+        // Create semesters and quarters
+        $semester1 = Term::factory()->semester(1)->create(['academic_year_id' => $this->academicYear->id]);
+        $semester2 = Term::factory()->semester(2)->create(['academic_year_id' => $this->academicYear->id]);
+        
+        $q1 = Term::factory()->quarter(1)->create(['academic_year_id' => $this->academicYear->id, 'parent_term_id' => $semester1->id]);
+        $q2 = Term::factory()->quarter(2)->create(['academic_year_id' => $this->academicYear->id, 'parent_term_id' => $semester1->id]);
+        $q3 = Term::factory()->quarter(3)->create(['academic_year_id' => $this->academicYear->id, 'parent_term_id' => $semester2->id]);
+        $q4 = Term::factory()->quarter(4)->create(['academic_year_id' => $this->academicYear->id, 'parent_term_id' => $semester2->id]);
+
+        // Create an elective subject
+        $electiveSubject = Subject::factory()->create(['is_elective' => true, 'name' => 'Art Elective']);
+        $this->gradeLevel->subjects()->attach($electiveSubject->id, [
+            'academic_year_id' => $this->academicYear->id,
+            'is_required' => false,
+            'sort_order' => 10,
+        ]);
+
+        // Attach regular subject mark so student has a record
+        $template = AssessmentTemplate::factory()->termTotal()->create([
+            'academic_year_id' => $this->academicYear->id,
+            'term_id' => $q1->id,
+        ]);
+        StudentMark::factory()->create([
+            'student_id' => $this->student->id,
+            'academic_year_id' => $this->academicYear->id,
+            'term_id' => $q1->id,
+            'subject_id' => $this->subject->id,
+            'assessment_template_id' => $template->id,
+            'section_id' => $this->section->id,
+            'score' => 85,
+        ]);
+
+        // Generate yearly report card
+        $response = $this->actingAs($this->adminUser)
+            ->get(route('admin.report-cards.pdf', [
+                'student' => $this->student->id,
+                'term_id' => 'yearly',
+                'academic_year_id' => $this->academicYear->id,
+            ]));
+
+        $response->assertStatus(200);
+        // The elective subject should NOT show up
+        $response->assertDontSee('Art Elective');
+
+        // Now, assign the elective to the student
+        \Illuminate\Support\Facades\DB::table('student_electives')->insert([
+            'student_id' => $this->student->id,
+            'subject_id' => $electiveSubject->id,
+            'academic_year_id' => $this->academicYear->id,
+        ]);
+
+        // Generate yearly report card again
+        $response = $this->actingAs($this->adminUser)
+            ->get(route('admin.report-cards.pdf', [
+                'student' => $this->student->id,
+                'term_id' => 'yearly',
+                'academic_year_id' => $this->academicYear->id,
+            ]));
+
+        $response->assertStatus(200);
+        // The elective subject should now show up
+        $response->assertSee('Art Elective');
+    }
 }
