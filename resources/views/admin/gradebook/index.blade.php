@@ -120,25 +120,31 @@
     @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            const STORAGE_KEY = 'gradebook_selections';
             const yearSelect = document.getElementById('academic_year_id');
             const termSelect = document.getElementById('term_id');
             const gradeSelect = document.getElementById('grade_level_id');
             const sectionSelect = document.getElementById('section_id');
             const subjectSelect = document.getElementById('subject_id');
 
+            // Save selections to sessionStorage on form submit
+            const form = sectionSelect.closest('form');
+            form.addEventListener('submit', function() {
+                const selections = {
+                    academic_year_id: yearSelect.value,
+                    term_id: termSelect.value,
+                    grade_level_id: gradeSelect.value,
+                    section_id: sectionSelect.value,
+                    subject_id: subjectSelect.value
+                };
+                sessionStorage.setItem(STORAGE_KEY, JSON.stringify(selections));
+            });
+
             yearSelect.addEventListener('change', function() {
                 const yearId = this.value;
                 if (!yearId) return;
                 
-                fetch(`{{ route('admin.gradebook.get-terms') }}?academic_year_id=${yearId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        termSelect.innerHTML = '<option value="">Select Term</option>';
-                        data.forEach(term => {
-                            termSelect.innerHTML += `<option value="${term.id}">${term.name}</option>`;
-                        });
-                    });
-                
+                loadTerms(yearId);
                 resetDependentDropdowns();
             });
 
@@ -147,30 +153,72 @@
                 const yearId = yearSelect.value;
                 if (!gradeId || !yearId) return;
 
+                loadSectionsAndSubjects(yearId, gradeId);
+            });
+
+            function loadTerms(yearId, savedTermId) {
+                return fetch(`{{ route('admin.gradebook.get-terms') }}?academic_year_id=${yearId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        termSelect.innerHTML = '<option value="">Select Term</option>';
+                        data.forEach(term => {
+                            termSelect.innerHTML += `<option value="${term.id}">${term.name}</option>`;
+                        });
+                        if (savedTermId) termSelect.value = savedTermId;
+                    });
+            }
+
+            function loadSectionsAndSubjects(yearId, gradeId, savedSectionId, savedSubjectId) {
                 // Load Sections
-                fetch(`{{ route('admin.gradebook.get-sections') }}?academic_year_id=${yearId}&grade_level_id=${gradeId}`)
+                const sectionsPromise = fetch(`{{ route('admin.gradebook.get-sections') }}?academic_year_id=${yearId}&grade_level_id=${gradeId}`)
                     .then(response => response.json())
                     .then(data => {
                         sectionSelect.innerHTML = '<option value="">Select Section</option>';
                         data.forEach(section => {
                             sectionSelect.innerHTML += `<option value="${section.id}">${section.name}</option>`;
                         });
+                        if (savedSectionId) sectionSelect.value = savedSectionId;
                     });
                 
                 // Load Subjects
-                fetch(`{{ route('admin.gradebook.get-subjects') }}?academic_year_id=${yearId}&grade_level_id=${gradeId}`)
+                const subjectsPromise = fetch(`{{ route('admin.gradebook.get-subjects') }}?academic_year_id=${yearId}&grade_level_id=${gradeId}`)
                     .then(response => response.json())
                     .then(data => {
                         subjectSelect.innerHTML = '<option value="">Select Subject</option>';
                         data.forEach(subject => {
                             subjectSelect.innerHTML += `<option value="${subject.id}">${subject.name}</option>`;
                         });
+                        if (savedSubjectId) subjectSelect.value = savedSubjectId;
                     });
-            });
+
+                return Promise.all([sectionsPromise, subjectsPromise]);
+            }
 
             function resetDependentDropdowns() {
                 sectionSelect.innerHTML = '<option value="">Select Section</option>';
                 subjectSelect.innerHTML = '<option value="">Select Subject</option>';
+            }
+
+            // Restore saved selections on page load
+            const saved = sessionStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    const s = JSON.parse(saved);
+                    if (s.academic_year_id) yearSelect.value = s.academic_year_id;
+                    if (s.term_id) {
+                        // Term options are server-rendered, just set the value
+                        termSelect.value = s.term_id;
+                    }
+                    if (s.grade_level_id) {
+                        gradeSelect.value = s.grade_level_id;
+                        // Trigger AJAX to load sections and subjects, then set saved values
+                        if (yearSelect.value) {
+                            loadSectionsAndSubjects(yearSelect.value, s.grade_level_id, s.section_id, s.subject_id);
+                        }
+                    }
+                } catch (e) {
+                    // Ignore corrupted storage
+                }
             }
         });
     </script>

@@ -39,5 +39,26 @@ return Application::configure(basePath: dirname(__DIR__))
                 return redirect()->route('login')
                     ->with('status', 'Your session has expired. Please log in again.');
             }
+
+            if ($e->getStatusCode() === 403) {
+                if ($request->expectsJson() || $request->ajax()) {
+                    return response()->json([
+                        'message' => 'You do not have permission to access this page.'
+                    ], 403);
+                }
+
+                if (app()->runningUnitTests()) {
+                    return null;
+                }
+
+                $redirectTo = auth()->check() ? route('dashboard') : route('login');
+
+                if ($request->hasSession()) {
+                    $request->session()->flash('error', 'You do not have permission to access that page.');
+                    $request->session()->save();
+                }
+
+                return redirect()->to($redirectTo);
+            }
         });
     })->create();

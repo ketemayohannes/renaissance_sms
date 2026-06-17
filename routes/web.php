@@ -39,7 +39,7 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // Admin Routes
-    Route::middleware(['role_or_permission:Super Admin|view students|view employees|view fees'])->prefix('admin')->name('admin.')->group(function () {
+    Route::middleware(['role:Super Admin|Principal|Vice Principal|Supervisor|IT / System Admin|Registrar|General Manager'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
         Route::get('/search', [App\Http\Controllers\Admin\GlobalSearchController::class, 'search'])->name('global-search');
         
@@ -47,10 +47,10 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('roles', App\Http\Controllers\Admin\RoleController::class)->middleware('permission:manage roles');
         
         // Audit Logs
-        Route::get('audit-logs', [App\Http\Controllers\Admin\AuditLogController::class, 'index'])->name('audit-logs.index');
+        Route::get('audit-logs', [App\Http\Controllers\Admin\AuditLogController::class, 'index'])->name('audit-logs.index')->middleware('permission:manage roles');
 
         // Notice Board
-        Route::resource('notices', App\Http\Controllers\Admin\NoticeController::class);
+        Route::resource('notices', App\Http\Controllers\Admin\NoticeController::class)->middleware('permission:manage notice board');
 
         // Messaging
         Route::get('messages', [App\Http\Controllers\Admin\MessagingController::class, 'index'])->name('messages.index');
@@ -61,241 +61,241 @@ Route::middleware(['auth'])->group(function () {
         Route::get('messages/unread-count', [App\Http\Controllers\Admin\MessagingController::class, 'unreadCount'])->name('messages.unread-count');
         
         // Academic Structure
-        Route::resource('divisions', App\Http\Controllers\Admin\DivisionController::class)->except(['show']);
-        Route::resource('grade-levels', App\Http\Controllers\Admin\GradeLevelController::class)->except(['show']);
-        // Section Import
-        Route::get('sections/import', [App\Http\Controllers\Admin\SectionController::class, 'import'])->name('sections.import');
-        Route::post('sections/import', [App\Http\Controllers\Admin\SectionController::class, 'upload'])->name('sections.upload');
-        Route::get('sections/download-template', [App\Http\Controllers\Admin\SectionController::class, 'downloadTemplate'])->name('sections.download-template');
-        // Bulk Create Sections
-        Route::get('sections/bulk-create', [App\Http\Controllers\Admin\SectionController::class, 'bulkCreate'])->name('sections.bulk-create');
-        Route::post('sections/bulk-create', [App\Http\Controllers\Admin\SectionController::class, 'bulkStore'])->name('sections.bulk-store');
+        Route::resource('divisions', App\Http\Controllers\Admin\DivisionController::class)->except(['show'])->middleware('permission:manage divisions');
+        Route::resource('grade-levels', App\Http\Controllers\Admin\GradeLevelController::class)->except(['show'])->middleware('permission:manage grade levels');
+        // Section Import (permission-gated)
+        Route::get('sections/import', [App\Http\Controllers\Admin\SectionController::class, 'import'])->name('sections.import')->middleware('permission:manage sections');
+        Route::post('sections/import', [App\Http\Controllers\Admin\SectionController::class, 'upload'])->name('sections.upload')->middleware('permission:manage sections');
+        Route::get('sections/download-template', [App\Http\Controllers\Admin\SectionController::class, 'downloadTemplate'])->name('sections.download-template')->middleware('permission:manage sections');
+        // Bulk Create Sections (permission-gated)
+        Route::get('sections/bulk-create', [App\Http\Controllers\Admin\SectionController::class, 'bulkCreate'])->name('sections.bulk-create')->middleware('permission:manage sections');
+        Route::post('sections/bulk-create', [App\Http\Controllers\Admin\SectionController::class, 'bulkStore'])->name('sections.bulk-store')->middleware('permission:manage sections');
 
-        Route::resource('sections', App\Http\Controllers\Admin\SectionController::class)->except(['show']);
+        Route::resource('sections', App\Http\Controllers\Admin\SectionController::class)->except(['show'])->middleware('permission:manage sections');
         
-        // Subject Ordering
-        Route::get('subjects/reorder', [App\Http\Controllers\Admin\SubjectController::class, 'reorder'])->name('subjects.reorder');
-        Route::post('subjects/reorder', [App\Http\Controllers\Admin\SubjectController::class, 'updateOrder'])->name('subjects.update-order');
+        // Subject Ordering (permission-gated)
+        Route::get('subjects/reorder', [App\Http\Controllers\Admin\SubjectController::class, 'reorder'])->name('subjects.reorder')->middleware('permission:manage subjects');
+        Route::post('subjects/reorder', [App\Http\Controllers\Admin\SubjectController::class, 'updateOrder'])->name('subjects.update-order')->middleware('permission:manage subjects');
         
-        // Subject Import
-        Route::get('subjects/import', [App\Http\Controllers\Admin\SubjectController::class, 'import'])->name('subjects.import');
-        Route::post('subjects/upload', [App\Http\Controllers\Admin\SubjectController::class, 'upload'])->name('subjects.upload');
-        Route::get('subjects/template', [App\Http\Controllers\Admin\SubjectController::class, 'downloadTemplate'])->name('subjects.template');
+        // Subject Import (permission-gated)
+        Route::get('subjects/import', [App\Http\Controllers\Admin\SubjectController::class, 'import'])->name('subjects.import')->middleware('permission:manage subjects');
+        Route::post('subjects/upload', [App\Http\Controllers\Admin\SubjectController::class, 'upload'])->name('subjects.upload')->middleware('permission:manage subjects');
+        Route::get('subjects/template', [App\Http\Controllers\Admin\SubjectController::class, 'downloadTemplate'])->name('subjects.template')->middleware('permission:manage subjects');
         
-        Route::resource('subjects', App\Http\Controllers\Admin\SubjectController::class)->except(['show']);
+        Route::resource('subjects', App\Http\Controllers\Admin\SubjectController::class)->except(['show'])->middleware('permission:manage subjects');
         
-        // Subject Assignment
-        Route::get('subject-assignments/bulk-assign', [App\Http\Controllers\Admin\SubjectAssignmentController::class, 'bulkAssignForm'])->name('subject-assignments.bulk-assign');
-        Route::post('subject-assignments/bulk-assign', [App\Http\Controllers\Admin\SubjectAssignmentController::class, 'storeBulkAssign'])->name('subject-assignments.bulk-assign.store');
+        // Subject Assignment (permission-gated)
+        Route::get('subject-assignments/bulk-assign', [App\Http\Controllers\Admin\SubjectAssignmentController::class, 'bulkAssignForm'])->name('subject-assignments.bulk-assign')->middleware('permission:manage subjects');
+        Route::post('subject-assignments/bulk-assign', [App\Http\Controllers\Admin\SubjectAssignmentController::class, 'storeBulkAssign'])->name('subject-assignments.bulk-assign.store')->middleware('permission:manage subjects');
         
-        Route::get('subject-assignments', [App\Http\Controllers\Admin\SubjectAssignmentController::class, 'index'])->name('subject-assignments.index');
+        Route::get('subject-assignments', [App\Http\Controllers\Admin\SubjectAssignmentController::class, 'index'])->name('subject-assignments.index')->middleware('permission:manage subjects');
         
 
-        Route::get('subject-assignments/{grade_level}/edit', [App\Http\Controllers\Admin\SubjectAssignmentController::class, 'edit'])->name('subject-assignments.edit');
-        Route::put('subject-assignments/{grade_level}', [App\Http\Controllers\Admin\SubjectAssignmentController::class, 'update'])->name('subject-assignments.update');
+        Route::get('subject-assignments/{grade_level}/edit', [App\Http\Controllers\Admin\SubjectAssignmentController::class, 'edit'])->name('subject-assignments.edit')->middleware('permission:manage subjects');
+        Route::put('subject-assignments/{grade_level}', [App\Http\Controllers\Admin\SubjectAssignmentController::class, 'update'])->name('subject-assignments.update')->middleware('permission:manage subjects');
 
-        Route::resource('academic-years', App\Http\Controllers\Admin\AcademicYearController::class)->except(['show']);
-        Route::resource('terms', App\Http\Controllers\Admin\TermController::class)->except(['show']);
+        Route::resource('academic-years', App\Http\Controllers\Admin\AcademicYearController::class)->except(['show'])->middleware('permission:manage grade levels');
+        Route::resource('terms', App\Http\Controllers\Admin\TermController::class)->except(['show'])->middleware('permission:manage grade levels');
         Route::get('terms/quarters/{academicYear}', [App\Http\Controllers\Admin\TermController::class, 'getQuarters'])->name('terms.get-quarters');
 
         
-        // Student Management
-        Route::get('students/export', [App\Http\Controllers\Admin\StudentController::class, 'export'])->name('students.export');
-        Route::get('students/import', [App\Http\Controllers\Admin\StudentController::class, 'import'])->name('students.import');
-        Route::post('students/import', [App\Http\Controllers\Admin\StudentController::class, 'upload'])->name('students.upload');
-        Route::get('students/download-template', [App\Http\Controllers\Admin\StudentController::class, 'downloadTemplate'])->name('students.download-template');
-        Route::post('students/{student}/toggle-block', [App\Http\Controllers\Admin\StudentController::class, 'toggleBlock'])->name('students.toggle-block');
-        Route::get('students/{student}/transfer', [App\Http\Controllers\Admin\StudentController::class, 'transferForm'])->name('students.transfer');
-        Route::post('students/{student}/transfer', [App\Http\Controllers\Admin\StudentController::class, 'transfer'])->name('students.transfer.store');
-        Route::get('students/{student}/assign-electives', [App\Http\Controllers\Admin\StudentController::class, 'assignElectivesForm'])->name('students.assign-electives');
-        Route::post('students/{student}/assign-electives', [App\Http\Controllers\Admin\StudentController::class, 'storeElectives'])->name('students.assign-electives.store');
-        Route::post('students/{student}/siblings', [App\Http\Controllers\Admin\StudentController::class, 'linkSibling'])->name('students.siblings.link');
-        Route::delete('students/{student}/siblings/{sibling}', [App\Http\Controllers\Admin\StudentController::class, 'unlinkSibling'])->name('students.siblings.unlink');
-        Route::post('students/bulk-destroy', [App\Http\Controllers\Admin\StudentController::class, 'bulkDestroy'])->name('students.bulk-destroy');
-        Route::post('students/bulk-deactivate', [App\Http\Controllers\Admin\StudentController::class, 'bulkDeactivate'])->name('students.bulk-deactivate');
-        Route::post('students/bulk-transfer', [App\Http\Controllers\Admin\StudentController::class, 'bulkTransfer'])->name('students.bulk-transfer');
-        Route::get('students/{student}/withdraw', [App\Http\Controllers\Admin\StudentController::class, 'withdrawForm'])->name('students.withdraw');
-        Route::post('students/{student}/withdraw', [App\Http\Controllers\Admin\StudentController::class, 'processWithdrawal'])->name('students.withdraw.store');
-        Route::get('students/{student}/status-history', [App\Http\Controllers\Admin\StudentController::class, 'statusHistory'])->name('students.status-history');
-        Route::get('id-cards', [App\Http\Controllers\Admin\StudentController::class, 'idCardsIndex'])->name('id-cards.index');
+        // Student Management (permission-gated)
+        Route::get('students/export', [App\Http\Controllers\Admin\StudentController::class, 'export'])->name('students.export')->middleware('permission:view students');
+        Route::get('students/import', [App\Http\Controllers\Admin\StudentController::class, 'import'])->name('students.import')->middleware('permission:create students');
+        Route::post('students/import', [App\Http\Controllers\Admin\StudentController::class, 'upload'])->name('students.upload')->middleware('permission:create students');
+        Route::get('students/download-template', [App\Http\Controllers\Admin\StudentController::class, 'downloadTemplate'])->name('students.download-template')->middleware('permission:create students');
+        Route::post('students/{student}/toggle-block', [App\Http\Controllers\Admin\StudentController::class, 'toggleBlock'])->name('students.toggle-block')->middleware('permission:edit students');
+        Route::get('students/{student}/transfer', [App\Http\Controllers\Admin\StudentController::class, 'transferForm'])->name('students.transfer')->middleware('permission:edit students');
+        Route::post('students/{student}/transfer', [App\Http\Controllers\Admin\StudentController::class, 'transfer'])->name('students.transfer.store')->middleware('permission:edit students');
+        Route::get('students/{student}/assign-electives', [App\Http\Controllers\Admin\StudentController::class, 'assignElectivesForm'])->name('students.assign-electives')->middleware('permission:edit students');
+        Route::post('students/{student}/assign-electives', [App\Http\Controllers\Admin\StudentController::class, 'storeElectives'])->name('students.assign-electives.store')->middleware('permission:edit students');
+        Route::post('students/{student}/siblings', [App\Http\Controllers\Admin\StudentController::class, 'linkSibling'])->name('students.siblings.link')->middleware('permission:edit students');
+        Route::delete('students/{student}/siblings/{sibling}', [App\Http\Controllers\Admin\StudentController::class, 'unlinkSibling'])->name('students.siblings.unlink')->middleware('permission:edit students');
+        Route::post('students/bulk-destroy', [App\Http\Controllers\Admin\StudentController::class, 'bulkDestroy'])->name('students.bulk-destroy')->middleware('permission:delete students');
+        Route::post('students/bulk-deactivate', [App\Http\Controllers\Admin\StudentController::class, 'bulkDeactivate'])->name('students.bulk-deactivate')->middleware('permission:edit students');
+        Route::post('students/bulk-transfer', [App\Http\Controllers\Admin\StudentController::class, 'bulkTransfer'])->name('students.bulk-transfer')->middleware('permission:edit students');
+        Route::get('students/{student}/withdraw', [App\Http\Controllers\Admin\StudentController::class, 'withdrawForm'])->name('students.withdraw')->middleware('permission:edit students');
+        Route::post('students/{student}/withdraw', [App\Http\Controllers\Admin\StudentController::class, 'processWithdrawal'])->name('students.withdraw.store')->middleware('permission:edit students');
+        Route::get('students/{student}/status-history', [App\Http\Controllers\Admin\StudentController::class, 'statusHistory'])->name('students.status-history')->middleware('permission:view students');
+        Route::get('id-cards', [App\Http\Controllers\Admin\StudentController::class, 'idCardsIndex'])->name('id-cards.index')->middleware('permission:view students');
         
-        // New Student Routes
-        Route::post('students/{student}/document', [App\Http\Controllers\Admin\StudentController::class, 'storeDocument'])->name('students.store-document');
-        Route::delete('students/{student}/document/{document}', [App\Http\Controllers\Admin\StudentController::class, 'deleteDocument'])->name('students.delete-document');
-        Route::post('students/{id}/restore', [App\Http\Controllers\Admin\StudentController::class, 'restore'])->name('students.restore');
-        Route::post('students/bulk-id-cards', [App\Http\Controllers\Admin\StudentController::class, 'bulkIdCardsSelected'])->name('students.bulk-id-cards-selected');
+        // Student Document Routes (permission-gated)
+        Route::post('students/{student}/document', [App\Http\Controllers\Admin\StudentController::class, 'storeDocument'])->name('students.store-document')->middleware('permission:edit students');
+        Route::delete('students/{student}/document/{document}', [App\Http\Controllers\Admin\StudentController::class, 'deleteDocument'])->name('students.delete-document')->middleware('permission:edit students');
+        Route::post('students/{id}/restore', [App\Http\Controllers\Admin\StudentController::class, 'restore'])->name('students.restore')->middleware('permission:edit students');
+        Route::post('students/bulk-id-cards', [App\Http\Controllers\Admin\StudentController::class, 'bulkIdCardsSelected'])->name('students.bulk-id-cards-selected')->middleware('permission:view students');
         
-        // Electives Bulk Assign
-        Route::get('electives/bulk-assign', [App\Http\Controllers\Admin\ElectiveController::class, 'bulkAssignForm'])->name('electives.bulk-assign');
-        Route::post('electives/bulk-assign', [App\Http\Controllers\Admin\ElectiveController::class, 'storeBulkAssign'])->name('electives.bulk-assign.store');
-        Route::get('electives/subjects', [App\Http\Controllers\Admin\ElectiveController::class, 'getSubjects'])->name('electives.get-subjects');
-        Route::get('electives/sections', [App\Http\Controllers\Admin\ElectiveController::class, 'getSections'])->name('electives.get-sections');
-        Route::get('electives/students', [App\Http\Controllers\Admin\ElectiveController::class, 'getStudents'])->name('electives.get-students');
+        // Electives Bulk Assign (permission-gated)
+        Route::get('electives/bulk-assign', [App\Http\Controllers\Admin\ElectiveController::class, 'bulkAssignForm'])->name('electives.bulk-assign')->middleware('permission:edit students');
+        Route::post('electives/bulk-assign', [App\Http\Controllers\Admin\ElectiveController::class, 'storeBulkAssign'])->name('electives.bulk-assign.store')->middleware('permission:edit students');
+        Route::get('electives/subjects', [App\Http\Controllers\Admin\ElectiveController::class, 'getSubjects'])->name('electives.get-subjects')->middleware('permission:edit students');
+        Route::get('electives/sections', [App\Http\Controllers\Admin\ElectiveController::class, 'getSections'])->name('electives.get-sections')->middleware('permission:edit students');
+        Route::get('electives/students', [App\Http\Controllers\Admin\ElectiveController::class, 'getStudents'])->name('electives.get-students')->middleware('permission:edit students');
 
-        // Gradebook Routes
-        Route::get('gradebook/export-template', [App\Http\Controllers\Admin\GradebookController::class, 'exportTemplate'])->name('gradebook.export-template');
-        Route::post('gradebook/import', [App\Http\Controllers\Admin\GradebookController::class, 'import'])->name('gradebook.import');
-        Route::get('gradebook', [App\Http\Controllers\Admin\GradebookController::class, 'index'])->name('gradebook.index');
-        Route::get('gradebook/entry', [App\Http\Controllers\Admin\GradebookController::class, 'entry'])->name('gradebook.entry');
-        Route::get('gradebook/marksheet', [App\Http\Controllers\Admin\GradebookController::class, 'marksheet'])->name('gradebook.marksheet');
-        Route::post('gradebook/store', [App\Http\Controllers\Admin\GradebookController::class, 'store'])->name('gradebook.store');
+        // Gradebook Routes (permission-gated)
+        Route::get('gradebook/export-template', [App\Http\Controllers\Admin\GradebookController::class, 'exportTemplate'])->name('gradebook.export-template')->middleware('permission:enter marks');
+        Route::post('gradebook/import', [App\Http\Controllers\Admin\GradebookController::class, 'import'])->name('gradebook.import')->middleware('permission:enter marks');
+        Route::get('gradebook', [App\Http\Controllers\Admin\GradebookController::class, 'index'])->name('gradebook.index')->middleware('permission:enter marks');
+        Route::get('gradebook/entry', [App\Http\Controllers\Admin\GradebookController::class, 'entry'])->name('gradebook.entry')->middleware('permission:enter marks');
+        Route::get('gradebook/marksheet', [App\Http\Controllers\Admin\GradebookController::class, 'marksheet'])->name('gradebook.marksheet')->middleware('permission:view marks');
+        Route::post('gradebook/store', [App\Http\Controllers\Admin\GradebookController::class, 'store'])->name('gradebook.store')->middleware('permission:enter marks');
 
-        // Section Grade Entry Routes
-        Route::get('section-grades', [App\Http\Controllers\Admin\SectionGradeController::class, 'index'])->name('section-grades.index');
-        Route::get('section-grades/entry', [App\Http\Controllers\Admin\SectionGradeController::class, 'entry'])->name('section-grades.entry');
-        Route::post('section-grades/store', [App\Http\Controllers\Admin\SectionGradeController::class, 'store'])->name('section-grades.store');
-        Route::get('section-grades/export', [App\Http\Controllers\Admin\SectionGradeController::class, 'export'])->name('section-grades.export');
-        Route::get('section-grades/export-data', [App\Http\Controllers\Admin\SectionGradeController::class, 'exportData'])->name('section-grades.export-data');
-        Route::get('section-grades/export-low-performance', [App\Http\Controllers\Admin\SectionGradeController::class, 'exportLowPerformance'])->name('section-grades.export-low-performance');
-        Route::get('section-grades/download-low-performance-report', [App\Http\Controllers\Admin\SectionGradeController::class, 'downloadLowPerformanceReport'])->name('section-grades.download-low-performance-report');
-        Route::post('section-grades/import', [App\Http\Controllers\Admin\SectionGradeController::class, 'import'])->name('section-grades.import');
-        Route::post('section-grades/calculate', [App\Http\Controllers\Admin\SectionGradeController::class, 'calculateSemester'])->name('section-grades.calculate');
+        // Section Grade Entry Routes (permission-gated)
+        Route::get('section-grades', [App\Http\Controllers\Admin\SectionGradeController::class, 'index'])->name('section-grades.index')->middleware('permission:enter marks');
+        Route::get('section-grades/entry', [App\Http\Controllers\Admin\SectionGradeController::class, 'entry'])->name('section-grades.entry')->middleware('permission:enter marks');
+        Route::post('section-grades/store', [App\Http\Controllers\Admin\SectionGradeController::class, 'store'])->name('section-grades.store')->middleware('permission:enter marks');
+        Route::get('section-grades/export', [App\Http\Controllers\Admin\SectionGradeController::class, 'export'])->name('section-grades.export')->middleware('permission:view marks');
+        Route::get('section-grades/export-data', [App\Http\Controllers\Admin\SectionGradeController::class, 'exportData'])->name('section-grades.export-data')->middleware('permission:view marks');
+        Route::get('section-grades/export-low-performance', [App\Http\Controllers\Admin\SectionGradeController::class, 'exportLowPerformance'])->name('section-grades.export-low-performance')->middleware('permission:view marks');
+        Route::get('section-grades/download-low-performance-report', [App\Http\Controllers\Admin\SectionGradeController::class, 'downloadLowPerformanceReport'])->name('section-grades.download-low-performance-report')->middleware('permission:view marks');
+        Route::post('section-grades/import', [App\Http\Controllers\Admin\SectionGradeController::class, 'import'])->name('section-grades.import')->middleware('permission:enter marks');
+        Route::post('section-grades/calculate', [App\Http\Controllers\Admin\SectionGradeController::class, 'calculateSemester'])->name('section-grades.calculate')->middleware('permission:enter marks');
         
-        // Assessment System Routes
-        Route::resource('assessment-types', App\Http\Controllers\Admin\AssessmentTypeController::class);
-        Route::post('assessment-templates/bulk-destroy', [App\Http\Controllers\Admin\AssessmentTemplateController::class, 'bulkDestroy'])->name('assessment-templates.bulk-destroy');
-        Route::post('assessment-templates/destroy-by-term', [App\Http\Controllers\Admin\AssessmentTemplateController::class, 'destroyByTerm'])->name('assessment-templates.destroy-by-term');
-        Route::get('assessment-templates/reorder', [App\Http\Controllers\Admin\AssessmentTemplateController::class, 'reorder'])->name('assessment-templates.reorder');
-        Route::post('assessment-templates/reorder', [App\Http\Controllers\Admin\AssessmentTemplateController::class, 'updateOrder'])->name('assessment-templates.update-order');
-        Route::resource('assessment-templates', App\Http\Controllers\Admin\AssessmentTemplateController::class);
-        Route::resource('grade-components', App\Http\Controllers\Admin\GradeComponentController::class);
-        Route::get('grade-components/get-components', [App\Http\Controllers\Admin\GradeComponentController::class, 'getComponents'])->name('grade-components.get-components');
+        // Assessment System Routes (permission-gated)
+        Route::resource('assessment-types', App\Http\Controllers\Admin\AssessmentTypeController::class)->middleware('permission:configure assessments');
+        Route::post('assessment-templates/bulk-destroy', [App\Http\Controllers\Admin\AssessmentTemplateController::class, 'bulkDestroy'])->name('assessment-templates.bulk-destroy')->middleware('permission:configure assessments');
+        Route::post('assessment-templates/destroy-by-term', [App\Http\Controllers\Admin\AssessmentTemplateController::class, 'destroyByTerm'])->name('assessment-templates.destroy-by-term')->middleware('permission:configure assessments');
+        Route::get('assessment-templates/reorder', [App\Http\Controllers\Admin\AssessmentTemplateController::class, 'reorder'])->name('assessment-templates.reorder')->middleware('permission:configure assessments');
+        Route::post('assessment-templates/reorder', [App\Http\Controllers\Admin\AssessmentTemplateController::class, 'updateOrder'])->name('assessment-templates.update-order')->middleware('permission:configure assessments');
+        Route::resource('assessment-templates', App\Http\Controllers\Admin\AssessmentTemplateController::class)->middleware('permission:configure assessments');
+        Route::resource('grade-components', App\Http\Controllers\Admin\GradeComponentController::class)->middleware('permission:configure assessments');
+        Route::get('grade-components/get-components', [App\Http\Controllers\Admin\GradeComponentController::class, 'getComponents'])->name('grade-components.get-components')->middleware('permission:configure assessments');
 
-        // ID Card Settings
-        Route::get('id-card-settings', [App\Http\Controllers\Admin\IdCardSettingController::class, 'index'])->name('id-card-settings.index');
-        Route::put('id-card-settings', [App\Http\Controllers\Admin\IdCardSettingController::class, 'update'])->name('id-card-settings.update');
+        // ID Card Settings (permission-gated)
+        Route::get('id-card-settings', [App\Http\Controllers\Admin\IdCardSettingController::class, 'index'])->name('id-card-settings.index')->middleware('permission:manage roles');
+        Route::put('id-card-settings', [App\Http\Controllers\Admin\IdCardSettingController::class, 'update'])->name('id-card-settings.update')->middleware('permission:manage roles');
 
-        // Communication Settings
-        Route::get('settings/communication', [App\Http\Controllers\Admin\CommunicationSettingController::class, 'index'])->name('settings.communication.index');
-        Route::post('settings/communication', [App\Http\Controllers\Admin\CommunicationSettingController::class, 'update'])->name('settings.communication.update');
-        Route::post('settings/communication/test-sms', [App\Http\Controllers\Admin\CommunicationSettingController::class, 'testSms'])->name('settings.communication.test-sms');
-        Route::post('settings/communication/test-email', [App\Http\Controllers\Admin\CommunicationSettingController::class, 'testEmail'])->name('settings.communication.test-email');
+        // Communication Settings (permission-gated)
+        Route::get('settings/communication', [App\Http\Controllers\Admin\CommunicationSettingController::class, 'index'])->name('settings.communication.index')->middleware('permission:send notifications');
+        Route::post('settings/communication', [App\Http\Controllers\Admin\CommunicationSettingController::class, 'update'])->name('settings.communication.update')->middleware('permission:send notifications');
+        Route::post('settings/communication/test-sms', [App\Http\Controllers\Admin\CommunicationSettingController::class, 'testSms'])->name('settings.communication.test-sms')->middleware('permission:send notifications');
+        Route::post('settings/communication/test-email', [App\Http\Controllers\Admin\CommunicationSettingController::class, 'testEmail'])->name('settings.communication.test-email')->middleware('permission:send notifications');
 
 
-        // Gradebook AJAX Routes
-        Route::get('gradebook/get-sections', [App\Http\Controllers\Admin\GradebookController::class, 'getSections'])->name('gradebook.get-sections');
-        Route::get('gradebook/get-subjects', [App\Http\Controllers\Admin\GradebookController::class, 'getSubjects'])->name('gradebook.get-subjects');
-        Route::get('gradebook/get-terms', [App\Http\Controllers\Admin\GradebookController::class, 'getTerms'])->name('gradebook.get-terms');
+        // Gradebook AJAX Routes (permission-gated)
+        Route::get('gradebook/get-sections', [App\Http\Controllers\Admin\GradebookController::class, 'getSections'])->name('gradebook.get-sections')->middleware('permission:view marks');
+        Route::get('gradebook/get-subjects', [App\Http\Controllers\Admin\GradebookController::class, 'getSubjects'])->name('gradebook.get-subjects')->middleware('permission:view marks');
+        Route::get('gradebook/get-terms', [App\Http\Controllers\Admin\GradebookController::class, 'getTerms'])->name('gradebook.get-terms')->middleware('permission:view marks');
 
-        // Report Cards
-        Route::get('report-cards/settings', [App\Http\Controllers\Admin\ReportCardController::class, 'settings'])->name('report-cards.settings');
-        Route::post('report-cards/settings', [App\Http\Controllers\Admin\ReportCardController::class, 'updateSettings'])->name('report-cards.update-settings');
-        Route::get('report-cards/yearly-settings', [App\Http\Controllers\Admin\ReportCardController::class, 'yearlySettings'])->name('report-cards.yearly-settings');
-        Route::post('report-cards/yearly-settings', [App\Http\Controllers\Admin\ReportCardController::class, 'updateYearlySettings'])->name('report-cards.update-yearly-settings');
+        // Report Cards (permission-gated)
+        Route::get('report-cards/settings', [App\Http\Controllers\Admin\ReportCardController::class, 'settings'])->name('report-cards.settings')->middleware('permission:generate report cards');
+        Route::post('report-cards/settings', [App\Http\Controllers\Admin\ReportCardController::class, 'updateSettings'])->name('report-cards.update-settings')->middleware('permission:generate report cards');
+        Route::get('report-cards/yearly-settings', [App\Http\Controllers\Admin\ReportCardController::class, 'yearlySettings'])->name('report-cards.yearly-settings')->middleware('permission:generate report cards');
+        Route::post('report-cards/yearly-settings', [App\Http\Controllers\Admin\ReportCardController::class, 'updateYearlySettings'])->name('report-cards.update-yearly-settings')->middleware('permission:generate report cards');
 
-        // Academic Reports
-        Route::get('academic-reports/settings', [App\Http\Controllers\Admin\AcademicReportController::class, 'settings'])->name('academic-reports.settings');
-        Route::post('academic-reports/settings', [App\Http\Controllers\Admin\AcademicReportController::class, 'updateSettings'])->name('academic-reports.settings.update');
-        Route::get('academic-reports', [App\Http\Controllers\Admin\AcademicReportController::class, 'index'])->name('academic-reports.index');
-        Route::get('academic-reports/show', [App\Http\Controllers\Admin\AcademicReportController::class, 'show'])->name('academic-reports.show');
-        Route::get('academic-reports/subject-analysis', [App\Http\Controllers\Admin\AcademicReportController::class, 'subjectAnalysis'])->name('academic-reports.subject-analysis');
-        Route::get('academic-reports/grade-matrix', [App\Http\Controllers\Admin\AcademicReportController::class, 'gradeMatrix'])->name('academic-reports.grade-matrix');
-        Route::get('academic-reports/grade-matrix/pdf', [App\Http\Controllers\Admin\AcademicReportController::class, 'gradeMatrixPdf'])->name('academic-reports.grade-matrix.pdf');
-        Route::get('academic-reports/matrix-reorder', [App\Http\Controllers\Admin\AcademicReportController::class, 'matrixReorder'])->name('academic-reports.matrix-reorder');
-        Route::post('academic-reports/matrix-reorder', [App\Http\Controllers\Admin\AcademicReportController::class, 'updateMatrixOrder'])->name('academic-reports.matrix-reorder.update');
-        Route::post('academic-reports/recalculate', [App\Http\Controllers\Admin\AcademicReportController::class, 'recalculate'])->name('academic-reports.recalculate');
+        // Academic Reports (permission-gated)
+        Route::get('academic-reports/settings', [App\Http\Controllers\Admin\AcademicReportController::class, 'settings'])->name('academic-reports.settings')->middleware('permission:view marks');
+        Route::post('academic-reports/settings', [App\Http\Controllers\Admin\AcademicReportController::class, 'updateSettings'])->name('academic-reports.settings.update')->middleware('permission:view marks');
+        Route::get('academic-reports', [App\Http\Controllers\Admin\AcademicReportController::class, 'index'])->name('academic-reports.index')->middleware('permission:view marks');
+        Route::get('academic-reports/show', [App\Http\Controllers\Admin\AcademicReportController::class, 'show'])->name('academic-reports.show')->middleware('permission:view marks');
+        Route::get('academic-reports/subject-analysis', [App\Http\Controllers\Admin\AcademicReportController::class, 'subjectAnalysis'])->name('academic-reports.subject-analysis')->middleware('permission:view marks');
+        Route::get('academic-reports/grade-matrix', [App\Http\Controllers\Admin\AcademicReportController::class, 'gradeMatrix'])->name('academic-reports.grade-matrix')->middleware('permission:view marks');
+        Route::get('academic-reports/grade-matrix/pdf', [App\Http\Controllers\Admin\AcademicReportController::class, 'gradeMatrixPdf'])->name('academic-reports.grade-matrix.pdf')->middleware('permission:view marks');
+        Route::get('academic-reports/matrix-reorder', [App\Http\Controllers\Admin\AcademicReportController::class, 'matrixReorder'])->name('academic-reports.matrix-reorder')->middleware('permission:view marks');
+        Route::post('academic-reports/matrix-reorder', [App\Http\Controllers\Admin\AcademicReportController::class, 'updateMatrixOrder'])->name('academic-reports.matrix-reorder.update')->middleware('permission:view marks');
+        Route::post('academic-reports/recalculate', [App\Http\Controllers\Admin\AcademicReportController::class, 'recalculate'])->name('academic-reports.recalculate')->middleware('permission:view marks');
         
-        // Result Analysis
-        Route::get('result-analysis', [App\Http\Controllers\Admin\ResultAnalysisController::class, 'index'])->name('result-analysis.index');
-        Route::get('result-analysis/{assignment}', [App\Http\Controllers\Admin\ResultAnalysisController::class, 'show'])->name('result-analysis.show');
+        // Result Analysis (permission-gated)
+        Route::get('result-analysis', [App\Http\Controllers\Admin\ResultAnalysisController::class, 'index'])->name('result-analysis.index')->middleware('permission:view marks');
+        Route::get('result-analysis/{assignment}', [App\Http\Controllers\Admin\ResultAnalysisController::class, 'show'])->name('result-analysis.show')->middleware('permission:view marks');
 
-        Route::get('section-grades/{section}/report-card-details', [App\Http\Controllers\Admin\ReportCardController::class, 'entry'])->name('section-grades.report-card-entry');
-        Route::post('section-grades/{section}/report-card-details', [App\Http\Controllers\Admin\ReportCardController::class, 'storeEntry'])->name('section-grades.store-report-card-entry');
+        Route::get('section-grades/{section}/report-card-details', [App\Http\Controllers\Admin\ReportCardController::class, 'entry'])->name('section-grades.report-card-entry')->middleware('permission:generate report cards');
+        Route::post('section-grades/{section}/report-card-details', [App\Http\Controllers\Admin\ReportCardController::class, 'storeEntry'])->name('section-grades.store-report-card-entry')->middleware('permission:generate report cards');
         
-        Route::get('section-grades/{section}/report-card/bulk-print', [App\Http\Controllers\Admin\ReportCardController::class, 'bulkPrint'])->name('section-grades.bulk-print-report-cards');
+        Route::get('section-grades/{section}/report-card/bulk-print', [App\Http\Controllers\Admin\ReportCardController::class, 'bulkPrint'])->name('section-grades.bulk-print-report-cards')->middleware('permission:generate report cards');
         
-        Route::get('students/{student}/report-card/pdf', [App\Http\Controllers\Admin\ReportCardController::class, 'generatePdf'])->name('report-cards.pdf');
+        Route::get('students/{student}/report-card/pdf', [App\Http\Controllers\Admin\ReportCardController::class, 'generatePdf'])->name('report-cards.pdf')->middleware('permission:generate report cards');
 
-        // Background Exports
-        Route::get('report-cards/exports', [App\Http\Controllers\Admin\ReportCardController::class, 'exports'])->name('report-cards.exports');
-        Route::get('report-cards/export-low-performance', [App\Http\Controllers\Admin\ReportCardController::class, 'exportLowPerformance'])->name('report-cards.export-low-performance');
-        Route::get('section-grades/{section}/report-card/bulk-export', [App\Http\Controllers\Admin\ReportCardController::class, 'bulkExport'])->name('section-grades.bulk-export-report-cards');
-        Route::get('report-cards/exports/{exportRequest}/download', [App\Http\Controllers\Admin\ReportCardController::class, 'downloadExport'])->name('report-cards.download-export');
+        // Background Exports (permission-gated)
+        Route::get('report-cards/exports', [App\Http\Controllers\Admin\ReportCardController::class, 'exports'])->name('report-cards.exports')->middleware('permission:generate report cards');
+        Route::get('report-cards/export-low-performance', [App\Http\Controllers\Admin\ReportCardController::class, 'exportLowPerformance'])->name('report-cards.export-low-performance')->middleware('permission:generate report cards');
+        Route::get('section-grades/{section}/report-card/bulk-export', [App\Http\Controllers\Admin\ReportCardController::class, 'bulkExport'])->name('section-grades.bulk-export-report-cards')->middleware('permission:generate report cards');
+        Route::get('report-cards/exports/{exportRequest}/download', [App\Http\Controllers\Admin\ReportCardController::class, 'downloadExport'])->name('report-cards.download-export')->middleware('permission:generate report cards');
 
-        // Academic Activities Module
-        Route::get('activities/get-templates', [App\Http\Controllers\Admin\AcademicActivityController::class, 'getTemplates'])->name('activities.get-templates');
-        Route::get('activities/{activity}/evaluate', [App\Http\Controllers\Admin\AcademicActivityController::class, 'evaluate'])->name('activities.evaluate');
-        Route::post('activities/{activity}/evaluate', [App\Http\Controllers\Admin\AcademicActivityController::class, 'storeEvaluation'])->name('activities.evaluate.store');
-        Route::get('activities/{activity}/questions', [App\Http\Controllers\Admin\AcademicActivityController::class, 'manageQuestions'])->name('activities.questions');
-        Route::post('activities/{activity}/questions', [App\Http\Controllers\Admin\AcademicActivityController::class, 'storeQuestions'])->name('activities.questions.store');
-        Route::resource('activities', App\Http\Controllers\Admin\AcademicActivityController::class);
+        // Academic Activities Module (permission-gated)
+        Route::get('activities/get-templates', [App\Http\Controllers\Admin\AcademicActivityController::class, 'getTemplates'])->name('activities.get-templates')->middleware('permission:enter marks');
+        Route::get('activities/{activity}/evaluate', [App\Http\Controllers\Admin\AcademicActivityController::class, 'evaluate'])->name('activities.evaluate')->middleware('permission:enter marks');
+        Route::post('activities/{activity}/evaluate', [App\Http\Controllers\Admin\AcademicActivityController::class, 'storeEvaluation'])->name('activities.evaluate.store')->middleware('permission:enter marks');
+        Route::get('activities/{activity}/questions', [App\Http\Controllers\Admin\AcademicActivityController::class, 'manageQuestions'])->name('activities.questions')->middleware('permission:enter marks');
+        Route::post('activities/{activity}/questions', [App\Http\Controllers\Admin\AcademicActivityController::class, 'storeQuestions'])->name('activities.questions.store')->middleware('permission:enter marks');
+        Route::resource('activities', App\Http\Controllers\Admin\AcademicActivityController::class)->middleware('permission:enter marks');
 
-        // Attendance Management
-        Route::get('attendance', [App\Http\Controllers\Admin\AttendanceController::class, 'index'])->name('attendance.index');
-        Route::get('attendance/register', [App\Http\Controllers\Admin\AttendanceController::class, 'register'])->name('attendance.register');
-        Route::post('attendance/store', [App\Http\Controllers\Admin\AttendanceController::class, 'store'])->name('attendance.store');
-        Route::get('attendance/report', [App\Http\Controllers\Admin\AttendanceController::class, 'report'])->name('attendance.report');
+        // Attendance Management (permission-gated)
+        Route::get('attendance', [App\Http\Controllers\Admin\AttendanceController::class, 'index'])->name('attendance.index')->middleware('permission:manage attendance');
+        Route::get('attendance/register', [App\Http\Controllers\Admin\AttendanceController::class, 'register'])->name('attendance.register')->middleware('permission:manage attendance');
+        Route::post('attendance/store', [App\Http\Controllers\Admin\AttendanceController::class, 'store'])->name('attendance.store')->middleware('permission:manage attendance');
+        Route::get('attendance/report', [App\Http\Controllers\Admin\AttendanceController::class, 'report'])->name('attendance.report')->middleware('permission:manage attendance');
         
-        // Timetable Management
-        Route::get('timetable', [App\Http\Controllers\Admin\TimetableController::class, 'index'])->name('timetable.index');
-        Route::get('timetable/builder', [App\Http\Controllers\Admin\TimetableController::class, 'builder'])->name('timetable.builder');
-        Route::post('timetable/store', [App\Http\Controllers\Admin\TimetableController::class, 'store'])->name('timetable.store');
+        // Timetable Management (permission-gated)
+        Route::get('timetable', [App\Http\Controllers\Admin\TimetableController::class, 'index'])->name('timetable.index')->middleware('permission:manage sections');
+        Route::get('timetable/builder', [App\Http\Controllers\Admin\TimetableController::class, 'builder'])->name('timetable.builder')->middleware('permission:manage sections');
+        Route::post('timetable/store', [App\Http\Controllers\Admin\TimetableController::class, 'store'])->name('timetable.store')->middleware('permission:manage sections');
 
-        // Promotion Management
-        Route::get('promotions', [App\Http\Controllers\Admin\PromotionController::class, 'index'])->name('promotions.index');
-        Route::post('promotions/rules', [App\Http\Controllers\Admin\PromotionController::class, 'storeRule'])->name('promotions.store-rule');
-        Route::delete('promotions/rules/{promotionRule}', [App\Http\Controllers\Admin\PromotionController::class, 'deleteRule'])->name('promotions.delete-rule');
-        Route::get('promotions/process', [App\Http\Controllers\Admin\PromotionController::class, 'processForm'])->name('promotions.process');
-        Route::post('promotions/preview', [App\Http\Controllers\Admin\PromotionController::class, 'preview'])->name('promotions.preview');
-        Route::post('promotions/execute', [App\Http\Controllers\Admin\PromotionController::class, 'execute'])->name('promotions.execute');
-        Route::get('promotions/history', [App\Http\Controllers\Admin\PromotionController::class, 'history'])->name('promotions.history');
-        Route::post('promotions/history/{studentPromotion}/enroll', [App\Http\Controllers\Admin\PromotionController::class, 'enrollStudent'])->name('promotions.enroll');
-        Route::post('promotions/history/{studentPromotion}/reverse', [App\Http\Controllers\Admin\PromotionController::class, 'reversePromotion'])->name('promotions.reverse');
-        Route::post('promotions/history/bulk-enroll', [App\Http\Controllers\Admin\PromotionController::class, 'bulkEnroll'])->name('promotions.bulk-enroll');
-        Route::post('promotions/history/bulk-reverse', [App\Http\Controllers\Admin\PromotionController::class, 'bulkReverse'])->name('promotions.bulk-reverse');
+        // Promotion Management (permission-gated)
+        Route::get('promotions', [App\Http\Controllers\Admin\PromotionController::class, 'index'])->name('promotions.index')->middleware('permission:promote students');
+        Route::post('promotions/rules', [App\Http\Controllers\Admin\PromotionController::class, 'storeRule'])->name('promotions.store-rule')->middleware('permission:promote students');
+        Route::delete('promotions/rules/{promotionRule}', [App\Http\Controllers\Admin\PromotionController::class, 'deleteRule'])->name('promotions.delete-rule')->middleware('permission:promote students');
+        Route::get('promotions/process', [App\Http\Controllers\Admin\PromotionController::class, 'processForm'])->name('promotions.process')->middleware('permission:promote students');
+        Route::post('promotions/preview', [App\Http\Controllers\Admin\PromotionController::class, 'preview'])->name('promotions.preview')->middleware('permission:promote students');
+        Route::post('promotions/execute', [App\Http\Controllers\Admin\PromotionController::class, 'execute'])->name('promotions.execute')->middleware('permission:promote students');
+        Route::get('promotions/history', [App\Http\Controllers\Admin\PromotionController::class, 'history'])->name('promotions.history')->middleware('permission:promote students');
+        Route::post('promotions/history/{studentPromotion}/enroll', [App\Http\Controllers\Admin\PromotionController::class, 'enrollStudent'])->name('promotions.enroll')->middleware('permission:promote students');
+        Route::post('promotions/history/{studentPromotion}/reverse', [App\Http\Controllers\Admin\PromotionController::class, 'reversePromotion'])->name('promotions.reverse')->middleware('permission:promote students');
+        Route::post('promotions/history/bulk-enroll', [App\Http\Controllers\Admin\PromotionController::class, 'bulkEnroll'])->name('promotions.bulk-enroll')->middleware('permission:promote students');
+        Route::post('promotions/history/bulk-reverse', [App\Http\Controllers\Admin\PromotionController::class, 'bulkReverse'])->name('promotions.bulk-reverse')->middleware('permission:promote students');
 
-        // Disciplinary Records
-        Route::get('disciplinary', [App\Http\Controllers\Admin\DisciplinaryController::class, 'index'])->name('disciplinary.index');
-        Route::get('disciplinary/create/{student?}', [App\Http\Controllers\Admin\DisciplinaryController::class, 'create'])->name('disciplinary.create');
-        Route::post('disciplinary', [App\Http\Controllers\Admin\DisciplinaryController::class, 'store'])->name('disciplinary.store');
-        Route::get('disciplinary/{disciplinary}', [App\Http\Controllers\Admin\DisciplinaryController::class, 'show'])->name('disciplinary.show');
-        Route::put('disciplinary/{disciplinary}', [App\Http\Controllers\Admin\DisciplinaryController::class, 'update'])->name('disciplinary.update');
-        Route::get('students/{student}/disciplinary', [App\Http\Controllers\Admin\DisciplinaryController::class, 'studentRecords'])->name('students.disciplinary');
+        // Disciplinary Records (permission-gated)
+        Route::get('disciplinary', [App\Http\Controllers\Admin\DisciplinaryController::class, 'index'])->name('disciplinary.index')->middleware('permission:view students');
+        Route::get('disciplinary/create/{student?}', [App\Http\Controllers\Admin\DisciplinaryController::class, 'create'])->name('disciplinary.create')->middleware('permission:edit students');
+        Route::post('disciplinary', [App\Http\Controllers\Admin\DisciplinaryController::class, 'store'])->name('disciplinary.store')->middleware('permission:edit students');
+        Route::get('disciplinary/{disciplinary}', [App\Http\Controllers\Admin\DisciplinaryController::class, 'show'])->name('disciplinary.show')->middleware('permission:view students');
+        Route::put('disciplinary/{disciplinary}', [App\Http\Controllers\Admin\DisciplinaryController::class, 'update'])->name('disciplinary.update')->middleware('permission:edit students');
+        Route::get('students/{student}/disciplinary', [App\Http\Controllers\Admin\DisciplinaryController::class, 'studentRecords'])->name('students.disciplinary')->middleware('permission:view students');
 
-        // Student ID Cards
-        Route::get('students/{student}/id-card', [App\Http\Controllers\Admin\StudentController::class, 'generateIdCard'])->name('students.id-card');
-        Route::get('sections/{section}/id-cards', [App\Http\Controllers\Admin\StudentController::class, 'bulkIdCards'])->name('sections.bulk-id-cards');
-        Route::post('guardians/{guardian}/create-user', [App\Http\Controllers\Admin\StudentController::class, 'createGuardianUser'])->name('guardians.create-user');
-        Route::post('students/{student}/create-user', [App\Http\Controllers\Admin\StudentController::class, 'createStudentUser'])->name('students.create-user');
-        Route::post('students/{student}/reset-password', [App\Http\Controllers\Admin\StudentController::class, 'resetStudentPassword'])->name('students.reset-password');
+        // Student ID Cards (permission-gated)
+        Route::get('students/{student}/id-card', [App\Http\Controllers\Admin\StudentController::class, 'generateIdCard'])->name('students.id-card')->middleware('permission:view students');
+        Route::get('sections/{section}/id-cards', [App\Http\Controllers\Admin\StudentController::class, 'bulkIdCards'])->name('sections.bulk-id-cards')->middleware('permission:view students');
+        Route::post('guardians/{guardian}/create-user', [App\Http\Controllers\Admin\StudentController::class, 'createGuardianUser'])->name('guardians.create-user')->middleware('permission:edit students');
+        Route::post('students/{student}/create-user', [App\Http\Controllers\Admin\StudentController::class, 'createStudentUser'])->name('students.create-user')->middleware('permission:edit students');
+        Route::post('students/{student}/reset-password', [App\Http\Controllers\Admin\StudentController::class, 'resetStudentPassword'])->name('students.reset-password')->middleware('permission:edit students');
 
-        // Human Resources
-        Route::get('employees/import', [App\Http\Controllers\Admin\EmployeeController::class, 'import'])->name('employees.import');
-        Route::get('employees/templates/academic', [App\Http\Controllers\Admin\EmployeeController::class, 'downloadAcademicTemplate'])->name('employees.academic.template');
-        Route::get('employees/templates/administrative', [App\Http\Controllers\Admin\EmployeeController::class, 'downloadAdministrativeTemplate'])->name('employees.administrative.template');
-        Route::post('employees/import', [App\Http\Controllers\Admin\EmployeeController::class, 'upload'])->name('employees.upload');
-        Route::post('employees/{employee}/reset-password', [App\Http\Controllers\Admin\EmployeeController::class, 'resetPassword'])->name('employees.reset-password');
-        Route::post('employees/{employee}/toggle-status', [App\Http\Controllers\Admin\EmployeeController::class, 'toggleStatus'])->name('employees.toggle-status');
+        // Human Resources (permission-gated)
+        Route::get('employees/import', [App\Http\Controllers\Admin\EmployeeController::class, 'import'])->name('employees.import')->middleware('permission:manage employees');
+        Route::get('employees/templates/academic', [App\Http\Controllers\Admin\EmployeeController::class, 'downloadAcademicTemplate'])->name('employees.academic.template')->middleware('permission:manage employees');
+        Route::get('employees/templates/administrative', [App\Http\Controllers\Admin\EmployeeController::class, 'downloadAdministrativeTemplate'])->name('employees.administrative.template')->middleware('permission:manage employees');
+        Route::post('employees/import', [App\Http\Controllers\Admin\EmployeeController::class, 'upload'])->name('employees.upload')->middleware('permission:manage employees');
+        Route::post('employees/{employee}/reset-password', [App\Http\Controllers\Admin\EmployeeController::class, 'resetPassword'])->name('employees.reset-password')->middleware('permission:manage employees');
+        Route::post('employees/{employee}/toggle-status', [App\Http\Controllers\Admin\EmployeeController::class, 'toggleStatus'])->name('employees.toggle-status')->middleware('permission:manage employees');
         
         // Document Management
-        Route::get('employees/documents/{document}/download', [App\Http\Controllers\Admin\EmployeeController::class, 'downloadDocument'])->name('employees.documents.download');
-        Route::get('employees/documents/{document}/delete', [App\Http\Controllers\Admin\EmployeeController::class, 'deleteDocument'])->name('employees.documents.delete');
+        Route::get('employees/documents/{document}/download', [App\Http\Controllers\Admin\EmployeeController::class, 'downloadDocument'])->name('employees.documents.download')->middleware('permission:view employees');
+        Route::get('employees/documents/{document}/delete', [App\Http\Controllers\Admin\EmployeeController::class, 'deleteDocument'])->name('employees.documents.delete')->middleware('permission:manage employees');
 
-        Route::resource('employees', App\Http\Controllers\Admin\EmployeeController::class);
+        Route::resource('employees', App\Http\Controllers\Admin\EmployeeController::class)->middleware('permission:view employees');
         
-        Route::resource('teacher-assignments', App\Http\Controllers\Admin\TeacherAssignmentController::class);
+        Route::resource('teacher-assignments', App\Http\Controllers\Admin\TeacherAssignmentController::class)->middleware('permission:manage employees');
 
-        // Parent Management
-        Route::get('guardians/search', [App\Http\Controllers\Admin\GuardianController::class, 'search'])->name('guardians.search');
-        Route::post('guardians/{guardian}/create-account', [App\Http\Controllers\Admin\GuardianController::class, 'createUser'])->name('guardians.create-account');
-        Route::post('guardians/{guardian}/reset-password', [App\Http\Controllers\Admin\GuardianController::class, 'resetPassword'])->name('guardians.reset-password');
-        Route::resource('guardians', App\Http\Controllers\Admin\GuardianController::class);
+        // Parent Management (permission-gated)
+        Route::get('guardians/search', [App\Http\Controllers\Admin\GuardianController::class, 'search'])->name('guardians.search')->middleware('permission:view students');
+        Route::post('guardians/{guardian}/create-account', [App\Http\Controllers\Admin\GuardianController::class, 'createUser'])->name('guardians.create-account')->middleware('permission:edit students');
+        Route::post('guardians/{guardian}/reset-password', [App\Http\Controllers\Admin\GuardianController::class, 'resetPassword'])->name('guardians.reset-password')->middleware('permission:edit students');
+        Route::resource('guardians', App\Http\Controllers\Admin\GuardianController::class)->middleware('permission:view students');
 
-        Route::patch('students/{student}/quick-update', [App\Http\Controllers\Admin\StudentController::class, 'quickUpdate'])->name('students.quick-update');
-        Route::resource('students', App\Http\Controllers\Admin\StudentController::class);
+        Route::patch('students/{student}/quick-update', [App\Http\Controllers\Admin\StudentController::class, 'quickUpdate'])->name('students.quick-update')->middleware('permission:edit students');
+        Route::resource('students', App\Http\Controllers\Admin\StudentController::class)->middleware('permission:view students');
 
-        // Finance & Operations Portals
+        // Finance & Operations Portals (permission-gated)
         Route::prefix('finance')->name('finance.')->group(function() {
-            Route::get('fees', [App\Http\Controllers\Admin\FinanceController::class, 'fees'])->name('fees');
-            Route::get('payroll', [App\Http\Controllers\Admin\FinanceController::class, 'payroll'])->name('payroll');
+            Route::get('fees', [App\Http\Controllers\Admin\FinanceController::class, 'fees'])->name('fees')->middleware('permission:view fees');
+            Route::get('payroll', [App\Http\Controllers\Admin\FinanceController::class, 'payroll'])->name('payroll')->middleware('permission:view payroll');
         });
 
-        // Exam Paper Review
-        Route::get('exams', [App\Http\Controllers\Admin\ExamReviewController::class, 'index'])->name('exams.index');
-        Route::get('exams/{exam}', [App\Http\Controllers\Admin\ExamReviewController::class, 'show'])->name('exams.show');
-        Route::post('exams/{exam}/review', [App\Http\Controllers\Admin\ExamReviewController::class, 'review'])->name('exams.review');
-        Route::delete('exams/{exam}', [App\Http\Controllers\Admin\ExamReviewController::class, 'destroy'])->name('exams.destroy');
-        Route::get('exams/{exam}/download', [App\Http\Controllers\Teacher\ExamPaperController::class, 'download'])->name('exams.download');
+        // Exam Paper Review (permission-gated)
+        Route::get('exams', [App\Http\Controllers\Admin\ExamReviewController::class, 'index'])->name('exams.index')->middleware('permission:view marks');
+        Route::get('exams/{exam}', [App\Http\Controllers\Admin\ExamReviewController::class, 'show'])->name('exams.show')->middleware('permission:view marks');
+        Route::post('exams/{exam}/review', [App\Http\Controllers\Admin\ExamReviewController::class, 'review'])->name('exams.review')->middleware('permission:publish results');
+        Route::delete('exams/{exam}', [App\Http\Controllers\Admin\ExamReviewController::class, 'destroy'])->name('exams.destroy')->middleware('permission:publish results');
+        Route::get('exams/{exam}/download', [App\Http\Controllers\Teacher\ExamPaperController::class, 'download'])->name('exams.download')->middleware('permission:view marks');
 
         // Specialized Portals
         Route::prefix('portals')->name('portals.')->group(function() {
@@ -357,7 +357,7 @@ Route::middleware(['auth'])->group(function () {
         });
     });
     // Teacher Portal Routes
-    Route::middleware(['auth', 'role_or_permission:Teacher|enter marks'])->prefix('teacher')->name('teacher.')->group(function () {
+    Route::middleware(['auth', 'role:Teacher|Assistant Teacher'])->prefix('teacher')->name('teacher.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Teacher\DashboardController::class, 'index'])->name('dashboard');
         Route::get('/dashboard/chart-data', [App\Http\Controllers\Teacher\DashboardController::class, 'getChartData'])->name('dashboard.chart-data');
         Route::get('/dashboard/efficiency-data', [App\Http\Controllers\Teacher\DashboardController::class, 'getEfficiencyData'])->name('dashboard.efficiency-data');

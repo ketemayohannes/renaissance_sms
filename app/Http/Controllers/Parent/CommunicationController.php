@@ -22,7 +22,7 @@ class CommunicationController extends Controller
     public function showNotice($id)
     {
         $notice = Notice::find($id);
-        if (!$notice || !$notice->is_active) {
+        if (!$notice || !$notice->is_active || !in_array($notice->target_audience, ['Parent', 'All'])) {
             return redirect()->route('parent.notices.index')
                 ->with('error', 'This announcement is no longer available.');
         }

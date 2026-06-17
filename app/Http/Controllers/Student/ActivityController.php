@@ -38,6 +38,7 @@ class ActivityController extends Controller
 
     public function show(AcademicActivity $activity)
     {
+        $this->authorizeActivity($activity);
         $student = Auth::user()->student;
         $submission = $activity->recordFor($student->id); // Custom helper or query
         
@@ -48,6 +49,7 @@ class ActivityController extends Controller
 
     public function submit(Request $request, AcademicActivity $activity)
     {
+        $this->authorizeActivity($activity);
         $student = Auth::user()->student;
         
         $data = $request->validate([
@@ -61,6 +63,7 @@ class ActivityController extends Controller
 
     public function takeExam(AcademicActivity $activity)
     {
+        $this->authorizeActivity($activity);
         $student = Auth::user()->student;
         $activity->load('questions');
         
@@ -69,6 +72,7 @@ class ActivityController extends Controller
 
     public function submitExam(Request $request, AcademicActivity $activity)
     {
+        $this->authorizeActivity($activity);
         $student = Auth::user()->student;
         $answers = $request->input('answers', []);
         
@@ -106,5 +110,22 @@ class ActivityController extends Controller
         }
 
         return redirect()->route('student.activities.index')->with('success', 'Examination submitted successfully. Your objective score has been recorded.');
+    }
+
+    private function authorizeActivity(AcademicActivity $activity)
+    {
+        $student = Auth::user()->student;
+        if (!$student) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $enrollment = $student->currentEnrollment;
+        if (!$enrollment) {
+            abort(403, 'Student is not enrolled in any section.');
+        }
+
+        if (!$activity->teacherAssignment || $activity->teacherAssignment->section_id !== $enrollment->section_id) {
+            abort(403, 'Unauthorized action.');
+        }
     }
 }
