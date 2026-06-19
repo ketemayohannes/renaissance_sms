@@ -145,10 +145,17 @@
 
         @php
             $totalStudents = $students->count();
+            $totalComponents = $gradeComponents->count();
             $gradedStudents = 0;
             foreach($students as $student) {
                 $studentMarks = $existingMarks->get($student->id);
-                if($studentMarks && $studentMarks->count() > 0) $gradedStudents++;
+                // Student is fully graded only when ALL components have a mark
+                $filledCount = 0;
+                foreach($gradeComponents as $component) {
+                    $mark = $studentMarks?->firstWhere('assessment_template_id', $component->id);
+                    if ($mark && $mark->score !== null && $mark->score !== '') $filledCount++;
+                }
+                if ($filledCount === $totalComponents && $totalComponents > 0) $gradedStudents++;
             }
             $progressPercent = $totalStudents > 0 ? round(($gradedStudents / $totalStudents) * 100) : 0;
         @endphp
@@ -161,10 +168,11 @@
                         <div class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>
                         <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Grading Progress</span>
                     </div>
-                    <span class="text-xs font-black text-slate-900">{{ $gradedStudents }} <span class="text-slate-400">/ {{ $totalStudents }}</span></span>
+                    <span class="text-xs font-black text-slate-900" id="progressLabel">{{ $gradedStudents }} <span class="text-slate-400">/ {{ $totalStudents }}</span></span>
                 </div>
                 <div class="w-full bg-slate-200/50 rounded-full h-3 p-0.5 overflow-hidden">
-                    <div class="h-full rounded-full transition-all duration-1000 ease-out {{ $progressPercent == 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-indigo-500 to-indigo-600' }}" 
+                    <div class="h-full rounded-full transition-all duration-500 ease-out bg-gradient-to-r from-indigo-500 to-indigo-600" 
+                         id="progressBar"
                          style="width: {{ $progressPercent }}%"></div>
                 </div>
             </div>
@@ -354,7 +362,7 @@
                 <div class="flex items-center gap-3 pl-4 pr-2 border-r border-slate-100">
                     <div class="flex flex-col">
                         <span class="text-[10px] uppercase tracking-wider font-bold text-slate-400 leading-none" x-text="hasUnsavedChanges ? 'Unsaved' : 'Synced'">Status</span>
-                        <span class="text-sm font-bold text-slate-700 leading-tight">{{ $totalStudents - $gradedStudents }} Ungraded</span>
+                        <span class="text-sm font-bold text-slate-700 leading-tight" id="ungradedCount">{{ $totalStudents - $gradedStudents }} Ungraded</span>
                     </div>
                 </div>
 
@@ -459,6 +467,8 @@
                     const data = Alpine.$data(rootElement);
                     if (data) data.hasUnsavedChanges = true;
                 }
+                // Live progress update on every change
+                updateGradingProgress();
             }
         }
 
@@ -483,12 +493,51 @@
             });
         }
         
+        const TOTAL_STUDENTS = {{ $totalStudents }};
+        const COMPONENTS_PER_STUDENT = {{ $gradeComponents->count() }};
+
+        function updateGradingProgress() {
+            let fullyGraded = 0;
+            document.querySelectorAll('.student-row').forEach(row => {
+                const inputs = row.querySelectorAll('.mark-input');
+                const allFilled = inputs.length > 0 && Array.from(inputs).every(inp => inp.value.trim() !== '');
+                if (allFilled) fullyGraded++;
+            });
+
+            const ungraded = TOTAL_STUDENTS - fullyGraded;
+            const pct = TOTAL_STUDENTS > 0 ? Math.round((fullyGraded / TOTAL_STUDENTS) * 100) : 0;
+
+            // Update ungraded counter
+            const ungradedEl = document.getElementById('ungradedCount');
+            if (ungradedEl) ungradedEl.textContent = ungraded + ' Ungraded';
+
+            // Update progress label
+            const labelEl = document.getElementById('progressLabel');
+            if (labelEl) labelEl.innerHTML = fullyGraded + ' <span class="text-slate-400">/ ' + TOTAL_STUDENTS + '</span>';
+
+            // Update progress bar
+            const barEl = document.getElementById('progressBar');
+            if (barEl) {
+                barEl.style.width = pct + '%';
+                if (pct === 100) {
+                    barEl.classList.remove('from-indigo-500', 'to-indigo-600');
+                    barEl.classList.add('bg-emerald-500');
+                } else {
+                    barEl.classList.add('from-indigo-500', 'to-indigo-600');
+                    barEl.classList.remove('bg-emerald-500');
+                }
+            }
+        }
+
         // Keyboard navigation
         document.addEventListener('DOMContentLoaded', function() {
             // Initial calculation (skipping dirty flag)
             document.querySelectorAll('.student-row').forEach(row => {
                 calculateRow(row, true);
             });
+
+            // Initial progress sync
+            updateGradingProgress();
 
             const table = document.querySelector('table');
             if (!table) return;
