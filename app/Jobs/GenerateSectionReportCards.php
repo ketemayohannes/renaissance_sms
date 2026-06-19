@@ -97,15 +97,20 @@ class GenerateSectionReportCards implements ShouldQueue
                 file_put_contents($tempDirPath . DIRECTORY_SEPARATOR . $filename, $pdf->output());
             }
 
-            // Use PowerShell to zip the folder
-            $fullTempPath = str_replace('/', DIRECTORY_SEPARATOR, $tempDirPath);
-            $fullZipPath = str_replace('/', DIRECTORY_SEPARATOR, $zipPath);
+            // Use PHP native ZipArchive to zip the folder
+            $zip = new \ZipArchive();
+            if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === true) {
+                $files = glob($tempDirPath . DIRECTORY_SEPARATOR . '*');
+                foreach ($files as $file) {
+                    if (is_file($file)) {
+                        $zip->addFile($file, basename($file));
+                    }
+                }
+                $zip->close();
+            } else {
+                throw new \Exception("Failed to generate ZIP file via PHP ZipArchive. Please ensure 'zip' extension is enabled in PHP.");
+            }
             
-            // Command to zip the contents of the temp folder
-            $cmd = "powershell -Command \"Compress-Archive -Path '{$fullTempPath}\*' -DestinationPath '{$fullZipPath}' -Force\"";
-            
-            shell_exec($cmd);
-
             // Cleanup temp directory
             $files = glob($tempDirPath . DIRECTORY_SEPARATOR . '*');
             foreach ($files as $file) {
@@ -114,7 +119,7 @@ class GenerateSectionReportCards implements ShouldQueue
             rmdir($tempDirPath);
 
             if (!file_exists($zipPath)) {
-                throw new \Exception("Failed to generate ZIP file via PowerShell. Please ensure 'zip' extension is enabled in PHP or contact support.");
+                throw new \Exception("Failed to generate ZIP file. Please contact support.");
             }
 
             $this->exportRequest->update([
