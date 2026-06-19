@@ -86,10 +86,12 @@ class AcademicReportController extends Controller
             $reportType = $request->get('report_type', 'roster');
 
             if ($reportType === 'report_card') {
-                return redirect()->route('admin.section-grades.bulk-print-report-cards', [
-                    'section' => $section->id,
-                    'academic_year_id' => $academicYear->id,
-                    'term_id' => $termId
+                // Show action selection page — user must manually choose to view/print or export
+                return view('admin.academic-reports.report-card-actions', [
+                    'section'      => $section,
+                    'academicYear' => $academicYear,
+                    'termId'       => $termId,
+                    'termLabel'    => $termId === 'yearly' ? 'Yearly' : ($term->name ?? $termId),
                 ]);
             }
 
