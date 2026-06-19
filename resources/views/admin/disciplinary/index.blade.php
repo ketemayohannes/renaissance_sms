@@ -15,20 +15,28 @@
                 </h1>
                 <p class="text-slate-500 font-semibold mt-1 uppercase text-[10px] tracking-[0.2em] italic">Tracking and resolution of student conduct incidents</p>
             </div>
-            
-            <a href="{{ route('admin.disciplinary.create') }}" class="px-8 py-4 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-[2rem] hover:bg-rose-600 shadow-xl shadow-slate-200 transition-all flex items-center gap-3 group">
-                <div class="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                </div>
-                Report Incident
-            </a>
+
+            <div class="flex items-center gap-3">
+                <a href="{{ route('admin.discipline-settings.index') }}" class="px-6 py-4 bg-white border border-slate-200 text-slate-600 font-black text-[10px] uppercase tracking-widest rounded-[2rem] hover:bg-slate-50 shadow-sm transition-all flex items-center gap-3">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    Settings
+                </a>
+                <a href="{{ route('admin.disciplinary.create') }}" class="px-8 py-4 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-[2rem] hover:bg-rose-600 shadow-xl shadow-slate-200 transition-all flex items-center gap-3 group">
+                    <div class="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    </div>
+                    Report Incident
+                </a>
+            </div>
         </div>
 
         <!-- Analytical Context -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-             @php
-                $criticalCount = \App\Models\DisciplinaryRecord::where('academic_year_id', $academicYear->id)->where('severity', 'critical')->count();
+            @php
+                $criticalCount = \App\Models\DisciplinaryRecord::where('academic_year_id', $academicYear->id)
+                    ->whereHas('infractionDefinition', fn($q) => $q->where('tier', 'critical'))->count();
                 $pendingCount = \App\Models\DisciplinaryRecord::where('academic_year_id', $academicYear->id)->where('status', 'reported')->count();
+                $escalatedCount = \App\Models\DisciplinaryRecord::where('academic_year_id', $academicYear->id)->whereNotNull('escalation_action_applied')->count();
                 $totalIncidents = $records->total();
             @endphp
             <div class="bg-white/80 backdrop-blur-xl rounded-[2rem] p-6 border border-white shadow-xl shadow-slate-200/50">
@@ -47,19 +55,28 @@
                 <p class="text-[9px] font-bold text-amber-400 uppercase mt-1">New reported incidents</p>
             </div>
             <div class="bg-indigo-50/50 backdrop-blur-xl rounded-[2rem] p-6 border border-indigo-100 shadow-xl shadow-indigo-200/20">
-                <span class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest">Academic Year</span>
-                <span class="block text-lg font-black text-indigo-900 mt-2 truncate">{{ $academicYear->name }}</span>
+                <span class="block text-[10px] font-black text-indigo-500 uppercase tracking-widest">Auto-Escalated</span>
+                <span class="block text-3xl font-black text-indigo-900 mt-2 italic tracking-tighter">{{ $escalatedCount }}</span>
+                <p class="text-[9px] font-bold text-indigo-400 uppercase mt-1">System-triggered actions</p>
             </div>
         </div>
 
-        <!-- Filter & Search Panel -->
+        <!-- Filter Panel -->
         <div class="bg-white/40 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-xl shadow-slate-200/50 p-6 flex flex-col lg:flex-row items-center justify-between gap-6">
             <form action="{{ route('admin.disciplinary.index') }}" method="GET" class="flex flex-wrap items-center gap-4 w-full">
                 <div class="flex-1 min-w-[200px]">
-                    <select name="severity" class="premium-select w-full bg-white/60">
-                        <option value="">Filter Severity</option>
-                        @foreach(\App\Models\DisciplinaryRecord::severityLevels() as $key => $label)
-                            <option value="{{ $key }}" {{ request('severity') == $key ? 'selected' : '' }}>{{ $label }}</option>
+                    <select name="tier" class="premium-select w-full bg-white/60">
+                        <option value="">Filter by Tier</option>
+                        <option value="minor" {{ request('tier') == 'minor' ? 'selected' : '' }}>Minor</option>
+                        <option value="moderate" {{ request('tier') == 'moderate' ? 'selected' : '' }}>Moderate</option>
+                        <option value="critical" {{ request('tier') == 'critical' ? 'selected' : '' }}>Critical</option>
+                    </select>
+                </div>
+                <div class="flex-1 min-w-[200px]">
+                    <select name="infraction_definition_id" class="premium-select w-full bg-white/60">
+                        <option value="">Filter by Infraction Type</option>
+                        @foreach($infractionDefinitions as $def)
+                            <option value="{{ $def->id }}" {{ request('infraction_definition_id') == $def->id ? 'selected' : '' }}>{{ $def->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -73,9 +90,9 @@
                     </select>
                 </div>
                 <button type="submit" class="px-8 py-3 bg-indigo-600 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all">
-                    Apply Filter Matrix
+                    Apply Filter
                 </button>
-                @if(request()->anyFilled(['severity', 'status']))
+                @if(request()->anyFilled(['tier', 'status', 'infraction_definition_id']))
                     <a href="{{ route('admin.disciplinary.index') }}" class="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-rose-500 transition-colors">Clear All</a>
                 @endif
             </form>
@@ -89,7 +106,7 @@
                         <tr class="bg-slate-50/50">
                             <th class="px-8 py-4 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Incident Timing</th>
                             <th class="px-6 py-4 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Involved Subject</th>
-                            <th class="px-6 py-4 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Log Type</th>
+                            <th class="px-6 py-4 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Infraction Type</th>
                             <th class="px-6 py-4 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Severity</th>
                             <th class="px-6 py-4 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Workflow</th>
                             <th class="px-6 py-4 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Reporter</th>
@@ -102,6 +119,12 @@
                             <td class="px-8 py-6">
                                 <span class="block text-sm font-bold text-slate-900">{{ $record->incident_date->format('M d, Y') }}</span>
                                 <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Trace № {{ $record->id }}</span>
+                                @if($record->was_escalated)
+                                    <span class="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 bg-indigo-100 text-indigo-600 rounded-md text-[8px] font-black uppercase tracking-wider">
+                                        <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                                        Auto-Escalated
+                                    </span>
+                                @endif
                             </td>
                             <td class="px-6 py-6">
                                 <a href="{{ route('admin.students.show', $record->student) }}" class="flex items-center gap-3 group/link">
@@ -116,29 +139,28 @@
                             </td>
                             <td class="px-6 py-6">
                                 <span class="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[9px] font-black uppercase tracking-widest">
-                                    {{ \App\Models\DisciplinaryRecord::incidentTypes()[$record->incident_type] ?? $record->incident_type }}
+                                    {{ $record->infraction_name }}
                                 </span>
                             </td>
                             <td class="px-6 py-6 text-center">
                                 @php
-                                    $severityColors = [
-                                        'minor' => 'bg-emerald-100 text-emerald-600',
+                                    $tierColors = [
+                                        'minor'    => 'bg-emerald-100 text-emerald-600',
                                         'moderate' => 'bg-amber-100 text-amber-600',
-                                        'major' => 'bg-orange-100 text-orange-600',
                                         'critical' => 'bg-rose-100 text-rose-600',
                                     ];
                                 @endphp
-                                <span class="px-3 py-1.5 {{ $severityColors[$record->severity] ?? 'bg-slate-100 text-slate-500' }} rounded-xl text-[10px] font-black uppercase tracking-widest">
-                                    {{ $record->severity }}
+                                <span class="px-3 py-1.5 {{ $tierColors[$record->tier] ?? 'bg-slate-100 text-slate-500' }} rounded-xl text-[10px] font-black uppercase tracking-widest">
+                                    {{ $record->tier }}
                                 </span>
                             </td>
                             <td class="px-6 py-6 text-center">
                                 @php
                                     $statusColors = [
-                                        'reported' => 'bg-blue-50 text-blue-500',
+                                        'reported'     => 'bg-blue-50 text-blue-500',
                                         'under_review' => 'bg-amber-50 text-amber-500',
-                                        'resolved' => 'bg-emerald-50 text-emerald-500',
-                                        'escalated' => 'bg-rose-50 text-rose-500',
+                                        'resolved'     => 'bg-emerald-50 text-emerald-500',
+                                        'escalated'    => 'bg-rose-50 text-rose-500',
                                     ];
                                 @endphp
                                 <span class="px-3 py-1.5 {{ $statusColors[$record->status] ?? 'bg-slate-50 text-slate-400' }} rounded-xl text-[10px] font-black uppercase tracking-widest border border-current opacity-70">
@@ -162,7 +184,7 @@
                         <tr>
                             <td colspan="7" class="px-12 py-24 text-center">
                                 <div class="w-24 h-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center text-slate-200 mx-auto mb-6">
-                                    <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04M12 2.944V22m0-19.056c1.1 0 2.1.2 3 .6a11.955 11.955 0 018.618 3.04M12 2.944a11.955 11.955 0 00-8.618 3.04"></path></svg>
+                                    <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
                                 </div>
                                 <h3 class="text-2xl font-black text-slate-900 tracking-tight italic">Conduct Archives Empty</h3>
                                 <p class="text-slate-500 font-semibold mt-2 text-sm max-w-sm mx-auto">No disciplinary incidents have been registered for the current academic infrastructure.</p>

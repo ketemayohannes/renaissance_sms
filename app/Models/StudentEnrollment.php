@@ -2,14 +2,43 @@
 
 namespace App\Models;
 
+use App\Services\GradeCacheService;
 use Illuminate\Database\Eloquent\Model;
 
 class StudentEnrollment extends Model
 {
     protected static function booted()
     {
-        static::saved(fn() => \Illuminate\Support\Facades\Cache::forget('admin_dashboard_students_by_grade'));
+        // Dashboard widget cache
+        static::saved(fn()  => \Illuminate\Support\Facades\Cache::forget('admin_dashboard_students_by_grade'));
         static::deleted(fn() => \Illuminate\Support\Facades\Cache::forget('admin_dashboard_students_by_grade'));
+
+        // Grade / roster cache — runs BEFORE save so we capture the original section_id
+        static::updating(function (self $enrollment): void {
+            // If the student is being transferred to a different section,
+            // clear the OLD section's cache now (before the DB write).
+            if ($enrollment->isDirty('section_id')) {
+                $originalSectionId = $enrollment->getOriginal('section_id');
+                if ($originalSectionId && $enrollment->academic_year_id) {
+                    app(GradeCacheService::class)->clearSectionCache(
+                        (int) $originalSectionId,
+                        (int) $enrollment->academic_year_id
+                    );
+                }
+            }
+        });
+
+        $bustGradeCache = function (self $enrollment): void {
+            if ($enrollment->section_id && $enrollment->academic_year_id) {
+                app(GradeCacheService::class)->clearSectionCache(
+                    (int) $enrollment->section_id,
+                    (int) $enrollment->academic_year_id
+                );
+            }
+        };
+
+        static::saved($bustGradeCache);
+        static::deleted($bustGradeCache);
     }
 
     protected $fillable = [

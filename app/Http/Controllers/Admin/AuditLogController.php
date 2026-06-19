@@ -13,13 +13,19 @@ class AuditLogController extends Controller
     {
         $search = $request->input('search');
 
-        $logs = AuditLog::with('user')
+        $logs = AuditLog::with(['user', 'section.gradeLevel'])
             ->when($search, function($query) use ($search) {
                 $query->where('event', 'like', "%{$search}%")
                     ->orWhere('auditable_type', 'like', "%{$search}%")
                     ->orWhere('ip_address', 'like', "%{$search}%")
                     ->orWhereHas('user', function($q) use ($search) {
                         $q->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('section', function($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%")
+                            ->orWhereHas('gradeLevel', function($q2) use ($search) {
+                                $q2->where('name', 'like', "%{$search}%");
+                            });
                     });
             })
             ->latest()

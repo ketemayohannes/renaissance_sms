@@ -100,6 +100,7 @@ class GradingService
                     'event' => 'bulk_recalculate',
                     'auditable_type' => StudentTermRecord::class,
                     'auditable_id' => $section->id,
+                    'section_id' => $section->id,
                     'new_values' => ['section_id' => $section->id, 'term_id' => $term->id, 'count' => count($upsertData)],
                     'url' => request()->fullUrl(),
                     'ip_address' => request()->ip(),
@@ -110,6 +111,9 @@ class GradingService
             if ($term->id === 'yearly') {
                 $this->yearlyStatsCache["{$section->id}_{$academicYear->id}"] = $sectionCache;
             }
+
+            // Bust roster cache after bulk recalculation
+            app(GradeCacheService::class)->clearSectionCache((int) $section->id, (int) $academicYear->id);
 
             return $students->count();
         }
@@ -126,17 +130,17 @@ class GradingService
         if ($isSemester) {
             $quarters = $term->quarters()->get();
             foreach ($quarters as $quarter) {
-                $this->recalculateTermStats($students, $quarter, $academicYear, $subjects);
+                $this->recalculateTermStats($section, $students, $quarter, $academicYear, $subjects);
             }
         }
         
         // Recalculate stats for the main term
-        $this->recalculateTermStats($students, $term, $academicYear, $subjects);
+        $this->recalculateTermStats($section, $students, $term, $academicYear, $subjects);
 
         return $students->count();
     }
 
-    private function recalculateTermStats($students, $term, $academicYear, $subjects)
+    private function recalculateTermStats($section, $students, $term, $academicYear, $subjects)
     {
         // Batch calculate all totals for the section
         $batchResults = $this->calculateSectionTotals($students, $term, $academicYear, $subjects);
@@ -184,6 +188,7 @@ class GradingService
                 'event' => 'bulk_recalculate_term',
                 'auditable_type' => StudentTermRecord::class,
                 'auditable_id' => $term->id,
+                'section_id' => $section->id,
                 'new_values' => ['term_id' => $term->id, 'count' => count($upsertData)],
                 'url' => request()->fullUrl(),
                 'ip_address' => request()->ip(),
@@ -574,10 +579,10 @@ class GradingService
      */
     public function getSectionReportData(Collection $students, Section $section, Term $term, AcademicYear $academicYear)
     {
-        $cacheKey = "section_subjects_{$section->grade_level_id}";
-        $subjects = Cache::remember($cacheKey, 3600, function() use ($section) {
-            return $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
-        });
+        $subjects = app(GradeCacheService::class)->getSubjects(
+            (int) $section->grade_level_id,
+            fn() => $section->gradeLevel->subjects()->orderByPivot('sort_order')->get()
+        );
         $isYearly = $term->id === 'yearly' || $term->type === 'yearly';
         $isSemester = $term->isSemester();
         

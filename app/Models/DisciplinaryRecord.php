@@ -9,9 +9,10 @@ class DisciplinaryRecord extends Model
     protected $fillable = [
         'student_id',
         'academic_year_id',
+        'infraction_definition_id',
+        'escalation_rule_id',
+        'escalation_action_applied',
         'incident_date',
-        'incident_type',
-        'severity',
         'description',
         'action_taken',
         'reported_by',
@@ -23,10 +24,12 @@ class DisciplinaryRecord extends Model
     ];
 
     protected $casts = [
-        'incident_date' => 'date',
+        'incident_date'   => 'date',
         'resolution_date' => 'date',
-        'notify_parent' => 'boolean',
+        'notify_parent'   => 'boolean',
     ];
+
+    /* ── Relationships ── */
 
     public function student()
     {
@@ -36,6 +39,16 @@ class DisciplinaryRecord extends Model
     public function academicYear()
     {
         return $this->belongsTo(AcademicYear::class);
+    }
+
+    public function infractionDefinition()
+    {
+        return $this->belongsTo(InfractionDefinition::class);
+    }
+
+    public function escalationRule()
+    {
+        return $this->belongsTo(EscalationRule::class);
     }
 
     public function reporter()
@@ -48,25 +61,29 @@ class DisciplinaryRecord extends Model
         return $this->belongsTo(User::class, 'handled_by');
     }
 
-    public static function incidentTypes()
+    /* ── Accessors ── */
+
+    /**
+     * The human-readable infraction name.
+     */
+    public function getInfractionNameAttribute(): string
     {
-        return [
-            'behavioral' => 'Behavioral Issue',
-            'academic' => 'Academic Misconduct',
-            'attendance' => 'Attendance Issue',
-            'bullying' => 'Bullying',
-            'vandalism' => 'Vandalism',
-            'other' => 'Other',
-        ];
+        return $this->infractionDefinition?->name ?? 'Unknown';
     }
 
-    public static function severityLevels()
+    /**
+     * The tier (severity) from the linked infraction definition.
+     */
+    public function getTierAttribute(): string
     {
-        return [
-            'minor' => 'Minor',
-            'moderate' => 'Moderate',
-            'major' => 'Major',
-            'critical' => 'Critical',
-        ];
+        return $this->infractionDefinition?->tier ?? 'minor';
+    }
+
+    /**
+     * Whether an escalation was triggered for this record.
+     */
+    public function getWasEscalatedAttribute(): bool
+    {
+        return $this->escalation_action_applied !== null;
     }
 }

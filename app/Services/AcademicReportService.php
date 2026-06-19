@@ -23,15 +23,14 @@ class AcademicReportService
         $this->gradingService = $gradingService;
     }
 
+    /**
+     * Bust cached roster data for a section+term combination.
+     * Preserved for call-sites that use this static method directly;
+     * internally delegates to GradeCacheService.
+     */
     public static function clearRosterCache(int $sectionId, $termId, int $academicYearId): void
     {
-        \Illuminate\Support\Facades\Cache::forget("roster_data_{$sectionId}_{$termId}_{$academicYearId}");
-        \Illuminate\Support\Facades\Cache::forget("roster_data_{$sectionId}_yearly_{$academicYearId}");
-        
-        $term = Term::find($termId);
-        if ($term && $term->type === 'quarter' && $term->parent_term_id) {
-            \Illuminate\Support\Facades\Cache::forget("roster_data_{$sectionId}_{$term->parent_term_id}_{$academicYearId}");
-        }
+        app(GradeCacheService::class)->clearSectionCache($sectionId, $academicYearId);
     }
 
 
@@ -70,10 +69,11 @@ class AcademicReportService
      */
     public function prepareRosterData(Section $section, $term, AcademicYear $academicYear): array
     {
-        // PERFORMANCE FIX: Cache roster data for 5 minutes
-        $cacheKey = "roster_data_{$section->id}_{$term->id}_{$academicYear->id}";
-        
-        return \Illuminate\Support\Facades\Cache::remember($cacheKey, 300, function() use ($section, $term, $academicYear) {
+        return app(GradeCacheService::class)->getRosterData(
+            (int) $section->id,
+            $term->id,
+            (int) $academicYear->id,
+            function () use ($section, $term, $academicYear) {
             $gradeLevel = $section->gradeLevel;
             $subjects = $gradeLevel->subjects()->orderByPivot('sort_order')->get();
             $settings = \App\Models\AcademicReportSetting::first();

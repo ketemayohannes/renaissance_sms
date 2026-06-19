@@ -50,6 +50,7 @@
                             <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Operator Identity</th>
                             <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Classification</th>
                             <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Entity Target</th>
+                            <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Target Context</th>
                             <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Data Mutations</th>
                             <th class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Infrastructure Meta</th>
                         </tr>
@@ -89,6 +90,16 @@
                                         <span class="text-xs font-black text-slate-800 uppercase tracking-tight">{{ class_basename($log->auditable_type) }}</span>
                                         <span class="text-[10px] font-bold text-slate-400 italic">UID-{{ $log->auditable_id }}</span>
                                     </div>
+                                </td>
+                                <td class="px-6 py-6">
+                                    @if($log->section)
+                                        <div class="flex flex-col">
+                                            <span class="text-xs font-black text-slate-800 uppercase tracking-tight">{{ $log->section->gradeLevel?->name ?? 'N/A' }}</span>
+                                            <span class="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mt-0.5">{{ $log->section->name }}</span>
+                                        </div>
+                                    @else
+                                        <span class="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] italic">N/A</span>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-6 overflow-hidden">
                                     @if($log->event === 'updated')

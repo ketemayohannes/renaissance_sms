@@ -59,6 +59,10 @@ class RolePermissionSeeder extends Seeder
 
             // Inventory
             'view inventory', 'manage inventory',
+
+            // Gradebook (fine-grained)
+            'view master gradebook', 'edit master gradebook',
+            'view subject gradebook', 'edit subject gradebook',
         ];
 
         foreach ($permissions as $permission) {
@@ -79,7 +83,9 @@ class RolePermissionSeeder extends Seeder
             'view marks', 'publish results', 'generate report cards', 'generate transcripts',
             'view fees', 'view financial reports',
             'view library',
-            'send notifications', 'manage notice board', 'access chat'
+            'send notifications', 'manage notice board', 'access chat',
+            'view master gradebook', 'edit master gradebook',
+            'view subject gradebook', 'edit subject gradebook',
         ]);
 
         // Vice Principal
@@ -90,7 +96,8 @@ class RolePermissionSeeder extends Seeder
         $supervisor = Role::firstOrCreate(['name' => 'Supervisor']);
         $supervisor->syncPermissions([
             'view students', 'view grade levels', 'view sections', 'view subjects',
-            'view marks', 'generate report cards', 'access chat', 'manage notice board'
+            'view marks', 'generate report cards', 'access chat', 'manage notice board',
+            'view master gradebook', 'view subject gradebook', 'edit subject gradebook',
         ]);
 
         // Teacher

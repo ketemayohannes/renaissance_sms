@@ -11,19 +11,18 @@
                 ]" />
                 <h1 class="text-4xl font-black text-slate-900 tracking-tight mt-2 flex items-center gap-3">
                     @php
-                        $severityColors = [
-                            'minor' => 'bg-emerald-500',
+                        $tierColors = [
+                            'minor'    => 'bg-emerald-500',
                             'moderate' => 'bg-amber-500',
-                            'major' => 'bg-orange-500',
                             'critical' => 'bg-rose-600',
                         ];
                     @endphp
-                    <span class="w-1.5 h-8 {{ $severityColors[$disciplinary->severity] ?? 'bg-slate-600' }} rounded-full"></span>
+                    <span class="w-1.5 h-8 {{ $tierColors[$disciplinary->tier] ?? 'bg-slate-600' }} rounded-full"></span>
                     Trace № {{ $disciplinary->id }}
                 </h1>
                 <p class="text-slate-500 font-semibold mt-1 uppercase text-[10px] tracking-[0.2em] italic">Permanent disciplinary investigation archive</p>
             </div>
-            
+
             <div class="flex items-center gap-3">
                 <a href="{{ route('admin.disciplinary.index') }}" class="px-6 py-4 bg-white border border-slate-200 rounded-2xl font-black text-[10px] uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all flex items-center gap-3 shadow-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
@@ -35,7 +34,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <!-- Data Grid -->
             <div class="lg:col-span-2 space-y-8">
-                 <!-- Subject Intel -->
+                <!-- Subject Intel -->
                 <div class="bg-indigo-900 rounded-[2.5rem] p-10 text-white shadow-2xl relative overflow-hidden group">
                     <div class="absolute -right-20 -top-20 w-80 h-80 bg-white/5 rounded-full blur-3xl group-hover:scale-125 transition-transform duration-1000"></div>
                     <div class="relative z-10 flex flex-col md:flex-row items-center gap-8">
@@ -46,20 +45,73 @@
                             <span class="bg-white/10 text-white/60 text-[10px] font-black px-4 py-1 rounded-full uppercase tracking-widest border border-white/5">Subject Identity</span>
                             <h2 class="text-3xl font-black mt-4 tracking-tight">{{ $disciplinary->student->full_name }}</h2>
                             <p class="text-indigo-200 mt-1 font-bold uppercase text-xs tracking-[0.2em] opacity-80">{{ $disciplinary->student->student_id }} — {{ $disciplinary->student->currentSection?->name ?? 'Unassigned' }}</p>
-                            
+
                             <div class="flex flex-wrap justify-center md:justify-start gap-4 mt-8">
                                 <div class="px-4 py-2 bg-white/5 rounded-xl border border-white/10">
-                                    <span class="block text-[8px] font-black text-indigo-300 uppercase tracking-widest">Incident Chronology</span>
+                                    <span class="block text-[8px] font-black text-indigo-300 uppercase tracking-widest">Incident Date</span>
                                     <span class="block text-sm font-bold mt-1">{{ $disciplinary->incident_date->format('M d, Y') }}</span>
                                 </div>
                                 <div class="px-4 py-2 bg-white/5 rounded-xl border border-white/10">
-                                    <span class="block text-[8px] font-black text-indigo-300 uppercase tracking-widest">Log Typology</span>
-                                    <span class="block text-sm font-bold mt-1">{{ \App\Models\DisciplinaryRecord::incidentTypes()[$disciplinary->incident_type] ?? $disciplinary->incident_type }}</span>
+                                    <span class="block text-[8px] font-black text-indigo-300 uppercase tracking-widest">Infraction Type</span>
+                                    <span class="block text-sm font-bold mt-1">{{ $disciplinary->infraction_name }}</span>
+                                </div>
+                                <div class="px-4 py-2 rounded-xl border border-white/10
+                                    {{ match($disciplinary->tier) {
+                                        'minor' => 'bg-emerald-500/20 border-emerald-400/20',
+                                        'moderate' => 'bg-amber-500/20 border-amber-400/20',
+                                        'critical' => 'bg-rose-500/20 border-rose-400/20',
+                                        default => 'bg-white/5'
+                                    } }}">
+                                    <span class="block text-[8px] font-black text-indigo-300 uppercase tracking-widest">Severity Tier</span>
+                                    <span class="block text-sm font-bold mt-1 uppercase">{{ $disciplinary->tier }}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+
+                <!-- Infraction Definition Detail -->
+                @if($disciplinary->infractionDefinition)
+                <div class="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-2xl shadow-slate-200/50 p-10">
+                    <div class="flex items-center gap-4 mb-6">
+                        <div class="w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner
+                            {{ match($disciplinary->tier) {
+                                'minor' => 'bg-emerald-100 text-emerald-600',
+                                'moderate' => 'bg-amber-100 text-amber-600',
+                                'critical' => 'bg-rose-100 text-rose-600',
+                                default => 'bg-slate-100 text-slate-600'
+                            } }}">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-black text-slate-900 uppercase tracking-tight">Infraction Classification</h3>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 italic">Infraction type details from the discipline engine</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="p-4 bg-slate-50/50 rounded-2xl">
+                            <span class="block text-[9px] font-black text-slate-400 uppercase tracking-widest">Category</span>
+                            <span class="block text-sm font-black text-slate-900 mt-1">{{ $disciplinary->infractionDefinition->name }}</span>
+                        </div>
+                        <div class="p-4 bg-slate-50/50 rounded-2xl">
+                            <span class="block text-[9px] font-black text-slate-400 uppercase tracking-widest">Severity Tier</span>
+                            <span class="block text-sm font-black mt-1 uppercase {{ match($disciplinary->tier) { 'minor' => 'text-emerald-600', 'moderate' => 'text-amber-600', 'critical' => 'text-rose-600', default => 'text-slate-600' } }}">{{ $disciplinary->infractionDefinition->display_tier }}</span>
+                        </div>
+                        @if($disciplinary->infractionDefinition->default_penalty)
+                        <div class="p-4 bg-slate-50/50 rounded-2xl col-span-2">
+                            <span class="block text-[9px] font-black text-slate-400 uppercase tracking-widest">Default Penalty</span>
+                            <span class="block text-sm font-semibold text-slate-700 mt-1">{{ $disciplinary->infractionDefinition->default_penalty }}</span>
+                        </div>
+                        @endif
+                        @if($disciplinary->infractionDefinition->description)
+                        <div class="p-4 bg-slate-50/50 rounded-2xl col-span-2">
+                            <span class="block text-[9px] font-black text-slate-400 uppercase tracking-widest">Description</span>
+                            <span class="block text-xs text-slate-600 mt-1 leading-relaxed">{{ $disciplinary->infractionDefinition->description }}</span>
+                        </div>
+                        @endif
+                    </div>
+                </div>
+                @endif
 
                 <!-- Descriptive Narrative -->
                 <div class="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-2xl shadow-slate-200/50 p-10">
@@ -86,6 +138,48 @@
                     @endif
                 </div>
 
+                <!-- Escalation Detail -->
+                @if($disciplinary->was_escalated)
+                <div class="bg-indigo-900 rounded-[2.5rem] p-10 text-white shadow-2xl relative overflow-hidden group">
+                    <div class="absolute -right-20 -top-20 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
+                    <div class="relative z-10">
+                        <div class="flex items-center gap-4 mb-8">
+                            <div class="w-12 h-12 rounded-2xl bg-white/10 text-white flex items-center justify-center shadow-inner">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-black uppercase tracking-tight">Auto-Escalation Triggered</h3>
+                                <p class="text-xs font-bold text-indigo-200/50 uppercase tracking-widest mt-1 italic">System-enforced disciplinary action</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="p-4 bg-white/5 rounded-[1.5rem] border border-white/10">
+                                <span class="block text-[8px] font-black text-indigo-300 uppercase tracking-widest">Action Applied</span>
+                                <span class="block text-sm font-bold mt-1">{{ \App\Models\EscalationRule::escalationActions()[$disciplinary->escalation_action_applied] ?? $disciplinary->escalation_action_applied }}</span>
+                            </div>
+                            @if($disciplinary->escalationRule)
+                            <div class="p-4 bg-white/5 rounded-[1.5rem] border border-white/10">
+                                <span class="block text-[8px] font-black text-indigo-300 uppercase tracking-widest">Threshold</span>
+                                <span class="block text-sm font-bold mt-1">≥ {{ $disciplinary->escalationRule->occurrence_threshold }} occurrences</span>
+                            </div>
+                            @if($disciplinary->escalationRule->legal_reference)
+                            <div class="p-4 bg-white/5 rounded-[1.5rem] border border-white/10 col-span-2">
+                                <span class="block text-[8px] font-black text-indigo-300 uppercase tracking-widest">Legal Reference</span>
+                                <span class="block text-sm font-semibold mt-1 text-indigo-100 italic">{{ $disciplinary->escalationRule->legal_reference }}</span>
+                            </div>
+                            @endif
+                            @if($disciplinary->escalationRule->escalation_description)
+                            <div class="p-4 bg-white/5 rounded-[1.5rem] border border-white/10 col-span-2">
+                                <span class="block text-[8px] font-black text-indigo-300 uppercase tracking-widest">Rule Description</span>
+                                <p class="text-xs font-semibold mt-1 text-indigo-100 leading-relaxed">{{ $disciplinary->escalationRule->escalation_description }}</p>
+                            </div>
+                            @endif
+                            @endif
+                        </div>
+                    </div>
+                </div>
+                @endif
+
                 @if($disciplinary->resolution_notes)
                 <div class="bg-emerald-900 rounded-[2.5rem] p-10 text-white shadow-2xl relative overflow-hidden group">
                     <div class="absolute -left-20 -bottom-20 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
@@ -96,7 +190,7 @@
                             </div>
                             <div>
                                 <h3 class="text-lg font-black uppercase tracking-tight">Resolution Conclusion</h3>
-                                <p class="text-xs font-bold text-emerald-200/50 uppercase tracking-widest mt-1 italic italic">Final administrative ruling</p>
+                                <p class="text-xs font-bold text-emerald-200/50 uppercase tracking-widest mt-1 italic">Final administrative ruling</p>
                             </div>
                         </div>
                         <div class="p-6 bg-white/5 rounded-[1.5rem] border border-white/10 backdrop-blur-sm">
@@ -125,10 +219,10 @@
                     <div class="space-y-6">
                         @php
                             $statusMap = [
-                                'reported' => ['bg' => 'bg-blue-100', 'text' => 'text-blue-600', 'label' => 'New Report'],
+                                'reported'     => ['bg' => 'bg-blue-100', 'text' => 'text-blue-600', 'label' => 'New Report'],
                                 'under_review' => ['bg' => 'bg-amber-100', 'text' => 'text-amber-600', 'label' => 'In Review'],
-                                'resolved' => ['bg' => 'bg-emerald-100', 'text' => 'text-emerald-600', 'label' => 'Resolved'],
-                                'escalated' => ['bg' => 'bg-rose-100', 'text' => 'text-rose-600', 'label' => 'Escalated'],
+                                'resolved'     => ['bg' => 'bg-emerald-100', 'text' => 'text-emerald-600', 'label' => 'Resolved'],
+                                'escalated'    => ['bg' => 'bg-rose-100', 'text' => 'text-rose-600', 'label' => 'Escalated'],
                             ];
                             $stat = $statusMap[$disciplinary->status] ?? ['bg' => 'bg-slate-100', 'text' => 'text-slate-600', 'label' => $disciplinary->status];
                         @endphp
@@ -150,6 +244,12 @@
                                 <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Guardian Notified</span>
                                 <span class="text-xs font-black {{ $disciplinary->notify_parent ? 'text-emerald-500' : 'text-slate-300 uppercase' }}">{{ $disciplinary->notify_parent ? 'Yes' : 'No' }}</span>
                             </div>
+                            @if($disciplinary->was_escalated)
+                            <div class="flex justify-between items-center px-2 border-t border-slate-50 pt-4">
+                                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Escalation</span>
+                                <span class="px-2 py-1 bg-indigo-100 text-indigo-600 rounded-md text-[8px] font-black uppercase">{{ \App\Models\EscalationRule::escalationActions()[$disciplinary->escalation_action_applied] ?? 'Applied' }}</span>
+                            </div>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -169,7 +269,7 @@
                         <form action="{{ route('admin.disciplinary.update', $disciplinary) }}" method="POST" class="space-y-6">
                             @csrf
                             @method('PUT')
-                            
+
                             <div class="space-y-2">
                                 <label class="px-2 text-[8px] font-black text-slate-400 uppercase tracking-[0.3em]">State Transition</label>
                                 <select name="status" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-semibold text-white focus:ring-1 focus:ring-indigo-500 transition-all outline-none">
@@ -182,8 +282,8 @@
 
                             <div class="space-y-2">
                                 <label class="px-2 text-[8px] font-black text-slate-400 uppercase tracking-[0.3em]">Resolution Synthesis</label>
-                                <textarea name="resolution_notes" rows="3" 
-                                          class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-sm font-semibold text-white focus:ring-1 focus:ring-indigo-500 transition-all outline-none placeholder-white/10" 
+                                <textarea name="resolution_notes" rows="3"
+                                          class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-sm font-semibold text-white focus:ring-1 focus:ring-indigo-500 transition-all outline-none placeholder-white/10"
                                           placeholder="Notes for final archival conclusion...">{{ old('resolution_notes', $disciplinary->resolution_notes) }}</textarea>
                             </div>
 

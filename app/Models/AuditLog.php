@@ -11,6 +11,7 @@ class AuditLog extends Model
         'event',
         'auditable_type',
         'auditable_id',
+        'section_id',
         'old_values',
         'new_values',
         'url',
@@ -26,6 +27,11 @@ class AuditLog extends Model
     public function user()
     {
         return $this->belongsTo(\App\Models\User::class);
+    }
+
+    public function section()
+    {
+        return $this->belongsTo(\App\Models\Section::class);
     }
 
     public function auditable()

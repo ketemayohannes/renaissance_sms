@@ -42,28 +42,55 @@ class StoreBulkGrades
             $templateIds = collect($data['marks'])->flatMap(fn($components) => array_keys($components))->unique();
             $templates = \App\Models\AssessmentTemplate::whereIn('id', $templateIds)->get()->keyBy('id');
 
+            // Load existing marks for comparison
+            $existingMarks = StudentMark::where('academic_year_id', $data['academic_year_id'])
+                ->where('term_id', $data['term_id'])
+                ->where('subject_id', $data['subject_id'])
+                ->whereIn('student_id', array_keys($data['marks']))
+                ->get()
+                ->groupBy('student_id');
+
             $errors = [];
             $upsertData = [];
             $deleteData = []; // Track scores to delete (cleared by user)
+            $changedStudentIds = [];
             $now = now();
             
             foreach ($data['marks'] as $studentId => $components) {
                 foreach ($components as $templateId => $markData) {
+                    $existingStudentMarks = $existingMarks->get($studentId);
+                    $existingMark = $existingStudentMarks ? $existingStudentMarks->firstWhere('assessment_template_id', $templateId) : null;
+
                     // If score is empty, add to delete list (user cleared the grade)
                     if (!isset($markData['score']) || $markData['score'] === '') {
-                        $deleteData[] = [
-                            'student_id' => $studentId,
-                            'assessment_template_id' => $templateId,
-                        ];
+                        if ($existingMark) {
+                            $deleteData[] = [
+                                'student_id' => $studentId,
+                                'assessment_template_id' => $templateId,
+                            ];
+                            $changedStudentIds[] = $studentId;
+                        }
                         continue;
+                    }
+
+                    $newScore = (float)$markData['score'];
+                    $newRemarks = $markData['remarks'] ?? null;
+
+                    // Skip database update if no change occurred
+                    if ($existingMark) {
+                        $existingScore = (float)$existingMark->score;
+                        $existingRemarks = $existingMark->remarks;
+                        if ($existingScore === $newScore && $existingRemarks === $newRemarks) {
+                            continue;
+                        }
                     }
 
                     // Validate score doesn't exceed max_score
                     $template = $templates->get($templateId);
-                    if ($template && $markData['score'] > $template->max_score) {
+                    if ($template && $newScore > $template->max_score) {
                         $student = \App\Models\Student::find($studentId);
                         $studentName = $student ? $student->first_name . ' ' . $student->last_name : "Student ID $studentId";
-                        $errors[] = "$studentName: Score {$markData['score']} exceeds maximum {$template->max_score} for {$template->name}";
+                        $errors[] = "$studentName: Score {$newScore} exceeds maximum {$template->max_score} for {$template->name}";
                         continue; // Skip this entry
                     }
 
@@ -75,11 +102,13 @@ class StoreBulkGrades
                         'assessment_template_id' => $templateId,
                         'section_id' => $data['section_id'],
                         'teacher_id' => $userId,
-                        'score' => $markData['score'],
-                        'remarks' => $markData['remarks'] ?? null,
+                        'score' => $newScore,
+                        'remarks' => $newRemarks,
                         'created_at' => $now,
                         'updated_at' => $now,
                     ];
+
+                    $changedStudentIds[] = $studentId;
                 }
             }
             
@@ -112,6 +141,7 @@ class StoreBulkGrades
                     'event' => 'bulk_grade_entry',
                     'auditable_type' => StudentMark::class,
                     'auditable_id' => $data['subject_id'],
+                    'section_id' => $data['section_id'],
                     'new_values' => ['subject_id' => $data['subject_id'], 'term_id' => $data['term_id'], 'section_id' => $data['section_id'], 'count' => count($upsertData)],
                     'url' => request()->fullUrl(),
                     'ip_address' => request()->ip(),
@@ -122,7 +152,7 @@ class StoreBulkGrades
             // SYNCHRONIZATION: Update the TERM_TOTAL mark for all affected students
             // This ensures the Master Sheet reflects the changes made in the Gradebook.
             $termTotalTypeId = \App\Models\AssessmentType::where('code', 'TERM_TOTAL')->value('id');
-            if ($termTotalTypeId) {
+            if ($termTotalTypeId && !empty($changedStudentIds)) {
                 // Get the grade level from the section
                 $section = \App\Models\Section::find($data['section_id']);
                 $gradeLevelId = $section ? $section->grade_level_id : null;
@@ -139,7 +169,7 @@ class StoreBulkGrades
                     ->first();
 
                 if ($termTotalTemplate) {
-                    $affectedStudentIds = array_keys($data['marks']);
+                    $affectedStudentIds = array_unique($changedStudentIds);
                     foreach ($affectedStudentIds as $studentId) {
                         // Calculate new total from ALL current components in DB
                         $newSum = StudentMark::where('student_id', $studentId)

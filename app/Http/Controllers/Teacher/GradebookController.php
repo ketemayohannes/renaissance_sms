@@ -524,6 +524,7 @@ class GradebookController extends Controller
                     'event' => 'bulk_grade_import',
                     'auditable_type' => StudentMark::class,
                     'auditable_id' => $assignment->subject_id,
+                    'section_id' => $assignment->section_id,
                     'new_values' => ['subject_id' => $assignment->subject_id, 'term_id' => $request->term_id, 'section_id' => $assignment->section_id, 'count' => count($upsertData)],
                     'url' => request()->fullUrl(),
                     'ip_address' => request()->ip(),

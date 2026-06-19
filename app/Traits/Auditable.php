@@ -53,11 +53,40 @@ trait Auditable
             'event' => $event,
             'auditable_type' => get_class($this),
             'auditable_id' => $this->id,
+            'section_id' => $this->resolveAuditSectionId(),
             'old_values' => $oldValues,
             'new_values' => $newValues,
             'url' => Request::fullUrl(),
             'ip_address' => $ip,
             'user_agent' => $userAgent,
         ]);
+    }
+
+    protected function resolveAuditSectionId()
+    {
+        // 1. Direct attribute or relation attribute
+        if (isset($this->section_id)) {
+            return $this->section_id;
+        }
+        if (isset($this->attributes) && is_array($this->attributes) && array_key_exists('section_id', $this->attributes)) {
+            return $this->attributes['section_id'];
+        }
+
+        // 2. AcademicActivity
+        if ($this instanceof \App\Models\AcademicActivity) {
+            return $this->teacherAssignment?->section_id;
+        }
+
+        // 3. ActivitySubmission
+        if ($this instanceof \App\Models\ActivitySubmission) {
+            return $this->academicActivity?->teacherAssignment?->section_id;
+        }
+
+        // 4. Student
+        if ($this instanceof \App\Models\Student) {
+            return $this->currentEnrollment?->section_id;
+        }
+
+        return null;
     }
 }

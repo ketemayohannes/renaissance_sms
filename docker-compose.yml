@@ -19,8 +19,11 @@ services:
       - DB_DATABASE=renaissance_sms
       - DB_USERNAME=school_user
       - DB_PASSWORD=school_password
+      - REDIS_HOST=valkey
+      - REDIS_PORT=6379
     depends_on:
       - db
+      - valkey
     develop:
       watch:
         - action: sync
@@ -44,6 +47,15 @@ services:
     volumes:
       - db_data:/var/lib/mysql
 
+  valkey:
+    image: redis:7-alpine
+    container_name: renaissance_valkey
+    restart: unless-stopped
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - valkey_data:/data
+
 volumes:
   db_data:
   app_storage:
+  valkey_data:

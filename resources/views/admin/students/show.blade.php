@@ -853,29 +853,27 @@
                                         <div class="p-6 bg-slate-50/50 rounded-[2rem] border border-slate-100 hover:bg-white hover:shadow-xl transition-all group">
                                             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                                                 <div class="flex items-center gap-3">
-                                                    <span class="px-3 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-black text-rose-600 uppercase tracking-widest shadow-sm">{{ $record->action_taken }}</span>
+                                                    <span class="px-3 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-black text-rose-600 uppercase tracking-widest shadow-sm">{{ $record->action_taken ?: 'Pending' }}</span>
                                                     <span class="text-xs font-bold text-slate-400">{{ $record->incident_date->format('M d, Y') }}</span>
                                                 </div>
                                                 <div class="flex items-center gap-2">
-                                                    <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Severity:</span>
+                                                    <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Tier:</span>
                                                     @php
-                                                        $severities = [
-                                                            'low' => 'bg-emerald-500',
-                                                            'medium' => 'bg-amber-500',
-                                                            'high' => 'bg-rose-500',
-                                                            'major' => 'bg-orange-500',
-                                                            'critical' => 'bg-red-600'
+                                                        $tiers = [
+                                                            'minor'    => ['color' => 'bg-emerald-500', 'bars' => 1],
+                                                            'moderate' => ['color' => 'bg-amber-500',   'bars' => 2],
+                                                            'critical' => ['color' => 'bg-rose-600',    'bars' => 3],
                                                         ];
-                                                        $color = $severities[strtolower($record->severity)] ?? 'bg-slate-400';
+                                                        $tierData = $tiers[$record->tier] ?? ['color' => 'bg-slate-400', 'bars' => 1];
                                                     @endphp
                                                     <div class="flex gap-1">
-                                                        <div class="w-4 h-1 rounded-full {{ $color }}"></div>
-                                                        <div class="w-4 h-1 rounded-full {{ in_array(strtolower($record->severity), ['medium', 'high', 'major', 'critical']) ? $color : 'bg-slate-100' }}"></div>
-                                                        <div class="w-4 h-1 rounded-full {{ in_array(strtolower($record->severity), ['high', 'major', 'critical']) ? $color : 'bg-slate-100' }}"></div>
+                                                        <div class="w-4 h-1 rounded-full {{ $tierData['color'] }}"></div>
+                                                        <div class="w-4 h-1 rounded-full {{ $tierData['bars'] >= 2 ? $tierData['color'] : 'bg-slate-100' }}"></div>
+                                                        <div class="w-4 h-1 rounded-full {{ $tierData['bars'] >= 3 ? $tierData['color'] : 'bg-slate-100' }}"></div>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <h4 class="text-lg font-black text-slate-800 mb-2">{{ ucfirst($record->incident_type) }}</h4>
+                                            <h4 class="text-lg font-black text-slate-800 mb-2">{{ ucfirst($record->infraction_name) }}</h4>
                                             <p class="text-sm text-slate-500 font-semibold leading-relaxed">{{ $record->description }}</p>
                                         </div>
                                     @endforeach

@@ -496,6 +496,7 @@ class GradebookController extends Controller implements HasMiddleware
                     'event' => 'bulk_grade_import',
                     'auditable_type' => StudentMark::class,
                     'auditable_id' => $request->subject_id,
+                    'section_id' => $request->section_id,
                     'new_values' => ['subject_id' => $request->subject_id, 'term_id' => $request->term_id, 'section_id' => $request->section_id, 'count' => count($upsertData)],
                     'url' => request()->fullUrl(),
                     'ip_address' => request()->ip(),

@@ -308,8 +308,8 @@ class DashboardController extends Controller
         
         $executionTime = round(microtime(true) - $start, 4);
         
-        // System Health (Live)
-        $systemHealth = \Illuminate\Support\Facades\Cache::remember('system_health_status', 10, function() {
+        // System Health (Live — not cached so we always get real status)
+        $systemHealth = (function() {
             try {
                 \Illuminate\Support\Facades\DB::connection()->getPdo();
                 $dbStatus = 'Online';
@@ -323,12 +323,12 @@ class DashboardController extends Controller
             }
 
             try {
-                \Illuminate\Support\Facades\Cache::put('health_check', 'ok', 1);
+                \Illuminate\Support\Facades\Cache::put('health_check', 'ok', 10);
                 $cacheStatus = \Illuminate\Support\Facades\Cache::get('health_check') === 'ok' ? 'Online' : 'Offline';
             } catch (\Exception $e) { $cacheStatus = 'Offline'; }
 
             return ['database' => $dbStatus, 'queue' => $queueStatus, 'cache' => $cacheStatus];
-        });
+        })();
 
         $divisions = \App\Models\Division::where('is_active', true)->orderBy('sort_order')->get();
         $selectedDivision = $divisionId ? $divisions->where('id', $divisionId)->first() : null;

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\GradeCacheService;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,6 +13,21 @@ use App\Traits\HasDivisionRestriction;
 class StudentMark extends Model
 {
     use HasFactory, Auditable, HasDivisionRestriction;
+
+    protected static function booted(): void
+    {
+        $bust = function (self $mark): void {
+            if ($mark->section_id && $mark->academic_year_id) {
+                app(GradeCacheService::class)->clearSectionCache(
+                    (int) $mark->section_id,
+                    (int) $mark->academic_year_id
+                );
+            }
+        };
+
+        static::saved($bust);
+        static::deleted($bust);
+    }
 
     protected $fillable = [
         'student_id',

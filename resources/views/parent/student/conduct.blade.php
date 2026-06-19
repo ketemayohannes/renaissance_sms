@@ -39,17 +39,15 @@
                                 <span class="text-[10px] sm:text-xs font-bold font-mono text-slate-400">{{ $record->incident_date->format('M d, Y') }}</span>
                                 
                                 @php
-                                    $severityColors = [
-                                        'minor' => 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-450 border border-blue-100 dark:border-blue-900',
+                                    $tierColors = [
+                                        'minor'    => 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-450 border border-blue-100 dark:border-blue-900',
                                         'moderate' => 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-450 border border-amber-100 dark:border-amber-900',
-                                        'major' => 'bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-450 border border-orange-100 dark:border-orange-900',
                                         'critical' => 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-450 border border-rose-100 dark:border-rose-900',
                                     ];
-                                    $severity = strtolower($record->severity);
-                                    $sevClass = $severityColors[$severity] ?? 'bg-slate-50 text-slate-600 border border-slate-100';
+                                    $tierClass = $tierColors[$record->tier] ?? 'bg-slate-50 text-slate-600 border border-slate-100';
                                 @endphp
-                                <span class="px-1.5 sm:px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-wider {{ $sevClass }}">
-                                    {{ $record->severity }}
+                                <span class="px-1.5 sm:px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-wider {{ $tierClass }}">
+                                    {{ ucfirst($record->tier) }}
                                 </span>
 
                                 @if($record->status === 'resolved')
@@ -67,7 +65,7 @@
                             <div class="flex flex-col md:flex-row md:items-start justify-between gap-3 sm:gap-6">
                                 <div class="space-y-2.5 sm:space-y-3 flex-1 min-w-0">
                                     <div>
-                                        <h4 class="font-bold text-sm sm:text-base text-slate-800 dark:text-slate-100 leading-snug">{{ $record->incident_type }}</h4>
+                                        <h4 class="font-bold text-sm sm:text-base text-slate-800 dark:text-slate-100 leading-snug">{{ $record->infraction_name }}</h4>
                                         <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">{{ $record->description }}</p>
                                     </div>
 

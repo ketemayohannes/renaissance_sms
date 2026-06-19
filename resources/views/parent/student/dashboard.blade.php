@@ -296,11 +296,17 @@
                                 <div class="space-y-1">
                                     <div class="flex items-center gap-2">
                                         <span class="text-xs font-bold font-mono text-slate-450">{{ $record->incident_date->format('M d, Y') }}</span>
-                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400">
-                                            {{ $record->severity }}
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider
+                                            {{ match($record->tier) {
+                                                'minor'    => 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400',
+                                                'moderate' => 'bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400',
+                                                'critical' => 'bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400',
+                                                default    => 'bg-slate-100 text-slate-500'
+                                            } }}">
+                                            {{ ucfirst($record->tier) }}
                                         </span>
                                     </div>
-                                    <p class="text-sm font-semibold text-slate-800 dark:text-slate-200">{{ $record->incident_type }}</p>
+                                    <p class="text-sm font-semibold text-slate-800 dark:text-slate-200">{{ $record->infraction_name }}</p>
                                     <p class="text-xs text-slate-550 dark:text-slate-400">{{ $record->description }}</p>
                                 </div>
                                 <div class="text-left sm:text-right">
