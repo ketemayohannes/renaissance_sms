@@ -147,17 +147,22 @@
             $totalStudents = $students->count();
             $totalComponents = $gradeComponents->count();
             $gradedStudents = 0;
+            $totalCells = $totalStudents * $totalComponents;
+            $filledCells = 0;
             foreach($students as $student) {
                 $studentMarks = $existingMarks->get($student->id);
                 // Student is fully graded only when ALL components have a mark
                 $filledCount = 0;
                 foreach($gradeComponents as $component) {
                     $mark = $studentMarks?->firstWhere('assessment_template_id', $component->id);
-                    if ($mark && $mark->score !== null && $mark->score !== '') $filledCount++;
+                    if ($mark && $mark->score !== null && $mark->score !== '') {
+                        $filledCount++;
+                        $filledCells++;
+                    }
                 }
                 if ($filledCount === $totalComponents && $totalComponents > 0) $gradedStudents++;
             }
-            $progressPercent = $totalStudents > 0 ? round(($gradedStudents / $totalStudents) * 100) : 0;
+            $progressPercent = $totalCells > 0 ? round(($filledCells / $totalCells) * 100) : 0;
         @endphp
 
         <!-- Progress and Actions Panel -->
@@ -498,14 +503,27 @@
 
         function updateGradingProgress() {
             let fullyGraded = 0;
+            let totalInputs = 0;
+            let filledInputs = 0;
+            
             document.querySelectorAll('.student-row').forEach(row => {
                 const inputs = row.querySelectorAll('.mark-input');
-                const allFilled = inputs.length > 0 && Array.from(inputs).every(inp => inp.value.trim() !== '');
-                if (allFilled) fullyGraded++;
+                totalInputs += inputs.length;
+                
+                let studentAllFilled = inputs.length > 0;
+                inputs.forEach(inp => {
+                    if (inp.value.trim() !== '') {
+                        filledInputs++;
+                    } else {
+                        studentAllFilled = false;
+                    }
+                });
+                
+                if (studentAllFilled) fullyGraded++;
             });
 
             const ungraded = TOTAL_STUDENTS - fullyGraded;
-            const pct = TOTAL_STUDENTS > 0 ? Math.round((fullyGraded / TOTAL_STUDENTS) * 100) : 0;
+            const pct = totalInputs > 0 ? Math.round((filledInputs / totalInputs) * 100) : 0;
 
             // Update ungraded counter
             const ungradedEl = document.getElementById('ungradedCount');
