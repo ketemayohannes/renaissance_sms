@@ -211,6 +211,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('report-cards/export-low-performance', [App\Http\Controllers\Admin\ReportCardController::class, 'exportLowPerformance'])->name('report-cards.export-low-performance')->middleware('permission:generate report cards');
         Route::get('section-grades/{section}/report-card/bulk-export', [App\Http\Controllers\Admin\ReportCardController::class, 'bulkExport'])->name('section-grades.bulk-export-report-cards')->middleware('permission:generate report cards');
         Route::get('report-cards/exports/{exportRequest}/download', [App\Http\Controllers\Admin\ReportCardController::class, 'downloadExport'])->name('report-cards.download-export')->middleware('permission:generate report cards');
+        Route::delete('report-cards/exports/{exportRequest}', [App\Http\Controllers\Admin\ReportCardController::class, 'destroyExport'])->name('report-cards.destroy-export')->middleware('permission:generate report cards');
 
         // Academic Activities Module (permission-gated)
         Route::get('activities/get-templates', [App\Http\Controllers\Admin\AcademicActivityController::class, 'getTemplates'])->name('activities.get-templates')->middleware('permission:enter marks');

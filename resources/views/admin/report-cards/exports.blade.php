@@ -97,30 +97,53 @@
                                 <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ $export->completed_at ? $export->completed_at->format('H:i:s') : 'Waiting...' }}</span>
                             </td>
                             <td class="px-8 py-6 text-right">
-                                @if($export->status === 'completed')
-                                    <a href="{{ route('admin.report-cards.download-export', $export) }}" class="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-900 text-white font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-900 shadow-lg shadow-slate-200 transition-all group/btn">
-                                        Download ZIP
-                                        <svg class="w-3 h-3 group-hover/btn:translate-y-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                                    </a>
-                                @elseif($export->status === 'failed')
+                                <div class="flex items-center justify-end gap-3">
+                                    @if($export->status === 'completed')
+                                        <a href="{{ route('admin.report-cards.download-export', $export) }}" class="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-900 text-white font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-900 shadow-lg shadow-slate-200 transition-all group/btn">
+                                            Download ZIP
+                                            <svg class="w-3 h-3 group-hover/btn:translate-y-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                        </a>
+                                    @elseif($export->status === 'failed')
+                                        <button type="button" 
+                                                x-data 
+                                                @click="window.confirmUI({
+                                                    title: 'Export Failure Log',
+                                                    message: @js($export->error_message ?? 'No log details available for this failure.'),
+                                                    type: 'danger',
+                                                    buttonText: 'Close',
+                                                    showCancel: false
+                                                })"
+                                                class="text-[10px] font-black text-rose-500 hover:text-rose-700 uppercase tracking-widest italic hover:underline">
+                                            Review Logs
+                                        </button>
+                                    @else
+                                        <div class="flex items-center justify-end gap-2 text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                                            <svg class="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                            In Queue
+                                        </div>
+                                    @endif
+
+                                    <form id="delete-export-{{ $export->id }}" action="{{ route('admin.report-cards.destroy-export', $export) }}" method="POST" class="hidden">
+                                        @csrf
+                                        @method('DELETE')
+                                    </form>
+                                    
                                     <button type="button" 
                                             x-data 
                                             @click="window.confirmUI({
-                                                title: 'Export Failure Log',
-                                                message: @js($export->error_message ?? 'No log details available for this failure.'),
+                                                title: 'Delete Export Request',
+                                                message: 'Are you sure you want to permanently delete this export record? This action cannot be undone.',
                                                 type: 'danger',
-                                                buttonText: 'Close',
-                                                showCancel: false
+                                                buttonText: 'Yes, Delete',
+                                                callback: () => document.getElementById('delete-export-{{ $export->id }}').submit()
                                             })"
-                                            class="text-[10px] font-black text-rose-500 hover:text-rose-700 uppercase tracking-widest italic hover:underline">
-                                        Review Logs
+                                            class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                                            title="Delete Export">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
                                     </button>
-                                @else
-                                    <div class="flex items-center justify-end gap-2 text-[10px] font-black text-slate-300 uppercase tracking-widest">
-                                        <svg class="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                                        In Queue
-                                    </div>
-                                @endif
+                                </div>
                             </td>
                         </tr>
                         @empty

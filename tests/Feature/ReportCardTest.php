@@ -257,4 +257,41 @@ class ReportCardTest extends TestCase
         // The elective subject should now show up
         $response->assertSee('Art Elective');
     }
+
+    /** @test */
+    public function admin_can_delete_their_own_export_request(): void
+    {
+        $exportRequest = \App\Models\ExportRequest::create([
+            'user_id' => $this->adminUser->id,
+            'type' => 'section_report_cards_zip',
+            'status' => 'failed',
+            'error_message' => 'Test error message',
+            'params' => ['section_id' => 1, 'term_id' => 1],
+        ]);
+
+        $response = $this->actingAs($this->adminUser)
+            ->delete(route('admin.report-cards.destroy-export', $exportRequest));
+
+        $response->assertStatus(302); // Redirect back
+        $this->assertDatabaseMissing('export_requests', ['id' => $exportRequest->id]);
+    }
+
+    /** @test */
+    public function admin_cannot_delete_someone_elses_export_request(): void
+    {
+        $otherUser = User::factory()->create();
+        $exportRequest = \App\Models\ExportRequest::create([
+            'user_id' => $otherUser->id,
+            'type' => 'section_report_cards_zip',
+            'status' => 'failed',
+            'error_message' => 'Test error message',
+            'params' => ['section_id' => 1, 'term_id' => 1],
+        ]);
+
+        $response = $this->actingAs($this->adminUser)
+            ->delete(route('admin.report-cards.destroy-export', $exportRequest));
+
+        $response->assertStatus(403);
+        $this->assertDatabaseHas('export_requests', ['id' => $exportRequest->id]);
+    }
 }

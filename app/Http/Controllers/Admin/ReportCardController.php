@@ -272,4 +272,19 @@ class ReportCardController extends Controller
 
         return response()->stream($callback, 200, $headers);
     }
+
+    public function destroyExport(ExportRequest $exportRequest)
+    {
+        if ($exportRequest->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        if ($exportRequest->file_path) {
+            Storage::disk('public')->delete($exportRequest->file_path);
+        }
+
+        $exportRequest->delete();
+
+        return back()->with('success', 'Export request deleted successfully.');
+    }
 }
