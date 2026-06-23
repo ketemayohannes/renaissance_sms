@@ -104,6 +104,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('students/import', [App\Http\Controllers\Admin\StudentController::class, 'import'])->name('students.import')->middleware('permission:create students');
         Route::post('students/import', [App\Http\Controllers\Admin\StudentController::class, 'upload'])->name('students.upload')->middleware('permission:create students');
         Route::get('students/download-template', [App\Http\Controllers\Admin\StudentController::class, 'downloadTemplate'])->name('students.download-template')->middleware('permission:create students');
+        Route::get('students/download-quick-template', [App\Http\Controllers\Admin\StudentController::class, 'downloadQuickTemplate'])->name('students.download-quick-template')->middleware('permission:create students');
+        Route::post('students/quick-upload', [App\Http\Controllers\Admin\StudentController::class, 'quickUpload'])->name('students.quick-upload')->middleware('permission:create students');
         Route::post('students/{student}/toggle-block', [App\Http\Controllers\Admin\StudentController::class, 'toggleBlock'])->name('students.toggle-block')->middleware('permission:edit students');
         Route::get('students/{student}/transfer', [App\Http\Controllers\Admin\StudentController::class, 'transferForm'])->name('students.transfer')->middleware('permission:edit students');
         Route::post('students/{student}/transfer', [App\Http\Controllers\Admin\StudentController::class, 'transfer'])->name('students.transfer.store')->middleware('permission:edit students');
