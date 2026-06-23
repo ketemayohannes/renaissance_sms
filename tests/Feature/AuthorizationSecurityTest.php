@@ -238,7 +238,23 @@ class AuthorizationSecurityTest extends TestCase
             'admin academic-reports' => ['/admin/academic-reports'],
             'admin result-analysis' => ['/admin/result-analysis'],
             'admin id-card-settings' => ['/admin/id-card-settings'],
+            'admin settings communication' => ['/admin/settings/communication'],
         ];
+    }
+
+    public function test_only_super_admin_can_access_communication_settings(): void
+    {
+        // Super Admin can access
+        $superAdmin = $this->createUserWithRole('Super Admin');
+        $this->actingAs($superAdmin)->get('/admin/settings/communication')->assertStatus(200);
+
+        // Principal cannot access
+        $principal = $this->createUserWithRole('Principal');
+        $this->actingAs($principal)->get('/admin/settings/communication')->assertStatus(403);
+
+        // Supervisor cannot access
+        $supervisor = $this->createUserWithRole('Supervisor');
+        $this->actingAs($supervisor)->get('/admin/settings/communication')->assertStatus(403);
     }
 
     // ─── IDOR TESTS ─────────────────────────────────────────────────────────

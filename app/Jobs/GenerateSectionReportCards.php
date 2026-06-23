@@ -237,6 +237,7 @@ class GenerateSectionReportCards implements ShouldQueue
         $subTermAttendance = $reportCardService->calculateSubTermAttendance($student, $quarters, $semesters, $isSemester, $isYearly, $academicYear, $batchAttendance);
 
         return [
+            'is_pdf' => true,
             'student' => $student,
             'term' => $term,
             'academicYear' => $academicYear,

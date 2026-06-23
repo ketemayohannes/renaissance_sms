@@ -235,6 +235,7 @@
 </head>
 <body>
 
+    @if(!($is_pdf ?? false))
     <div class="no-print-bar" style="display: flex; justify-content: center; gap: 15px; align-items: center;">
         <button onclick="window.print()" class="print-btn" style="background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">Print All Report Cards</button>
         <form action="{{ route('admin.academic-reports.recalculate') }}" method="POST" style="margin: 0;">
@@ -251,6 +252,7 @@
 
     <!-- Spacer for fixed header -->
     <div class="spacer"></div>
+    @endif
 
     @foreach($reportCards as $index => $data)
         @php
@@ -330,15 +332,16 @@
                                                 $score = $qMarks[$quarter->id] ?? null;
                                                 if($score !== null) { $subjTotal += $score; $subjCount++; }
                                             @endphp
-                                            <td>{{ $score !== null ? \App\Helpers\NumberFormatter::format($score) : '-' }}</td>
+                                            <td>{{ $score !== null ? (($isKindergarten ?? false) ? \App\Helpers\KindergartenGradeHelper::toGrade($score) : \App\Helpers\NumberFormatter::format($score)) : '-' }}</td>
                                         @endforeach
-                                        <td>{{ $subjCount > 0 ? \App\Helpers\NumberFormatter::format($subjTotal / $subjCount) : '-' }}</td>
+                                        <td>{{ $subjCount > 0 ? (($isKindergarten ?? false) ? \App\Helpers\KindergartenGradeHelper::toGrade($subjTotal / $subjCount) : \App\Helpers\NumberFormatter::format($subjTotal / $subjCount)) : '-' }}</td>
                                     @else
-                                        <td>{{ isset($marks[$subject->id]) ? \App\Helpers\NumberFormatter::format($marks[$subject->id]) : '-' }}</td>
+                                        <td>{{ isset($marks[$subject->id]) ? (($isKindergarten ?? false) ? \App\Helpers\KindergartenGradeHelper::toGrade($marks[$subject->id]) : \App\Helpers\NumberFormatter::format($marks[$subject->id])) : '-' }}</td>
                                     @endif
                                 </tr>
                             @endforeach
                             
+                            @if(!($isKindergarten ?? false))
                             <tr class="total-row">
                                 <td style="text-align: center">Total</td>
                                 @if($isSemester)
@@ -357,6 +360,7 @@
                                 @endif
                                 <td>{{ \App\Helpers\NumberFormatter::format($average) }}</td>
                             </tr>
+                            @endif
                             <tr class="total-row">
                                 <td style="text-align: center">Conduct</td>
                                 @if($isSemester)
@@ -385,7 +389,7 @@
                                 @endif
                             </tr>
 
-                            @if($settings->template_config['show_rank'] ?? true)
+                            @if(!($isKindergarten ?? false) && ($settings->template_config['show_rank'] ?? true))
                             <tr class="total-row">
                                 <td style="text-align: center">Rank</td>
                                 @if($isSemester)

@@ -175,6 +175,7 @@ class AcademicReportService
                 'reports' => $reports,
                 'settings' => $settings,
                 'generalSettings' => \App\Models\ReportCardSetting::first(),
+                'isKindergarten' => \App\Helpers\KindergartenGradeHelper::isKindergarten($section),
             ];
         });
     }

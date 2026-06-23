@@ -235,6 +235,7 @@
 </head>
 <body>
 
+    @if(!($is_pdf ?? false))
     <!-- No-Print Bar -->
     <div class="no-print-bar" style="display: flex; justify-content: center; gap: 10px; align-items: center;">
         <button onclick="window.print()" class="print-btn">
@@ -253,6 +254,7 @@
 
     <!-- Spacer for fixed header -->
     <div class="spacer"></div>
+    @endif
 
     <div class="report-container">
         <div class="header">
@@ -325,9 +327,9 @@
                                         $score = $quarterMarks[$subject->id][$quarter->id] ?? null;
                                         if($score !== null) { $subjTotal += $score; $subjCount++; }
                                     @endphp
-                                    <td>{{ $score !== null ? \App\Helpers\NumberFormatter::format($score) : '-' }}</td>
+                                    <td>{{ $score !== null ? (($isKindergarten ?? false) ? \App\Helpers\KindergartenGradeHelper::toGrade($score) : \App\Helpers\NumberFormatter::format($score)) : '-' }}</td>
                                 @endforeach
-                                <td>{{ $subjCount > 0 ? \App\Helpers\NumberFormatter::format($subjTotal / $subjCount) : '-' }}</td>
+                                <td>{{ $subjCount > 0 ? (($isKindergarten ?? false) ? \App\Helpers\KindergartenGradeHelper::toGrade($subjTotal / $subjCount) : \App\Helpers\NumberFormatter::format($subjTotal / $subjCount)) : '-' }}</td>
                             @elseif($isYearly)
                                 @php 
                                     $subjTotal = 0; 
@@ -338,15 +340,16 @@
                                         $score = $semesterMarks[$subject->id][$semester->id] ?? null;
                                         if($score !== null) { $subjTotal += $score; $subjCount++; }
                                     @endphp
-                                    <td>{{ $score !== null ? \App\Helpers\NumberFormatter::format($score) : '-' }}</td>
+                                    <td>{{ $score !== null ? (($isKindergarten ?? false) ? \App\Helpers\KindergartenGradeHelper::toGrade($score) : \App\Helpers\NumberFormatter::format($score)) : '-' }}</td>
                                 @endforeach
-                                <td>{{ $subjCount > 0 ? \App\Helpers\NumberFormatter::format($subjTotal / $subjCount) : '-' }}</td>
+                                <td>{{ $subjCount > 0 ? (($isKindergarten ?? false) ? \App\Helpers\KindergartenGradeHelper::toGrade($subjTotal / $subjCount) : \App\Helpers\NumberFormatter::format($subjTotal / $subjCount)) : '-' }}</td>
                             @else
-                                <td>{{ isset($marks[$subject->id]) ? \App\Helpers\NumberFormatter::format($marks[$subject->id]) : '-' }}</td>
+                                <td>{{ isset($marks[$subject->id]) ? (($isKindergarten ?? false) ? \App\Helpers\KindergartenGradeHelper::toGrade($marks[$subject->id]) : \App\Helpers\NumberFormatter::format($marks[$subject->id])) : '-' }}</td>
                             @endif
                         </tr>
                     @endforeach
                     
+                    @if(!($isKindergarten ?? false))
                     <tr class="total-row">
                         <td style="text-align: center">Total</td>
                         @if($isSemester)
@@ -362,7 +365,6 @@
                         @else
                             <td>{{ \App\Helpers\NumberFormatter::format($totalScore) }}</td>
                         @endif
-
                     </tr>
                     <tr class="total-row">
                         <td style="text-align: center">Average</td>
@@ -379,8 +381,8 @@
                         @else
                             <td>{{ \App\Helpers\NumberFormatter::format($average) }}</td>
                         @endif
-
                     </tr>
+                    @endif
                     <tr class="total-row">
                         <td style="text-align: center">Conduct</td>
                         @if($isSemester)
@@ -396,7 +398,6 @@
                         @else
                             <td>{{ $termRecord->conduct_grade ?? 'A' }}</td>
                         @endif
-
                     </tr>
                     <tr class="total-row">
                         <td style="text-align: center">Absence</td>
@@ -421,10 +422,8 @@
                         @else
                             <td>{{ ($attendance['absent'] ?? 0) > 0 ? $attendance['absent'] : '_' }}</td>
                         @endif
-
-
                     </tr>
-                    @if($settings->template_config['show_rank'] ?? true)
+                    @if(!($isKindergarten ?? false) && ($settings->template_config['show_rank'] ?? true))
                     <tr class="total-row">
                         <td style="text-align: center">Rank</td>
                         @if($isSemester)
@@ -440,7 +439,6 @@
                         @else
                             <td>{{ $rank }} / {{ $totalStudents }}</td>
                         @endif
-
                     </tr>
                     @endif
                 </tbody>

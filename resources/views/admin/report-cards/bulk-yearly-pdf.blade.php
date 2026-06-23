@@ -253,6 +253,7 @@
 </head>
 <body>
 
+    @if(!($is_pdf ?? false))
     <div class="no-print-bar" style="display: flex; justify-content: center; gap: 15px; align-items: center;">
         <button onclick="window.print()" style="background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">Print All Report Cards</button>
         <form action="{{ route('admin.academic-reports.recalculate') }}" method="POST" style="margin: 0;">
@@ -268,6 +269,7 @@
     </div>
 
     <div style="height: 60px;" class="no-print"></div>
+    @endif
 
     @php
         $config = $settings->yearly_config ?? [];
@@ -283,8 +285,13 @@
         $s1 = $semesters->first();
         $s2 = $semesters->last();
         
-        $fmt = function($val) {
-            return \App\Helpers\NumberFormatter::format($val);
+        $fmt = function($val) use ($isKindergarten) {
+            if ($val === null || $val === '') {
+                return '-';
+            }
+            return ($isKindergarten ?? false) 
+                ? \App\Helpers\KindergartenGradeHelper::toGrade($val) 
+                : \App\Helpers\NumberFormatter::format($val);
         };
 
         // Handle Logo Base64 for robust rendering
@@ -407,6 +414,7 @@
                         @endforeach
                         
                         <!-- Totals -->
+                        @if(!($isKindergarten ?? false))
                         <tr class="footer-row">
                             <td>Total</td>
                             <td>{{ $q1 ? $fmt($qStats[$q1->id]['total'] ?? 0) : '-' }}</td>
@@ -427,6 +435,7 @@
                             <td>{{ $s2 ? $fmt($sStats[$s2->id]['avg'] ?? 0) : '-' }}</td>
                             <td>{{ $fmt($average) }}</td>
                         </tr>
+                        @endif
                         <tr class="footer-row">
                             <td>Conduct</td>
                             <td>{{ $q1 ? ($qRecords[$q1->id]->conduct_grade ?? 'A') : '-' }}</td>
@@ -447,6 +456,7 @@
                             <td>-</td>
                             <td>{{ ($attendance['absent'] ?? 0) > 0 ? $attendance['absent'] : '_' }}</td>
                         </tr>
+                        @if(!($isKindergarten ?? false) && ($settings->template_config['show_rank'] ?? true))
                         <tr class="footer-row">
                             <td>Rank</td>
                             <td>{{ $q1 ? ($qStats[$q1->id]['rank'] ?? '-') : '-' }}</td>
@@ -457,6 +467,7 @@
                             <td>{{ $s2 ? ($sStats[$s2->id]['rank'] ?? '-') : '-' }}</td>
                             <td>{{ $rankValue }} / {{ $totalStudents }}</td>
                         </tr>
+                        @endif
                     </tbody>
                 </table>
                 

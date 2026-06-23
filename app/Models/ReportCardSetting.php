@@ -16,10 +16,12 @@ class ReportCardSetting extends Model
         'logo_path',
         'template_config',
         'yearly_config',
+        'grade_scales',
     ];
 
     protected $casts = [
         'template_config' => 'array',
         'yearly_config' => 'array',
+        'grade_scales' => 'array',
     ];
 }

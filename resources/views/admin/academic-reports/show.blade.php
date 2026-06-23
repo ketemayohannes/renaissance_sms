@@ -44,10 +44,18 @@
             @php
                 $isSem = $term->isSemester();
                 $isYearly = ($term->type === 'yearly');
+                $isKG = $isKindergarten ?? false;
                 $subjectCount = count($subjects);
                 // Width calculations
-                $fixedWidth = 3 + 32 + 3 + ($isYearly || $isSem ? 6 : 0) + 5 + 5 + 3 + 3 + 4;
-                $subjectWidth = ($subjectCount > 0) ? (100 - $fixedWidth) / $subjectCount : 0;
+                // For KG: each subject has 2 columns (score + grade), no total/avg/rank
+                if ($isKG) {
+                    $fixedWidth = 3 + 32 + 3 + ($isYearly || $isSem ? 6 : 0) + 3 + 3;
+                    $subjectColCount = $subjectCount * 2;
+                } else {
+                    $fixedWidth = 3 + 32 + 3 + ($isYearly || $isSem ? 6 : 0) + 5 + 5 + 3 + 3 + 4;
+                    $subjectColCount = $subjectCount;
+                }
+                $subjectWidth = ($subjectColCount > 0) ? (100 - $fixedWidth) / $subjectColCount : 0;
                 
                 // Chunking logic for robust multi-page printing
                 if ($isSem) {
@@ -68,7 +76,7 @@
                     foreach($remain as $r) $pages[] = $r;
                 }
                 
-                $totalCols = 8 + $subjectCount + ($isSem || $isYearly ? 1 : 0) + 1;
+                $totalCols = ($isKG ? 5 : 8) + ($isKG ? $subjectCount * 2 : $subjectCount) + ($isSem || $isYearly ? 1 : 0) + 1;
                 $globalIndex = 0;
             @endphp
             
@@ -127,13 +135,18 @@
                             <col style="width: 6%;"><!-- Quarter/Term -->
                             @endif
                             @foreach($subjects as $subject)
-                            <col style="width:{{ $subjectWidth }}%;"><!-- Subject -->
+                            <col style="width:{{ $subjectWidth }}%;"><!-- Subject Score -->
+                            @if($isKG)<col style="width:{{ $subjectWidth }}%;">@endif<!-- Subject Grade -->
                             @endforeach
+                            @if(!$isKG)
                             <col style="width: 5%;"><!-- Total -->
                             <col style="width: 5%;"><!-- Average -->
+                            @endif
                             <col style="width: 3%;"><!-- Conduct -->
                             <col style="width: 3%;"><!-- Absence -->
+                            @if(!$isKG)
                             <col style="width: 4%;"><!-- Rank -->
+                            @endif
                         </colgroup>
                         <thead>
                             <tr class="header-row">
@@ -147,12 +160,21 @@
                                     <th class="p-0 h-28 relative text-center align-bottom pb-1">
                                         <div class="vertical-text">{{ $subject->name }}</div>
                                     </th>
+                                    @if($isKG)
+                                    <th class="p-0 h-28 relative text-center align-bottom pb-1">
+                                        <div class="vertical-text">{{ $subject->name }} Grade</div>
+                                    </th>
+                                    @endif
                                 @endforeach
+                                @if(!$isKG)
                                 <th class="p-0 text-center"><div class="vertical-text">Total</div></th>
                                 <th class="p-0 text-center"><div class="vertical-text">Average</div></th>
+                                @endif
                                 <th class="p-0 text-center"><div class="vertical-text">Conduct</div></th>
                                 <th class="p-0 text-center"><div class="vertical-text">Absence</div></th>
+                                @if(!$isKG)
                                 <th class="p-0 text-center"><div class="vertical-text">Rank</div></th>
+                                @endif
                             </tr>
                         </thead>
                         <tbody>
@@ -170,16 +192,25 @@
                                                 {{ $report['rows'][$type]['label'] ?? '' }}
                                             </td>
                                             @foreach($subjects as $subject)
+                                                @php $sM = ($report['rows'][$type]['marks'] ?? null) ? ($report['rows'][$type]['marks'][$subject->id] ?? null) : null; @endphp
                                                 <td class="p-0.5 text-center text-[11px] {{ $rowIndex === 2 ? 'border-b-[2pt] border-black bg-gray-200 font-black' : '' }}">
-                                                    @php $sM = ($report['rows'][$type]['marks'] ?? null) ? ($report['rows'][$type]['marks'][$subject->id] ?? null) : null; @endphp
-                                                    {{ \App\Helpers\NumberFormatter::format($sM) }}
+                                                    {{ $sM !== null && $sM !== '' ? \App\Helpers\NumberFormatter::format($sM) : '-' }}
                                                 </td>
+                                                @if($isKG)
+                                                <td class="p-0.5 text-center text-[10px] font-black {{ $rowIndex === 2 ? 'border-b-[2pt] border-black bg-gray-200' : '' }}">
+                                                    {{ $sM !== null && $sM !== '' ? \App\Helpers\KindergartenGradeHelper::toGrade($sM) : '-' }}
+                                                </td>
+                                                @endif
                                             @endforeach
+                                            @if(!$isKG)
                                             <td class="p-0.5 text-center text-[11px] font-black {{ $rowIndex === 2 ? 'border-b-[2pt] border-black bg-gray-200' : '' }}">{{ \App\Helpers\NumberFormatter::format($report['rows'][$type]['total'] ?? 0) }}</td>
                                             <td class="p-0.5 text-center text-[11px] font-black {{ $rowIndex === 2 ? 'border-b-[2pt] border-black bg-gray-200' : '' }}">{{ \App\Helpers\NumberFormatter::format($report['rows'][$type]['average'] ?? 0) }}</td>
+                                            @endif
                                             <td class="p-0.5 text-center text-[11px] font-bold {{ $rowIndex === 2 ? 'border-b-[2pt] border-black bg-gray-200' : '' }}">{{ $report['rows'][$type]['conduct'] ?? '' }}</td>
                                             <td class="p-0.5 text-center text-[11px] {{ $rowIndex === 2 ? 'border-b-[2pt] border-black bg-gray-200 font-bold' : '' }}">{{ $report['rows'][$type]['absence'] ?? '_' }}</td>
+                                            @if(!$isKG)
                                             <td class="p-0.5 text-center text-[11px] font-black {{ $rowIndex === 2 ? 'border-b-[2pt] border-black bg-gray-200' : '' }}">{{ $report['rows'][$type]['rank'] ?? '-' }}</td>
+                                            @endif
                                         </tr>
                                     @endforeach
                                 @elseif($isYearly)
@@ -193,16 +224,25 @@
                                             @endif
                                             <td class="p-0.5 text-center text-[9px] font-bold {{ $isSemM ? 'bg-gray-100' : '' }} {{ $isAyp ? 'border-b-[2pt] border-black bg-gray-300 font-black' : '' }}">{{ $report['rows'][$type]['label'] ?? $type }}</td>
                                             @foreach($subjects as $subject)
+                                                @php $sM = ($report['rows'][$type]['marks'] ?? null) ? ($report['rows'][$type]['marks'][$subject->id] ?? null) : null; @endphp
                                                 <td class="p-0.5 text-center text-[10px] {{ $isSemM ? 'bg-gray-100 font-bold' : '' }} {{ $isAyp ? 'border-b-[2pt] border-black bg-gray-300 font-black' : '' }}">
-                                                    @php $sM = ($report['rows'][$type]['marks'] ?? null) ? ($report['rows'][$type]['marks'][$subject->id] ?? null) : null; @endphp
-                                                    {{ \App\Helpers\NumberFormatter::format($sM) }}
+                                                    {{ $sM !== null && $sM !== '' ? \App\Helpers\NumberFormatter::format($sM) : '-' }}
                                                 </td>
+                                                @if($isKG)
+                                                <td class="p-0.5 text-center text-[9px] font-black {{ $isSemM ? 'bg-gray-100' : '' }} {{ $isAyp ? 'border-b-[2pt] border-black bg-gray-300' : '' }}">
+                                                    {{ $sM !== null && $sM !== '' ? \App\Helpers\KindergartenGradeHelper::toGrade($sM) : '-' }}
+                                                </td>
+                                                @endif
                                             @endforeach
+                                            @if(!$isKG)
                                             <td class="p-0.5 text-center font-black text-[10px] {{ $isSemM ? 'bg-gray-100' : '' }} {{ $isAyp ? 'border-b-[2pt] border-black bg-gray-300' : '' }}">{{ \App\Helpers\NumberFormatter::format($report['rows'][$type]['total'] ?? 0) }}</td>
                                             <td class="p-0.5 text-center font-black text-[10px] {{ $isSemM ? 'bg-gray-100' : '' }} {{ $isAyp ? 'border-b-[2pt] border-black bg-gray-300' : '' }}">{{ \App\Helpers\NumberFormatter::format($report['rows'][$type]['average'] ?? 0) }}</td>
+                                            @endif
                                             <td class="p-0.5 text-center font-bold text-[10px] {{ $isSemM ? 'bg-gray-100' : '' }} {{ $isAyp ? 'border-b-[2pt] border-black bg-gray-300' : '' }}">{{ $report['rows'][$type]['conduct'] ?? '' }}</td>
                                             <td class="p-0.5 text-center text-[10px] {{ $isSemM ? 'bg-gray-100' : '' }} {{ $isAyp ? 'border-b-[2pt] border-black bg-gray-300' : '' }}">{{ $report['rows'][$type]['absence'] ?? '_' }}</td>
+                                            @if(!$isKG)
                                             <td class="p-0.5 text-center font-black text-[10px] {{ $isSemM ? 'bg-gray-100' : '' }} {{ $isAyp ? 'border-b-[2pt] border-black bg-gray-300' : '' }}">{{ $report['rows'][$type]['rank'] ?? '-' }}</td>
+                                            @endif
                                         </tr>
                                     @endforeach
                                 @else
@@ -211,16 +251,25 @@
                                         <td class="p-0.5 px-4 uppercase whitespace-normal leading-tight font-black border-b border-black text-left text-[10px]">{{ $report['student']->full_name }}</td>
                                         <td class="p-0.5 text-center border-b border-black font-black">{{ substr($report['student']->gender, 0, 1) }}</td>
                                         @foreach($subjects as $subject)
+                                            @php $sM = $report['marks'][$subject->id] ?? null; @endphp
                                             <td class="p-0.5 text-center border-b border-black font-bold">
-                                                @php $sM = $report['marks'][$subject->id] ?? null; @endphp
-                                                {{ \App\Helpers\NumberFormatter::format($sM) }}
+                                                {{ $sM !== null && $sM !== '' ? \App\Helpers\NumberFormatter::format($sM) : '-' }}
                                             </td>
+                                            @if($isKG)
+                                            <td class="p-0.5 text-center border-b border-black font-black text-[10px]">
+                                                {{ $sM !== null && $sM !== '' ? \App\Helpers\KindergartenGradeHelper::toGrade($sM) : '-' }}
+                                            </td>
+                                            @endif
                                         @endforeach
+                                        @if(!$isKG)
                                         <td class="p-0.5 text-center font-black border-b border-black">{{ \App\Helpers\NumberFormatter::format($report['total']) }}</td>
                                         <td class="p-0.5 text-center font-black border-b border-black">{{ \App\Helpers\NumberFormatter::format($report['average']) }}</td>
+                                        @endif
                                         <td class="p-0.5 text-center border-b border-black font-bold">{{ $report['conduct'] }}</td>
                                         <td class="p-0.5 text-center border-b border-black">{{ $report['absence'] }}</td>
+                                        @if(!$isKG)
                                         <td class="p-0.5 text-center font-black border-b border-black">{{ $report['rank'] }}</td>
+                                        @endif
                                     </tr>
                                 @endif
                             @endforeach

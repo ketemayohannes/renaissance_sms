@@ -184,6 +184,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('report-cards/settings', [App\Http\Controllers\Admin\ReportCardController::class, 'updateSettings'])->name('report-cards.update-settings')->middleware('permission:generate report cards');
         Route::get('report-cards/yearly-settings', [App\Http\Controllers\Admin\ReportCardController::class, 'yearlySettings'])->name('report-cards.yearly-settings')->middleware('permission:generate report cards');
         Route::post('report-cards/yearly-settings', [App\Http\Controllers\Admin\ReportCardController::class, 'updateYearlySettings'])->name('report-cards.update-yearly-settings')->middleware('permission:generate report cards');
+        Route::get('report-cards/grade-scales', [App\Http\Controllers\Admin\ReportCardController::class, 'gradeScales'])->name('report-cards.grade-scales')->middleware('permission:generate report cards');
+        Route::post('report-cards/grade-scales', [App\Http\Controllers\Admin\ReportCardController::class, 'updateGradeScales'])->name('report-cards.update-grade-scales')->middleware('permission:generate report cards');
 
         // Academic Reports (permission-gated)
         Route::get('academic-reports/settings', [App\Http\Controllers\Admin\AcademicReportController::class, 'settings'])->name('academic-reports.settings')->middleware('permission:view marks');

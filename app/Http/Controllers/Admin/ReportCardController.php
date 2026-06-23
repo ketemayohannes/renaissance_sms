@@ -66,6 +66,49 @@ class ReportCardController extends Controller
         return back()->with('success', 'Yearly report card settings updated successfully.');
     }
 
+    public function gradeScales()
+    {
+        $settings = ReportCardSetting::firstOrNew();
+        $gradeScales = $settings->grade_scales ?? [
+            ['min' => 90, 'grade' => 'A', 'label' => 'Excellent'],
+            ['min' => 80, 'grade' => 'B', 'label' => 'Very Good'],
+            ['min' => 70, 'grade' => 'C', 'label' => 'Satisfactory'],
+            ['min' => 60, 'grade' => 'D', 'label' => 'Fair'],
+            ['min' => 0,  'grade' => 'F', 'label' => 'Poor'],
+        ];
+        return view('admin.report-cards.grade-scales', compact('settings', 'gradeScales'));
+    }
+
+    public function updateGradeScales(Request $request)
+    {
+        $request->validate([
+            'scales' => 'required|array',
+            'scales.*.min' => 'required|numeric|min:0|max:100',
+            'scales.*.grade' => 'required|string|max:5',
+            'scales.*.label' => 'nullable|string|max:50',
+        ]);
+
+        $settings = ReportCardSetting::firstOrNew();
+        
+        // Sort scales descending by min score
+        $scales = collect($request->scales)
+            ->map(function($scale) {
+                return [
+                    'min' => (float)$scale['min'],
+                    'grade' => trim($scale['grade']),
+                    'label' => trim($scale['label'] ?? ''),
+                ];
+            })
+            ->sortByDesc('min')
+            ->values()
+            ->toArray();
+
+        $settings->grade_scales = $scales;
+        $settings->save();
+
+        return back()->with('success', 'Grade scaling rules updated successfully.');
+    }
+
     // Data Entry (Conduct, Attendance, Comments)
     public function entry(Request $request, Section $section)
     {

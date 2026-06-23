@@ -162,6 +162,7 @@ class GradeController extends Controller
 
         $reportCardService = app(\App\Services\ReportCardService::class);
         $params = $reportCardService->getStudentReportParams($student, $term, $academicYear);
+        $params['is_pdf'] = true;
         
         $viewName = $params['isYearly'] ? 'admin.report-cards.yearly-pdf' : 'admin.report-cards.pdf';
         

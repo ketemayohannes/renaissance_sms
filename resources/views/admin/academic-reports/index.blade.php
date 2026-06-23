@@ -12,6 +12,10 @@
                     <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
                     Interface Config
                 </a>
+                <a href="{{ route('admin.report-cards.grade-scales') }}" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm flex items-center gap-2 group">
+                    <svg class="w-4 h-4 text-violet-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10"></path></svg>
+                    Grade Scales
+                </a>
             </div>
             @endunlessrole
         </div>
@@ -226,30 +230,62 @@
 
     @push('scripts')
     <script>
+        const STORAGE_KEY = 'academicReportsFilters';
+
         function academicReports() {
+            // Load persisted state from localStorage, fall back to defaults
+            const defaultYear = '{{ $academicYears->firstWhere('is_active', true)?->id ?? $academicYears->first()?->id ?? '' }}';
+            let saved = {};
+            try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch(e) {}
+
             return {
-                selectedYear: '{{ $academicYears->firstWhere('is_active', true)?->id ?? $academicYears->first()?->id ?? '' }}',
-                selectedTerm: '',
-                selectedGrade: '',
-                selectedSection: '',
-                selectedDivision: '',
-                selectedSubject: '',
-                reportType: '',
+                selectedYear:     saved.selectedYear     || defaultYear,
+                selectedTerm:     saved.selectedTerm     || '',
+                selectedGrade:    saved.selectedGrade    || '',
+                selectedSection:  saved.selectedSection  || '',
+                selectedDivision: saved.selectedDivision || '',
+                selectedSubject:  saved.selectedSubject  || '',
+                reportType:       saved.reportType       || '',
                 terms: [],
                 sections: [],
                 subjects: [],
 
-                get hideGrade() { return this.reportType === 'consolidated_matrix'; },
-                get hideSection() { return this.reportType === 'consolidated_matrix'; },
+                get hideGrade()    { return this.reportType === 'consolidated_matrix'; },
+                get hideSection()  { return this.reportType === 'consolidated_matrix'; },
                 get disableSection() { return this.reportType === 'grade_subject_analysis'; },
 
-                init() {
-                    if (this.selectedYear) { 
-                        this.loadTerms(); 
+                persist() {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                        selectedYear:     this.selectedYear,
+                        selectedTerm:     this.selectedTerm,
+                        selectedGrade:    this.selectedGrade,
+                        selectedSection:  this.selectedSection,
+                        selectedDivision: this.selectedDivision,
+                        selectedSubject:  this.selectedSubject,
+                        reportType:       this.reportType,
+                    }));
+                },
+
+                async init() {
+                    if (this.selectedYear) {
+                        await this.loadTerms();
                     }
+                    if (this.selectedGrade) {
+                        await Promise.all([this.loadSections(), this.loadSubjects()]);
+                    }
+
+                    // Watch every field and persist on any change
+                    this.$watch('selectedYear',     () => this.persist());
+                    this.$watch('selectedTerm',     () => this.persist());
+                    this.$watch('selectedGrade',    () => this.persist());
+                    this.$watch('selectedSection',  () => this.persist());
+                    this.$watch('selectedDivision', () => this.persist());
+                    this.$watch('selectedSubject',  () => this.persist());
+                    this.$watch('reportType',       () => this.persist());
                 },
 
                 submitReport(e) {
+                    this.persist(); // ensure saved before navigation
                     const formData = new FormData(e.target);
                     const params = new URLSearchParams(formData).toString();
 
@@ -258,7 +294,6 @@
                     } else if (this.reportType === 'consolidated_matrix') {
                         window.location.href = `{{ route('admin.academic-reports.grade-matrix') }}?${params}`;
                     } else {
-                        // Standard reports (roster, report card, etc.)
                         e.target.submit();
                     }
                 },

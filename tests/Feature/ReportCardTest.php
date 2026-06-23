@@ -34,8 +34,11 @@ class ReportCardTest extends TestCase
     {
         parent::setUp();
         
+        // Reset cached roles and permissions
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        
         // Create admin user with role
-        Role::create(['name' => 'Super Admin']);
+        Role::firstOrCreate(['name' => 'Super Admin']);
         $this->adminUser = User::factory()->create();
         $this->adminUser->assignRole('Super Admin');
         

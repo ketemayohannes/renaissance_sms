@@ -270,6 +270,7 @@
     </style>
 </head>
 <body x-data>
+    @if(!($is_pdf ?? false))
     <!-- No-Print Bar -->
     <div class="no-print-bar" style="display: flex; justify-content: center; gap: 10px; align-items: center;">
         <button onclick="window.print()" class="print-btn">
@@ -286,6 +287,7 @@
         </form>
     </div>
     <div class="spacer no-print"></div>
+    @endif
     @php
         $config = $settings->yearly_config ?? [];
         // Helper to safely get data
@@ -303,8 +305,13 @@
         $s2 = $semesters->last();
         
         // Helper for displaying scores nicely
-        $fmt = function($val) {
-            return \App\Helpers\NumberFormatter::format($val);
+        $fmt = function($val) use ($isKindergarten) {
+            if ($val === null || $val === '') {
+                return '-';
+            }
+            return ($isKindergarten ?? false) 
+                ? \App\Helpers\KindergartenGradeHelper::toGrade($val) 
+                : \App\Helpers\NumberFormatter::format($val);
         };
         
         $com = function($q) use ($quarterRecords) {
@@ -421,6 +428,7 @@
                 @endforeach
                 
                 <!-- Totals -->
+                @if(!($isKindergarten ?? false))
                 <tr class="footer-row">
                     <td>Total</td>
                     <td>{{ $q1 ? $fmt($quarterTotals[$q1->id] ?? 0) : '-' }}</td>
@@ -441,6 +449,7 @@
                     <td>{{ $s2 ? $fmt($semesterAverages[$s2->id] ?? 0) : '-' }}</td>
                     <td>{{ $fmt($average) }}</td>
                 </tr>
+                @endif
                 <tr class="footer-row">
                     <td>Conduct</td>
                     <td>{{ $quarterRecords[$q1->id]->conduct_grade ?? 'A' }}</td>
@@ -461,6 +470,7 @@
                     <td>-</td>
                     <td>{{ ($attendance['absent'] ?? 0) > 0 ? $attendance['absent'] : '_' }}</td>
                 </tr>
+                @if(!($isKindergarten ?? false) && ($settings->template_config['show_rank'] ?? true))
                 <tr class="footer-row">
                     <td>Rank</td>
                     <td>{{ $q1 ? ($quarterRanks[$q1->id] ?? '-') : '-' }}</td>
@@ -471,6 +481,7 @@
                     <td>{{ $s2 ? ($semesterRanks[$s2->id] ?? '-') : '-' }}</td>
                     <td>{{ $rank }} / {{ $totalStudents }}</td>
                 </tr>
+                @endif
             </tbody>
         </table>
         
