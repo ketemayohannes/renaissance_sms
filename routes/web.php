@@ -165,11 +165,11 @@ Route::middleware(['auth'])->group(function () {
         Route::get('id-card-settings', [App\Http\Controllers\Admin\IdCardSettingController::class, 'index'])->name('id-card-settings.index')->middleware('permission:manage roles');
         Route::put('id-card-settings', [App\Http\Controllers\Admin\IdCardSettingController::class, 'update'])->name('id-card-settings.update')->middleware('permission:manage roles');
 
-        // Communication Settings (permission-gated)
-        Route::get('settings/communication', [App\Http\Controllers\Admin\CommunicationSettingController::class, 'index'])->name('settings.communication.index')->middleware('permission:send notifications');
-        Route::post('settings/communication', [App\Http\Controllers\Admin\CommunicationSettingController::class, 'update'])->name('settings.communication.update')->middleware('permission:send notifications');
-        Route::post('settings/communication/test-sms', [App\Http\Controllers\Admin\CommunicationSettingController::class, 'testSms'])->name('settings.communication.test-sms')->middleware('permission:send notifications');
-        Route::post('settings/communication/test-email', [App\Http\Controllers\Admin\CommunicationSettingController::class, 'testEmail'])->name('settings.communication.test-email')->middleware('permission:send notifications');
+        // Communication Settings (role-gated to Super Admin)
+        Route::get('settings/communication', [App\Http\Controllers\Admin\CommunicationSettingController::class, 'index'])->name('settings.communication.index')->middleware('role:Super Admin');
+        Route::post('settings/communication', [App\Http\Controllers\Admin\CommunicationSettingController::class, 'update'])->name('settings.communication.update')->middleware('role:Super Admin');
+        Route::post('settings/communication/test-sms', [App\Http\Controllers\Admin\CommunicationSettingController::class, 'testSms'])->name('settings.communication.test-sms')->middleware('role:Super Admin');
+        Route::post('settings/communication/test-email', [App\Http\Controllers\Admin\CommunicationSettingController::class, 'testEmail'])->name('settings.communication.test-email')->middleware('role:Super Admin');
 
 
         // Gradebook AJAX Routes (permission-gated)
