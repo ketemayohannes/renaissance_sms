@@ -19,7 +19,7 @@
                 </p>
             </div>
             
-            <div class="flex items-center gap-3">
+            <div class="flex flex-wrap items-center gap-3">
                 @if(auth()->user()->hasAnyRole(['Super Admin', 'Principal', 'Vice Principal', 'Supervisor']))
                     <a href="{{ route('admin.gradebook.marksheet', ['academic_year_id' => $academicYear->id, 'term_id' => $term->id, 'section_id' => $section->id, 'subject_id' => $subject->id]) }}" 
                        target="_blank"

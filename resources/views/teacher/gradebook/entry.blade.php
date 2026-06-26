@@ -174,7 +174,7 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-3">
+            <div class="flex flex-wrap items-center gap-3">
                 <a href="{{ route('teacher.gradebook.export', ['assignment' => $assignment->id, 'term_id' => $term->id]) }}" 
                    target="_blank"
                    class="px-6 py-3.5 bg-white text-indigo-600 border border-indigo-100 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-indigo-50 shadow-xl shadow-indigo-100/50 transition-all flex items-center gap-3 group">
