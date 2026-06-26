@@ -27,6 +27,13 @@
                         <svg class="w-4 h-4 text-slate-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2m32-2v2m-9-2a4 4 0 00-4-4h-3a4 4 0 00-4 4v2M9 8a4 4 0 11-8 0 4 4 0 018 0zM3 20l4-8H4l-4 8h3zm18-8l-4 8h3l4-8h-3zM9 16l4-8h-3l-4 8h3z"></path></svg>
                         Download Marksheet
                     </a>
+
+                    <a href="{{ route('admin.gradebook.marksheet', ['academic_year_id' => $academicYear->id, 'term_id' => $term->id, 'section_id' => $section->id, 'subject_id' => $subject->id, 'summary' => 1]) }}" 
+                       target="_blank"
+                       class="px-6 py-3 bg-white text-indigo-600 font-black text-[10px] uppercase tracking-widest rounded-2xl border border-indigo-200 hover:bg-indigo-50 shadow-sm transition-all flex items-center gap-2 group">
+                        <svg class="w-4 h-4 text-indigo-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2m32-2v2m-9-2a4 4 0 00-4-4h-3a4 4 0 00-4 4v2M9 8a4 4 0 11-8 0 4 4 0 018 0zM3 20l4-8H4l-4 8h3zm18-8l-4 8h3l4-8h-3zM9 16l4-8h-3l-4 8h3z"></path></svg>
+                        Download Summary Marksheet
+                    </a>
                 @endif
 
                 <a href="{{ route('admin.gradebook.export-template', ['academic_year_id' => $academicYear->id, 'term_id' => $term->id, 'section_id' => $section->id, 'subject_id' => $subject->id]) }}" 

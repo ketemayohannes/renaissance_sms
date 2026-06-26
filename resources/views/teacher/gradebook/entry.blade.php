@@ -189,6 +189,13 @@
                     Download Marksheet
                 </a>
 
+                <a href="{{ route('teacher.gradebook.marksheet', ['assignment' => $assignment->id, 'term_id' => $term->id, 'summary' => 1]) }}" 
+                   target="_blank"
+                   class="px-6 py-3.5 bg-white text-indigo-600 border border-indigo-100 font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-indigo-50 shadow-xl shadow-indigo-100/50 transition-all flex items-center gap-3 group">
+                    <svg class="w-4 h-4 text-indigo-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2m32-2v2m-9-2a4 4 0 00-4-4h-3a4 4 0 00-4 4v2M9 8a4 4 0 11-8 0 4 4 0 018 0zM3 20l4-8H4l-4 8h3zm18-8l-4 8h3l4-8h-3zM9 16l4-8h-3l-4 8h3z"></path></svg>
+                    Download Summary Marksheet
+                </a>
+
                 <button type="button" @if($canEditGradebook) onclick="document.getElementById('importModal').classList.remove('hidden')" @endif
                         class="px-6 py-3.5 bg-emerald-600 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-emerald-700 shadow-xl shadow-emerald-100/50 transition-all flex items-center gap-3 group @if(!$canEditGradebook) opacity-50 cursor-not-allowed @endif">
                     <svg class="w-4 h-4 text-white group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>

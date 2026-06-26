@@ -354,10 +354,14 @@ class GradebookController extends Controller
             'teacher' => Auth::user(),
         ];
 
-        $pdf = Pdf::loadView('teacher.gradebook.marksheet_pdf', $data);
-        $pdf->setPaper('a4', 'landscape');
+        $viewName = $request->query('summary') ? 'teacher.gradebook.summary_marksheet_pdf' : 'teacher.gradebook.marksheet_pdf';
+        $paperOrientation = $request->query('summary') ? 'portrait' : 'landscape';
+        $filenamePrefix = $request->query('summary') ? 'summary_marksheet' : 'marksheet';
+
+        $pdf = Pdf::loadView($viewName, $data);
+        $pdf->setPaper('a4', $paperOrientation);
         
-        $filename = "marksheet_{$section->name}_{$subject->code}_{$term->name}.pdf";
+        $filename = "{$filenamePrefix}_{$section->name}_{$subject->code}_{$term->name}.pdf";
         return $pdf->download($filename);
     }
 
