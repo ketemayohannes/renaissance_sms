@@ -55,6 +55,7 @@
             <div class="mt-8">
                 <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-6">Available Reports</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
                     <!-- Report Card: Top 3 Per Section -->
                     <div class="bg-white rounded-[2.5rem] border border-slate-200 p-6 flex flex-col justify-between hover:shadow-lg transition-all duration-300">
                         <div>
@@ -64,13 +65,31 @@
                             <h3 class="text-base font-black text-slate-900 uppercase tracking-tight">Top 3 Per Section</h3>
                             <p class="text-slate-400 text-xs font-bold mt-2 leading-relaxed opacity-85">Generates a PDF document compiling the top 3 ranked students from each section under the selected division, along with a final grade-level summary honor roll.</p>
                         </div>
-                        <button type="submit" class="mt-8 w-full py-4 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-indigo-600 transition-all flex items-center justify-center gap-3 active:scale-95 group">
+                        <button type="button" @click="downloadTop3()" class="mt-8 w-full py-4 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-indigo-600 transition-all flex items-center justify-center gap-3 active:scale-95 group">
                             <svg class="w-4 h-4 text-white group-hover:animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
                             </svg>
                             Download Summary PDF
                         </button>
                     </div>
+
+                    <!-- Report Card: Academic Excellence -->
+                    <div class="bg-white rounded-[2.5rem] p-6 flex flex-col justify-between hover:shadow-lg transition-all duration-300" style="border: 1px solid #6ee7b7;">
+                        <div>
+                            <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-5 shadow-inner text-xl" style="background-color: #d1fae5; border: 1px solid #a7f3d0; color: #059669;">
+                                🌟
+                            </div>
+                            <h3 class="text-base font-black text-slate-900 uppercase tracking-tight">Academic Excellence</h3>
+                            <p class="text-slate-400 text-xs font-bold mt-2 leading-relaxed opacity-85">Lists all students who achieved an average score of 90% or above in each section under the selected division, sorted by highest average.</p>
+                        </div>
+                        <button type="button" @click="downloadExcellence()" class="mt-8 w-full py-4 font-black text-[10px] uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center gap-3 active:scale-95 group" style="background-color: #059669; color: #ffffff;" onmouseover="this.style.backgroundColor='#047857'" onmouseout="this.style.backgroundColor='#059669'">
+                            <svg class="w-4 h-4 group-hover:animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #ffffff;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                            </svg>
+                            Download Excellence PDF
+                        </button>
+                    </div>
+
                 </div>
             </div>
         </form>
@@ -113,7 +132,7 @@
                     }
                 },
 
-                downloadReport(e) {
+                downloadTop3() {
                     if (!this.selectedTerm || !this.selectedDivision) {
                         alert('Please select both a timeline and a division before downloading.');
                         return;
@@ -124,6 +143,19 @@
                         division_id: this.selectedDivision
                     }).toString();
                     window.location.href = `{{ route('admin.reports.top3-per-section') }}?${params}`;
+                },
+
+                downloadExcellence() {
+                    if (!this.selectedTerm || !this.selectedDivision) {
+                        alert('Please select both a timeline and a division before downloading.');
+                        return;
+                    }
+                    const params = new URLSearchParams({
+                        academic_year_id: this.selectedYear,
+                        term_id: this.selectedTerm,
+                        division_id: this.selectedDivision
+                    }).toString();
+                    window.location.href = `{{ route('admin.reports.academic-excellence') }}?${params}`;
                 }
             };
         }
