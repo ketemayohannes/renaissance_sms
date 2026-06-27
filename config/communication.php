@@ -36,16 +36,29 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | In-App (Database) Notification Settings
+    |--------------------------------------------------------------------------
+    */
+    'in_app' => [
+        'enabled' => env('IN_APP_ENABLED', true),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Per-Event Channel Routing Defaults
     |--------------------------------------------------------------------------
-    | Controls which events trigger SMS and/or email by default.
-    | Admin can override via the Communication Settings page.
+    | Controls which events trigger SMS, email, and in-app notifications.
+    | Admin can override via the General Settings page.
+    | Keys: sms, email, in_app
     */
     'events' => [
-        'notice'  => ['sms' => false, 'email' => true],
-        'absence' => ['sms' => true,  'email' => true],
-        'message' => ['sms' => false, 'email' => true],
-        'export'  => ['sms' => false, 'email' => true],
+        'notice'            => ['sms' => false, 'email' => true,  'in_app' => true],
+        'absence'           => ['sms' => true,  'email' => true,  'in_app' => true],
+        'message'           => ['sms' => false, 'email' => true,  'in_app' => true],
+        'export'            => ['sms' => false, 'email' => true,  'in_app' => true],
+        'promotion'         => ['sms' => false, 'email' => true,  'in_app' => true],
+        'disciplinary'      => ['sms' => true,  'email' => true,  'in_app' => true],
+        'report_card_ready' => ['sms' => false, 'email' => true,  'in_app' => true],
     ],
 
 ];

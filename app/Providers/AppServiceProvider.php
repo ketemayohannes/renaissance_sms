@@ -48,6 +48,23 @@ class AppServiceProvider extends ServiceProvider
             // that run before the table exists (e.g. migrate).
         }
 
+        // Load School Timezone from app_settings (Cached).
+        // This ensures all timestamps, scheduled jobs, and audit logs
+        // run on the school's local time (default: Africa/Addis_Ababa).
+        try {
+            if (\Schema::hasTable('app_settings')) {
+                $timezone = \Cache::remember('app_settings_timezone', now()->addDay(), function () {
+                    return \App\Models\AppSetting::get('school.timezone', 'Africa/Addis_Ababa');
+                });
+                if ($timezone && in_array($timezone, \DateTimeZone::listIdentifiers())) {
+                    config(['app.timezone' => $timezone]);
+                    date_default_timezone_set($timezone);
+                }
+            }
+        } catch (\Exception $e) {
+            // Graceful degradation — fall back to .env timezone
+        }
+
         // Force HTTPS in production (Disabled for local Docker deployment to avoid ERR_SSL_PROTOCOL_ERROR)
         // if (config('app.env') === 'production') {
         //     \Illuminate\Support\Facades\URL::forceScheme('https');

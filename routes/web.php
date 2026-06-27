@@ -167,11 +167,25 @@ Route::middleware(['auth'])->group(function () {
         Route::get('id-card-settings', [App\Http\Controllers\Admin\IdCardSettingController::class, 'index'])->name('id-card-settings.index')->middleware('permission:manage roles');
         Route::put('id-card-settings', [App\Http\Controllers\Admin\IdCardSettingController::class, 'update'])->name('id-card-settings.update')->middleware('permission:manage roles');
 
-        // Communication Settings (role-gated to Super Admin)
-        Route::get('settings/communication', [App\Http\Controllers\Admin\CommunicationSettingController::class, 'index'])->name('settings.communication.index')->middleware('role:Super Admin');
-        Route::post('settings/communication', [App\Http\Controllers\Admin\CommunicationSettingController::class, 'update'])->name('settings.communication.update')->middleware('role:Super Admin');
-        Route::post('settings/communication/test-sms', [App\Http\Controllers\Admin\CommunicationSettingController::class, 'testSms'])->name('settings.communication.test-sms')->middleware('role:Super Admin');
-        Route::post('settings/communication/test-email', [App\Http\Controllers\Admin\CommunicationSettingController::class, 'testEmail'])->name('settings.communication.test-email')->middleware('role:Super Admin');
+
+        // ── General Settings Hub (primary — all config in one place) ──────────────
+        Route::prefix('settings/general')->name('settings.general.')->middleware('role:Super Admin')->group(function () {
+            Route::get('/',                 [App\Http\Controllers\Admin\GeneralSettingController::class, 'index'])               ->name('index');
+            Route::post('/communication',   [App\Http\Controllers\Admin\GeneralSettingController::class, 'updateCommunication']) ->name('communication.update');
+            Route::post('/events',          [App\Http\Controllers\Admin\GeneralSettingController::class, 'updateEventRouting'])  ->name('events.update');
+            Route::post('/school',          [App\Http\Controllers\Admin\GeneralSettingController::class, 'updateSchool'])        ->name('school.update');
+            Route::post('/test-sms',        [App\Http\Controllers\Admin\GeneralSettingController::class, 'testSms'])             ->name('test-sms');
+            Route::post('/test-email',      [App\Http\Controllers\Admin\GeneralSettingController::class, 'testEmail'])           ->name('test-email');
+            Route::post('/test-connection', [App\Http\Controllers\Admin\GeneralSettingController::class, 'testConnection'])      ->name('test-connection');
+            Route::post('/clear-cache',     [App\Http\Controllers\Admin\GeneralSettingController::class, 'clearCache'])          ->name('clear-cache');
+        });
+
+        // ── Backward-Compatible Aliases (old communication settings URLs) ─────────
+        // These keep any bookmarked or hardcoded links working without a 404.
+        Route::get('settings/communication',            fn() => redirect()->route('admin.settings.general.index'))                                                         ->name('settings.communication.index')    ->middleware('role:Super Admin');
+        Route::post('settings/communication',           [App\Http\Controllers\Admin\GeneralSettingController::class, 'updateCommunication'])                               ->name('settings.communication.update')   ->middleware('role:Super Admin');
+        Route::post('settings/communication/test-sms',  [App\Http\Controllers\Admin\GeneralSettingController::class, 'testSms'])                                           ->name('settings.communication.test-sms') ->middleware('role:Super Admin');
+        Route::post('settings/communication/test-email',[App\Http\Controllers\Admin\GeneralSettingController::class, 'testEmail'])                                         ->name('settings.communication.test-email')->middleware('role:Super Admin');
 
 
         // Gradebook AJAX Routes (permission-gated)
@@ -197,7 +211,13 @@ Route::middleware(['auth'])->group(function () {
         Route::get('academic-reports/grade-matrix/pdf', [App\Http\Controllers\Admin\AcademicReportController::class, 'gradeMatrixPdf'])->name('academic-reports.grade-matrix.pdf')->middleware('permission:view marks');
         Route::get('academic-reports/matrix-reorder', [App\Http\Controllers\Admin\AcademicReportController::class, 'matrixReorder'])->name('academic-reports.matrix-reorder')->middleware('permission:view marks');
         Route::post('academic-reports/matrix-reorder', [App\Http\Controllers\Admin\AcademicReportController::class, 'updateMatrixOrder'])->name('academic-reports.matrix-reorder.update')->middleware('permission:view marks');
+        Route::get('academic-reports/category-ranks', [App\Http\Controllers\Admin\AcademicReportController::class, 'categoryRanks'])->name('academic-reports.category-ranks')->middleware('permission:view marks');
+        Route::get('academic-reports/academic-excellence', [App\Http\Controllers\Admin\AcademicReportController::class, 'academicExcellence'])->name('academic-reports.academic-excellence')->middleware('permission:view marks');
         Route::post('academic-reports/recalculate', [App\Http\Controllers\Admin\AcademicReportController::class, 'recalculate'])->name('academic-reports.recalculate')->middleware('permission:view marks');
+        
+        // Reports Module
+        Route::get('reports', [App\Http\Controllers\Admin\ReportsController::class, 'index'])->name('reports.index')->middleware('permission:view marks');
+        Route::get('reports/top3-per-section', [App\Http\Controllers\Admin\ReportsController::class, 'top3PerSection'])->name('reports.top3-per-section')->middleware('permission:view marks');
         
         // Result Analysis (permission-gated)
         Route::get('result-analysis', [App\Http\Controllers\Admin\ResultAnalysisController::class, 'index'])->name('result-analysis.index')->middleware('permission:view marks');

@@ -83,7 +83,7 @@
 
                         <div class="space-y-2" x-show="!hideGrade" x-transition>
                             <label class="px-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">Grade Level</label>
-                            <select name="grade_level_id" x-model="selectedGrade" @change="loadSections(); loadSubjects()" class="w-full bg-white/50 border-slate-200 rounded-2xl focus:ring-indigo-500 focus:border-indigo-500 font-bold text-sm py-3 px-4 transition-all" :required="!hideGrade">
+                            <select name="grade_level_id" x-model="selectedGrade" @change="loadSections(); loadSubjects()" class="w-full bg-white/50 border-slate-200 rounded-2xl focus:ring-indigo-500 focus:border-indigo-500 font-bold text-sm py-3 px-4 transition-all" :required="!hideGrade && reportType !== 'academic_excellence'">
                                 <option value="">Select Level</option>
                                 @foreach($gradeLevels as $grade)
                                     <option value="{{ $grade->id }}">{{ $grade->name }}</option>
@@ -93,7 +93,7 @@
 
                         <div class="space-y-2" x-show="!hideSection" x-transition>
                             <label class="px-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">Select Section</label>
-                            <select name="section_id" x-model="selectedSection" class="w-full bg-white/50 border-slate-200 rounded-2xl focus:ring-indigo-500 focus:border-indigo-500 font-bold text-sm py-3 px-4 transition-all" :required="!hideSection && !disableSection" :disabled="disableSection">
+                            <select name="section_id" x-model="selectedSection" class="w-full bg-white/50 border-slate-200 rounded-2xl focus:ring-indigo-500 focus:border-indigo-500 font-bold text-sm py-3 px-4 transition-all" :required="!hideSection && !disableSection && reportType !== 'academic_excellence'" :disabled="disableSection">
                                 <option value="">Select Unit</option>
                                 <template x-for="section in sections" :key="section.id">
                                     <option :value="section.id" x-text="section.name"></option>
@@ -101,9 +101,9 @@
                             </select>
                         </div>
                         
-                        <div class="space-y-2" x-show="hideGrade" x-transition x-cloak>
+                        <div class="space-y-2" x-show="!hideDivision" x-transition x-cloak>
                             <label class="px-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">Division</label>
-                            <select name="division_id" x-model="selectedDivision" class="w-full bg-white/50 border-slate-200 rounded-2xl focus:ring-indigo-500 focus:border-indigo-500 font-bold text-sm py-3 px-4 transition-all">
+                            <select name="division_id" x-model="selectedDivision" class="w-full bg-white/50 border-slate-200 rounded-2xl focus:ring-indigo-500 focus:border-indigo-500 font-bold text-sm py-3 px-4 transition-all" :required="reportType === 'category_ranks'">
                                 <option value="">All Divisions</option>
                                 @foreach($divisions as $division)
                                     <option value="{{ $division->id }}">{{ $division->name }}</option>
@@ -135,7 +135,7 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                         @php
                             $colorMaps = [
                                 'indigo' => [
@@ -169,6 +169,9 @@
                         @foreach(collect([
                             ['val' => 'report_card', 'label' => 'Report Card', 'desc' => 'Individual student report cards', 'icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', 'color' => 'indigo'],
                             ['val' => 'roster', 'label' => 'Term Roster', 'desc' => 'Full class marksheet', 'icon' => 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', 'color' => 'emerald'],
+                            ['val' => 'section_top_10', 'label' => 'Section Top 10', 'desc' => 'Ranks 1-10 in each section, highlighting 1-3', 'icon' => 'M9.663 17h4.673M12 3v1m6.364.364l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z', 'color' => 'indigo'],
+                            ['val' => 'category_ranks', 'label' => 'Category Ranks', 'desc' => 'Top ranked students in Grade 1-6, 7-8, 9-12', 'icon' => 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2', 'color' => 'purple'],
+                            ['val' => 'academic_excellence', 'label' => 'Academic Excellence', 'desc' => 'Students who achieved 90% and above', 'icon' => 'M12 8v13m0-13V6a2 2 0 112 2h-2z', 'color' => 'rose'],
                             ['val' => 'result_analysis', 'label' => 'Statistics', 'desc' => 'View grade distribution by section', 'icon' => 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10', 'color' => 'rose'],
                             ['val' => 'grade_subject_analysis', 'label' => 'Subject Analysis', 'desc' => 'Subject performance comparison', 'icon' => 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253', 'color' => 'purple'],
                             ['val' => 'consolidated_matrix', 'label' => 'School Matrix', 'desc' => 'Summary for the entire grade level', 'icon' => 'M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z', 'color' => 'amber']
@@ -250,8 +253,9 @@
                 sections: [],
                 subjects: [],
 
-                get hideGrade()    { return this.reportType === 'consolidated_matrix'; },
-                get hideSection()  { return this.reportType === 'consolidated_matrix'; },
+                get hideGrade()    { return this.reportType === 'consolidated_matrix' || this.reportType === 'category_ranks'; },
+                get hideSection()  { return this.reportType === 'consolidated_matrix' || this.reportType === 'category_ranks'; },
+                get hideDivision() { return this.reportType !== 'category_ranks'; },
                 get disableSection() { return this.reportType === 'grade_subject_analysis'; },
 
                 persist() {
@@ -293,6 +297,10 @@
                         window.location.href = `{{ route('admin.academic-reports.subject-analysis') }}?${params}`;
                     } else if (this.reportType === 'consolidated_matrix') {
                         window.location.href = `{{ route('admin.academic-reports.grade-matrix') }}?${params}`;
+                    } else if (this.reportType === 'category_ranks') {
+                        window.location.href = `{{ route('admin.academic-reports.category-ranks') }}?${params}`;
+                    } else if (this.reportType === 'academic_excellence') {
+                        window.location.href = `{{ route('admin.academic-reports.academic-excellence') }}?${params}`;
                     } else {
                         e.target.submit();
                     }

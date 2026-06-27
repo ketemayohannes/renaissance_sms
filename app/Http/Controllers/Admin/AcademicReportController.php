@@ -95,6 +95,18 @@ class AcademicReportController extends Controller
                 ]);
             }
 
+            if ($reportType === 'section_top_10') {
+                $params = $this->reportService->prepareRosterData($section, $term, $academicYear);
+                $reports = collect($params['reports']);
+                
+                // Sort by average descending (yearly or term average)
+                $top10 = $reports->sortByDesc(function($r) use ($term) {
+                    return $term->id === 'yearly' ? ($r['rows']['avg']['average'] ?? 0) : ($r['average'] ?? 0);
+                })->take(10)->values();
+                
+                return view('admin.academic-reports.section-top10', array_merge($params, compact('top10')));
+            }
+
             $params = $this->reportService->prepareRosterData($section, $term, $academicYear);
 
             if ($reportType === 'result_analysis') {
@@ -301,6 +313,217 @@ class AcademicReportController extends Controller
         $settings->save();
 
         return back()->with('success', 'Matrix subject order updated successfully.');
+    }
+
+    public function categoryRanks(Request $request)
+    {
+        $request->validate([
+            'academic_year_id' => 'required|exists:academic_years,id',
+            'term_id' => 'required',
+            'division_id' => 'nullable|exists:divisions,id',
+        ]);
+        
+        $academicYear = AcademicYear::findOrFail($request->academic_year_id);
+        $termId = $request->term_id;
+        $divisionId = $request->division_id;
+        
+        // Resolve division to filter categories
+        $divisionCode = null;
+        if ($divisionId) {
+            $division = \App\Models\Division::find($divisionId);
+            $divisionCode = $division?->code;
+        }
+        
+        // All category definitions
+        $allCategories = [
+            'grade_1_6' => [
+                'name' => 'Grade 1 - 6',
+                'codes' => ['G1', 'G2', 'G3', 'G4', 'G5', 'G6'],
+                'divisions' => ['ES'], // Elementary only
+            ],
+            'grade_7_8' => [
+                'name' => 'Grade 7 - 8',
+                'codes' => ['G7', 'G8'],
+                'divisions' => ['ES'], // Elementary only
+            ],
+            'grade_9_12' => [
+                'name' => 'Grade 9 - 12',
+                'codes' => ['G9', 'G10', 'G11', 'G12'],
+                'divisions' => ['HS'], // High School only
+            ],
+        ];
+        
+        // Filter categories based on selected division
+        $categories = collect($allCategories)->filter(function ($cat) use ($divisionCode) {
+            if (!$divisionCode) return true; // no filter — show all
+            return in_array($divisionCode, $cat['divisions']);
+        })->all();
+        
+        $results = [];
+        
+        foreach ($categories as $key => $cat) {
+            if ($termId === 'yearly') {
+                // For virtual yearly term, average Semester 1 and Semester 2 records
+                $semesters = Term::where('academic_year_id', $academicYear->id)
+                    ->where('type', 'semester')
+                    ->pluck('id')
+                    ->toArray();
+                    
+                $records = \App\Models\StudentTermRecord::where('student_term_records.academic_year_id', $academicYear->id)
+                    ->whereIn('student_term_records.term_id', $semesters)
+                    ->join('student_enrollments', function($join) use ($academicYear) {
+                        $join->on('student_term_records.student_id', '=', 'student_enrollments.student_id')
+                             ->where('student_enrollments.academic_year_id', '=', $academicYear->id)
+                             ->where('student_enrollments.status', '=', 'active');
+                    })
+                    ->join('sections', 'student_enrollments.section_id', '=', 'sections.id')
+                    ->join('grade_levels', 'sections.grade_level_id', '=', 'grade_levels.id')
+                    ->join('students', 'student_term_records.student_id', '=', 'students.id')
+                    ->whereIn('grade_levels.code', $cat['codes'])
+                    ->select(
+                        'student_term_records.student_id',
+                        'students.first_name',
+                        'students.father_name',
+                        'students.grandfather_name',
+                        'sections.name as section_name',
+                        'grade_levels.name as grade_level_name',
+                        \Illuminate\Support\Facades\DB::raw('AVG(student_term_records.average_score) as average_score')
+                    )
+                    ->groupBy(
+                        'student_term_records.student_id',
+                        'students.first_name',
+                        'students.father_name',
+                        'students.grandfather_name',
+                        'sections.name',
+                        'grade_levels.name'
+                    )
+                    ->orderByDesc('average_score')
+                    ->take(10)
+                    ->get();
+            } else {
+                // For standard terms, query directly
+                $records = \App\Models\StudentTermRecord::where('student_term_records.academic_year_id', $academicYear->id)
+                    ->where('student_term_records.term_id', $termId)
+                    ->join('student_enrollments', function($join) use ($academicYear) {
+                        $join->on('student_term_records.student_id', '=', 'student_enrollments.student_id')
+                             ->where('student_enrollments.academic_year_id', '=', $academicYear->id)
+                             ->where('student_enrollments.status', '=', 'active');
+                    })
+                    ->join('sections', 'student_enrollments.section_id', '=', 'sections.id')
+                    ->join('grade_levels', 'sections.grade_level_id', '=', 'grade_levels.id')
+                    ->join('students', 'student_term_records.student_id', '=', 'students.id')
+                    ->whereIn('grade_levels.code', $cat['codes'])
+                    ->select(
+                        'student_term_records.student_id',
+                        'student_term_records.average_score',
+                        'students.first_name',
+                        'students.father_name',
+                        'students.grandfather_name',
+                        'sections.name as section_name',
+                        'grade_levels.name as grade_level_name'
+                    )
+                    ->orderByDesc('student_term_records.average_score')
+                    ->take(10)
+                    ->get();
+            }
+            
+            $results[$key] = [
+                'name' => $cat['name'],
+                'records' => $records,
+            ];
+        }
+        
+        // Fetch term object or mock one if yearly
+        if ($termId === 'yearly') {
+            $term = new Term(['type' => 'yearly', 'name' => 'Yearly', 'academic_year_id' => $academicYear->id]);
+            $term->id = 'yearly';
+        } else {
+            $term = Term::findOrFail($termId);
+        }
+        
+        return view('admin.academic-reports.category-ranks', compact('academicYear', 'term', 'results', 'divisionCode'));
+    }
+
+    public function academicExcellence(Request $request)
+    {
+        $request->validate([
+            'academic_year_id' => 'required|exists:academic_years,id',
+            'term_id' => 'required',
+            'grade_level_id' => 'nullable|exists:grade_levels,id',
+            'section_id' => 'nullable|exists:sections,id',
+        ]);
+        
+        $academicYear = AcademicYear::findOrFail($request->academic_year_id);
+        $termId = $request->term_id;
+        
+        $query = \App\Models\StudentTermRecord::where('student_term_records.academic_year_id', $academicYear->id)
+            ->join('student_enrollments', function($join) use ($academicYear) {
+                $join->on('student_term_records.student_id', '=', 'student_enrollments.student_id')
+                     ->where('student_enrollments.academic_year_id', '=', $academicYear->id)
+                     ->where('student_enrollments.status', '=', 'active');
+            })
+            ->join('sections', 'student_enrollments.section_id', '=', 'sections.id')
+            ->join('grade_levels', 'sections.grade_level_id', '=', 'grade_levels.id')
+            ->join('students', 'student_term_records.student_id', '=', 'students.id');
+            
+        if ($request->section_id) {
+            $query->where('student_enrollments.section_id', $request->section_id);
+        } elseif ($request->grade_level_id) {
+            $query->where('sections.grade_level_id', $request->grade_level_id);
+        }
+        
+        if ($termId === 'yearly') {
+            $semesters = Term::where('academic_year_id', $academicYear->id)
+                ->where('type', 'semester')
+                ->pluck('id')
+                ->toArray();
+                
+            $query->whereIn('student_term_records.term_id', $semesters)
+                ->select(
+                    'student_term_records.student_id',
+                    'students.first_name',
+                    'students.father_name',
+                    'students.grandfather_name',
+                    'sections.name as section_name',
+                    'grade_levels.name as grade_level_name',
+                    \Illuminate\Support\Facades\DB::raw('AVG(student_term_records.average_score) as average_score')
+                )
+                ->groupBy(
+                    'student_term_records.student_id',
+                    'students.first_name',
+                    'students.father_name',
+                    'students.grandfather_name',
+                    'sections.name',
+                    'grade_levels.name'
+                )
+                ->having(\Illuminate\Support\Facades\DB::raw('AVG(student_term_records.average_score)'), '>=', 90);
+        } else {
+            $query->where('student_term_records.term_id', $termId)
+                ->where('student_term_records.average_score', '>=', 90)
+                ->select(
+                    'student_term_records.student_id',
+                    'student_term_records.average_score',
+                    'students.first_name',
+                    'students.father_name',
+                    'students.grandfather_name',
+                    'sections.name as section_name',
+                    'grade_levels.name as grade_level_name'
+                );
+        }
+        
+        $records = $query->orderByDesc('average_score')->get();
+        
+        if ($termId === 'yearly') {
+            $term = new Term(['type' => 'yearly', 'name' => 'Yearly', 'academic_year_id' => $academicYear->id]);
+            $term->id = 'yearly';
+        } else {
+            $term = Term::findOrFail($termId);
+        }
+        
+        $selectedSection = $request->section_id ? Section::find($request->section_id) : null;
+        $selectedGrade = $request->grade_level_id ? GradeLevel::find($request->grade_level_id) : null;
+        
+        return view('admin.academic-reports.academic-excellence', compact('academicYear', 'term', 'records', 'selectedSection', 'selectedGrade'));
     }
 
 }

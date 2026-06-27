@@ -393,9 +393,15 @@
                         <div class="mt-8 p-6 bg-slate-50 rounded-[2rem] border border-slate-100 text-left">
                             <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3">Logic applied</span>
                             <div class="flex items-center gap-4">
-                                <div class="px-4 py-2 bg-white rounded-xl border border-slate-200 text-xs font-black text-slate-700">Q1 Avg</div>
-                                <span class="text-slate-300 font-black">+</span>
-                                <div class="px-4 py-2 bg-white rounded-xl border border-slate-200 text-xs font-black text-slate-700">Q2 Avg</div>
+                                @if(stripos($term->name, 'Semester 2') !== false)
+                                    <div class="px-4 py-2 bg-white rounded-xl border border-slate-200 text-xs font-black text-slate-700">Q3 Avg</div>
+                                    <span class="text-slate-300 font-black">+</span>
+                                    <div class="px-4 py-2 bg-white rounded-xl border border-slate-200 text-xs font-black text-slate-700">Q4 Avg</div>
+                                @else
+                                    <div class="px-4 py-2 bg-white rounded-xl border border-slate-200 text-xs font-black text-slate-700">Q1 Avg</div>
+                                    <span class="text-slate-300 font-black">+</span>
+                                    <div class="px-4 py-2 bg-white rounded-xl border border-slate-200 text-xs font-black text-slate-700">Q2 Avg</div>
+                                @endif
                                 <span class="text-slate-300 font-black">/ 2</span>
                             </div>
                         </div>
