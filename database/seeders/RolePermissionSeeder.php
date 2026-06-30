@@ -86,6 +86,7 @@ class RolePermissionSeeder extends Seeder
             'send notifications', 'manage notice board', 'access chat',
             'view master gradebook', 'edit master gradebook',
             'view subject gradebook', 'edit subject gradebook',
+            'view academic reports', 'view report cards',
         ]);
 
         // Vice Principal

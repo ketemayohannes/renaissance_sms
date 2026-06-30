@@ -99,4 +99,37 @@ class GeneralReportsModuleTest extends TestCase
         $response->assertHeader('content-type', 'application/pdf');
         $response->assertHeader('content-disposition', 'attachment; filename=top3_per_section_summary_elementary_quarter_1.pdf');
     }
+
+    /** @test */
+    public function admin_can_download_below_75_pdf()
+    {
+        // Create a student who is failing (average 65%)
+        $failingStudent = Student::factory()->create(['first_name' => 'JOHN']);
+        $failingStudent->sections()->attach($this->section->id, [
+            'academic_year_id' => $this->academicYear->id,
+            'enrollment_date' => now(),
+            'status' => 'active',
+        ]);
+
+        StudentTermRecord::create([
+            'student_id' => $failingStudent->id,
+            'term_id' => $this->term->id,
+            'academic_year_id' => $this->academicYear->id,
+            'total_score' => 65.0,
+            'average_score' => 65.0,
+            'rank' => 1,
+            'rank_out_of' => 1,
+        ]);
+
+        $response = $this->actingAs($this->adminUser)
+            ->get(route('admin.reports.below-75', [
+                'academic_year_id' => $this->academicYear->id,
+                'term_id' => $this->term->id,
+                'division_id' => $this->division->id,
+            ]));
+
+        $response->assertStatus(200);
+        $response->assertHeader('content-type', 'application/pdf');
+        $response->assertHeader('content-disposition', 'attachment; filename=student_average_below_75_elementary_quarter_1.pdf');
+    }
 }

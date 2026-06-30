@@ -1,148 +1,142 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8">
     <title>Academic Excellence Report</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
+        @page {
+            margin: 40px;
+        }
         body {
-            font-family: DejaVu Sans, Arial, sans-serif;
+            font-family: 'Helvetica', 'Arial', sans-serif;
             font-size: 9pt;
             color: #1e293b;
-            background: #ffffff;
-            padding: 20px;
+            margin: 0;
+            padding: 0;
+            line-height: 1.4;
         }
-
-        /* ── Header ── */
         .header-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 12px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 10px;
         }
-        .logo-container { width: 70px; vertical-align: middle; }
-        .logo-img       { width: 60px; height: 60px; object-fit: contain; }
-        .logo-fallback  {
-            width: 60px; height: 60px;
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-            border-radius: 12px;
-            display: flex; align-items: center; justify-content: center;
-            color: white; font-weight: 900; font-size: 14pt; text-align: center;
-            line-height: 60px;
+        .header-table td {
+            border: none;
+            vertical-align: middle;
         }
-        .school-info    { vertical-align: middle; text-align: center; padding: 0 10px; }
-        .school-name    { font-size: 14pt; font-weight: 900; color: #0f172a; text-transform: uppercase; letter-spacing: 1px; }
-        .report-title   { font-size: 10pt; font-weight: 700; color: #10b981; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-
-        /* ── Metadata bar ── */
+        .logo-container {
+            width: 70px;
+        }
+        .logo-img {
+            height: 60px;
+            width: auto;
+        }
+        .logo-fallback {
+            height: 50px;
+            width: 50px;
+            border: 2px solid #4f46e5;
+            border-radius: 50%;
+            color: #4f46e5;
+            font-weight: bold;
+            font-size: 8pt;
+            text-align: center;
+            line-height: 50px;
+        }
+        .school-info {
+            text-align: center;
+        }
+        .school-name {
+            font-size: 18pt;
+            font-weight: 900;
+            color: #0f172a;
+            text-transform: uppercase;
+            margin: 0;
+            letter-spacing: 0.5px;
+        }
+        .report-title {
+            font-size: 11pt;
+            font-weight: bold;
+            color: #475569;
+            margin: 4px 0 0 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
         .metadata-table {
             width: 100%;
             border-collapse: collapse;
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
-            border-radius: 6px;
             margin-bottom: 20px;
-            font-size: 8pt;
-            font-weight: 700;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
         }
-        .metadata-table td { padding: 8px 14px; text-align: center; }
-
-        /* ── Section block ── */
+        .metadata-table td {
+            padding: 8px 12px;
+            font-size: 9pt;
+            font-weight: bold;
+            color: #334155;
+            border: 1px solid #e2e8f0;
+        }
         .section-header {
-            font-size: 10pt;
-            font-weight: 900;
-            color: #064e3b;
-            background: #d1fae5;
-            padding: 8px 14px;
-            margin-top: 18px;
-            margin-bottom: 6px;
-            border-left: 5px solid #10b981;
+            font-size: 11pt;
+            font-weight: 800;
+            color: #0f172a;
+            background-color: #f1f5f9;
+            padding: 6px 12px;
+            margin-top: 25px;
+            margin-bottom: 10px;
+            border-left: 4px solid #4f46e5;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-
-        /* ── Data table ── */
         .data-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 8.5pt;
-        }
-        .data-table thead tr {
-            background: #0f172a;
-            color: #ffffff;
+            margin-bottom: 20px;
         }
         .data-table th {
-            padding: 7px 10px;
-            text-align: left;
-            font-size: 7.5pt;
-            font-weight: 900;
+            background-color: #f8fafc;
+            color: #475569;
+            font-weight: bold;
             text-transform: uppercase;
+            font-size: 8pt;
             letter-spacing: 0.5px;
+            border: 1px solid #cbd5e1;
+            padding: 8px 10px;
+            text-align: left;
         }
         .data-table td {
-            padding: 6px 10px;
-            border-bottom: 1px solid #e2e8f0;
-            vertical-align: middle;
+            padding: 8px 10px;
+            font-size: 9.5pt;
+            border: 1px solid #cbd5e1;
         }
-        .data-table tbody tr:last-child td { border-bottom: none; }
-
-        /* ── Row colours ── */
-        .row-gold    { background-color: #fef9c3; }
-        .row-silver  { background-color: #f1f5f9; }
-        .row-even    { background-color: #f8fafc; }
-
-        /* ── Score badge ── */
-        .score-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 20px;
-            font-weight: 900;
-            font-size: 8pt;
-            color: #fff;
-            background: #10b981;
-        }
-        .score-high   { background: #f59e0b; }  /* >= 95 */
-        .score-great  { background: #10b981; }  /* 90-94  */
-
-        /* ── Section count badge ── */
         .count-badge {
             display: inline-block;
-            background: #e0fdf4;
-            color: #065f46;
-            border: 1px solid #6ee7b7;
+            background: #e0e7ff;
+            color: #4338ca;
+            border: 1px solid #c7d2fe;
             padding: 1px 7px;
             border-radius: 10px;
             font-size: 7.5pt;
             font-weight: 700;
             margin-left: 8px;
+            text-transform: none;
+            vertical-align: middle;
         }
-
-        /* ── Utilities ── */
+        .row-even {
+            background-color: #f8fafc;
+        }
+        
         .text-center { text-align: center; }
-        .text-right  { text-align: right; }
-        .font-black  { font-weight: bold; }
-        .page-break  { page-break-after: always; }
+        .text-right { text-align: right; }
+        .font-black { font-weight: bold; }
+        .page-break { page-break-after: always; }
         .avoid-break { page-break-inside: avoid; }
-
-        /* ── Empty state ── */
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #64748b;
-            font-style: italic;
-            border: 1px dashed #cbd5e1;
-            border-radius: 12px;
-            margin-top: 30px;
-        }
     </style>
 </head>
 <body>
 
-    {{-- ── Page header ── --}}
+    <!-- Header Section -->
     <table class="header-table">
         <tr>
             <td class="logo-container">
@@ -154,33 +148,34 @@
             </td>
             <td class="school-info">
                 <h1 class="school-name">{{ $settings->school_name ?? 'RENAISSANCE SCHOOL' }}</h1>
-                <h2 class="report-title">Academic Excellence Report &mdash; Average &ge; 90%</h2>
+                <h2 class="report-title">Academic Excellence Summary Report</h2>
             </td>
-            <td style="width: 70px;"></td>
+            <td style="width: 70px;"></td> <!-- Balance spacing -->
         </tr>
     </table>
 
-    {{-- ── Metadata bar ── --}}
+    <!-- Metadata Section -->
     <table class="metadata-table">
         <tr>
-            <td>ACADEMIC YEAR: <span style="color:#0f172a;">{{ $academicYear->name }}</span></td>
-            <td>TIMELINE: <span style="color:#0f172a; text-transform:uppercase;">{{ $term->name }}</span></td>
-            <td>DIVISION: <span style="color:#0f172a; text-transform:uppercase;">{{ $division->name }}</span></td>
+            <td>ACADEMIC YEAR: <span style="color: #0f172a;">{{ $academicYear->name }}</span></td>
+            <td>TIMELINE: <span style="color: #0f172a; text-transform: uppercase;">{{ $term->name }}</span></td>
+            <td>DIVISION: <span style="color: #0f172a; text-transform: uppercase;">{{ $division->name }}</span></td>
         </tr>
     </table>
 
     @if(empty($sectionsData))
-        <div class="empty-state">
-            No students with an average of 90% or above were found for the selected timeline and division.
+        <div style="text-align: center; padding: 40px; color: #64748b; font-style: italic; border: 1px dashed #cbd5e1; border-radius: 12px; margin-top: 30px;">
+            No student records found with an average of 90% or above for the selected timeline and division.
         </div>
     @else
-        @php $currentGradeId = null; @endphp
+        @php
+            $currentGradeId = null;
+        @endphp
 
-        @foreach($sectionsData as $data)
-            {{-- Page break between grade levels --}}
+        @foreach($sectionsData as $index => $data)
             @if($currentGradeId !== null && $currentGradeId !== $data['grade_level']->id)
                 <div class="page-break"></div>
-                <table class="header-table" style="margin-top:10px;">
+                <table class="header-table" style="margin-top: 10px;">
                     <tr>
                         <td class="logo-container">
                             @if($logoBase64)
@@ -191,48 +186,48 @@
                         </td>
                         <td class="school-info">
                             <h1 class="school-name">{{ $settings->school_name ?? 'RENAISSANCE SCHOOL' }}</h1>
-                            <h2 class="report-title">Academic Excellence Report &mdash; Average &ge; 90%</h2>
+                            <h2 class="report-title">Academic Excellence Summary Report</h2>
                         </td>
                         <td style="width: 70px;"></td>
                     </tr>
                 </table>
             @endif
 
-            @php $currentGradeId = $data['grade_level']->id; @endphp
+            @php
+                $currentGradeId = $data['grade_level']->id;
+            @endphp
 
             <div class="avoid-break">
                 <div class="section-header">
-                    {{ $data['grade_level']->name }} &mdash; Section {{ $data['section']->name }}
+                    {{ $data['grade_level']->name }} &mdash; {{ $data['section']->name }}
                     <span class="count-badge">{{ $data['students']->count() }} student{{ $data['students']->count() !== 1 ? 's' : '' }}</span>
                 </div>
 
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th class="text-center" style="width:40px;">#</th>
+                            <th class="text-center" style="width: 50px;">#</th>
                             <th>Student Name</th>
-                            <th style="width:110px;">Student ID</th>
-                            <th class="text-center" style="width:70px;">Gender</th>
-                            <th class="text-right" style="width:120px;">Average Score</th>
+                            <th style="width: 100px;">Student ID</th>
+                            <th class="text-center" style="width: 80px;">Gender</th>
+                            <th class="text-right" style="width: 120px;">Average Score</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($data['students'] as $i => $student)
+                        @foreach($data['students'] as $sIndex => $student)
                             @php
-                                $rowClass = $i % 2 === 0 ? 'row-silver' : 'row-even';
-                                $avg = $student->average_score;
-                                $scoreClass = $avg >= 95 ? 'score-high' : 'score-great';
+                                $rowClass = ($sIndex % 2 === 0) ? 'row-even' : '';
                             @endphp
                             <tr class="{{ $rowClass }}">
-                                <td class="text-center" style="color:#94a3b8; font-weight:700;">{{ $i + 1 }}</td>
+                                <td class="text-center" style="color: #64748b; font-weight: bold;">
+                                    {{ $sIndex + 1 }}
+                                </td>
                                 <td class="font-black">
                                     {{ $student->first_name }} {{ $student->father_name }} {{ $student->grandfather_name }}
                                 </td>
                                 <td>{{ $student->student_id }}</td>
                                 <td class="text-center">{{ $student->gender }}</td>
-                                <td class="text-right">
-                                    <span class="score-badge {{ $scoreClass }}">{{ number_format($avg, 2) }}%</span>
-                                </td>
+                                <td class="text-right font-black">{{ number_format($student->average_score, 2) }}%</td>
                             </tr>
                         @endforeach
                     </tbody>

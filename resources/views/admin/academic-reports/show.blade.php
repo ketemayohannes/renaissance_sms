@@ -49,10 +49,10 @@
                 // Width calculations
                 // For KG: each subject has 2 columns (score + grade), no total/avg/rank
                 if ($isKG) {
-                    $fixedWidth = 3 + 32 + 3 + ($isYearly || $isSem ? 6 : 0) + 3 + 3;
+                    $fixedWidth = 3 + 22 + 3 + ($isYearly || $isSem ? 6 : 0) + 3 + 3;
                     $subjectColCount = $subjectCount * 2;
                 } else {
-                    $fixedWidth = 3 + 32 + 3 + ($isYearly || $isSem ? 6 : 0) + 5 + 5 + 3 + 3 + 4;
+                    $fixedWidth = 3 + 22 + 3 + ($isYearly || $isSem ? 6 : 0) + 5 + 5 + 3 + 3 + 4;
                     $subjectColCount = $subjectCount;
                 }
                 $subjectWidth = ($subjectColCount > 0) ? (100 - $fixedWidth) / $subjectColCount : 0;
@@ -129,7 +129,7 @@
                     <table class="roster-table mx-auto text-[10px] sm:text-[11px] font-sans table-fixed whitespace-nowrap w-full" style="width: 100%; border-collapse: collapse;">
                         <colgroup>
                             <col style="width: 3%;"><!-- S.no -->
-                            <col style="width: 32%;"><!-- Student Full Name -->
+                            <col style="width: 22%;"><!-- Student Full Name -->
                             <col style="width: 3%;"><!-- Gender -->
                             @if($isSem || $isYearly)
                             <col style="width: 6%;"><!-- Quarter/Term -->
@@ -151,7 +151,7 @@
                         <thead>
                             <tr class="header-row">
                                 <th class="p-0 text-center"><div class="vertical-text">S.no</div></th>
-                                <th class="p-2 text-center font-bold text-sm bg-gray-100" style="width: 32% !important;">Full Name of the Student</th>
+                                <th class="p-2 text-center font-bold text-sm bg-gray-100" style="width: 22% !important;">Full Name of the Student</th>
                                 <th class="p-0 text-center"><div class="vertical-text">Sex</div></th>
                                 @if($isSem || $isYearly)
                                 <th class="p-0 text-center"><div class="vertical-text">Term</div></th>
@@ -341,7 +341,7 @@
             
             @page {
                 size: {{ ($isSem || $isYearly) ? 'landscape' : 'portrait' }};
-                margin: 5mm 10mm 5mm 10mm;
+                margin: 12mm 10mm 8mm 10mm;
             }
             html, body { 
                 background: white !important;
@@ -364,7 +364,7 @@
             .roster-page-chunk {
                 display: block !important;
                 margin: 0 !important;
-                padding: 0 !important;
+                padding-top: 15px !important;
                 clear: both !important;
             }
             .header-info-table h1 { font-size: 20pt !important; }

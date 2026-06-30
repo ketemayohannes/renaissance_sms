@@ -290,7 +290,18 @@ class AcademicReportService
 
     private function formatRosterRow($label, $marks, $total, $average, $record, $rank, $dynamicAbsence = null): array
     {
-        $absenceVal = ($record && $record->days_absent !== null) ? $record->days_absent : (is_numeric($dynamicAbsence) ? $dynamicAbsence : 0);
+        // Absence is only meaningful at the quarter level — hide it for semester/yearly summary rows
+        $isSummaryRow = in_array($label, ['Sem Avg', 'Year Avg']);
+
+        // Only use the stored record value when it is actually a positive number.
+        // days_absent = 0 in the record is just a default and should not block the
+        // live attendance count (which is what actually shows the real absences).
+        $storedAbsence = ($record && isset($record->days_absent) && $record->days_absent > 0)
+            ? $record->days_absent
+            : null;
+        $absenceVal = $isSummaryRow
+            ? 0
+            : ($storedAbsence ?? (is_numeric($dynamicAbsence) ? $dynamicAbsence : 0));
 
         return [
             'label' => $label,
@@ -298,7 +309,7 @@ class AcademicReportService
             'total' => $total,
             'average' => $average,
             'conduct' => ($record ? $record->conduct_grade : null) ?? ($label === 'Sem Avg' || $label === 'Year Avg' ? '-' : 'A'),
-            'absence' => ($absenceVal == 0) ? '_' : $absenceVal,
+            'absence' => ($isSummaryRow || $absenceVal == 0) ? '_' : $absenceVal,
             'rank' => $rank
         ];
     }
@@ -382,21 +393,69 @@ class AcademicReportService
         $sectionStats = [];
         $allStudentsData = [];
 
+        // Resolve TERM_TOTAL template IDs once, to exclude them when summing component marks.
+        // This prevents stale master-sheet totals from overriding the real component sum.
+        $termTotalTypeId = \App\Models\AssessmentType::where('code', 'TERM_TOTAL')->value('id');
+        $termTotalTemplateIds = $termTotalTypeId
+            ? \App\Models\AssessmentTemplate::where('assessment_type_id', $termTotalTypeId)->pluck('id')
+            : collect();
+
+        // Determine which term IDs to query marks for
+        $isQuarter = $term->type === 'quarter';
+        $isSemester = method_exists($term, 'isSemester') && $term->isSemester();
+        $isYearly   = $term->id === 'yearly' || $term->type === 'yearly';
+
+        if ($isSemester) {
+            $targetTermIds = $term->quarters()->pluck('id');
+        } elseif ($isYearly) {
+            $semesters = \App\Models\Term::where('academic_year_id', $academicYear->id)
+                ->where('type', 'semester')->with('quarters')->get();
+            $targetTermIds = $semesters->flatMap->quarters->pluck('id');
+        } else {
+            // Quarter
+            $targetTermIds = collect([$term->id]);
+        }
+
         foreach ($gradeLevel->sections as $section) {
-            $students = $section->students()->wherePivot('academic_year_id', $academicYear->id)->wherePivot('status', 'active')->get();
+            $students = $section->students()
+                ->wherePivot('academic_year_id', $academicYear->id)
+                ->wherePivot('status', 'active')
+                ->get();
             if ($students->isEmpty()) continue;
 
-            $batchResults = $this->gradingService->calculateSectionTotals($students, $term, $academicYear, collect([$subject]));
-            
+            $studentIds = $students->pluck('id');
+
+            // Fetch component marks only (no TERM_TOTAL rows) for all students in this section.
+            $rawMarks = \App\Models\StudentMark::whereIn('student_id', $studentIds)
+                ->whereIn('term_id', $targetTermIds)
+                ->where('subject_id', $subject->id)
+                ->when($termTotalTemplateIds->isNotEmpty(), function($q) use ($termTotalTemplateIds) {
+                    $q->whereNotIn('assessment_template_id', $termTotalTemplateIds);
+                })
+                ->get()
+                ->groupBy('student_id');
+
             $scores = [];
             $passed = 0;
             $appeared = 0;
 
             foreach ($students as $student) {
-                $score = $batchResults[$student->id]['marks'][$subject->id] ?? null;
+                $studentMarks = $rawMarks->get($student->id, collect());
+                if ($studentMarks->isEmpty()) continue;
+
+                if ($isSemester || $isYearly) {
+                    // Average the quarter sums
+                    $quarterSums = $studentMarks->groupBy('term_id')->map(fn($g) => $g->sum('score'));
+                    $score = $quarterSums->isNotEmpty() ? $quarterSums->average() : null;
+                } else {
+                    // Quarter: simple sum of components
+                    $score = $studentMarks->sum('score');
+                }
+
                 if ($score !== null && $score !== '') {
+                    $score = (float)$score;
                     $appeared++;
-                    $scores[] = (float)$score;
+                    $scores[] = $score;
                     if ($score >= $passMark) $passed++;
                     $allStudentsData[] = ['student' => $student, 'section' => $section, 'score' => $score];
                 }
@@ -404,31 +463,31 @@ class AcademicReportService
 
             if ($appeared > 0) {
                 $sectionStats[$section->id] = (object)[
-                    'section' => $section,
-                    'appeared' => $appeared,
-                    'passed' => $passed,
-                    'failed' => $appeared - $passed,
-                    'pass_rate' => $appeared > 0 ? ($passed / $appeared) * 100 : 0,
-                    'highest' => !empty($scores) ? max($scores) : 0,
-                    'lowest' => !empty($scores) ? min($scores) : 0,
-                    'average' => $appeared > 0 ? array_sum($scores) / $appeared : 0,
+                    'section'   => $section,
+                    'appeared'  => $appeared,
+                    'passed'    => $passed,
+                    'failed'    => $appeared - $passed,
+                    'pass_rate' => ($passed / $appeared) * 100,
+                    'highest'   => max($scores),
+                    'lowest'    => min($scores),
+                    'average'   => array_sum($scores) / $appeared,
                 ];
             }
         }
 
         $allScores = collect($allStudentsData)->pluck('score');
         return [
-            'academicYear' => $academicYear,
-            'term' => $term,
-            'gradeLevel' => $gradeLevel,
-            'subject' => $subject,
-            'sectionStats' => $sectionStats,
-            'overallStats' => (object)[
+            'academicYear'  => $academicYear,
+            'term'          => $term,
+            'gradeLevel'    => $gradeLevel,
+            'subject'       => $subject,
+            'sectionStats'  => $sectionStats,
+            'overallStats'  => (object)[
                 'total_appeared' => $allScores->count(),
-                'total_passed' => collect($allStudentsData)->filter(fn($d) => $d['score'] >= $passMark)->count(),
-                'highest' => $allScores->isNotEmpty() ? $allScores->max() : 0,
-                'lowest' => $allScores->isNotEmpty() ? $allScores->min() : 0,
-                'average' => $allScores->isNotEmpty() ? $allScores->average() : 0,
+                'total_passed'   => collect($allStudentsData)->filter(fn($d) => $d['score'] >= $passMark)->count(),
+                'highest'        => $allScores->isNotEmpty() ? $allScores->max() : 0,
+                'lowest'         => $allScores->isNotEmpty() ? $allScores->min() : 0,
+                'average'        => $allScores->isNotEmpty() ? $allScores->average() : 0,
             ],
             'topPerformers' => collect($allStudentsData)->sortByDesc('score')->take(10),
         ];

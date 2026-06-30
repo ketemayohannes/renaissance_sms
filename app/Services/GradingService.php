@@ -248,8 +248,20 @@ class GradingService
                     if ($subMarks && $subMarks->isNotEmpty()) {
                         $quarterSums = [];
                         foreach ($subMarks->groupBy('term_id') as $termId => $termMarks) {
-                            $termTotal = $termMarks->first(fn($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
-                            $quarterSums[$termId] = $termTotal ? $termTotal->score : $termMarks->sum('score');
+                            // Prefer live components; fall back to TERM_TOTAL only if no components exist
+                            $components = $termMarks->filter(
+                                fn($m) => !$m->assessmentTemplate
+                                       || $m->assessmentTemplate->assessment_type_id != $termTotalTypeId
+                            );
+                            if ($components->isNotEmpty()) {
+                                $quarterSums[$termId] = $components->sum('score');
+                            } else {
+                                $termTotal = $termMarks->first(
+                                    fn($m) => $m->assessmentTemplate
+                                           && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId
+                                );
+                                if ($termTotal) $quarterSums[$termId] = $termTotal->score;
+                            }
                         }
                         
                         $count = count($quarterSums);
@@ -301,16 +313,31 @@ class GradingService
                     $semAverages = [];
                     foreach ($semesters as $sem) {
                         $qIds = $sem->quarters->pluck('id');
-                        $subSemMarks = $studentMarks->where('subject_id', $subject->id)->whereIn('term_id', $qIds);
-                        
-                        if ($subSemMarks->isNotEmpty()) {
+                        // Per-quarter score: prefer live components; fall back to TERM_TOTAL
+                        // only when no components exist (e.g. Q1/Q2 entered as a single total mark).
+                        $allQMarks = $studentMarks
+                            ->where('subject_id', $subject->id)
+                            ->whereIn('term_id', $qIds);
+
+                        if ($allQMarks->isNotEmpty()) {
                             $quarterSums = [];
-                            foreach ($subSemMarks->groupBy('term_id') as $termId => $termMarks) {
-                                $termTotal = $termMarks->first(fn($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
-                                $quarterSums[$termId] = $termTotal ? $termTotal->score : $termMarks->sum('score');
+                            foreach ($allQMarks->groupBy('term_id') as $termId => $termMarks) {
+                                $components = $termMarks->filter(
+                                    fn($m) => !$m->assessmentTemplate
+                                           || $m->assessmentTemplate->assessment_type_id != $termTotalTypeId
+                                );
+                                if ($components->isNotEmpty()) {
+                                    $quarterSums[$termId] = $components->sum('score');
+                                } else {
+                                    $termTotal = $termMarks->first(
+                                        fn($m) => $m->assessmentTemplate
+                                               && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId
+                                    );
+                                    if ($termTotal) $quarterSums[$termId] = $termTotal->score;
+                                }
                             }
                             $count = count($quarterSums);
-                            $semAverages[] = $count > 0 ? array_sum($quarterSums) / $count : 0;
+                            if ($count > 0) $semAverages[] = array_sum($quarterSums) / $count;
                         }
                     }
                     
@@ -431,8 +458,20 @@ class GradingService
                     if ($quarterMarks->isNotEmpty()) {
                         $quarterSums = [];
                         foreach ($quarterMarks->groupBy('term_id') as $termId => $termMarks) {
-                            $termTotal = $termMarks->first(fn($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
-                            $quarterSums[$termId] = $termTotal ? $termTotal->score : $termMarks->sum('score');
+                            // Prefer live components; fall back to TERM_TOTAL only if no components exist
+                            $components = $termMarks->filter(
+                                fn($m) => !$m->assessmentTemplate
+                                       || $m->assessmentTemplate->assessment_type_id != $termTotalTypeId
+                            );
+                            if ($components->isNotEmpty()) {
+                                $quarterSums[$termId] = $components->sum('score');
+                            } else {
+                                $termTotal = $termMarks->first(
+                                    fn($m) => $m->assessmentTemplate
+                                           && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId
+                                );
+                                if ($termTotal) $quarterSums[$termId] = $termTotal->score;
+                            }
                         }
                         $count = count($quarterSums);
                         $score = $count > 0 ? array_sum($quarterSums) / $count : 0;
@@ -494,16 +533,31 @@ class GradingService
                     $semAverages = [];
                     foreach ($semesters as $sem) {
                         $qIds = $sem->quarters->pluck('id');
-                        $subSemMarks = $rawMarks->get($subject->id, collect())->whereIn('term_id', $qIds);
-                        
-                        if ($subSemMarks->isNotEmpty()) {
+                        // Per-quarter score: prefer live components; fall back to TERM_TOTAL
+                        // only when no components exist (e.g. Q1/Q2 entered as a single total mark).
+                        $allQMarks = $rawMarks
+                            ->get($subject->id, collect())
+                            ->whereIn('term_id', $qIds);
+
+                        if ($allQMarks->isNotEmpty()) {
                             $quarterSums = [];
-                            foreach ($subSemMarks->groupBy('term_id') as $tId => $termMarks) {
-                                $termTotal = $termMarks->first(fn($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
-                                $quarterSums[$tId] = $termTotal ? $termTotal->score : $termMarks->sum('score');
+                            foreach ($allQMarks->groupBy('term_id') as $tId => $termMarks) {
+                                $components = $termMarks->filter(
+                                    fn($m) => !$m->assessmentTemplate
+                                           || $m->assessmentTemplate->assessment_type_id != $termTotalTypeId
+                                );
+                                if ($components->isNotEmpty()) {
+                                    $quarterSums[$tId] = $components->sum('score');
+                                } else {
+                                    $termTotal = $termMarks->first(
+                                        fn($m) => $m->assessmentTemplate
+                                               && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId
+                                    );
+                                    if ($termTotal) $quarterSums[$tId] = $termTotal->score;
+                                }
                             }
                             $count = count($quarterSums);
-                            $semAverages[] = $count > 0 ? array_sum($quarterSums) / $count : 0;
+                            if ($count > 0) $semAverages[] = array_sum($quarterSums) / $count;
                         }
                     }
                     
@@ -719,11 +773,28 @@ class GradingService
                     
                     $qMarksCollection = $preFetchedMarks ? $preFetchedMarks->where('term_id', $q->id) : StudentMark::where('student_id', $student->id)->where('term_id', $q->id)->get();
                     
-                    // Correctly sum components per subject for this quarter
-                    $qMarks = $qMarksCollection->groupBy('subject_id')->map(function($subjectMarks) use ($termTotalTypeId) {
-                        $termTotal = $subjectMarks->first(fn($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
-                        return $termTotal ? $termTotal->score : $subjectMarks->sum('score');
-                    });
+                    // Per-subject score: prefer live component marks over TERM_TOTAL rows
+                    // (TERM_TOTAL can be stale if components were edited after calculation).
+                    // BUT if a quarter only has a TERM_TOTAL row and no components (e.g. Q1/Q2
+                    // entered as a single total), fall back to that TERM_TOTAL so data is not lost.
+                    $qMarks = $qMarksCollection->groupBy('subject_id')->map(
+                        function($subjectMarks) use ($termTotalTypeId) {
+                            $components = $subjectMarks->filter(
+                                fn($m) => !$m->assessmentTemplate
+                                       || $m->assessmentTemplate->assessment_type_id != $termTotalTypeId
+                            );
+                            if ($components->isNotEmpty()) {
+                                // Live components exist — sum them (ignores any stale TERM_TOTAL)
+                                return $components->sum('score');
+                            }
+                            // No components — fall back to the TERM_TOTAL row if present
+                            $termTotal = $subjectMarks->first(
+                                fn($m) => $m->assessmentTemplate
+                                       && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId
+                            );
+                            return $termTotal ? $termTotal->score : 0;
+                        }
+                    );
 
                     // Determine actual denominator for this student
                     $regularCount = $subjects->where('is_elective', false)->count();
@@ -747,13 +818,20 @@ class GradingService
                     
                     $denominator = $regularCount + $effectiveElectiveCount;
 
+                    // Always compute total & average from the freshly-resolved $qMarks.
+                    // $qRecord->total_score / average_score can be stale (written when marks
+                    // were different, e.g. Chemistry 59 → stored total 1214 instead of 1252).
+                    // Rank still comes from the DB record since it requires a section-wide sort.
+                    $liveTotal   = round($qMarks->sum(), 2);
+                    $liveAverage = $denominator > 0 ? round($liveTotal / $denominator, 2) : 0;
+
                     $quarterData[$q->id] = [
-                        'term' => $q,
-                        'marks' => $qMarks,
-                        'record' => $qRecord,
-                        'total' => ($qRecord && $qRecord->total_score > 0) ? $qRecord->total_score : $qMarks->sum(),
-                        'average' => ($qRecord && $qRecord->average_score > 0) ? $qRecord->average_score : ($denominator > 0 ? $qMarks->sum() / $denominator : 0),
-                        'rank' => ($qRecord && $qRecord->rank && $qRecord->rank != 0) ? $qRecord->rank : '-',
+                        'term'    => $q,
+                        'marks'   => $qMarks,
+                        'record'  => $qRecord,
+                        'total'   => $liveTotal,
+                        'average' => $liveAverage,
+                        'rank'    => ($qRecord && $qRecord->rank && $qRecord->rank != 0) ? $qRecord->rank : '-',
                     ];
 
                     $statsByQuarter[$q->id] = [
@@ -797,15 +875,15 @@ class GradingService
                     $semAverages = isset($marksBySemester[$subject->id]) ? array_values($marksBySemester[$subject->id]) : [];
                     if (!empty($semAverages)) {
                         $semCount = count($semAverages);
-                        $marks[$subject->id] = $semCount > 0 ? round(array_sum($semAverages) / $semCount, 2) : 0;
+                        $marks[$subject->id] = $semCount > 0 ? round(array_sum($semAverages) / $semCount, 2) : null;
                     } else {
-                        $marks[$subject->id] = 0;
+                        $marks[$subject->id] = null;
                     }
                 }
             } else {
                 foreach ($allQuarterMarks as $subId => $scores) {
                     $count = count($scores);
-                    $marks[$subId] = $count > 0 ? round(array_sum($scores) / $count, 2) : 0;
+                    $marks[$subId] = $count > 0 ? round(array_sum($scores) / $count, 2) : null;
                 }
             }
         } elseif ($term->type === 'yearly') {
@@ -843,7 +921,7 @@ class GradingService
         if ($isYearly) {
             $regularCount = $subjects->where('is_elective', false)->count();
             
-            $electiveIdsWithScores = $marks->keys()->filter(function($id) use ($subjects) {
+            $electiveIdsWithScores = $marks->filter(fn($v) => $v !== null && $v !== '')->keys()->filter(function($id) use ($subjects) {
                 $s = $subjects->firstWhere('id', $id);
                 return $s && $s->is_elective;
             })->toArray();
@@ -978,7 +1056,7 @@ class GradingService
             $destTemplatesMap[$subject->id] = $template->id;
         }
 
-        // 2. Fetch all source template IDs for all subjects in one query
+        // 2. Fetch all TERM_TOTAL source templates (one per subject per quarter)
         $allSourceTemplates = AssessmentTemplate::with(['assignments' => function($q) use ($gradeLevel) {
                 $q->where('grade_level_id', $gradeLevel->id);
             }])
@@ -994,29 +1072,57 @@ class GradingService
                 return $item->assignments->first()->subject_id;
             });
 
-        // 3. Fetch ALL marks for these students and source templates in one query
+        // Build a map: subject_id => [term_id => template_id] for quick lookup
+        $termTotalTemplateMap = []; // subject_id => [term_id => template_id]
+        foreach ($allSourceTemplates as $subjectId => $templates) {
+            foreach ($templates as $tpl) {
+                $termTotalTemplateMap[$subjectId][$tpl->term_id] = $tpl->id;
+            }
+        }
+
+        // 3a. Fetch TERM_TOTAL marks for subjects that have them
         $allSourceTemplateIds = $allSourceTemplates->flatten()->pluck('id');
-        $allMarks = StudentMark::whereIn('student_id', $students->pluck('id'))
+        $termTotalMarks = StudentMark::whereIn('student_id', $students->pluck('id'))
             ->whereIn('assessment_template_id', $allSourceTemplateIds)
             ->whereNotNull('score')
             ->get()
-            ->groupBy(['student_id', 'subject_id']);
+            ->groupBy(function($m) { return $m->student_id . '_' . $m->subject_id . '_' . $m->term_id; });
+
+        // 3b. Also fetch ALL component marks for Q3/Q4 (used as fallback when no TERM_TOTAL exists)
+        $allComponentMarks = StudentMark::whereIn('student_id', $students->pluck('id'))
+            ->whereIn('term_id', $sourceTermIds->toArray())
+            ->whereNotNull('score')
+            ->get()
+            ->groupBy(function($m) { return $m->student_id . '_' . $m->subject_id . '_' . $m->term_id; });
 
         $upsertData = [];
-        $expectedCount = $sourceTermIds->count();
         $now = now();
 
         // 4. Calculate averages in memory
         foreach ($subjects as $subject) {
             $destTemplateId = $destTemplatesMap[$subject->id];
-            
-            foreach ($students as $student) {
-                $studentSubjectMarks = $allMarks->get($student->id)?->get($subject->id) ?? collect();
-                
-                if ($studentSubjectMarks->isEmpty()) continue;
 
-                $total = $studentSubjectMarks->sum('score');
-                $average = $expectedCount > 0 ? ($total / $expectedCount) : 0;
+            foreach ($students as $student) {
+                $quarterScores = [];
+
+                foreach ($sourceTermIds as $termId) {
+                    $key = $student->id . '_' . $subject->id . '_' . $termId;
+
+                    // Prefer TERM_TOTAL mark if it exists for this subject+quarter
+                    if (!empty($termTotalTemplateMap[$subject->id][$termId]) && $termTotalMarks->has($key)) {
+                        $quarterScores[] = $termTotalMarks[$key]->sum('score');
+                    } elseif ($allComponentMarks->has($key)) {
+                        // Fallback: sum component marks for this subject+quarter
+                        $quarterScores[] = $allComponentMarks[$key]->sum('score');
+                    }
+                    // If neither exists, this quarter is simply omitted (student has no grade)
+                }
+
+                if (empty($quarterScores)) continue;
+
+                // Average over the number of quarters that actually had data
+                $total = array_sum($quarterScores);
+                $average = round($total / count($quarterScores), 2);
 
                 $upsertData[] = [
                     'student_id' => $student->id,

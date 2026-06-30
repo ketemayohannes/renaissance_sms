@@ -219,6 +219,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('reports', [App\Http\Controllers\Admin\ReportsController::class, 'index'])->name('reports.index')->middleware('permission:view marks');
         Route::get('reports/top3-per-section', [App\Http\Controllers\Admin\ReportsController::class, 'top3PerSection'])->name('reports.top3-per-section')->middleware('permission:view marks');
         Route::get('reports/academic-excellence', [App\Http\Controllers\Admin\ReportsController::class, 'academicExcellence'])->name('reports.academic-excellence')->middleware('permission:view marks');
+        Route::get('reports/below-75', [App\Http\Controllers\Admin\ReportsController::class, 'below75'])->name('reports.below-75')->middleware('permission:view marks');
         
         // Result Analysis (permission-gated)
         Route::get('result-analysis', [App\Http\Controllers\Admin\ResultAnalysisController::class, 'index'])->name('result-analysis.index')->middleware('permission:view marks');

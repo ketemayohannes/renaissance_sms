@@ -86,6 +86,9 @@ class AcademicReportController extends Controller
             $reportType = $request->get('report_type', 'roster');
 
             if ($reportType === 'report_card') {
+                if (auth()->user()->hasRole('Principal')) {
+                    abort(403, 'Unauthorized action.');
+                }
                 // Show action selection page — user must manually choose to view/print or export
                 return view('admin.academic-reports.report-card-actions', [
                     'section'      => $section,
@@ -226,7 +229,12 @@ class AcademicReportController extends Controller
         $term = Term::findOrFail($request->get('term_id'));
         $divisionId = $request->get('division_id');
         
-        $gradeLevels = GradeLevel::where('division_id', $divisionId)->orderBy('sort_order')->get();
+        $query = GradeLevel::query();
+        if ($divisionId) {
+            $query->where('division_id', $divisionId);
+        }
+        $gradeLevels = $query->orderBy('sort_order')->get();
+        
         $data = $this->reportService->prepareGradeMatrixData($academicYear, $term, $gradeLevels);
         $settings = \App\Models\AcademicReportSetting::first();
         $data['settings'] = $settings;
@@ -348,7 +356,7 @@ class AcademicReportController extends Controller
             ],
             'grade_9_12' => [
                 'name' => 'Grade 9 - 12',
-                'codes' => ['G9', 'G10', 'G11', 'G12'],
+                'codes' => ['G9', 'G10', 'G11(N)', 'G11(S)', 'G12(N)', 'G12(S)'],
                 'divisions' => ['HS'], // High School only
             ],
         ];

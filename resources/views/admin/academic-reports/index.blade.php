@@ -255,7 +255,7 @@
 
                 get hideGrade()    { return this.reportType === 'consolidated_matrix' || this.reportType === 'category_ranks'; },
                 get hideSection()  { return this.reportType === 'consolidated_matrix' || this.reportType === 'category_ranks'; },
-                get hideDivision() { return this.reportType !== 'category_ranks'; },
+                get hideDivision() { return this.reportType !== 'category_ranks' && this.reportType !== 'consolidated_matrix'; },
                 get disableSection() { return this.reportType === 'grade_subject_analysis'; },
 
                 persist() {

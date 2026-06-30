@@ -6,8 +6,11 @@ use App\Models\TeacherAssignment;
 use App\Models\AcademicYear;
 use App\Models\Term;
 use App\Models\SubjectAnalysisReport;
+use App\Models\StudentMark;
+use App\Models\AssessmentType;
 use App\Services\GradingService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ResultAnalysisController extends Controller
 {
@@ -64,6 +67,11 @@ class ResultAnalysisController extends Controller
         $gradeLevelId = $assignment->section->grade_level_id;
         $teacherId = $assignment->teacher_id;
 
+        // Resolve the TERM_TOTAL type ID so we can exclude it when summing components.
+        // We always want to use the sum of individual component marks (quiz, tests, exams, etc.)
+        // rather than a separately-saved TERM_TOTAL row, which can be stale.
+        $termTotalTypeId = AssessmentType::where('code', 'TERM_TOTAL')->value('id');
+
         $relevantAssignments = TeacherAssignment::where('teacher_id', $teacherId)
             ->where('academic_year_id', $academicYear->id)
             ->where('subject_id', $subject->id)
@@ -75,9 +83,9 @@ class ResultAnalysisController extends Controller
 
         $sectionData = [];
         $grandTotalAnalysis = [
-            '0-49' => ['male' => 0, 'female' => 0, 'total' => 0],
-            '50-74' => ['male' => 0, 'female' => 0, 'total' => 0],
-            '75-100' => ['male' => 0, 'female' => 0, 'total' => 0],
+            '0-49'           => ['male' => 0, 'female' => 0, 'total' => 0],
+            '50-74'          => ['male' => 0, 'female' => 0, 'total' => 0],
+            '75-100'         => ['male' => 0, 'female' => 0, 'total' => 0],
             'total_students' => ['male' => 0, 'female' => 0, 'total' => 0],
         ];
 
@@ -87,6 +95,7 @@ class ResultAnalysisController extends Controller
 
         foreach ($relevantAssignments as $relAssignment) {
             $section = $relAssignment->section;
+
             if ($subject->is_elective) {
                 $students = $section->students()
                     ->whereHas('electives', function($q) use ($subject, $academicYear) {
@@ -104,19 +113,38 @@ class ResultAnalysisController extends Controller
                     ->get();
             }
 
-            $batchResults = $this->gradingService->calculateSectionTotals($students, $term, $academicYear, collect([$subject]));
-            
+            $studentIds = $students->pluck('id');
+
+            // Pre-fetch the TERM_TOTAL template IDs so we can exclude them cleanly.
+            // Using whereNotIn on template IDs is the safest way to avoid the stale
+            // master-sheet override — no subquery scoping issues.
+            $termTotalTemplateIds = $termTotalTypeId
+                ? \App\Models\AssessmentTemplate::where('assessment_type_id', $termTotalTypeId)
+                    ->pluck('id')
+                : collect();
+
+            // Fetch component marks only (no TERM_TOTAL rows), sum them per student.
+            $allComponentMarks = StudentMark::whereIn('student_id', $studentIds)
+                ->where('term_id', $term->id)
+                ->where('subject_id', $subject->id)
+                ->when($termTotalTemplateIds->isNotEmpty(), function($q) use ($termTotalTemplateIds) {
+                    $q->whereNotIn('assessment_template_id', $termTotalTemplateIds);
+                })
+                ->get()
+                ->groupBy('student_id');
+
             $analysis = [
-                '0-49' => ['male' => 0, 'female' => 0, 'total' => 0],
-                '50-74' => ['male' => 0, 'female' => 0, 'total' => 0],
-                '75-100' => ['male' => 0, 'female' => 0, 'total' => 0],
+                '0-49'           => ['male' => 0, 'female' => 0, 'total' => 0],
+                '50-74'          => ['male' => 0, 'female' => 0, 'total' => 0],
+                '75-100'         => ['male' => 0, 'female' => 0, 'total' => 0],
                 'total_students' => ['male' => 0, 'female' => 0, 'total' => 0],
             ];
 
             foreach ($students as $student) {
-                $score = $batchResults[$student->id]['marks'][$subject->id] ?? 0;
-                $gender = strtolower($student->gender) === 'female' || strtolower($student->gender) === 'f' ? 'female' : 'male';
-                $range = $score <= 49 ? '0-49' : ($score <= 74 ? '50-74' : '75-100');
+                // Sum all component marks for this student's subject
+                $score = $allComponentMarks->get($student->id, collect())->sum('score');
+                $gender = in_array(strtolower($student->gender), ['female', 'f']) ? 'female' : 'male';
+                $range  = $score <= 49 ? '0-49' : ($score <= 74 ? '50-74' : '75-100');
                 
                 $analysis[$range][$gender]++;
                 $analysis[$range]['total']++;
@@ -136,8 +164,8 @@ class ResultAnalysisController extends Controller
 
             $sectionData[] = [
                 'assignment' => $relAssignment,
-                'analysis' => $analysis,
-                'report' => $report
+                'analysis'   => $analysis,
+                'report'     => $report,
             ];
         }
 

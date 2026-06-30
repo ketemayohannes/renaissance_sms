@@ -252,5 +252,101 @@ class ReportsController extends Controller
         $filename     = "academic_excellence_{$divisionSlug}_{$termSlug}.pdf";
         return $pdf->download($filename);
     }
+
+    public function below75(Request $request)
+    {
+        set_time_limit(120);
+
+        $request->validate([
+            'academic_year_id' => 'required|exists:academic_years,id',
+            'term_id'          => 'required',
+            'division_id'      => 'required|exists:divisions,id',
+        ]);
+
+        $academicYear = AcademicYear::findOrFail($request->academic_year_id);
+        $division     = Division::findOrFail($request->division_id);
+        $termId       = $request->term_id;
+
+        if ($termId === 'yearly') {
+            $term = new Term(['type' => 'yearly', 'name' => 'Yearly', 'academic_year_id' => $academicYear->id]);
+            $term->id = 'yearly';
+        } else {
+            $term = Term::findOrFail($termId);
+        }
+
+        $gradeLevels = GradeLevel::where('division_id', $division->id)
+            ->orderBy('sort_order')
+            ->get();
+
+        $sectionsData = [];
+
+        foreach ($gradeLevels as $gradeLevel) {
+            $sections = Section::where('grade_level_id', $gradeLevel->id)
+                ->where('academic_year_id', $academicYear->id)
+                ->orderBy('name')
+                ->get();
+
+            foreach ($sections as $section) {
+                $rosterParams = $this->reportService->prepareRosterData($section, $term, $academicYear);
+                $reportsArray = $rosterParams['reports'] ?? [];
+
+                // Filter students with average score > 0 and < 75
+                $failingStudents = collect($reportsArray)
+                    ->filter(function ($r) use ($termId) {
+                        $avg = $termId === 'yearly'
+                            ? ($r['rows']['avg']['average'] ?? 0)
+                            : ($r['average'] ?? 0);
+                        return $avg > 0 && $avg < 75;
+                    })
+                    ->sortBy(function ($r) {
+                        $student = $r['student'];
+                        return trim($student->first_name . ' ' . $student->father_name . ' ' . $student->grandfather_name);
+                    })
+                    ->values()
+                    ->map(function ($r) use ($termId) {
+                        $student = $r['student'];
+                        $avg = $termId === 'yearly'
+                            ? ($r['rows']['avg']['average'] ?? 0)
+                            : ($r['average'] ?? 0);
+                        $student->setAttribute('average_score', $avg);
+                        return $student;
+                    });
+
+                if ($failingStudents->isNotEmpty()) {
+                    $sectionsData[] = [
+                        'grade_level' => $gradeLevel,
+                        'section'     => $section,
+                        'students'    => $failingStudents,
+                    ];
+                }
+            }
+        }
+
+        $settings    = ReportCardSetting::first();
+        $logoBase64  = null;
+        if ($settings && $settings->logo_path) {
+            $logoPath = storage_path('app/public/' . $settings->logo_path);
+            if (file_exists($logoPath)) {
+                $logoData   = base64_encode(file_get_contents($logoPath));
+                $logoBase64 = 'data:image/' . pathinfo($logoPath, PATHINFO_EXTENSION) . ';base64,' . $logoData;
+            }
+        }
+
+        $pdf = Pdf::loadView('admin.reports.below-75-pdf', [
+            'academicYear' => $academicYear,
+            'division'     => $division,
+            'term'         => $term,
+            'sectionsData' => $sectionsData,
+            'settings'     => $settings,
+            'logoBase64'   => $logoBase64,
+        ]);
+
+        $pdf->setPaper('a4', 'portrait');
+
+        $termSlug     = strtolower(str_replace([' ', '/'], '_', $term->name ?? $term->id));
+        $divisionSlug = strtolower(str_replace(' ', '_', $division->name));
+        $filename     = "student_average_below_75_{$divisionSlug}_{$termSlug}.pdf";
+        return $pdf->download($filename);
+    }
 }
 

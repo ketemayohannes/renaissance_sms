@@ -90,6 +90,23 @@
                         </button>
                     </div>
 
+                    <!-- Report Card: Below 75 -->
+                    <div class="bg-white rounded-[2.5rem] p-6 flex flex-col justify-between hover:shadow-lg transition-all duration-300" style="border: 1px solid #fca5a5;">
+                        <div>
+                            <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-5 shadow-inner text-xl" style="background-color: #fee2e2; border: 1px solid #fecaca; color: #dc2626;">
+                                📉
+                            </div>
+                            <h3 class="text-base font-black text-slate-900 uppercase tracking-tight">Average Below 75</h3>
+                            <p class="text-slate-400 text-xs font-bold mt-2 leading-relaxed opacity-85">Lists all students who achieved an average score below 75% in each section under the selected division, sorted alphabetically.</p>
+                        </div>
+                        <button type="button" @click="downloadBelow75()" class="mt-8 w-full py-4 font-black text-[10px] uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center gap-3 active:scale-95 group" style="background-color: #dc2626; color: #ffffff;" onmouseover="this.style.backgroundColor='#b91c1c'" onmouseout="this.style.backgroundColor='#dc2626'">
+                            <svg class="w-4 h-4 group-hover:animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #ffffff;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                            </svg>
+                            Download Below 75 PDF
+                        </button>
+                    </div>
+
                 </div>
             </div>
         </form>
@@ -156,6 +173,19 @@
                         division_id: this.selectedDivision
                     }).toString();
                     window.location.href = `{{ route('admin.reports.academic-excellence') }}?${params}`;
+                },
+
+                downloadBelow75() {
+                    if (!this.selectedTerm || !this.selectedDivision) {
+                        alert('Please select both a timeline and a division before downloading.');
+                        return;
+                    }
+                    const params = new URLSearchParams({
+                        academic_year_id: this.selectedYear,
+                        term_id: this.selectedTerm,
+                        division_id: this.selectedDivision
+                    }).toString();
+                    window.location.href = `{{ route('admin.reports.below-75') }}?${params}`;
                 }
             };
         }
