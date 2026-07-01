@@ -30,7 +30,7 @@
                     </div>
                     <div>
                         <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Target Grade</span>
-                        <span class="text-base font-bold text-slate-800 block">{{ $nextGradeLevel?->name ?? 'N/A (Graduates)' }}</span>
+                        <span class="text-base font-bold text-slate-800 block">{{ $nextGradeLevel ? trim(preg_replace('/\s*\(.*?\)/', '', $nextGradeLevel->name)) : 'N/A (Graduates)' }}</span>
                     </div>
                     <div>
                         <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Active Rule</span>

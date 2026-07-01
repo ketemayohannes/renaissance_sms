@@ -8,6 +8,7 @@ use App\Models\Term;
 use App\Models\AcademicYear;
 use App\Models\Student;
 use App\Models\StudentTermRecord;
+use App\Models\StudentPromotion;
 use App\Models\ExportRequest;
 use App\Jobs\GenerateSectionReportCards;
 use Illuminate\Support\Facades\DB;
@@ -167,6 +168,21 @@ class ReportCardService
         $attendance = $this->getAttendanceSummary($student, $term, $academicYear);
         $subTermAttendance = $this->calculateSubTermAttendance($student, $quarters, $semesters, $isSemester, $isYearly, $academicYear);
 
+        // Promotion info (only meaningful for Elementary & High School, division_id != 1)
+        $promotedToGrade = null;
+        $promotionStatus = null;
+        $section = $reportData['section'];
+        if ($isYearly && $section && $section->gradeLevel && $section->gradeLevel->division_id != 1) {
+            $promotion = StudentPromotion::with('toGradeLevel')
+                ->where('student_id', $student->id)
+                ->where('from_academic_year_id', $academicYear->id)
+                ->first();
+            if ($promotion && $promotion->toGradeLevel) {
+                $promotedToGrade = trim(preg_replace('/\s*\(.*?\)/', '', $promotion->toGradeLevel->name));
+                $promotionStatus = $promotion->status; // 'promoted' or 'retained'
+            }
+        }
+
         return [
             'student' => $student,
             'term' => $term,
@@ -178,7 +194,7 @@ class ReportCardService
             'isKindergarten' => \App\Helpers\KindergartenGradeHelper::isKindergarten($reportData['section']),
             'totalScore' => $reportData['totalScore'],
             'average' => $reportData['average'],
-            'section' => $reportData['section'],
+            'section' => $section,
             'rank' => $reportData['rank'],
             'totalStudents' => $totalStudents,
             'isSemester' => $isSemester,
@@ -196,6 +212,8 @@ class ReportCardService
             'semesterRanks' => $preparedSemesters['ranks'],
             'attendance' => $attendance,
             'subTermAttendance' => $subTermAttendance,
+            'promotedToGrade' => $promotedToGrade,
+            'promotionStatus' => $promotionStatus,
         ];
     }
 
@@ -238,6 +256,17 @@ class ReportCardService
             $isGrade12 = true;
         }
 
+        // Batch-load promotions for all students in this section (Elementary & High School only)
+        $isPromotableSection = $isYearly && $section->gradeLevel && $section->gradeLevel->division_id != 1;
+        $promotionsByStudent = collect();
+        if ($isPromotableSection) {
+            $promotionsByStudent = StudentPromotion::with('toGradeLevel')
+                ->whereIn('student_id', $students->pluck('id'))
+                ->where('from_academic_year_id', $academicYear->id)
+                ->get()
+                ->keyBy('student_id');
+        }
+
         $electiveEnrollments = collect();
         if ($isGrade12 && $isYearly) {
             $electiveEnrollments = DB::table('student_electives')
@@ -274,6 +303,17 @@ class ReportCardService
                 return false;
             });
 
+            // Resolve per-student promotion grade
+            $promotedToGrade = null;
+            $promotionStatus = null;
+            if ($isPromotableSection) {
+                $promo = $promotionsByStudent->get($student->id);
+                if ($promo && $promo->toGradeLevel) {
+                    $promotedToGrade = trim(preg_replace('/\s*\(.*?\)/', '', $promo->toGradeLevel->name));
+                    $promotionStatus = $promo->status;
+                }
+            }
+
             $reportCards[] = [
                 'student' => $student,
                 'marks' => $reportData['marks'],
@@ -297,6 +337,8 @@ class ReportCardService
                 ]),
                 'attendance' => $batchAttendance[$student->id][$term->id] ?? $this->getAttendanceSummary($student, $term, $academicYear),
                 'subTermAttendance' => $this->calculateSubTermAttendance($student, $quarters, $semesters, $isSemester, $isYearly, $academicYear, $batchAttendance),
+                'promotedToGrade' => $promotedToGrade,
+                'promotionStatus' => $promotionStatus,
             ];
         }
 

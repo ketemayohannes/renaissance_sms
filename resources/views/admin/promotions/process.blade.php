@@ -49,7 +49,8 @@
                 get gradeLevels() {
                     if (!this.selectedDivisionId) return [];
                     const div = this.divisions.find(d => d.id == this.selectedDivisionId);
-                    return div ? div.grade_levels : [];
+                    if (!div || !div.grade_levels) return [];
+                    return div.grade_levels;
                 },
                 get sections() {
                     if (!this.selectedGradeLevelId) return [];

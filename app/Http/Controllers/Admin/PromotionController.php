@@ -221,9 +221,29 @@ class PromotionController extends Controller
         $nextAcademicYear = AcademicYear::where('start_date', '>', $academicYear->end_date)
             ->orderBy('start_date')
             ->first();
-        $nextGradeLevel = GradeLevel::where('sort_order', '>', $section->gradeLevel->sort_order)
-            ->orderBy('sort_order')
-            ->first();
+        // For streamed grades (e.g. Grade 11 (Natural)), promote to the same-stream next grade.
+        // For non-streamed grades, pick the next grade by sort_order.
+        $currentGradeName = $section->gradeLevel->name;
+        preg_match('/\(([^)]+)\)/', $currentGradeName, $streamMatch);
+        $stream = $streamMatch[1] ?? null; // e.g. 'Natural', 'Social', or null
+
+        if ($stream) {
+            // Same-stream, next division grade: find next grade that also contains the same stream label
+            $nextGradeLevel = GradeLevel::where('sort_order', '>', $section->gradeLevel->sort_order)
+                ->where('name', 'like', "%({$stream})%")
+                ->orderBy('sort_order')
+                ->first();
+        } else {
+            // Non-streamed: skip over any streamed grades by picking next non-streamed grade in same division,
+            // or simply the very next sort_order (e.g. Grade 10 → Grade 11 Natural, handled at enrollment)
+            $nextGradeLevel = GradeLevel::where('sort_order', '>', $section->gradeLevel->sort_order)
+                ->where('division_id', $section->gradeLevel->division_id)
+                ->where(function($q) {
+                    $q->where('name', 'not like', '%(Social)%');
+                })
+                ->orderBy('sort_order')
+                ->first();
+        }
 
         return view('admin.promotions.preview', compact(
             'section', 'previewData', 'promotionRule', 'academicYear', 'nextAcademicYear', 'nextGradeLevel'
@@ -241,9 +261,24 @@ class PromotionController extends Controller
         $section = Section::with('gradeLevel')->findOrFail($request->section_id);
         $academicYear = AcademicYear::where('is_active', true)->first();
         $nextAcademicYear = AcademicYear::findOrFail($request->next_academic_year_id);
-        $nextGradeLevel = GradeLevel::where('sort_order', '>', $section->gradeLevel->sort_order)
-            ->orderBy('sort_order')
-            ->first();
+        // For streamed grades (e.g. Grade 11 (Natural)), promote to the same-stream next grade.
+        preg_match('/\(([^)]+)\)/', $section->gradeLevel->name, $streamMatch);
+        $stream = $streamMatch[1] ?? null;
+
+        if ($stream) {
+            $nextGradeLevel = GradeLevel::where('sort_order', '>', $section->gradeLevel->sort_order)
+                ->where('name', 'like', "%({$stream})%")
+                ->orderBy('sort_order')
+                ->first();
+        } else {
+            $nextGradeLevel = GradeLevel::where('sort_order', '>', $section->gradeLevel->sort_order)
+                ->where('division_id', $section->gradeLevel->division_id)
+                ->where(function($q) {
+                    $q->where('name', 'not like', '%(Social)%');
+                })
+                ->orderBy('sort_order')
+                ->first();
+        }
 
         $promotedCount = 0;
         $retainedCount = 0;
@@ -345,7 +380,7 @@ class PromotionController extends Controller
         }
         $msg .= ". Students are on hold — use History to enroll them.";
 
-        return redirect()->route('admin.promotions.index')->with('success', $msg);
+        return redirect()->route('admin.promotions.process')->with('success', $msg);
     }
 
     /**

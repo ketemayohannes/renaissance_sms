@@ -37,7 +37,9 @@
                     <select name="from_grade_level_id" id="from_grade_level_id" class="premium-select w-full" required>
                         <option value="">Select Grade</option>
                         @foreach($gradeLevels as $gl)
-                            <option value="{{ $gl->id }}">{{ $gl->name }}</option>
+                            @if(!str_contains($gl->name, '(Social)'))
+                                <option value="{{ $gl->id }}">{{ trim(preg_replace('/\s*\(.*?\)/', '', $gl->name)) }}</option>
+                            @endif
                         @endforeach
                     </select>
                 </div>
@@ -46,7 +48,9 @@
                     <select name="to_grade_level_id" id="to_grade_level_id" class="premium-select w-full">
                         <option value="">None (Graduates)</option>
                         @foreach($gradeLevels as $gl)
-                            <option value="{{ $gl->id }}">{{ $gl->name }}</option>
+                            @if(!str_contains($gl->name, '(Social)'))
+                                <option value="{{ $gl->id }}">{{ trim(preg_replace('/\s*\(.*?\)/', '', $gl->name)) }}</option>
+                            @endif
                         @endforeach
                     </select>
                 </div>
@@ -125,7 +129,7 @@
                                             {{ substr($rule->fromGradeLevel->name, 0, 2) }}
                                         </div>
                                         <div>
-                                            <span class="font-bold text-slate-700">{{ $rule->fromGradeLevel->name }}</span>
+                                            <span class="font-bold text-slate-700">{{ trim(preg_replace('/\s*\(.*?\)/', '', $rule->fromGradeLevel->name)) }}</span>
                                             <span class="block text-[9px] font-black text-slate-400 uppercase tracking-wider">{{ $rule->fromGradeLevel->division->name ?? 'N/A' }}</span>
                                         </div>
                                     </div>
@@ -142,7 +146,7 @@
                                                 {{ substr($rule->toGradeLevel->name, 0, 2) }}
                                             </div>
                                             <div>
-                                                <span class="font-bold text-slate-700">{{ $rule->toGradeLevel->name }}</span>
+                                                <span class="font-bold text-slate-700">{{ trim(preg_replace('/\s*\(.*?\)/', '', $rule->toGradeLevel->name)) }}</span>
                                                 <span class="block text-[9px] font-black text-slate-400 uppercase tracking-wider">{{ $rule->toGradeLevel->division->name ?? 'N/A' }}</span>
                                             </div>
                                         </div>

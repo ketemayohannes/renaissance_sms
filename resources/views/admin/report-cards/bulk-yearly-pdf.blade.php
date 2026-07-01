@@ -321,6 +321,8 @@
             $sMarks = $data['studentSemesterMarks'];
             $sStats = $data['studentSemesterStats'];
             $attendance = $data['attendance'] ?? null;
+            $promotedToGrade = $data['promotedToGrade'] ?? null;
+            $promotionStatus = $data['promotionStatus'] ?? null;
         @endphp
 
         <div class="page-container" style="{{ $loop->last ? '' : 'page-break-after: always;' }}">
@@ -356,9 +358,19 @@
                         <div class="checkbox-line"><span class="checkbox"></span> <span>others <span style="border-bottom: 1px solid black; display: inline-block; width: 250px; text-transform: lowercase;">{{ ($q && isset($qRecords[$q->id])) ? $qRecords[$q->id]->homeroom_teacher_comment : '' }}&nbsp;</span></span></div>
                         <div class="checkbox-line"><span class="checkbox"></span> <span>Needs to be encouraged to listen and pay attention to his/her lesson.</span></div>
                         @else
-                            <div class="checkbox-line"><span class="checkbox"></span> <span>Promoted to Grade: <span style="border-bottom: 1px solid black; display: inline-block; width: 150px;">&nbsp;</span></span></div>
-                            <div class="checkbox-line"><span class="checkbox"></span> <span>Detained in Grade: <span style="border-bottom: 1px solid black; display: inline-block; width: 150px;">&nbsp;</span></span></div>
-                            <div style="margin-top: 5px; font-size: 8pt;">Homeroom Teacher Name: <span style="border-bottom: 1px solid black; display: inline-block; min-width: 150px;">{{ $section->homeroomTeacher->full_name ?? '' }}&nbsp;</span> &nbsp; Signature: <span style="border-bottom: 1px solid black; display: inline-block; width: 120px;">&nbsp;</span></div>
+                            @php
+                                $isRetainedBulk = $promotionStatus === 'retained';
+                                $gradeShortBulk = $promotedToGrade ? str_replace('Grade ', '', $promotedToGrade) : null;
+                            @endphp
+                            <div class="checkbox-line">
+                                <span class="checkbox" style="display: inline-block; vertical-align: middle; text-align: center; line-height: 12px; font-family: DejaVu Sans, sans-serif; font-weight: bold;">{{ (!$isRetainedBulk && $gradeShortBulk) ? '✓' : '' }}</span> 
+                                <span>Promoted to Grade: <span style="border-bottom: 1px solid black; display: inline-block; min-width: 150px; text-align: center;">{{ (!$isRetainedBulk && $gradeShortBulk) ? $gradeShortBulk : '' }}</span></span>
+                            </div>
+                            <div class="checkbox-line">
+                                <span class="checkbox" style="display: inline-block; vertical-align: middle; text-align: center; line-height: 12px; font-family: DejaVu Sans, sans-serif; font-weight: bold;">{{ ($isRetainedBulk && $gradeShortBulk) ? '✓' : '' }}</span> 
+                                <span>Detained in Grade: <span style="border-bottom: 1px solid black; display: inline-block; min-width: 150px; text-align: center;">{{ ($isRetainedBulk && $gradeShortBulk) ? $gradeShortBulk : '' }}</span></span>
+                            </div>
+                            <div style="margin-top: 5px; font-size: 8pt;">Homeroom Teacher Name: <span style="border-bottom: 1px solid black; display: inline-block; min-width: 150px; text-align: center;">{{ ucwords(mb_strtolower($section->homeroomTeacher->name ?? '')) }}&nbsp;</span> &nbsp; Signature: <span style="border-bottom: 1px solid black; display: inline-block; width: 120px;">&nbsp;</span></div>
                         @endif
                     </div>
                     @endforeach
@@ -531,14 +543,18 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td colspan="4">Homeroom Teacher Name: <span style="border-bottom: 1px solid black; display: inline-block; width: 400px;">{{ $section->homeroomTeacher->full_name ?? '' }}&nbsp;</span></td>
+                                <td colspan="4">Homeroom Teacher Name: <span style="border-bottom: 1px solid black; display: inline-block; width: 400px; text-align: center;">{{ ucwords(mb_strtolower($section->homeroomTeacher->name ?? '')) }}&nbsp;</span></td>
                             </tr>
                             <tr>
                                 <td colspan="2">Academic Year: <span class="underlined-val-new">{{ $academicYear->name }}G.C {{ \App\Helpers\EthiopianDateHelper::fromGregorian($academicYear->start_date)->format('Y') }}E.C</span></td>
                                 <td colspan="2" style="text-align: right;">Grade & Section: <span class="underlined-val-new" style="min-width: 80px;">{{ str_replace('Grade ', '', $section->gradeLevel->name) }}{{ $section->name }}</span></td>
                             </tr>
                             <tr>
-                                <td colspan="4">Promoted to Grade: <span style="border-bottom: 1px solid black; display: inline-block; width: 450px;">&nbsp;</span></td>
+                                @if($promotionStatus === 'retained')
+                                    <td colspan="4">Detained in Grade: <span style="border-bottom: 1px solid black; display: inline-block; min-width: 450px; text-align: center;">{{ $promotedToGrade ?? '' }}</span></td>
+                                @else
+                                    <td colspan="4">Promoted to Grade: <span style="border-bottom: 1px solid black; display: inline-block; min-width: 450px; text-align: center;">{{ $promotedToGrade ?? '' }}</span></td>
+                                @endif
                             </tr>
                         </table>
                     </div>

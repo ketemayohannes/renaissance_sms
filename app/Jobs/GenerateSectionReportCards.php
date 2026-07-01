@@ -9,6 +9,7 @@ use App\Models\AcademicYear;
 use App\Models\ExportRequest;
 use App\Models\ReportCardSetting;
 use App\Models\Section;
+use App\Models\StudentPromotion;
 use App\Models\Term;
 use App\Models\User;
 use App\Notifications\ReportCardExportReady;
@@ -236,6 +237,20 @@ class GenerateSectionReportCards implements ShouldQueue
         $attendance = $batchAttendance[$student->id][$term->id] ?? $reportCardService->getAttendanceSummary($student, $term, $academicYear);
         $subTermAttendance = $reportCardService->calculateSubTermAttendance($student, $quarters, $semesters, $isSemester, $isYearly, $academicYear, $batchAttendance);
 
+        // Promotion info — Elementary & High School only (division_id != 1)
+        $promotedToGrade = null;
+        $promotionStatus = null;
+        if ($isYearly && $section && $section->gradeLevel && $section->gradeLevel->division_id != 1) {
+            $promotion = StudentPromotion::with('toGradeLevel')
+                ->where('student_id', $student->id)
+                ->where('from_academic_year_id', $academicYear->id)
+                ->first();
+            if ($promotion && $promotion->toGradeLevel) {
+                $promotedToGrade = trim(preg_replace('/\s*\(.*?\)/', '', $promotion->toGradeLevel->name));
+                $promotionStatus = $promotion->status;
+            }
+        }
+
         return [
             'is_pdf' => true,
             'student' => $student,
@@ -265,6 +280,8 @@ class GenerateSectionReportCards implements ShouldQueue
             'semesterRanks' => $semesterRanks,
             'attendance' => $attendance,
             'subTermAttendance' => $subTermAttendance,
+            'promotedToGrade' => $promotedToGrade,
+            'promotionStatus' => $promotionStatus,
         ];
     }
 }

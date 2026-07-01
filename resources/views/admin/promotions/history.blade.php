@@ -58,7 +58,9 @@
                         <select name="from_grade_level_id" class="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-800 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none">
                             <option value="">All Grade Levels</option>
                             @foreach($gradeLevels as $grade)
-                                <option value="{{ $grade->id }}" {{ request('from_grade_level_id') == $grade->id ? 'selected' : '' }}>{{ $grade->name }}</option>
+                                @if(!str_contains($grade->name, '(Social)'))
+                                    <option value="{{ $grade->id }}" {{ request('from_grade_level_id') == $grade->id ? 'selected' : '' }}>{{ trim(preg_replace('/\s*\(.*?\)/', '', $grade->name)) }}</option>
+                                @endif
                             @endforeach
                         </select>
                     </div>
@@ -69,7 +71,9 @@
                         <select name="to_grade_level_id" class="w-full px-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-slate-800 text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none">
                             <option value="">All Grade Levels</option>
                             @foreach($gradeLevels as $grade)
-                                <option value="{{ $grade->id }}" {{ request('to_grade_level_id') == $grade->id ? 'selected' : '' }}>{{ $grade->name }}</option>
+                                @if(!str_contains($grade->name, '(Social)'))
+                                    <option value="{{ $grade->id }}" {{ request('to_grade_level_id') == $grade->id ? 'selected' : '' }}>{{ trim(preg_replace('/\s*\(.*?\)/', '', $grade->name)) }}</option>
+                                @endif
                             @endforeach
                         </select>
                     </div>
@@ -160,7 +164,7 @@
                                         </td>
                                         <td class="premium-table-cell">
                                             <div class="inline-flex flex-col">
-                                                <span class="font-bold text-slate-700">{{ $promo->fromGradeLevel->name ?? '-' }}</span>
+                                                <span class="font-bold text-slate-700">{{ $promo->fromGradeLevel ? trim(preg_replace('/\s*\(.*?\)/', '', $promo->fromGradeLevel->name)) : '-' }}</span>
                                                 <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider">{{ $promo->fromAcademicYear->name ?? '' }}</span>
                                             </div>
                                         </td>
@@ -175,7 +179,7 @@
                                                     <span class="font-bold text-emerald-700">Graduation</span>
                                                     <span class="text-[9px] font-black text-emerald-500 uppercase tracking-wider">Completes School</span>
                                                 @else
-                                                    <span class="font-bold text-slate-700">{{ $promo->toGradeLevel->name ?? '-' }}</span>
+                                                    <span class="font-bold text-slate-700">{{ $promo->toGradeLevel ? trim(preg_replace('/\s*\(.*?\)/', '', $promo->toGradeLevel->name)) : '-' }}</span>
                                                     <span class="text-[9px] font-black text-slate-400 uppercase tracking-wider">{{ $promo->toSection->name ?? '' }} · {{ $promo->toAcademicYear->name ?? '' }}</span>
                                                 @endif
                                             </div>

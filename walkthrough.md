@@ -47,21 +47,37 @@ We created a new, extensible reporting module to house downloadable documents.
 
 ---
 
-## Verification Results
+## 3. Promoted to Grade — Yearly Report Card
 
-### Automated Tests
-Ran the academic reports and general reports feature tests:
-- `php artisan test --filter AcademicRanksReportTest`
-- `php artisan test --filter GeneralReportsModuleTest`
+The yearly report card now auto-fills the **"Promoted to Grade:"** field from the `student_promotions` table.
 
-Both tests passed successfully:
-```bash
-PASS  Tests\Feature\AcademicRanksReportTest
-✓ admin can access section top 10 report
-✓ admin can access category rankings report
-✓ admin can access academic excellence report
+### Applies To
+- **Elementary** (division_id = 2) and **High School** (division_id = 3) only
+- **Kindergarten** (division_id = 1) is excluded — those report cards don't have promotion tracking
 
+### What Was Changed
+
+| File | Change |
+|---|---|
+| [`ReportCardService.php`](file:///c:/Users/RIS%20IT%20Admin/Downloads/Antigravity/renaissance_sms/app/Services/ReportCardService.php) | Added `StudentPromotion` lookup in `getStudentReportParams()` and batch lookup in `getSectionReportParams()`. Passes `$promotedToGrade` (grade name string or null) to view. |
+| [`yearly-pdf.blade.php`](file:///c:/Users/RIS%20IT%20Admin/Downloads/Antigravity/renaissance_sms/resources/views/admin/report-cards/yearly-pdf.blade.php) | Both "Promoted to Grade:" lines (Q4 comment box + student details panel) now show the actual grade name from DB. Falls back to blank underline if no promotion record exists yet. |
+| [`bulk-yearly-pdf.blade.php`](file:///c:/Users/RIS%20IT%20Admin/Downloads/Antigravity/renaissance_sms/resources/views/admin/report-cards/bulk-yearly-pdf.blade.php) | Same fix for both locations. Extracts `$promotedToGrade` from per-student `$data` in the loop. |
+| [`GenerateSectionReportCards.php`](file:///c:/Users/RIS%20IT%20Admin/Downloads/Antigravity/renaissance_sms/app/Jobs/GenerateSectionReportCards.php) | Background ZIP export job's `prepareViewData()` also now looks up and passes `promotedToGrade`. |
+
+### Display Logic
+- Q4 comment box: shows the grade number only (e.g., **"9"**) on the correct line based on whether the student is promoted or detained (retained), centered on the underline.
+- Checkboxes: the active option (Promoted vs Detained) dynamically shows a checkmark (`✓`), while the other option stays unchecked.
+- No literal `&nbsp;` is printed on the empty underline when there is no grade value.
+- Student details panel (back of card): shows the label dynamically as **"Promoted to Grade:"** or **"Detained in Grade:"** with the full grade name (e.g. **"Grade 9"**), centered on the underline.
+- Grade Suffix Suffixes (Streams): dynamically strips stream names from grade levels (e.g. `Grade 11 (Natural)` or `Grade 11 (Social)` prints as **`11`** in Q4 box and **`Grade 11`** on the back page details).
+- Homeroom Teacher: resolved relationship attribute to render the homeroom teacher's name dynamically in nice title case (e.g., `Samuel Mengiste Aynalem` instead of blank).
+
+### Test Results
+```
 PASS  Tests\Feature\GeneralReportsModuleTest
-✓ admin can access general reports dashboard
-✓ admin can download top 3 per section pdf
+  ✓ admin can access general reports dashboard   75.47s
+  ✓ admin can download top 3 per section pdf      1.52s
+  ✓ admin can download below 75 pdf               0.18s
+
+  Tests: 3 passed (13 assertions)
 ```

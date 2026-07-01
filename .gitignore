@@ -35,3 +35,4 @@ diagnose_notice_email.php
 switch_smtp_465.php
 test_live_email.php
 scratch.php
+walkthrough.md
