@@ -416,7 +416,7 @@ class ReportCardService
         $termObjects = collect($terms)->keyBy('id');
 
         $query = \App\Models\StudentAttendance::whereIn('student_id', $studentIds)
-            ->whereHas('section', fn($q) => $q->where('academic_year_id', $academicYear->id));
+            ->where('academic_year_id', $academicYear->id);
 
         // If we only have specific terms, filter by their dates
         // This is complex because each term has its own dates. 
@@ -469,7 +469,7 @@ class ReportCardService
     public function getAttendanceSummary(Student $student, $term, AcademicYear $academicYear): array
     {
         $query = \App\Models\StudentAttendance::where('student_id', $student->id)
-            ->whereHas('section', fn($q) => $q->where('academic_year_id', $academicYear->id));
+            ->where('academic_year_id', $academicYear->id);
 
         if ($term->type !== 'yearly' && $term->id !== 'yearly') {
             $query->whereBetween('attendance_date', [$term->start_date, $term->end_date]);
