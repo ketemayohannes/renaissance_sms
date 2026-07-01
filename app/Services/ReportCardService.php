@@ -94,7 +94,7 @@ class ReportCardService
                     [
                         'academic_year_id' => $academicYearId,
                         'conduct_grade' => $data['conduct'] ?? null,
-                        'days_absent' => $data['absent'] ?? 0,
+                        'days_absent' => (isset($data['absent']) && $data['absent'] !== '' && $data['absent'] !== null) ? (int)$data['absent'] : null,
                         'homeroom_teacher_comment' => $data['comment'] ?? null,
                     ]
                 );
@@ -449,9 +449,11 @@ class ReportCardService
                 $late = $stats['late'] ?? 0;
                 $excused = $stats['excused'] ?? 0;
 
-                // Manual Override
+                // Manual Override: only use stored value if it was explicitly set (> 0).
+                // A stored value of 0 means the field was blank in the data entry form
+                // and should not override the automated daily-attendance count.
                 $record = $studentRecords->get($term->id);
-                $absent = ($record && $record->days_absent !== null) ? $record->days_absent : $automatedAbsent;
+                $absent = ($record && $record->days_absent > 0) ? $record->days_absent : $automatedAbsent;
 
                 $results[$student->id][$term->id] = [
                     'total_days' => $present + $absent + $late + $excused,
@@ -485,12 +487,15 @@ class ReportCardService
         $late = $stats['late'] ?? 0;
         $excused = $stats['excused'] ?? 0;
 
-        // Manual Override from StudentTermRecord
+        // Manual Override from StudentTermRecord.
+        // Only use stored value if it was explicitly set (> 0).
+        // A stored value of 0 means the field was blank and must not override
+        // the automated daily-attendance count.
         $record = StudentTermRecord::where('student_id', $student->id)
             ->where('term_id', $term->id)
             ->first();
-            
-        $absent = ($record && $record->days_absent !== null) ? $record->days_absent : $automatedAbsent;
+
+        $absent = ($record && $record->days_absent > 0) ? $record->days_absent : $automatedAbsent;
 
         return [
             'total_days' => $present + $absent + $late + $excused,
