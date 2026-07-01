@@ -131,6 +131,19 @@ class PromotionController extends Controller
             ->where('academic_year_id', $academicYear->id)
             ->first();
 
+        if (!$promotionRule) {
+            $gradeName = $section->gradeLevel->name;
+            if (str_contains($gradeName, '(Social)')) {
+                $naturalGradeName = str_replace('(Social)', '(Natural)', $gradeName);
+                $naturalGrade = GradeLevel::where('name', $naturalGradeName)->first();
+                if ($naturalGrade) {
+                    $promotionRule = PromotionRule::where('from_grade_level_id', $naturalGrade->id)
+                        ->where('academic_year_id', $academicYear->id)
+                        ->first();
+                }
+            }
+        }
+
         // Use GradingService to get accurate yearly scores and counts
         $gradingService = app(\App\Services\GradingService::class);
         $subjects = $section->gradeLevel->subjects;
@@ -330,16 +343,15 @@ class PromotionController extends Controller
                     'processed_by' => auth()->id(),
                 ]);
 
-                // Update current enrollment status
-                $currentEnrollmentStatus = 'completed';
+                // Only close the enrollment for graduated students.
+                // Promoted/retained/re_exam students remain 'active' so their
+                // current-year grade book and master sheet data stays visible.
                 if ($decision === 'graduated') {
-                    $currentEnrollmentStatus = 'graduated';
+                    StudentEnrollment::where('student_id', $studentId)
+                        ->where('section_id', $section->id)
+                        ->where('academic_year_id', $academicYear->id)
+                        ->update(['status' => 'graduated', 'end_date' => now()]);
                 }
-
-                StudentEnrollment::where('student_id', $studentId)
-                    ->where('section_id', $section->id)
-                    ->where('academic_year_id', $academicYear->id)
-                    ->update(['status' => $currentEnrollmentStatus, 'end_date' => now()]);
 
                 if ($decision === 'graduated') {
                     // Update student status to inactive

@@ -119,7 +119,7 @@ class ReportCardController extends Controller
 
         $students = $section->students()
             ->wherePivot('academic_year_id', $academicYear->id)
-            ->wherePivot('status', 'active')
+            ->wherePivotIn('status', ['active', 'completed'])
             ->where('students.is_active', true)
             ->orderBy('students.first_name')
             ->get();
@@ -272,7 +272,7 @@ class ReportCardController extends Controller
         
         $students = $section->students()
             ->wherePivot('academic_year_id', $academicYear->id)
-            ->wherePivot('status', 'active')
+            ->wherePivotIn('status', ['active', 'completed'])
             ->where('students.is_active', true)
             ->orderBy('students.first_name')
             ->get();

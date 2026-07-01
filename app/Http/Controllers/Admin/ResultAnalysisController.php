@@ -102,13 +102,13 @@ class ResultAnalysisController extends Controller
                         $q->where('subject_id', $subject->id)
                           ->where('student_electives.academic_year_id', $academicYear->id);
                     })
-                    ->wherePivot('status', 'active')
+                    ->wherePivotIn('status', ['active', 'completed'])
                     ->where('students.is_active', true)
                     ->get();
             } else {
                 $students = $section->students()
                     ->wherePivot('academic_year_id', $academicYear->id)
-                    ->wherePivot('status', 'active')
+                    ->wherePivotIn('status', ['active', 'completed'])
                     ->where('students.is_active', true)
                     ->get();
             }

@@ -101,7 +101,7 @@ class GradebookController extends Controller implements HasMiddleware
             // For electives, only get students enrolled in this specific subject
             $students = $section->students()
                 ->wherePivot('academic_year_id', $academicYear->id)
-                ->wherePivot('status', 'active')
+                ->wherePivotIn('status', ['active', 'completed'])
                 ->where('students.is_active', true)
                 ->whereHas('electives', function($q) use ($subject, $academicYear) {
                     $q->where('subject_id', $subject->id)
@@ -113,7 +113,7 @@ class GradebookController extends Controller implements HasMiddleware
             // For regular subjects, get all students in the section
             $students = $section->students()
                 ->wherePivot('academic_year_id', $academicYear->id)
-                ->wherePivot('status', 'active')
+                ->wherePivotIn('status', ['active', 'completed'])
                 ->where('students.is_active', true)
                 ->orderBy('students.first_name')
                 ->get();
@@ -266,7 +266,7 @@ class GradebookController extends Controller implements HasMiddleware
         // Fetch students
         $students = $section->students()
             ->wherePivot('academic_year_id', $request->academic_year_id)
-            ->wherePivot('status', 'active')
+            ->wherePivotIn('status', ['active', 'completed'])
             ->where('students.is_active', true)
             ->orderBy('students.first_name')
             ->get();
@@ -589,7 +589,7 @@ class GradebookController extends Controller implements HasMiddleware
         if ($subject->is_elective) {
             $students = $section->students()
                 ->wherePivot('academic_year_id', $academicYear->id)
-                ->wherePivot('status', 'active')
+                ->wherePivotIn('status', ['active', 'completed'])
                 ->where('students.is_active', true)
                 ->whereHas('electives', function($q) use ($subject, $academicYear) {
                     $q->where('subject_id', $subject->id)
@@ -600,7 +600,7 @@ class GradebookController extends Controller implements HasMiddleware
         } else {
             $students = $section->students()
                 ->wherePivot('academic_year_id', $academicYear->id)
-                ->wherePivot('status', 'active')
+                ->wherePivotIn('status', ['active', 'completed'])
                 ->where('students.is_active', true)
                 ->orderBy('students.first_name')
                 ->get();

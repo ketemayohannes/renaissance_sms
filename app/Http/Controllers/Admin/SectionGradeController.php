@@ -64,7 +64,7 @@ class SectionGradeController extends Controller implements HasMiddleware
         // Fetch students
         $students = $section->students()
             ->wherePivot('academic_year_id', $academicYear->id)
-            ->wherePivot('status', 'active')
+            ->wherePivotIn('status', ['active', 'completed'])
             ->where('students.is_active', true)
             ->orderBy('students.first_name')
             ->get();
@@ -284,7 +284,7 @@ class SectionGradeController extends Controller implements HasMiddleware
         $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
         $students = $section->students()
             ->wherePivot('academic_year_id', $academicYear->id)
-            ->wherePivot('status', 'active')
+            ->wherePivotIn('status', ['active', 'completed'])
             ->where('students.is_active', true)
             ->orderBy('students.first_name')
             ->get();
@@ -340,7 +340,7 @@ class SectionGradeController extends Controller implements HasMiddleware
         $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
         $students = $section->students()
             ->wherePivot('academic_year_id', $academicYear->id)
-            ->wherePivot('status', 'active')
+            ->wherePivotIn('status', ['active', 'completed'])
             ->where('students.is_active', true)
             ->orderBy('students.first_name')
             ->get();
@@ -648,7 +648,7 @@ class SectionGradeController extends Controller implements HasMiddleware
         $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
         $students = $section->students()
             ->wherePivot('academic_year_id', $academicYear->id)
-            ->wherePivot('status', 'active')
+            ->wherePivotIn('status', ['active', 'completed'])
             ->where('students.is_active', true)
             ->orderBy('students.first_name')
             ->get();
@@ -704,7 +704,7 @@ class SectionGradeController extends Controller implements HasMiddleware
         $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
         $students = $section->students()
             ->wherePivot('academic_year_id', $academicYear->id)
-            ->wherePivot('status', 'active')
+            ->wherePivotIn('status', ['active', 'completed'])
             ->where('students.is_active', true)
             ->orderBy('students.first_name')
             ->get();

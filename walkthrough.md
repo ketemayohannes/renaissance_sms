@@ -70,6 +70,7 @@ The yearly report card now auto-fills the **"Promoted to Grade:"** field from th
 - No literal `&nbsp;` is printed on the empty underline when there is no grade value.
 - Student details panel (back of card): shows the label dynamically as **"Promoted to Grade:"** or **"Detained in Grade:"** with the full grade name (e.g. **"Grade 9"**), centered on the underline.
 - Grade Suffix Suffixes (Streams): dynamically strips stream names from grade levels (e.g. `Grade 11 (Natural)` or `Grade 11 (Social)` prints as **`11`** in Q4 box and **`Grade 11`** on the back page details).
+- Promotion Rules Stream Fallback: when processing promotions for a Social stream (e.g., `Grade 11 (Social)`), the controller automatically falls back to use the configuration rule of its corresponding `Natural` stream grade level (e.g. `Grade 11 (Natural)`) if no specific rule for the Social grade exists.
 - Homeroom Teacher: resolved relationship attribute to render the homeroom teacher's name dynamically in nice title case (e.g., `Samuel Mengiste Aynalem` instead of blank).
 
 ### Test Results

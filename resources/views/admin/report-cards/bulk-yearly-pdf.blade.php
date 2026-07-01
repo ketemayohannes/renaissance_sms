@@ -466,7 +466,7 @@
                             <td>{{ ($data['subTermAttendance'][$q3->id]['absent'] ?? 0) > 0 ? $data['subTermAttendance'][$q3->id]['absent'] : '_' }}</td>
                             <td>{{ ($data['subTermAttendance'][$q4->id]['absent'] ?? 0) > 0 ? $data['subTermAttendance'][$q4->id]['absent'] : '_' }}</td>
                             <td>-</td>
-                            <td>{{ ($attendance['absent'] ?? 0) > 0 ? $attendance['absent'] : '_' }}</td>
+                            <td>-</td>
                         </tr>
                         @if(!($isKindergarten ?? false) && ($settings->template_config['show_rank'] ?? true))
                         <tr class="footer-row">
