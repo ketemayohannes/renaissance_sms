@@ -26,9 +26,12 @@ class StudentController extends Controller
     public function index(Request $request)
     {
         // PERFORMANCE: Simplified eager loading - only load current enrollment
-        $query = Student::with(['enrollments' => function($q) {
-            $q->whereNull('end_date')->with('section.gradeLevel');
-        }]);
+        $query = Student::with([
+            'enrollments' => function($q) {
+                $q->whereNull('end_date')->with('section.gradeLevel');
+            },
+            'latestPromotion',
+        ]);
 
         // Search Filter - Using scope
         $query->search($request->search);

@@ -47,7 +47,7 @@ class GenerateSectionReportCards implements ShouldQueue
         try {
             $students = $this->section->students()
                 ->wherePivot('academic_year_id', $this->academicYear->id)
-                ->where('is_active', true)
+                ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated'])
                 ->orderBy('first_name')
                 ->get();
 
@@ -160,7 +160,7 @@ class GenerateSectionReportCards implements ShouldQueue
         if (!$totalStudents || $totalStudents === '-' || $totalStudents === 0) {
             $totalStudents = $section->students()
                 ->wherePivot('academic_year_id', $academicYear->id)
-                ->whereIn('student_enrollments.status', ['active', 'completed'])
+                ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated'])
                 ->count();
         }
         

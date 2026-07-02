@@ -351,6 +351,22 @@
                                                 <div>
                                                     <div class="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{{ $student->full_name }}</div>
                                                     <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{{ $student->admission_number }}</div>
+                                                    @if($student->latestPromotion)
+                                                        @php
+                                                            $promoStatus = $student->latestPromotion->status;
+                                                            $promoBadge = match($promoStatus) {
+                                                                'promoted'               => ['label' => '↑ Promoted',   'class' => 'bg-emerald-100 text-emerald-700 border border-emerald-200'],
+                                                                'graduated'              => ['label' => '🎓 Graduated', 'class' => 'bg-violet-100 text-violet-700 border border-violet-200'],
+                                                                'retained'               => ['label' => '⏸ Detained',   'class' => 'bg-amber-100 text-amber-700 border border-amber-200'],
+                                                                'conditionally_promoted' => ['label' => '⚡ Conditional','class' => 'bg-orange-100 text-orange-700 border border-orange-200'],
+                                                                're_exam'                => ['label' => '📝 Re-Exam',   'class' => 'bg-rose-100 text-rose-700 border border-rose-200'],
+                                                                default                  => ['label' => ucfirst($promoStatus), 'class' => 'bg-slate-100 text-slate-600 border border-slate-200'],
+                                                            };
+                                                        @endphp
+                                                        <span class="inline-flex items-center mt-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-[0.08em] {{ $promoBadge['class'] }}">
+                                                            {{ $promoBadge['label'] }}
+                                                        </span>
+                                                    @endif
                                                 </div>
                                             </div>
                                         </td>

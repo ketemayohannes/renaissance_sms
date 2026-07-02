@@ -133,7 +133,7 @@ class ReportCardService
         if (!$totalStudents || $totalStudents === '-' || $totalStudents === 0) {
             $totalStudents = $reportData['section'] ? $reportData['section']->students()
                 ->wherePivot('academic_year_id', $academicYear->id)
-                ->whereIn('student_enrollments.status', ['active', 'completed'])
+                ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated'])
                 ->count() : 0;
         }
 
@@ -226,7 +226,7 @@ class ReportCardService
         
         $students = $section->students()
             ->wherePivot('academic_year_id', $academicYear->id)
-            ->whereIn('student_enrollments.status', ['active', 'completed'])
+            ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated'])
             ->orderBy('first_name')
             ->get();
 

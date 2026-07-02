@@ -382,7 +382,7 @@ class AcademicReportController extends Controller
                     ->join('student_enrollments', function($join) use ($academicYear) {
                         $join->on('student_term_records.student_id', '=', 'student_enrollments.student_id')
                              ->where('student_enrollments.academic_year_id', '=', $academicYear->id)
-                             ->where('student_enrollments.status', '=', 'active');
+                             ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated']);
                     })
                     ->join('sections', 'student_enrollments.section_id', '=', 'sections.id')
                     ->join('grade_levels', 'sections.grade_level_id', '=', 'grade_levels.id')
@@ -415,7 +415,7 @@ class AcademicReportController extends Controller
                     ->join('student_enrollments', function($join) use ($academicYear) {
                         $join->on('student_term_records.student_id', '=', 'student_enrollments.student_id')
                              ->where('student_enrollments.academic_year_id', '=', $academicYear->id)
-                             ->where('student_enrollments.status', '=', 'active');
+                             ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated']);
                     })
                     ->join('sections', 'student_enrollments.section_id', '=', 'sections.id')
                     ->join('grade_levels', 'sections.grade_level_id', '=', 'grade_levels.id')
@@ -468,7 +468,7 @@ class AcademicReportController extends Controller
             ->join('student_enrollments', function($join) use ($academicYear) {
                 $join->on('student_term_records.student_id', '=', 'student_enrollments.student_id')
                      ->where('student_enrollments.academic_year_id', '=', $academicYear->id)
-                     ->where('student_enrollments.status', '=', 'active');
+                     ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated']);
             })
             ->join('sections', 'student_enrollments.section_id', '=', 'sections.id')
             ->join('grade_levels', 'sections.grade_level_id', '=', 'grade_levels.id')

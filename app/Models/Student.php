@@ -211,6 +211,16 @@ class Student extends Model
         $this->siblings()->detach($sibling->id);
         $sibling->siblings()->detach($this->id);
     }
+    public function promotions()
+    {
+        return $this->hasMany(StudentPromotion::class);
+    }
+
+    public function latestPromotion()
+    {
+        return $this->hasOne(StudentPromotion::class)->latestOfMany();
+    }
+
     public function documents()
     {
         return $this->hasMany(StudentDocument::class);

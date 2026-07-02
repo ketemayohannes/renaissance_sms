@@ -122,7 +122,7 @@ class AcademicReportService
 
             $students = $section->students()
                 ->wherePivot('academic_year_id', $academicYear->id)
-                ->where('is_active', true)
+                ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated'])
                 ->orderBy('first_name')
                 ->get();
             $sectionReportData = $this->gradingService->getSectionReportData($students, $section, $term, $academicYear);
@@ -419,7 +419,7 @@ class AcademicReportService
         foreach ($gradeLevel->sections as $section) {
             $students = $section->students()
                 ->wherePivot('academic_year_id', $academicYear->id)
-                ->wherePivot('status', 'active')
+                ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated'])
                 ->get();
             if ($students->isEmpty()) continue;
 
@@ -530,7 +530,7 @@ class AcademicReportService
                 foreach ($grade->sections as $section) {
                     $students = $section->students()
                         ->wherePivot('academic_year_id', $academicYear->id)
-                        ->where('is_active', true)
+                        ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated'])
                         ->get();
                     
                     if ($students->isEmpty()) continue;

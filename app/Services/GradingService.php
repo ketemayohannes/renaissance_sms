@@ -38,7 +38,7 @@ class GradingService
             // Now calculate yearly scores and ranks
             $students = $section->students()
                 ->wherePivot('academic_year_id', $academicYear->id)
-                ->whereIn('student_enrollments.status', ['active', 'completed'])
+                ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated'])
                 ->get();
             $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
 
@@ -120,7 +120,7 @@ class GradingService
         
         $students = $section->students()
             ->wherePivot('academic_year_id', $academicYear->id)
-            ->whereIn('student_enrollments.status', ['active', 'completed'])
+            ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated'])
             ->get();
 
         $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
@@ -616,7 +616,7 @@ class GradingService
         if (!$isYearly) {
             $students = $section->students()
                 ->wherePivot('academic_year_id', $academicYear->id)
-                ->whereIn('student_enrollments.status', ['active', 'completed'])
+                ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated'])
                 ->get();
             
             $allReports = $this->getSectionReportData($students, $section, $term, $academicYear);
@@ -1042,7 +1042,7 @@ class GradingService
 
         $students = $section->students()
             ->wherePivot('academic_year_id', $academicYear->id)
-            ->whereIn('student_enrollments.status', ['active', 'completed'])
+            ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated'])
             ->get();
 
         if ($students->isEmpty()) return 0;
