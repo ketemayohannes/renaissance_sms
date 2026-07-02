@@ -162,7 +162,24 @@
 
         @media print {
             .no-print { display: none !important; }
-            body { background: white !important; font-family: serif; }
+
+            /* Hide all admin layout chrome */
+            nav,
+            header,
+            footer,
+            aside,
+            [role="navigation"],
+            .sidebar,
+            #sidebar {
+                display: none !important;
+                width: 0 !important;
+                height: 0 !important;
+            }
+
+            /* Make main content fill the full page */
+            body { background: white !important; font-family: serif; margin: 0; padding: 0; }
+            main, main > * { padding: 0 !important; margin: 0 !important; }
+
             .shadow-xl { box-shadow: none !important; }
             .bg-slate-200 { background-color: #e2e8f0 !important; -webkit-print-color-adjust: exact; }
             .bg-slate-100 { background-color: #f1f5f9 !important; -webkit-print-color-adjust: exact; }

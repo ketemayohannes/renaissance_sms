@@ -118,13 +118,15 @@
 <body class="font-sans antialiased bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300" x-data="{ sidebarCollapsed: localStorage.getItem('sidebarCollapsed') === 'true' }">
     <div class="min-h-screen flex">
         <!-- Sidebar -->
-        @include('layouts.partials.admin-sidebar')
+        <div class="print:hidden">
+            @include('layouts.partials.admin-sidebar')
+        </div>
         
         <!-- Main Content Area -->
         <div class="flex-1 flex flex-col min-w-0 transition-all duration-300"
              :class="sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'">
             <!-- Top Header -->
-            <header class="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-[90] transition-colors duration-300">
+            <header class="print:hidden h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-[90] transition-colors duration-300">
                 <!-- Left: Mobile menu + Page Title -->
                 <div class="flex items-center gap-4">
                     <!-- Mobile menu button -->
