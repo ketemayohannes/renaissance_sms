@@ -55,11 +55,19 @@ class GenerateSectionReportCards implements ShouldQueue
             $settings = ReportCardSetting::first();
 
             $zipName = "report_cards_{$this->section->name}_{$this->term->name}_" . time() . ".zip";
-            $zipPath = storage_path("app/public/exports/{$zipName}");
-            
+            // Store on the PRIVATE disk (storage/app/private) — report cards contain
+            // student PII/grades and must not be web-accessible via public/storage.
+            $zipPath = storage_path("app/private/exports/{$zipName}");
+
+            // Ensure the private exports directory exists
+            $exportsDir = storage_path("app/private/exports");
+            if (!file_exists($exportsDir)) {
+                mkdir($exportsDir, 0755, true);
+            }
+
             // Create a temporary directory for PDFs
             $tempDirName = "temp_" . time() . "_" . uniqid();
-            $tempDirPath = storage_path("app/public/exports/{$tempDirName}");
+            $tempDirPath = storage_path("app/private/exports/{$tempDirName}");
             
             if (!file_exists($tempDirPath)) {
                 mkdir($tempDirPath, 0755, true);
