@@ -15,6 +15,7 @@ class ActivitySubmission extends Model
         'student_id',
         'started_at',
         'submitted_at',
+        'answers',
         'status',
         'score',
         'feedback',
@@ -30,6 +31,7 @@ class ActivitySubmission extends Model
         'submitted_at' => 'datetime',
         'graded_at' => 'datetime',
         'score' => 'decimal:2',
+        'answers' => 'array',
     ];
 
     public function activity()

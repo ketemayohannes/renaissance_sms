@@ -117,6 +117,7 @@ class ActivityController extends Controller
         $submission->fill([
             'started_at'   => $submission->started_at ?? now(),
             'submitted_at' => now(),
+            'answers'      => $answers, // keyed by question id, for teacher review
             'status'       => $status,
             'score'        => $totalScore, // Initial score (may change after manual grading)
             'ip_address'   => $request->ip(),
