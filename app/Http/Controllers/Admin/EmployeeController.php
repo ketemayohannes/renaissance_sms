@@ -505,12 +505,26 @@ class EmployeeController extends Controller
 
     public function downloadDocument(EmployeeDocument $document)
     {
-        return Storage::disk('public')->download($document->file_path, $document->name);
+        // New documents live on the private disk; fall back to the legacy public disk.
+        if (Storage::disk('local')->exists($document->file_path)) {
+            return Storage::disk('local')->download($document->file_path, $document->name);
+        }
+
+        if (Storage::disk('public')->exists($document->file_path)) {
+            return Storage::disk('public')->download($document->file_path, $document->name);
+        }
+
+        abort(404);
     }
 
     public function deleteDocument(EmployeeDocument $document)
     {
-        Storage::disk('public')->delete($document->file_path);
+        if (Storage::disk('local')->exists($document->file_path)) {
+            Storage::disk('local')->delete($document->file_path);
+        } elseif (Storage::disk('public')->exists($document->file_path)) {
+            Storage::disk('public')->delete($document->file_path);
+        }
+
         $document->delete();
 
         return back()->with('success', 'Document deleted successfully.');

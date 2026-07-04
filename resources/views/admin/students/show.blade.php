@@ -948,7 +948,7 @@
                                         <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">{{ strtoupper($ext) }} • {{ $doc->created_at->format('M d, Y') }}</p>
                                         
                                         <div class="mt-6 flex items-center gap-2">
-                                            <a href="{{ asset('storage/' . $doc->file_path) }}" target="_blank" class="flex-grow py-2.5 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 text-center transition-all">View</a>
+                                            <a href="{{ route('admin.students.download-document', [$student, $doc]) }}" target="_blank" class="flex-grow py-2.5 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 text-center transition-all">View</a>
                                             <form action="{{ route('admin.students.delete-document', [$student, $doc]) }}" method="POST" class="delete-form">
                                                 @csrf
                                                 @method('DELETE')
