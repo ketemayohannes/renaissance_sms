@@ -66,7 +66,14 @@ class ActivityController extends Controller
         $this->authorizeActivity($activity);
         $student = Auth::user()->student;
         $activity->load('questions');
-        
+
+        // Stamp the server-side start time once (on first open) so the time
+        // limit can be enforced regardless of the client-side countdown.
+        ActivitySubmission::firstOrCreate(
+            ['academic_activity_id' => $activity->id, 'student_id' => $student->id],
+            ['status' => 'pending', 'started_at' => now(), 'attempt_number' => 1]
+        );
+
         return view('student.activities.exam', compact('activity'));
     }
 
@@ -91,25 +98,42 @@ class ActivityController extends Controller
             // Subjective questions start with 0 and remain for teacher review
         }
 
-        // Create/Update Submission
-        $submission = ActivitySubmission::updateOrCreate(
-            ['academic_activity_id' => $activity->id, 'student_id' => $student->id],
-            [
-                'submitted_at' => now(),
-                'status' => 'submitted',
-                'score' => $totalScore, // Initial score (may change after manual grading)
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-                'config' => ['answers' => $answers] // Store answers in config
-            ]
+        // Load (or start) the submission so we can read the recorded start time.
+        $submission = ActivitySubmission::firstOrNew(
+            ['academic_activity_id' => $activity->id, 'student_id' => $student->id]
         );
+
+        // Enforce the time limit server-side: lateness is decided from the
+        // recorded start time, not the client countdown (which can be bypassed).
+        $status = 'submitted';
+        $timeLimit = (int) ($activity->config['time_limit'] ?? 0); // minutes
+        if ($submission->started_at && $timeLimit > 0) {
+            $deadline = $submission->started_at->copy()->addMinutes($timeLimit)->addSeconds(30); // 30s grace
+            if (now()->greaterThan($deadline)) {
+                $status = 'late';
+            }
+        }
+
+        $submission->fill([
+            'started_at'   => $submission->started_at ?? now(),
+            'submitted_at' => now(),
+            'status'       => $status,
+            'score'        => $totalScore, // Initial score (may change after manual grading)
+            'ip_address'   => $request->ip(),
+            'user_agent'   => $request->userAgent(),
+        ]);
+        $submission->save();
 
         // Sync to Gradebook if applicable (initial sync)
         if ($activity->assessment_template_id) {
             $this->service->syncMarkToGradebook($submission);
         }
 
-        return redirect()->route('student.activities.index')->with('success', 'Examination submitted successfully. Your objective score has been recorded.');
+        $message = $status === 'late'
+            ? 'Examination submitted after the time limit and flagged as late. Your objective score has been recorded.'
+            : 'Examination submitted successfully. Your objective score has been recorded.';
+
+        return redirect()->route('student.activities.index')->with('success', $message);
     }
 
     private function authorizeActivity(AcademicActivity $activity)
