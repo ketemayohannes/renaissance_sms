@@ -72,6 +72,31 @@ class User extends Authenticatable
         return mb_strtoupper($value);
     }
 
+    /**
+     * The initial-login credential is stored encrypted at rest so it cannot be
+     * read from a raw database dump. Reads decrypt transparently; legacy rows
+     * that were written as plaintext (before the encryption migration) are
+     * returned as-is so the app keeps working during rollout.
+     */
+    protected function tempPassword(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: function ($value) {
+                if ($value === null || $value === '') {
+                    return $value;
+                }
+                try {
+                    return \Illuminate\Support\Facades\Crypt::decryptString($value);
+                } catch (\Throwable $e) {
+                    return $value; // legacy plaintext, not yet migrated
+                }
+            },
+            set: fn ($value) => ($value === null || $value === '')
+                ? $value
+                : \Illuminate\Support\Facades\Crypt::encryptString($value),
+        );
+    }
+
     public function student()
     {
         return $this->hasOne(Student::class);
