@@ -168,7 +168,7 @@
                                         <div class="relative">
                                             <div class="w-12 h-12 rounded-2xl overflow-hidden bg-slate-100 transition-transform group-hover/row:scale-105">
                                                 @if($employee->photo)
-                                                    <img src="{{ Storage::url($employee->photo) }}" class="w-full h-full object-cover">
+                                                    <img src="{{ Storage::url($employee->photo) }}" alt="Employee photo" class="w-full h-full object-cover">
                                                 @else
                                                     <div class="w-full h-full flex items-center justify-center bg-indigo-50 text-indigo-600 font-bold text-lg">
                                                         {{ substr($employee->first_name, 0, 1) }}

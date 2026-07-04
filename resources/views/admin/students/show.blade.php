@@ -620,7 +620,7 @@
                                                 <a href="{{ route('admin.students.show', $sibling) }}" class="flex items-center gap-4 flex-grow group/sib">
                                                     <div class="w-12 h-12 rounded-xl border-2 border-white shadow-sm overflow-hidden bg-slate-200 group-hover/sib:border-indigo-200 transition-all">
                                                         @if($sibling->photo)
-                                                            <img src="{{ asset('storage/' . $sibling->photo) }}" class="w-full h-full object-cover">
+                                                            <img src="{{ asset('storage/' . $sibling->photo) }}" alt="Sibling photo" class="w-full h-full object-cover">
                                                         @endif
                                                     </div>
                                                     <div>

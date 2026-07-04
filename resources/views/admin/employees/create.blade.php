@@ -125,7 +125,7 @@
                                 <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 block text-center">Profile Photo</span>
                                 <div class="w-full aspect-square rounded-[2.5rem] bg-slate-50 border-4 border-dashed border-slate-200 flex flex-col items-center justify-center overflow-hidden transition-all group-hover/photo:border-indigo-400 shadow-inner group/preview">
                                     <template x-if="photoPreview">
-                                        <img :src="photoPreview" class="w-full h-full object-cover">
+                                        <img :src="photoPreview" alt="Photo preview" class="w-full h-full object-cover">
                                     </template>
                                     <template x-if="!photoPreview">
                                         <div class="text-center p-6">

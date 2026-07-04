@@ -58,7 +58,7 @@
                                         </div>
                                     </template>
                                     <template x-if="photoPreview">
-                                        <img :src="photoPreview" class="w-full h-full object-cover">
+                                        <img :src="photoPreview" alt="Photo preview" class="w-full h-full object-cover">
                                     </template>
                                     <input type="file" name="photo" class="absolute inset-0 opacity-0 cursor-pointer" 
                                            @change="const file = $event.target.files[0]; if(file) { const reader = new FileReader(); reader.onload = (e) => photoPreview = e.target.result; reader.readAsDataURL(file); }">
@@ -286,7 +286,7 @@
                                 <div class="flex items-center gap-4">
                                     <div class="w-16 h-16 rounded-2xl bg-slate-100 overflow-hidden border-2 border-white shadow-md">
                                         <template x-if="guardian.photo_url">
-                                            <img :src="guardian.photo_url" class="w-full h-full object-cover">
+                                            <img :src="guardian.photo_url" alt="Guardian photo preview" class="w-full h-full object-cover">
                                         </template>
                                         <template x-if="!guardian.photo_url">
                                             <div class="w-full h-full flex items-center justify-center text-slate-300">
@@ -461,7 +461,7 @@
                                 <div class="flex items-center gap-6">
                                     <div class="w-20 h-20 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden">
                                         <template x-if="driverPreview">
-                                            <img :src="driverPreview" class="w-full h-full object-cover">
+                                            <img :src="driverPreview" alt="Driver photo preview" class="w-full h-full object-cover">
                                         </template>
                                         <template x-if="!driverPreview">
                                             <svg class="w-10 h-10 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>

@@ -52,7 +52,7 @@
                                     <div class="flex items-center gap-4">
                                         <div class="h-12 w-12 rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0 border-2 border-white shadow-sm">
                                             @if($guardian->photo)
-                                                <img src="{{ Storage::url($guardian->photo) }}" class="h-full w-full object-cover">
+                                                <img src="{{ Storage::url($guardian->photo) }}" alt="Guardian photo" class="h-full w-full object-cover">
                                             @else
                                                 <div class="h-full w-full flex items-center justify-center text-slate-400 font-black text-lg">
                                                     {{ substr($guardian->first_name, 0, 1) }}{{ substr($guardian->father_name, 0, 1) }}

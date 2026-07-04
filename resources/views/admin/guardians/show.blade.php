@@ -41,7 +41,7 @@
                             <div class="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-[2.5rem] blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
                             <div class="relative h-32 w-32 rounded-[2.5rem] overflow-hidden bg-slate-100 border-4 border-white shadow-inner">
                                 @if($guardian->photo)
-                                    <img src="{{ Storage::url($guardian->photo) }}" class="h-full w-full object-cover">
+                                    <img src="{{ Storage::url($guardian->photo) }}" alt="Guardian photo" class="h-full w-full object-cover">
                                 @else
                                     <div class="h-full w-full flex items-center justify-center text-slate-300 font-black text-4xl">
                                         {{ substr($guardian->first_name, 0, 1) }}{{ substr($guardian->father_name, 0, 1) }}
@@ -184,7 +184,7 @@
                             <div class="flex items-center gap-4">
                                 <div class="h-16 w-16 rounded-2xl overflow-hidden bg-slate-50 border-2 border-white shadow-sm flex-shrink-0">
                                     @if($guardian->student->photo)
-                                        <img src="{{ Storage::url($guardian->student->photo) }}" class="h-full w-full object-cover">
+                                        <img src="{{ Storage::url($guardian->student->photo) }}" alt="Student photo" class="h-full w-full object-cover">
                                     @else
                                         <div class="h-full w-full flex items-center justify-center text-slate-300 font-black text-xl">
                                             {{ substr($guardian->student->first_name, 0, 1) }}
@@ -214,7 +214,7 @@
                                 <div class="flex items-center gap-4">
                                     <div class="h-16 w-16 rounded-2xl overflow-hidden bg-white border-2 border-white shadow-sm flex-shrink-0">
                                         @if($sibling->photo)
-                                            <img src="{{ Storage::url($sibling->photo) }}" class="h-full w-full object-cover">
+                                            <img src="{{ Storage::url($sibling->photo) }}" alt="Sibling photo" class="h-full w-full object-cover">
                                         @else
                                             <div class="h-full w-full flex items-center justify-center text-slate-300 font-black text-xl">
                                                 {{ substr($sibling->first_name, 0, 1) }}
