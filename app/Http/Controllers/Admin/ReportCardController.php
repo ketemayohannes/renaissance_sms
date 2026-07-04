@@ -255,6 +255,12 @@ class ReportCardController extends Controller
             return back()->with('error', 'Export is not ready for download.');
         }
 
+        // Exports are written to the private disk (see GenerateSectionReportCards).
+        // Fall back to the legacy public disk for exports created before this change.
+        if (Storage::disk('local')->exists($exportRequest->file_path)) {
+            return Storage::disk('local')->download($exportRequest->file_path);
+        }
+
         return Storage::disk('public')->download($exportRequest->file_path);
     }
 

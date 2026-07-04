@@ -18,7 +18,7 @@
                 <div class="bg-white p-12 rounded-[3rem] border border-slate-100 shadow-2xl shadow-slate-200/50 min-h-[800px]">
                     @if($exam->type === 'text')
                         <div class="prose prose-slate max-w-none prose-headings:font-black prose-p:font-medium prose-p:text-slate-600 ck-content">
-                            {!! $exam->content !!}
+                            {!! clean($exam->content) !!}
                         </div>
                     @else
                         <div class="flex flex-col items-center justify-center py-24 text-center">
