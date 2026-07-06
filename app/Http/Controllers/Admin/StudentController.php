@@ -31,6 +31,7 @@ class StudentController extends Controller
                 $q->whereNull('end_date')->with('section.gradeLevel');
             },
             'latestPromotion',
+            'latestStatusHistory',
         ]);
 
         // Search Filter - Using scope
@@ -44,14 +45,34 @@ class StudentController extends Controller
 
         // Status Filter
         if ($request->filled('status')) {
-            if ($request->status == 'blocked' || $request->status == 'inactive') {
-                $query->inactive();
+            if ($request->status == 'blocked') {
+                $query->blockedStatus();
+            } elseif ($request->status == 'withdrawn') {
+                $query->withdrawn();
+            } elseif ($request->status == 'transferred') {
+                $query->transferred();
+            } elseif ($request->status == 'dropped_out') {
+                $query->droppedOut();
+            } elseif ($request->status == 'inactive') {
+                $query->inactiveOnly(); // excludes graduated students
             } elseif ($request->status == 'active') {
                 $query->active();
+            } elseif ($request->status == 'graduated') {
+                $query->graduated();
             } elseif ($request->status == 'trashed') {
                 $query->onlyTrashed();
             }
+        } else {
+            // By default, exclude graduated students from the main listing
+            // unless a specific status filter is applied
+            $query->where(function($q) {
+                $q->where('is_active', true)
+                  ->orWhereDoesntHave('statusHistory', function($sq) {
+                      $sq->where('new_status', 'graduated');
+                  });
+            });
         }
+
 
         // Grade & Section Filter - Using scopes
         if ($request->filled('grade_id') || $request->filled('section_name')) {
@@ -111,8 +132,10 @@ class StudentController extends Controller
         $gradeLevels = \App\Models\GradeLevel::orderBy('sort_order')->get();
         $allSections = Section::orderBy('name')->get();
         $divisions = \App\Models\Division::where('is_active', true)->orderBy('sort_order')->get();
+        $graduatedCount = Student::graduated()->count();
 
-        return view('admin.students.index', compact('students', 'gradeLevels', 'allSections', 'divisions'));
+        return view('admin.students.index', compact('students', 'gradeLevels', 'allSections', 'divisions', 'graduatedCount'));
+
     }
 
     public function create()

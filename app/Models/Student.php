@@ -231,6 +231,16 @@ class Student extends Model
         return $this->hasMany(StudentAttendance::class);
     }
 
+    public function statusHistory()
+    {
+        return $this->hasMany(StudentStatusHistory::class);
+    }
+
+    public function latestStatusHistory()
+    {
+        return $this->hasOne(StudentStatusHistory::class)->latestOfMany();
+    }
+
     public function disciplinaryRecords()
     {
         return $this->hasMany(DisciplinaryRecord::class);
@@ -254,11 +264,73 @@ class Student extends Model
     }
 
     /**
-     * Scope: Only inactive/blocked students.
+     * Scope: Only inactive/blocked students (excludes graduated students).
      */
     public function scopeInactive($query)
     {
         return $query->where('is_active', false);
+    }
+
+    /**
+     * Scope: Only truly inactive/blocked students (NOT graduated).
+     */
+    public function scopeInactiveOnly($query)
+    {
+        return $query->where('is_active', false)
+                     ->whereDoesntHave('statusHistory', function ($q) {
+                         $q->where('new_status', 'graduated');
+                     });
+    }
+
+    /**
+     * Scope: Only graduated students.
+     */
+    public function scopeGraduated($query)
+    {
+        return $query->whereHas('statusHistory', function ($q) {
+            $q->where('new_status', 'graduated');
+        });
+    }
+
+    /**
+     * Scope: Only withdrawn students.
+     */
+    public function scopeWithdrawn($query)
+    {
+        return $query->whereHas('statusHistory', function ($q) {
+            $q->where('new_status', 'withdrawn');
+        });
+    }
+
+    /**
+     * Scope: Only transferred students.
+     */
+    public function scopeTransferred($query)
+    {
+        return $query->whereHas('statusHistory', function ($q) {
+            $q->where('new_status', 'transferred');
+        });
+    }
+
+    /**
+     * Scope: Only dropped out students.
+     */
+    public function scopeDroppedOut($query)
+    {
+        return $query->whereHas('statusHistory', function ($q) {
+            $q->where('new_status', 'dropped_out');
+        });
+    }
+
+    /**
+     * Scope: Only blocked students (is_active = false, but not graduated, withdrawn, transferred, or dropped out).
+     */
+    public function scopeBlockedStatus($query)
+    {
+        return $query->where('is_active', false)
+                     ->whereDoesntHave('statusHistory', function ($q) {
+                         $q->whereIn('new_status', ['graduated', 'withdrawn', 'transferred', 'dropped_out']);
+                     });
     }
 
     /**
@@ -349,8 +421,9 @@ class Student extends Model
      */
     public function scopeUnassigned($query)
     {
-        return $query->whereDoesntHave('enrollments', function ($q) {
-            $q->whereNull('end_date');
-        });
+        return $query->active()
+                     ->whereDoesntHave('enrollments', function ($q) {
+                         $q->whereNull('end_date');
+                     });
     }
 }

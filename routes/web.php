@@ -99,8 +99,12 @@ Route::middleware(['auth'])->group(function () {
         Route::get('terms/quarters/{academicYear}', [App\Http\Controllers\Admin\TermController::class, 'getQuarters'])->name('terms.get-quarters');
 
         
+        // Graduates Page
+        Route::get('graduates', [App\Http\Controllers\Admin\GraduatesController::class, 'index'])->name('graduates.index')->middleware('permission:view students');
+
         // Student Management (permission-gated)
         Route::get('students/export', [App\Http\Controllers\Admin\StudentController::class, 'export'])->name('students.export')->middleware('permission:view students');
+
         Route::get('students/import', [App\Http\Controllers\Admin\StudentController::class, 'import'])->name('students.import')->middleware('permission:create students');
         Route::post('students/import', [App\Http\Controllers\Admin\StudentController::class, 'upload'])->name('students.upload')->middleware('permission:create students');
         Route::get('students/download-template', [App\Http\Controllers\Admin\StudentController::class, 'downloadTemplate'])->name('students.download-template')->middleware('permission:create students');

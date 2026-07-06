@@ -70,12 +70,14 @@
             </x-ui.glass-card>
 
             <x-ui.glass-card class="p-4 flex items-center gap-4">
-                <div class="w-12 h-12 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                <div class="w-12 h-12 rounded-2xl bg-violet-50 flex items-center justify-center text-violet-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>
                 </div>
                 <div>
-                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Trashed</p>
-                    <p class="text-xl font-bold text-slate-900">{{ \App\Models\Student::onlyTrashed()->count() }}</p>
+                    <a href="{{ route('admin.graduates.index') }}" class="block hover:text-violet-600 transition-colors">
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Graduates</p>
+                        <p class="text-xl font-bold text-slate-900">{{ $graduatedCount }}</p>
+                    </a>
                 </div>
             </x-ui.glass-card>
         </div>
@@ -199,9 +201,14 @@
                             <div>
                                 <label for="status" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Status</label>
                                 <select name="status" id="status" class="w-full py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all">
-                                    <option value="">All</option>
+                                    <option value="">All (Excl. Graduates)</option>
                                     <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
-                                    <option value="inactive" {{ request('status') == 'inactive' || request('status') == 'blocked' ? 'selected' : '' }}>Inactive</option>
+                                    <option value="blocked" {{ request('status') == 'blocked' ? 'selected' : '' }}>Blocked</option>
+                                    <option value="withdrawn" {{ request('status') == 'withdrawn' ? 'selected' : '' }}>Withdrawn</option>
+                                    <option value="transferred" {{ request('status') == 'transferred' ? 'selected' : '' }}>Transferred</option>
+                                    <option value="dropped_out" {{ request('status') == 'dropped_out' ? 'selected' : '' }}>Dropped Out</option>
+                                    <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>All Inactive</option>
+                                    <option value="graduated" {{ request('status') == 'graduated' ? 'selected' : '' }}>🎓 Graduated</option>
                                     <option value="trashed" {{ request('status') == 'trashed' ? 'selected' : '' }}>Trash</option>
                                 </select>
                             </div>
@@ -329,6 +336,41 @@
                             </thead>
                             <tbody class="divide-y divide-slate-100">
                                 @forelse($students as $student)
+                                    @php
+                                        // Determine status label, classes, and dot colors
+                                        $statusLabel = 'Blocked';
+                                        $statusClass = 'bg-slate-100 text-slate-600 border border-slate-200';
+                                        $dotColor = 'bg-slate-400';
+
+                                        if ($student->trashed()) {
+                                            $statusLabel = 'Deleted';
+                                            $statusClass = 'bg-rose-100 text-rose-700 border border-rose-200';
+                                            $dotColor = 'bg-rose-500';
+                                        } elseif ($student->is_active) {
+                                            $statusLabel = 'Active';
+                                            $statusClass = 'bg-emerald-100 text-emerald-700 border border-emerald-200';
+                                            $dotColor = 'bg-emerald-500';
+                                        } elseif ($student->latestStatusHistory) {
+                                            $historyStatus = $student->latestStatusHistory->new_status;
+                                            if ($historyStatus === 'graduated') {
+                                                $statusLabel = 'Graduated';
+                                                $statusClass = 'bg-violet-100 text-violet-700 border border-violet-200';
+                                                $dotColor = 'bg-violet-500';
+                                            } elseif ($historyStatus === 'withdrawn') {
+                                                $statusLabel = 'Withdrawn';
+                                                $statusClass = 'bg-amber-100 text-amber-700 border border-amber-200';
+                                                $dotColor = 'bg-amber-500';
+                                            } elseif ($historyStatus === 'transferred') {
+                                                $statusLabel = 'Transferred';
+                                                $statusClass = 'bg-blue-100 text-blue-700 border border-blue-200';
+                                                $dotColor = 'bg-blue-500';
+                                            } elseif ($historyStatus === 'dropped_out') {
+                                                $statusLabel = 'Dropped Out';
+                                                $statusClass = 'bg-rose-100 text-rose-700 border border-rose-200';
+                                                $dotColor = 'bg-rose-500';
+                                            }
+                                        }
+                                    @endphp
                                     <tr class="group hover:bg-slate-50/50 transition-all duration-200">
                                         <td class="p-4">
                                             <input type="checkbox" value="{{ $student->id }}" x-model="selected" class="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500/20 transition-all">
@@ -346,7 +388,7 @@
                                                             {{ substr($student->first_name, 0, 1) }}{{ substr($student->father_name, 0, 1) }}
                                                         </div>
                                                     @endif
-                                                    <div class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white {{ $student->is_active ? 'bg-emerald-500' : 'bg-slate-400' }}"></div>
+                                                    <div class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white {{ $dotColor }}"></div>
                                                 </div>
                                                 <div>
                                                     <div class="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{{ $student->full_name }}</div>
@@ -383,18 +425,25 @@
                                                 @php $enrollment = $student->enrollments->whereNull('end_date')->first(); @endphp
                                                 <div class="text-sm font-bold text-slate-700">{{ $enrollment->section->gradeLevel->name }}</div>
                                                 <div class="text-xs font-medium text-slate-400">{{ $enrollment->section->name }}</div>
+                                            @elseif($student->latestPromotion && $student->latestPromotion->status === 'graduated')
+                                                @php
+                                                    $gradedFrom = $student->latestPromotion->fromGradeLevel?->name ?? 'Grade 12';
+                                                    $gradYear   = optional($student->latestPromotion->fromAcademicYear)->name ?? '';
+                                                @endphp
+                                                <div class="flex flex-col gap-0.5">
+                                                    <span class="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.08em] px-2 py-1 bg-violet-50 text-violet-700 rounded-lg border border-violet-100">
+                                                        🎓 Graduated
+                                                    </span>
+                                                    <span class="text-[10px] text-slate-400 font-medium">{{ $gradedFrom }}{{ $gradYear ? ' · '.$gradYear : '' }}</span>
+                                                </div>
                                             @else
                                                 <span class="text-rose-500 text-xs font-bold uppercase tracking-wide px-2 py-1 bg-rose-50 rounded-lg">Not Enrolled</span>
                                             @endif
                                         </td>
                                         <td class="p-4">
-                                            @if($student->trashed())
-                                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black bg-rose-100 text-rose-700 uppercase tracking-[0.1em]">Deleted</span>
-                                            @elseif($student->is_active)
-                                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black bg-emerald-100 text-emerald-700 uppercase tracking-[0.1em]">Active</span>
-                                            @else
-                                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black bg-slate-100 text-slate-600 uppercase tracking-[0.1em]">Blocked</span>
-                                            @endif
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-[0.1em] {{ $statusClass }}">
+                                                {{ $statusLabel }}
+                                            </span>
                                         </td>
                                         <td class="p-4 text-right">
                                             <div class="flex justify-end gap-2">
