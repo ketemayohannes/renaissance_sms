@@ -60,6 +60,60 @@ class PromotionController extends Controller
         return null; // window open
     }
 
+    /**
+     * Resolve the grade a student promotes into from their current grade.
+     *
+     * Grade sort_order restarts within each division, so "next grade" is scoped
+     * to the current division. When a student is at the final grade of their
+     * division (no higher grade in the same division), they cross into the FIRST
+     * grade of the next division by division order — e.g. Kindergarten Grade Prep
+     * → Elementary Grade 1, or Elementary Grade 8 → High School Grade 9. Returns
+     * null only at the final grade of the last division, which means graduation.
+     */
+    private function resolveNextGradeLevel(GradeLevel $current): ?GradeLevel
+    {
+        // Streamed High School grades continue within the same stream/division,
+        // e.g. Grade 11 (Natural) → Grade 12 (Natural).
+        if (preg_match('/\(([^)]+)\)/', $current->name, $streamMatch)) {
+            return GradeLevel::where('division_id', $current->division_id)
+                ->where('sort_order', '>', $current->sort_order)
+                ->where('name', 'like', "%({$streamMatch[1]})%")
+                ->orderBy('sort_order')
+                ->first();
+        }
+
+        // Next non-streamed grade within the SAME division.
+        $next = GradeLevel::where('division_id', $current->division_id)
+            ->where('sort_order', '>', $current->sort_order)
+            ->where('name', 'not like', '%(Social)%')
+            ->orderBy('sort_order')
+            ->first();
+
+        if ($next) {
+            return $next;
+        }
+
+        // Final grade of the division → first grade of the next division.
+        $currentDivision = $current->division;
+        if (! $currentDivision) {
+            return null;
+        }
+
+        $nextDivision = Division::where('is_active', true)
+            ->where('sort_order', '>', $currentDivision->sort_order)
+            ->orderBy('sort_order')
+            ->first();
+
+        if (! $nextDivision) {
+            return null; // final grade of the last division → graduate
+        }
+
+        return GradeLevel::where('division_id', $nextDivision->id)
+            ->where('name', 'not like', '%(Social)%')
+            ->orderBy('sort_order')
+            ->first();
+    }
+
     public function storeRule(Request $request)
     {
         $request->validate([
@@ -273,27 +327,9 @@ class PromotionController extends Controller
         $nextAcademicYear = AcademicYear::where('start_date', '>', $academicYear->end_date)
             ->orderBy('start_date')
             ->first();
-        // For streamed grades (e.g. Grade 11 (Natural)), promote to the same-stream next grade.
-        // For non-streamed grades, pick the next grade by sort_order.
-        $currentGradeName = $section->gradeLevel->name;
-        preg_match('/\(([^)]+)\)/', $currentGradeName, $streamMatch);
-        $stream = $streamMatch[1] ?? null; // e.g. 'Natural', 'Social', or null
-
-        if ($stream) {
-            // Same-stream, next division grade: find next grade that also contains the same stream label
-            $nextGradeLevel = GradeLevel::where('sort_order', '>', $section->gradeLevel->sort_order)
-                ->where('name', 'like', "%({$stream})%")
-                ->orderBy('sort_order')
-                ->first();
-        } else {
-            // Non-streamed: pick the next non-streamed grade by sort_order globally.
-            // No division_id filter so cross-division promotion works
-            // (e.g. Elementary Grade 8 → High School Grade 9).
-            $nextGradeLevel = GradeLevel::where('sort_order', '>', $section->gradeLevel->sort_order)
-                ->where('name', 'not like', '%(Social)%')
-                ->orderBy('sort_order')
-                ->first();
-        }
+        // Resolve the target grade (next grade in the division, or the first
+        // grade of the next division when at a division's final grade).
+        $nextGradeLevel = $this->resolveNextGradeLevel($section->gradeLevel);
 
         return view('admin.promotions.preview', compact(
             'section', 'previewData', 'promotionRule', 'academicYear', 'nextAcademicYear', 'nextGradeLevel'
@@ -315,24 +351,9 @@ class PromotionController extends Controller
         $section = Section::with('gradeLevel')->findOrFail($request->section_id);
         $academicYear = AcademicYear::where('is_active', true)->first();
         $nextAcademicYear = AcademicYear::findOrFail($request->next_academic_year_id);
-        // For streamed grades (e.g. Grade 11 (Natural)), promote to the same-stream next grade.
-        preg_match('/\(([^)]+)\)/', $section->gradeLevel->name, $streamMatch);
-        $stream = $streamMatch[1] ?? null;
-
-        if ($stream) {
-            $nextGradeLevel = GradeLevel::where('sort_order', '>', $section->gradeLevel->sort_order)
-                ->where('name', 'like', "%({$stream})%")
-                ->orderBy('sort_order')
-                ->first();
-        } else {
-            // Non-streamed: pick the next non-streamed grade by sort_order globally.
-            // No division_id filter so cross-division promotion works
-            // (e.g. Elementary Grade 8 → High School Grade 9).
-            $nextGradeLevel = GradeLevel::where('sort_order', '>', $section->gradeLevel->sort_order)
-                ->where('name', 'not like', '%(Social)%')
-                ->orderBy('sort_order')
-                ->first();
-        }
+        // Resolve the target grade (next grade in the division, or the first
+        // grade of the next division when at a division's final grade).
+        $nextGradeLevel = $this->resolveNextGradeLevel($section->gradeLevel);
 
         $promotedCount = 0;
         $retainedCount = 0;
