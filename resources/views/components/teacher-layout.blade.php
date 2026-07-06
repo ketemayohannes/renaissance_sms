@@ -60,7 +60,9 @@
             });
         });
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@5.16.0/dist/apexcharts.min.js"
+            integrity="sha384-ev+0gnMiCR/xVXDO/DIRntnh/SqpByfMpm3uB8SFR/IkPnsSdZHnyi/NDdUZUXOv"
+            crossorigin="anonymous"></script>
 </head>
 <body class="font-sans antialiased bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300" x-data="{ sidebarCollapsed: localStorage.getItem('sidebarCollapsed') === 'true' }">
     <div class="min-h-screen flex">

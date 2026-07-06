@@ -58,7 +58,7 @@
                                         </div>
                                     </template>
                                     <template x-if="photoPreview">
-                                        <img :src="photoPreview" class="w-full h-full object-cover">
+                                        <img :src="photoPreview" alt="Photo preview" class="w-full h-full object-cover">
                                     </template>
                                     <input type="file" name="student_photo" class="absolute inset-0 opacity-0 cursor-pointer" 
                                            @change="const file = $event.target.files[0]; if(file) { const reader = new FileReader(); reader.onload = (e) => photoPreview = e.target.result; reader.readAsDataURL(file); }">

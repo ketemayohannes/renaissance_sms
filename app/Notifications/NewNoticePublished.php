@@ -15,7 +15,7 @@ class NewNoticePublished extends Notification
 
     public function via(object $notifiable): array
     {
-        return $this->getChannels($notifiable, 'notice', ['mail', 'sms']);
+        return $this->getChannels($notifiable, 'notice', ['mail', 'sms', 'in_app']);
     }
 
     public function toDatabase(object $notifiable): array

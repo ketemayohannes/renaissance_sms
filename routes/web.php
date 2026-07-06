@@ -123,6 +123,7 @@ Route::middleware(['auth'])->group(function () {
         
         // Student Document Routes (permission-gated)
         Route::post('students/{student}/document', [App\Http\Controllers\Admin\StudentController::class, 'storeDocument'])->name('students.store-document')->middleware('permission:edit students');
+        Route::get('students/{student}/document/{document}/download', [App\Http\Controllers\Admin\StudentController::class, 'downloadDocument'])->name('students.download-document')->middleware('permission:view students');
         Route::delete('students/{student}/document/{document}', [App\Http\Controllers\Admin\StudentController::class, 'deleteDocument'])->name('students.delete-document')->middleware('permission:edit students');
         Route::post('students/{id}/restore', [App\Http\Controllers\Admin\StudentController::class, 'restore'])->name('students.restore')->middleware('permission:edit students');
         Route::post('students/bulk-id-cards', [App\Http\Controllers\Admin\StudentController::class, 'bulkIdCardsSelected'])->name('students.bulk-id-cards-selected')->middleware('permission:view students');

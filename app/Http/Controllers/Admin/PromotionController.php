@@ -330,18 +330,24 @@ class PromotionController extends Controller
                     $toSectionId = $section->id;
                 }
 
-                StudentPromotion::create([
-                    'student_id' => $studentId,
-                    'from_academic_year_id' => $academicYear->id,
-                    'to_academic_year_id' => $nextAcademicYear->id,
-                    'from_grade_level_id' => $section->grade_level_id,
-                    'to_grade_level_id' => $toGradeLevelId ?? $section->grade_level_id,
-                    'to_section_id' => $toSectionId,
-                    'status' => $decision,
-                    'is_enrolled' => ($decision === 'graduated'), // graduates are finalized immediately
-                    'remarks' => $request->remarks[$studentId] ?? null,
-                    'processed_by' => auth()->id(),
-                ]);
+                // Idempotent: keyed on student + year transition so a double-submit
+                // updates the existing record instead of creating a duplicate.
+                StudentPromotion::updateOrCreate(
+                    [
+                        'student_id' => $studentId,
+                        'from_academic_year_id' => $academicYear->id,
+                        'to_academic_year_id' => $nextAcademicYear->id,
+                    ],
+                    [
+                        'from_grade_level_id' => $section->grade_level_id,
+                        'to_grade_level_id' => $toGradeLevelId ?? $section->grade_level_id,
+                        'to_section_id' => $toSectionId,
+                        'status' => $decision,
+                        'is_enrolled' => ($decision === 'graduated'), // graduates are finalized immediately
+                        'remarks' => $request->remarks[$studentId] ?? null,
+                        'processed_by' => auth()->id(),
+                    ]
+                );
 
                 // Only close the enrollment for graduated students.
                 // Promoted/retained/re_exam students remain 'active' so their

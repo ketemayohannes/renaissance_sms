@@ -98,7 +98,7 @@ class AcademicActivityController extends Controller
 
     public function evaluate(AcademicActivity $activity)
     {
-        $activity->load('submissions.student');
+        $activity->load(['submissions.student', 'questions']);
         return view('admin.activities.evaluate', compact('activity'));
     }
 

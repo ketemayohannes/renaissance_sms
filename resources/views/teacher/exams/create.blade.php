@@ -131,7 +131,9 @@
     </div>
 
     @push('scripts')
-    <script src="https://cdn.ckeditor.com/ckeditor5/40.0.0/classic/ckeditor.js"></script>
+    <script src="https://cdn.ckeditor.com/ckeditor5/40.0.0/classic/ckeditor.js"
+            integrity="sha384-fzG1w8C4DZLUVmXRQ/UvLduXhVvGff3beqivXx1g7HCB+SePhmbmOW7gAKWZlI1H"
+            crossorigin="anonymous"></script>
     <script>
         // CKEditor Initialization
         ClassicEditor

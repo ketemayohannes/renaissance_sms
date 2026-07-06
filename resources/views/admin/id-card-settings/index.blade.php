@@ -39,7 +39,7 @@
                                     <div class="mt-1 flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
                                         <div class="w-12 h-12 rounded-xl bg-white flex items-center justify-center border border-slate-100 shadow-sm overflow-hidden">
                                             <template x-if="config.logo_url">
-                                                <img :src="config.logo_url" class="w-full h-full object-contain p-1">
+                                                <img :src="config.logo_url" alt="Logo preview" class="w-full h-full object-contain p-1">
                                             </template>
                                             <template x-if="!config.logo_url">
                                                 <svg class="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
@@ -169,7 +169,7 @@
                                             <div class="flex items-center gap-3">
                                                 <div class="w-10 h-10 bg-white shadow-sm rounded-xl flex items-center justify-center border border-slate-100 overflow-hidden">
                                                     <template x-if="config.logo_url">
-                                                        <img :src="config.logo_url" class="w-full h-full object-contain p-1">
+                                                        <img :src="config.logo_url" alt="Logo preview" class="w-full h-full object-contain p-1">
                                                     </template>
                                                     <template x-if="!config.logo_url">
                                                         <svg class="w-6 h-6 text-slate-300" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71L12 2z"/></svg>
@@ -237,7 +237,7 @@
                                         <div class="flex justify-between items-start mb-6 border-b border-black/5 pb-2">
                                             <div class="w-10 h-10 bg-white shadow-sm rounded-xl flex items-center justify-center border border-slate-100 overflow-hidden">
                                                 <template x-if="config.logo_url">
-                                                    <img :src="config.logo_url" class="w-full h-full object-contain p-1">
+                                                    <img :src="config.logo_url" alt="Logo preview" class="w-full h-full object-contain p-1">
                                                 </template>
                                                 <template x-if="!config.logo_url">
                                                     <svg class="w-6 h-6 text-slate-300" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71L12 2z"/></svg>

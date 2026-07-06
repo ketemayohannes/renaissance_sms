@@ -113,7 +113,7 @@
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 font-bold overflow-hidden border border-slate-100">
                                         @if($enrollment->student->photo_path)
-                                            <img src="{{ Storage::url($enrollment->student->photo_path) }}" class="w-full h-full object-cover">
+                                            <img src="{{ Storage::url($enrollment->student->photo_path) }}" alt="Student photo" class="w-full h-full object-cover">
                                         @else
                                             {{ substr($enrollment->student->user->name, 0, 1) }}
                                         @endif

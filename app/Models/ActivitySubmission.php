@@ -13,7 +13,9 @@ class ActivitySubmission extends Model
     protected $fillable = [
         'academic_activity_id',
         'student_id',
+        'started_at',
         'submitted_at',
+        'answers',
         'status',
         'score',
         'feedback',
@@ -25,9 +27,11 @@ class ActivitySubmission extends Model
     ];
 
     protected $casts = [
+        'started_at' => 'datetime',
         'submitted_at' => 'datetime',
         'graded_at' => 'datetime',
         'score' => 'decimal:2',
+        'answers' => 'array',
     ];
 
     public function activity()

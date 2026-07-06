@@ -15,7 +15,7 @@ class ReportCardExportReady extends Notification
 
     public function via(object $notifiable): array
     {
-        return $this->getChannels($notifiable, 'export', ['mail']);
+        return $this->getChannels($notifiable, 'export', ['mail', 'in_app']);
     }
 
     public function toDatabase(object $notifiable): array

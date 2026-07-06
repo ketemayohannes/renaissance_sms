@@ -68,7 +68,7 @@
                                         <div class="flex items-center gap-4">
                                             <div class="w-12 h-12 rounded-2xl overflow-hidden bg-slate-100 shadow-sm transition-transform group-hover/row:scale-105 border-2 border-white">
                                                 @if($teacher->photo)
-                                                    <img src="{{ Storage::url($teacher->photo) }}" class="w-full h-full object-cover">
+                                                    <img src="{{ Storage::url($teacher->photo) }}" alt="Teacher photo" class="w-full h-full object-cover">
                                                 @else
                                                     <div class="w-full h-full flex items-center justify-center bg-slate-900 text-white font-bold text-lg">
                                                         {{ substr($teacher->first_name, 0, 1) }}

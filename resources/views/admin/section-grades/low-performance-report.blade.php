@@ -105,7 +105,7 @@
     <div class="header">
         <div class="header-content">
             @if($logoBase64)
-                <img src="{{ $logoBase64 }}" class="logo-img">
+                <img src="{{ $logoBase64 }}" alt="School logo" class="logo-img">
             @endif
             <span class="school-name">Renaissance School</span>
         </div>

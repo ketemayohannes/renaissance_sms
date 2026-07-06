@@ -244,9 +244,11 @@ class AuthorizationSecurityTest extends TestCase
 
     public function test_only_super_admin_can_access_communication_settings(): void
     {
-        // Super Admin can access
+        // Super Admin can access (page merged into general settings, so the
+        // legacy URL redirects there instead of returning 200)
         $superAdmin = $this->createUserWithRole('Super Admin');
-        $this->actingAs($superAdmin)->get('/admin/settings/communication')->assertStatus(200);
+        $this->actingAs($superAdmin)->get('/admin/settings/communication')
+            ->assertRedirect(route('admin.settings.general.index'));
 
         // Principal cannot access
         $principal = $this->createUserWithRole('Principal');

@@ -162,7 +162,7 @@ class GuardianController extends Controller
 
         DB::beginTransaction();
         try {
-            $password = $request->password ?? 'guardian123';
+            $password = $request->password ?: \Illuminate\Support\Str::random(12);
             $studentService->syncGuardianUser($guardian, $password);
 
             DB::commit();

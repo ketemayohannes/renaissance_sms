@@ -259,11 +259,16 @@ class EmployeeService
             // Delete old document of same type if exists
             $existing = $employee->documents()->where('type', $type)->first();
             if ($existing) {
-                Storage::disk('public')->delete($existing->file_path);
+                if (Storage::disk('local')->exists($existing->file_path)) {
+                    Storage::disk('local')->delete($existing->file_path);
+                } elseif (Storage::disk('public')->exists($existing->file_path)) {
+                    Storage::disk('public')->delete($existing->file_path);
+                }
                 $existing->delete();
             }
 
-            $path = $file->store("employees/documents/{$employee->employee_id}", 'public');
+            // Private disk: employee documents (contracts, IDs) are not public.
+            $path = $file->store("employees/documents/{$employee->employee_id}", 'local');
             
             $employee->documents()->create([
                 'type' => $type,
