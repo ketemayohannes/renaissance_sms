@@ -175,12 +175,13 @@ class StudentController extends Controller
     public function show(Student $student)
     {
         $student->load([
-            'user', 
-            'guardians', 
-            'medicalInfo', 
-            'transportation', 
+            'user',
+            'guardians',
+            'medicalInfo',
+            'transportation',
             'siblings.enrollments.section.gradeLevel',
-            'documents'
+            'documents',
+            'latestStatusHistory',
         ]);
         
         $enrollments = $student->enrollments()

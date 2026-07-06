@@ -48,8 +48,28 @@
                             </div>
                         @endif
                     </div>
-                    <div class="absolute -bottom-3 -right-3 px-4 py-1.5 rounded-2xl {{ $student->is_active ? 'bg-emerald-500 shadow-emerald-200' : 'bg-rose-500 shadow-rose-200' }} text-white text-[10px] font-black uppercase tracking-widest shadow-lg">
-                        {{ $student->is_active ? 'Active' : 'Inactive' }}
+                    @php
+                        $latestStatus = $student->latestStatusHistory;
+                        $statusLabel  = $student->is_active ? 'Active' : 'Inactive';
+                        $statusColor  = $student->is_active ? 'bg-emerald-500 shadow-emerald-200' : 'bg-rose-500 shadow-rose-200';
+                        if ($latestStatus) {
+                            $map = [
+                                'active'      => ['label' => 'Active',      'color' => 'bg-emerald-500 shadow-emerald-200'],
+                                'inactive'    => ['label' => 'Inactive',    'color' => 'bg-slate-500 shadow-slate-200'],
+                                'graduated'   => ['label' => 'Graduated',   'color' => 'bg-indigo-500 shadow-indigo-200'],
+                                'withdrawn'   => ['label' => 'Withdrawn',   'color' => 'bg-amber-500 shadow-amber-200'],
+                                'transferred' => ['label' => 'Transferred', 'color' => 'bg-sky-500 shadow-sky-200'],
+                                'dropped_out' => ['label' => 'Dropped Out', 'color' => 'bg-rose-500 shadow-rose-200'],
+                            ];
+                            $entry = $map[$latestStatus->new_status] ?? null;
+                            if ($entry) {
+                                $statusLabel = $entry['label'];
+                                $statusColor = $entry['color'];
+                            }
+                        }
+                    @endphp
+                    <div class="absolute -bottom-3 -right-3 px-4 py-1.5 rounded-2xl {{ $statusColor }} text-white text-[10px] font-black uppercase tracking-widest shadow-lg">
+                        {{ $statusLabel }}
                     </div>
                 </div>
 
