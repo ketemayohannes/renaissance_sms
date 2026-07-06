@@ -25,20 +25,23 @@ class AttendanceAlertService
             return collect();
         }
 
-        $studentIds = $section->students()->pluck('students.id');
-        $atRisk = collect();
+        // Pull every attendance row for this section within that recent window in
+        // ONE query (newest first), then evaluate each student's last 3 in memory
+        // — avoids a per-student query (N+1).
+        $atRisk = StudentAttendance::where('section_id', $section->id)
+            ->whereIn('attendance_date', $recentDates)
+            ->orderBy('attendance_date', 'desc')
+            ->get(['student_id', 'attendance_date', 'status'])
+            ->groupBy('student_id')
+            ->filter(function ($records) {
+                $lastThree = $records->take(3);
+                return $lastThree->count() === 3
+                    && $lastThree->every(fn($record) => $record->status === 'absent');
+            })
+            ->keys();
 
-        foreach ($studentIds as $studentId) {
-            // Check last 3 records for this student
-            $lastThree = StudentAttendance::where('student_id', $studentId)
-                ->where('section_id', $section->id)
-                ->orderBy('attendance_date', 'desc')
-                ->limit(3)
-                ->pluck('status');
-
-            if ($lastThree->count() === 3 && $lastThree->every(fn($status) => $status === 'absent')) {
-                $atRisk->push($studentId);
-            }
+        if ($atRisk->isEmpty()) {
+            return collect();
         }
 
         return $section->students()->whereIn('students.id', $atRisk)->with('user')->get();
