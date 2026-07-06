@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\SaveAttendanceRequest;
 use App\Models\Student;
 use App\Models\Section;
 use App\Models\GradeLevel;
@@ -63,15 +64,8 @@ class AttendanceController extends Controller
         return view('admin.attendance.register', compact('section', 'date', 'students', 'existingAttendance'));
     }
 
-    public function store(Request $request)
+    public function store(SaveAttendanceRequest $request)
     {
-        $request->validate([
-            'section_id' => 'required|exists:sections,id',
-            'date' => 'required|date',
-            'attendance' => 'required|array',
-            'remarks' => 'nullable|array',
-        ]);
-
         $this->attendanceService->saveAttendance(
             $request->section_id,
             $request->date,
