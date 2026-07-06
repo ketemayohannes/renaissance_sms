@@ -286,13 +286,11 @@ class PromotionController extends Controller
                 ->orderBy('sort_order')
                 ->first();
         } else {
-            // Non-streamed: skip over any streamed grades by picking next non-streamed grade in same division,
-            // or simply the very next sort_order (e.g. Grade 10 → Grade 11 Natural, handled at enrollment)
+            // Non-streamed: pick the next non-streamed grade by sort_order globally.
+            // No division_id filter so cross-division promotion works
+            // (e.g. Elementary Grade 8 → High School Grade 9).
             $nextGradeLevel = GradeLevel::where('sort_order', '>', $section->gradeLevel->sort_order)
-                ->where('division_id', $section->gradeLevel->division_id)
-                ->where(function($q) {
-                    $q->where('name', 'not like', '%(Social)%');
-                })
+                ->where('name', 'not like', '%(Social)%')
                 ->orderBy('sort_order')
                 ->first();
         }
@@ -327,11 +325,11 @@ class PromotionController extends Controller
                 ->orderBy('sort_order')
                 ->first();
         } else {
+            // Non-streamed: pick the next non-streamed grade by sort_order globally.
+            // No division_id filter so cross-division promotion works
+            // (e.g. Elementary Grade 8 → High School Grade 9).
             $nextGradeLevel = GradeLevel::where('sort_order', '>', $section->gradeLevel->sort_order)
-                ->where('division_id', $section->gradeLevel->division_id)
-                ->where(function($q) {
-                    $q->where('name', 'not like', '%(Social)%');
-                })
+                ->where('name', 'not like', '%(Social)%')
                 ->orderBy('sort_order')
                 ->first();
         }
