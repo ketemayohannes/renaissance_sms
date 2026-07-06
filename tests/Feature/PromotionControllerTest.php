@@ -291,7 +291,7 @@ class PromotionControllerTest extends TestCase
         $response = $this->actingAs($this->adminUser)
             ->post(route('admin.promotions.execute'), $payload);
 
-        $response->assertRedirect(route('admin.promotions.index'));
+        $response->assertRedirect(route('admin.promotions.process'));
 
         // Current enrollment should be marked as graduated
         $this->assertDatabaseHas('student_enrollments', [
@@ -347,15 +347,16 @@ class PromotionControllerTest extends TestCase
         $response = $this->actingAs($this->adminUser)
             ->post(route('admin.promotions.execute'), $payload);
 
-        $response->assertRedirect(route('admin.promotions.index'));
+        $response->assertRedirect(route('admin.promotions.process'));
 
         // Promoted student check:
-        // 1. Previous enrollment should be 'completed'
+        // 1. Previous enrollment stays 'active' so current-year grade book
+        //    and master sheet data remain visible (only graduation closes it)
         $this->assertDatabaseHas('student_enrollments', [
             'student_id' => $this->student->id,
             'section_id' => $this->section->id,
             'academic_year_id' => $this->academicYear->id,
-            'status' => 'completed',
+            'status' => 'active',
         ]);
         // 2. Next year enrollment should NOT be created automatically (held until registrar clicks enroll)
         $this->assertDatabaseMissing('student_enrollments', [
@@ -364,12 +365,12 @@ class PromotionControllerTest extends TestCase
         ]);
 
         // Re-exam student check:
-        // 1. Previous enrollment should be 'completed'
+        // 1. Previous enrollment stays 'active' (only graduation closes it)
         $this->assertDatabaseHas('student_enrollments', [
             'student_id' => $studentReExam->id,
             'section_id' => $this->section->id,
             'academic_year_id' => $this->academicYear->id,
-            'status' => 'completed',
+            'status' => 'active',
         ]);
         // 2. Next year enrollment should NOT be created automatically
         $this->assertDatabaseMissing('student_enrollments', [
