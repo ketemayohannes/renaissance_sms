@@ -94,6 +94,17 @@ class PromotionControllerTest extends TestCase
             'name' => 'Quarter 1',
         ]);
 
+        // Quarter 4 already ended, so the end-of-year promotion window is open.
+        Term::factory()->create([
+            'academic_year_id' => $this->academicYear->id,
+            'parent_term_id' => $this->semester->id,
+            'type' => 'quarter',
+            'name' => 'Quarter 4',
+            'term_number' => 4,
+            'start_date' => now()->subMonths(2),
+            'end_date' => now()->subMonth(),
+        ]);
+
         // Create subjects
         $this->subjectAmharic = Subject::factory()->create(['name' => 'Amharic']);
         $this->subjectMath = Subject::factory()->create(['name' => 'Mathematics']);
@@ -311,6 +322,83 @@ class PromotionControllerTest extends TestCase
             'new_status' => 'graduated',
             'reason' => 'academic',
         ]);
+    }
+
+    /** @test */
+    public function executing_promotion_twice_for_the_same_section_does_not_create_duplicate_records(): void
+    {
+        // A later target year, to prove that even a re-run pointing at a
+        // different next year yields exactly one record (updated), never a second.
+        $laterYear = AcademicYear::factory()->create([
+            'start_date' => now()->addYears(2)->startOfYear(),
+            'end_date' => now()->addYears(2)->endOfYear(),
+            'is_active' => false,
+        ]);
+
+        $payload = [
+            'section_id' => $this->section->id,
+            'next_academic_year_id' => $this->nextAcademicYear->id,
+            'decisions' => [
+                $this->student->id => 'promoted',
+            ],
+            'remarks' => [
+                $this->student->id => 'First run',
+            ],
+        ];
+
+        // First submission creates the promotion record.
+        $this->actingAs($this->adminUser)
+            ->post(route('admin.promotions.execute'), $payload)
+            ->assertRedirect(route('admin.promotions.process'));
+
+        // Second submission targets a DIFFERENT next year — must update the
+        // single record in place, not create a second one.
+        $payload['next_academic_year_id'] = $laterYear->id;
+        $payload['remarks'][$this->student->id] = 'Second run';
+        $this->actingAs($this->adminUser)
+            ->post(route('admin.promotions.execute'), $payload)
+            ->assertRedirect(route('admin.promotions.process'));
+
+        // Exactly one promotion record for this student's source year.
+        $this->assertDatabaseCount('student_promotions', 1);
+
+        // The surviving record reflects the latest submission (corrected target + remarks).
+        $this->assertDatabaseHas('student_promotions', [
+            'student_id' => $this->student->id,
+            'from_academic_year_id' => $this->academicYear->id,
+            'to_academic_year_id' => $laterYear->id,
+            'remarks' => 'Second run',
+        ]);
+    }
+
+    /** @test */
+    public function promotion_is_blocked_before_quarter_4_ends(): void
+    {
+        // Push Quarter 4's end into the future → end-of-year window is closed.
+        Term::where('academic_year_id', $this->academicYear->id)
+            ->where('type', 'quarter')
+            ->where('term_number', 4)
+            ->update([
+                'start_date' => now()->addMonth(),
+                'end_date' => now()->addMonths(2),
+            ]);
+
+        // The process page is blocked and bounces back to the index with an error.
+        $this->actingAs($this->adminUser)
+            ->get(route('admin.promotions.process'))
+            ->assertRedirect(route('admin.promotions.index'))
+            ->assertSessionHas('error');
+
+        // execute() is blocked and creates no promotion records.
+        $this->actingAs($this->adminUser)
+            ->post(route('admin.promotions.execute'), [
+                'section_id' => $this->section->id,
+                'next_academic_year_id' => $this->nextAcademicYear->id,
+                'decisions' => [$this->student->id => 'promoted'],
+            ])
+            ->assertRedirect(route('admin.promotions.index'));
+
+        $this->assertDatabaseCount('student_promotions', 0);
     }
 
     /** @test */
