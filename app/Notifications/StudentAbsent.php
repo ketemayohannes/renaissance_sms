@@ -18,7 +18,7 @@ class StudentAbsent extends Notification
 
     public function via(object $notifiable): array
     {
-        return $this->getChannels($notifiable, 'absence', ['mail', 'sms']);
+        return $this->getChannels($notifiable, 'absence', ['mail', 'sms', 'in_app']);
     }
 
     public function toDatabase(object $notifiable): array

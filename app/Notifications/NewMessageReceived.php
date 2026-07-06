@@ -19,7 +19,7 @@ class NewMessageReceived extends Notification
 
     public function via(object $notifiable): array
     {
-        return $this->getChannels($notifiable, 'message', ['mail']);
+        return $this->getChannels($notifiable, 'message', ['mail', 'in_app']);
     }
 
     public function toDatabase(object $notifiable): array
