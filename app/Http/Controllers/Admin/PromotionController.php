@@ -29,6 +29,37 @@ class PromotionController extends Controller
         return view('admin.promotions.index', compact('promotionRules', 'gradeLevels', 'academicYear'));
     }
 
+    /**
+     * Promotions are an end-of-year action: they only open once the active
+     * academic year's final quarter (Quarter 4) has ended. Returns an error
+     * message when the window is still closed, or null when promotions may run.
+     */
+    private function promotionWindowClosedMessage(): ?string
+    {
+        $academicYear = AcademicYear::where('is_active', true)->first();
+        if (!$academicYear) {
+            return 'No active academic year is set, so promotions cannot run.';
+        }
+
+        // Final quarter of the active year (Quarter 4, or the highest-numbered
+        // quarter configured for schools with a shorter term structure).
+        $lastQuarter = Term::where('academic_year_id', $academicYear->id)
+            ->where('type', 'quarter')
+            ->orderByDesc('term_number')
+            ->first();
+
+        if (!$lastQuarter || !$lastQuarter->end_date) {
+            return 'The final quarter for the active academic year is not configured yet, so promotions cannot run.';
+        }
+
+        if (now()->lt($lastQuarter->end_date->endOfDay())) {
+            return 'Promotions open at the end of ' . $lastQuarter->name . ' ('
+                . $lastQuarter->end_date->format('M j, Y') . '). The current academic year is still in progress.';
+        }
+
+        return null; // window open
+    }
+
     public function storeRule(Request $request)
     {
         $request->validate([
@@ -87,6 +118,10 @@ class PromotionController extends Controller
 
     public function processForm()
     {
+        if ($msg = $this->promotionWindowClosedMessage()) {
+            return redirect()->route('admin.promotions.index')->with('error', $msg);
+        }
+
         $academicYear = AcademicYear::where('is_active', true)->first();
         $nextAcademicYear = AcademicYear::where('start_date', '>', $academicYear->end_date)
             ->orderBy('start_date')
@@ -103,6 +138,10 @@ class PromotionController extends Controller
 
     public function preview(Request $request)
     {
+        if ($msg = $this->promotionWindowClosedMessage()) {
+            return redirect()->route('admin.promotions.index')->with('error', $msg);
+        }
+
         $request->validate([
             'section_id' => 'required|exists:sections,id',
         ]);
@@ -265,6 +304,10 @@ class PromotionController extends Controller
 
     public function execute(Request $request)
     {
+        if ($msg = $this->promotionWindowClosedMessage()) {
+            return redirect()->route('admin.promotions.index')->with('error', $msg);
+        }
+
         $request->validate([
             'section_id' => 'required|exists:sections,id',
             'decisions' => 'required|array',
@@ -298,6 +341,7 @@ class PromotionController extends Controller
         $graduatedCount = 0;
         $reExamCount = 0;
 
+        try {
         DB::transaction(function() use ($request, $section, $academicYear, $nextAcademicYear, $nextGradeLevel, &$promotedCount, &$retainedCount, &$graduatedCount, &$reExamCount) {
             foreach ($request->decisions as $studentId => $decision) {
                 
@@ -330,15 +374,17 @@ class PromotionController extends Controller
                     $toSectionId = $section->id;
                 }
 
-                // Idempotent: keyed on student + year transition so a double-submit
-                // updates the existing record instead of creating a duplicate.
+                // Idempotent: keyed on student + source year (a student is
+                // promoted out of a year exactly once), so a re-run updates the
+                // single record in place — including a corrected target year —
+                // instead of creating a duplicate.
                 StudentPromotion::updateOrCreate(
                     [
                         'student_id' => $studentId,
                         'from_academic_year_id' => $academicYear->id,
-                        'to_academic_year_id' => $nextAcademicYear->id,
                     ],
                     [
+                        'to_academic_year_id' => $nextAcademicYear->id,
                         'from_grade_level_id' => $section->grade_level_id,
                         'to_grade_level_id' => $toGradeLevelId ?? $section->grade_level_id,
                         'to_section_id' => $toSectionId,
@@ -388,6 +434,17 @@ class PromotionController extends Controller
                 }
             }
         });
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Unique-index violation (SQLSTATE 23000) means one of these
+            // students was already promoted for the current year — typically a
+            // concurrent double-submit that the DB blocked. Surface a clean
+            // message instead of a 500; the first submission's records stand.
+            if ($e->getCode() === '23000') {
+                return redirect()->route('admin.promotions.process')
+                    ->with('error', 'This section was already promoted for the current academic year (a duplicate or simultaneous submission was blocked). Please refresh and check the Promotion History.');
+            }
+            throw $e;
+        }
 
         $msg = "Promotion processed: {$promotedCount} promoted, {$retainedCount} retained";
         if ($reExamCount > 0) {
