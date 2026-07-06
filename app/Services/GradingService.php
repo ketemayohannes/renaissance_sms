@@ -612,20 +612,14 @@ class GradingService
         $section = $enrollment->section;
         $isYearly = $term->id === 'yearly' || $term->type === 'yearly';
 
-        // For non-yearly reports, we use the section bulk fetcher to ensure on-the-fly ranking is performed
-        if (!$isYearly) {
-            $students = $section->students()
-                ->wherePivot('academic_year_id', $academicYear->id)
-                ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated'])
-                ->get();
-            
-            $allReports = $this->getSectionReportData($students, $section, $term, $academicYear);
-            return $allReports[(string)$student->id] ?? $allReports[(int)$student->id] ?? $this->prepareReportData($student, $section, $term, $academicYear, null);
-        }
+        // We use the section bulk fetcher to ensure on-the-fly ranking is performed
+        $students = $section->students()
+            ->wherePivot('academic_year_id', $academicYear->id)
+            ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated'])
+            ->get();
         
-        // For yearly, use the default single-student preparation
-        $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
-        return $this->prepareReportData($student, $section, $term, $academicYear, $subjects);
+        $allReports = $this->getSectionReportData($students, $section, $term, $academicYear);
+        return $allReports[(string)$student->id] ?? $allReports[(int)$student->id] ?? $this->prepareReportData($student, $section, $term, $academicYear, null);
     }
 
     /**
