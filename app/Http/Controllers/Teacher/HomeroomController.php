@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Teacher;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Teacher\MarkAttendanceRequest;
+use App\Http\Requests\SaveAttendanceRequest;
 use App\Services\TeacherService;
 use App\Services\AttendanceService;
 use App\Services\AttendanceAlertService;
@@ -93,7 +93,7 @@ class HomeroomController extends Controller
     /**
      * Store attendance records.
      */
-    public function storeAttendance(MarkAttendanceRequest $request)
+    public function storeAttendance(SaveAttendanceRequest $request)
     {
         $this->attendanceService->saveAttendance(
             $request->section_id,

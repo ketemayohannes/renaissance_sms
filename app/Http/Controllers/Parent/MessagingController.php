@@ -20,9 +20,14 @@ class MessagingController extends Controller
 
         $conversations = $user->conversations()
             ->with(['participants', 'messages' => fn($q) => $q->latest()->limit(1)])
-            ->get()
-            ->map(function ($conv) use ($user) {
-                $conv->unread_count = $conv->unreadCountFor($user);
+            ->get();
+
+        // Batch the unread counts into one query to avoid an N+1 across the inbox.
+        $unreadCounts = Conversation::unreadCountsFor($user, $conversations->pluck('id'));
+
+        $conversations = $conversations
+            ->map(function ($conv) use ($user, $unreadCounts) {
+                $conv->unread_count = (int) ($unreadCounts[$conv->id] ?? 0);
                 $conv->other        = $conv->otherParticipant($user);
                 $conv->preview      = $conv->messages->first();
                 return $conv;

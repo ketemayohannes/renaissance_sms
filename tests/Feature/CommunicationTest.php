@@ -264,6 +264,47 @@ class CommunicationTest extends TestCase
     }
 
     /** @test */
+    public function batch_unread_counts_match_the_per_conversation_count()
+    {
+        $conv = Conversation::create(['name' => 'History', 'created_by' => $this->teacherUser->id]);
+        ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $this->parentUser->id]);
+        ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $this->teacherUser->id]);
+
+        // Teacher sends 3 messages; the parent sends 1 of their own.
+        $teacherMessages = collect(range(1, 3))->map(fn($i) => \App\Models\Message::create([
+            'conversation_id' => $conv->id,
+            'sender_id' => $this->teacherUser->id,
+            'body' => "Message {$i}",
+        ]));
+        \App\Models\Message::create([
+            'conversation_id' => $conv->id,
+            'sender_id' => $this->parentUser->id,
+            'body' => 'My own reply',
+        ]);
+
+        // Parent has read one of the teacher's messages.
+        \App\Models\MessageRead::create([
+            'message_id' => $teacherMessages->first()->id,
+            'user_id' => $this->parentUser->id,
+            'read_at' => now(),
+        ]);
+
+        // Expected: 3 teacher messages - 1 read = 2, and the parent's own is excluded.
+        $expected = $conv->unreadCountFor($this->parentUser);
+        $this->assertEquals(2, $expected);
+
+        // The batch query must agree with the trusted per-conversation method.
+        $batch = Conversation::unreadCountsFor($this->parentUser, collect([$conv->id]));
+        $this->assertEquals($expected, (int) ($batch[$conv->id] ?? 0));
+
+        // And the inbox page loads and exposes that count.
+        $response = $this->actingAs($this->parentUser)->get(route('parent.messages.index'));
+        $response->assertOk();
+        $loaded = collect($response->viewData('conversations'))->firstWhere('id', $conv->id);
+        $this->assertEquals(2, $loaded->unread_count);
+    }
+
+    /** @test */
     public function users_can_interact_with_notification_bell_endpoints()
     {
         // Seed an unread notification

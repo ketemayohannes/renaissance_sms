@@ -59,6 +59,29 @@ class Conversation extends Model
     }
 
     /**
+     * Unread message counts for a user across many conversations in ONE query,
+     * returned as [conversation_id => count]. Use this for inbox lists instead
+     * of calling unreadCountFor() per conversation (which is an N+1).
+     *
+     * @param  iterable  $conversationIds
+     */
+    public static function unreadCountsFor(User $user, $conversationIds): \Illuminate\Support\Collection
+    {
+        $ids = collect($conversationIds);
+
+        if ($ids->isEmpty()) {
+            return collect();
+        }
+
+        return Message::whereIn('conversation_id', $ids)
+            ->where('sender_id', '!=', $user->id)
+            ->whereDoesntHave('reads', fn ($q) => $q->where('user_id', $user->id))
+            ->groupBy('conversation_id')
+            ->selectRaw('conversation_id, COUNT(*) as aggregate')
+            ->pluck('aggregate', 'conversation_id');
+    }
+
+    /**
      * Get the other participant (for private chats).
      */
     public function otherParticipant(User $user): ?User
