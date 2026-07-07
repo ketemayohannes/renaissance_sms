@@ -111,12 +111,14 @@ class DashboardController extends Controller
                 $studentAverages = $studentGroups->map(function($studentRecs) use ($termTotalTypeId) {
                     // For each student, find the total for each quarter in the selection
                     $termScores = $studentRecs->groupBy('term_id')->map(function($termMarks) use ($termTotalTypeId) {
-                        // Priority 1: Use TERM_TOTAL mark if it exists
+                        // Components-first: prefer live component marks; fall back to the
+                        // TERM_TOTAL row only when no components exist. A stale TERM_TOTAL
+                        // must never override freshly edited component marks.
+                        $components = $termMarks->filter(fn($m) => !$m->assessmentTemplate || $m->assessmentTemplate->assessment_type_id != $termTotalTypeId);
+                        if ($components->isNotEmpty()) return $components->sum('score');
+
                         $termTotalMark = $termMarks->first(fn($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
-                        if ($termTotalMark) return $termTotalMark->score;
-                        
-                        // Priority 2: Sum component marks if no TERM_TOTAL
-                        return $termMarks->isNotEmpty() ? $termMarks->sum('score') : null;
+                        return $termTotalMark ? $termTotalMark->score : null;
                     })->filter(fn($score) => $score !== null);
                     
                     return $termScores->isNotEmpty() ? $termScores->avg() : 0;
@@ -192,8 +194,14 @@ class DashboardController extends Controller
                     continue;
                 }
 
-                $termTotalMark = $recs->first(fn($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
-                $score = $termTotalMark ? $termTotalMark->score : $recs->sum('score');
+                // Components-first: prefer live component marks; use TERM_TOTAL only as fallback.
+                $components = $recs->filter(fn($m) => !$m->assessmentTemplate || $m->assessmentTemplate->assessment_type_id != $termTotalTypeId);
+                if ($components->isNotEmpty()) {
+                    $score = $components->sum('score');
+                } else {
+                    $termTotalMark = $recs->first(fn($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
+                    $score = $termTotalMark ? $termTotalMark->score : 0;
+                }
 
                 if ($score <= 49) $distribution['data'][0]++;
                 elseif ($score <= 74) $distribution['data'][1]++;

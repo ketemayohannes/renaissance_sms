@@ -227,30 +227,133 @@ class StudentController extends Controller
         $disciplinaryRecords = $student->disciplinaryRecords()->with(['reporter', 'academicYear'])->latest('incident_date')->take(10)->get();
         
         // Academic History (Grouped by Academic Year -> Term)
-        $academicRecords = $student->marks()
+        //
+        // Quarters are rendered from their real StudentMark rows, resolved components-first
+        // per subject: a TERM_TOTAL mark is an auto-synced copy of a subject's component sum,
+        // so keep the live components when present and fall back to a subject's TERM_TOTAL
+        // only when it has none. This avoids the 73 + TERM_TOTAL 73 = 146 double count while
+        // keeping a TERM_TOTAL-only term from vanishing — matching GradingService.
+        //
+        // Semesters and the yearly roll-up are NOT read from stored marks. They are computed
+        // live via GradingService (the same engine report cards use), so they are always
+        // fresh, components-first, and consistent with the report card — and so Semester 2 /
+        // Yearly appear even when no semester marks were ever written for the student.
+        $termTotalTypeId = \App\Models\AssessmentType::where('code', 'TERM_TOTAL')->value('id');
+        $resolveTermMarks = function($termMarks) use ($termTotalTypeId) {
+            return $termMarks
+                ->groupBy('subject_id')
+                ->flatMap(function($subjectMarks) use ($termTotalTypeId) {
+                    $components = $subjectMarks->reject(function($mark) use ($termTotalTypeId) {
+                        return $termTotalTypeId
+                            && $mark->assessmentTemplate
+                            && $mark->assessmentTemplate->assessment_type_id == $termTotalTypeId;
+                    });
+                    return $components->isNotEmpty() ? $components : $subjectMarks;
+                })
+                ->values();
+        };
+
+        $studentMarks = $student->marks()
             ->with(['subject', 'assessmentTemplate', 'term', 'academicYear'])
-            ->get()
-            ->groupBy(function($mark) {
-                return $mark->academicYear->name;
-            })
-            ->map(function($yearMarks) {
-                return $yearMarks->groupBy(function($mark) {
-                    return $mark->term->name;
-                });
+            ->get();
+
+        // Quarter rows straight from stored marks, ordered Quarter 1..4 within each year.
+        $academicRecords = $studentMarks
+            ->filter(fn($mark) => optional($mark->term)->type === 'quarter')
+            ->groupBy(fn($mark) => $mark->academicYear->name)
+            ->map(function($yearMarks) use ($resolveTermMarks) {
+                return $yearMarks
+                    ->groupBy(fn($mark) => $mark->term->name)
+                    ->map($resolveTermMarks)
+                    ->sortBy(fn($marks) => optional($marks->first()->term)->term_number ?? 99);
             });
 
-        // Also fetch Term Summaries (Report Card Records) to display Avg/Rank alongside the marks
+        // Stored term summaries (avg / rank) for the badge chips on each term.
         $termRecords = \App\Models\StudentTermRecord::where('student_id', $student->id)
             ->with(['term', 'academicYear'])
             ->get()
-            ->groupBy(function($record) {
-                return $record->academicYear->name;
-            })
-            ->map(function($yearRecords) {
-                return $yearRecords->keyBy(function($record) {
-                    return $record->term->name;
-                });
-            });
+            ->groupBy(fn($record) => $record->academicYear->name)
+            ->map(fn($yearRecords) => $yearRecords->keyBy(fn($record) => $record->term->name));
+
+        // Inject computed Semester + Yearly rows (cells and badge) for every academic year
+        // the student has marks in — sourced from GradingService, never from stored marks.
+        $gradingService = app(\App\Services\GradingService::class);
+
+        $buildComputedRow = function(array $report, $term, AcademicYear $ay) {
+            $subjectsById = collect($report['subjects'] ?? [])->keyBy('id');
+            $marks = collect();
+            foreach (($report['marks'] ?? []) as $subjectId => $score) {
+                if ($score === null || $score === '') continue;
+                $subject = $subjectsById->get($subjectId);
+                if (!$subject) continue;
+                // In-memory (never saved) mark so the existing per-subject sum renders the
+                // computed value with no view changes.
+                $synthetic = new \App\Models\StudentMark();
+                $synthetic->subject_id = $subjectId;
+                $synthetic->score = $score;
+                $synthetic->setRelation('subject', $subject);
+                $marks->push($synthetic);
+            }
+
+            $record = new \App\Models\StudentTermRecord();
+            $record->term_id = $term->id;
+            $record->academic_year_id = $ay->id;
+            $record->average_score = $report['average'] ?? null;
+            $record->rank = is_numeric($report['rank'] ?? null) ? $report['rank'] : null;
+            $record->rank_out_of = $report['rank_out_of'] ?? null;
+
+            return [$marks, $record];
+        };
+
+        foreach ($studentMarks->pluck('academic_year_id')->unique()->filter() as $yearId) {
+            $ay = AcademicYear::find($yearId);
+            if (!$ay) {
+                continue;
+            }
+
+            $computedTerms = collect();
+            $computedRecords = collect();
+
+            $semesters = \App\Models\Term::where('academic_year_id', $yearId)
+                ->where('type', 'semester')
+                ->orderBy('term_number')
+                ->get();
+
+            foreach ($semesters as $sem) {
+                $report = $gradingService->getStudentReportData($student, $sem, $ay);
+                if (empty($report)) {
+                    continue;
+                }
+                [$marks, $record] = $buildComputedRow($report, $sem, $ay);
+                if ($marks->isNotEmpty()) {
+                    $computedTerms->put($sem->name, $marks);
+                    $computedRecords->put($sem->name, $record);
+                }
+            }
+
+            $yearlyTerm = new \App\Models\Term(['type' => 'yearly', 'name' => 'Yearly', 'academic_year_id' => $yearId]);
+            $yearlyTerm->incrementing = false;
+            $yearlyTerm->id = 'yearly';
+
+            $yearlyReport = $gradingService->getStudentReportData($student, $yearlyTerm, $ay);
+            if (!empty($yearlyReport)) {
+                [$marks, $record] = $buildComputedRow($yearlyReport, $yearlyTerm, $ay);
+                if ($marks->isNotEmpty()) {
+                    $computedTerms->put('Yearly', $marks);
+                    $computedRecords->put('Yearly', $record);
+                }
+            }
+
+            if ($computedTerms->isNotEmpty()) {
+                // Quarters first (already ordered), then Semester 1, Semester 2, Yearly.
+                // Wrap in collect() to force a base-collection (array_merge) merge that keeps
+                // the term-name keys — an Eloquent Collection::merge() would re-key by model
+                // primary key and lose them. Computed semester/yearly rows override any stored
+                // ones of the same name so the display stays consistent and fresh.
+                $academicRecords->put($ay->name, collect($academicRecords->get($ay->name, collect()))->merge($computedTerms));
+                $termRecords->put($ay->name, collect($termRecords->get($ay->name, collect()))->merge($computedRecords));
+            }
+        }
 
         // For Report Card Modal
         $availableYears = \App\Models\AcademicYear::orderBy('start_date', 'desc')->get();
