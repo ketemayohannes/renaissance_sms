@@ -45,6 +45,10 @@ class RolePermissionSeeder extends Seeder
             'view employees', 'manage employees',
             'view payroll', 'process payroll',
             'manage attendance',
+            // Staff attendance & leave (HR availability module).
+            // Deliberately separate from 'manage attendance', which is the STUDENT
+            // attendance permission held by teachers/homeroom teachers.
+            'manage staff attendance', 'manage leave requests', 'request leave', 'view staff availability',
 
             // Library
             'view library', 'manage books', 'issue books', 'return books',
@@ -93,18 +97,26 @@ class RolePermissionSeeder extends Seeder
         $vicePrincipal = Role::firstOrCreate(['name' => 'Vice Principal']);
         $vicePrincipal->syncPermissions($principal->permissions);
 
+        // Principal-only HR grants, added AFTER the Vice Principal copy above so the VP
+        // does not inherit leave-approval / register powers (approvers are HR Manager,
+        // Super Admin, and Principal only). Both still get the read-only availability view.
+        $principal->givePermissionTo(['manage staff attendance', 'manage leave requests', 'view staff availability']);
+        $vicePrincipal->givePermissionTo(['view staff availability']);
+
         // Supervisor
         $supervisor = Role::firstOrCreate(['name' => 'Supervisor']);
         $supervisor->syncPermissions([
             'view students', 'view grade levels', 'view sections', 'view subjects',
             'view marks', 'generate report cards', 'access chat', 'manage notice board',
             'view master gradebook', 'view subject gradebook', 'edit subject gradebook',
+            'view staff availability',
         ]);
 
         // Teacher
         $teacher = Role::firstOrCreate(['name' => 'Teacher']);
         $teacher->syncPermissions([
-            'view students', 'view subjects', 'view marks', 'enter marks', 'view library', 'access chat'
+            'view students', 'view subjects', 'view marks', 'enter marks', 'view library', 'access chat',
+            'request leave',
         ]);
 
         // Homeroom Teacher
@@ -122,7 +134,8 @@ class RolePermissionSeeder extends Seeder
         // Assistant Teacher
         $asstTeacher = Role::firstOrCreate(['name' => 'Assistant Teacher']);
         $asstTeacher->syncPermissions([
-            'view students', 'view subjects', 'view marks', 'enter marks', 'access chat'
+            'view students', 'view subjects', 'view marks', 'enter marks', 'access chat',
+            'request leave',
         ]);
 
         // Senior Finance Officer
@@ -159,7 +172,8 @@ class RolePermissionSeeder extends Seeder
         // HR Manager
         $hr = Role::firstOrCreate(['name' => 'HR Manager']);
         $hr->syncPermissions([
-            'view employees', 'manage employees', 'view payroll', 'process payroll', 'manage attendance', 'access chat'
+            'view employees', 'manage employees', 'view payroll', 'process payroll', 'manage attendance', 'access chat',
+            'manage staff attendance', 'manage leave requests', 'view staff availability',
         ]);
 
         // Librarian
