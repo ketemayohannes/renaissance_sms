@@ -379,8 +379,8 @@
             @endrole
         </div>
 
-        @canany(['view employees', 'view section assignments'])
-        <div class="sidebar-category-header flex items-center cursor-pointer group" 
+        @canany(['view employees', 'view section assignments', 'view staff availability', 'manage staff attendance', 'manage leave requests'])
+        <div class="sidebar-category-header flex items-center cursor-pointer group"
              :class="sidebarCollapsed ? 'text-center px-0 justify-center w-full' : 'justify-between sticky top-0 z-10 bg-white/95 backdrop-blur-md'"
              @click="toggleCategory('hr')">
             <span x-show="!sidebarCollapsed" class="group-hover:text-slate-600 transition-colors">Human Resources</span>
@@ -409,6 +409,33 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
                 </svg>
                 <span x-show="!sidebarCollapsed" x-transition>Section Assignments</span>
+            </a>
+            @endcan
+
+            @can('view staff availability')
+            <a href="{{ route('admin.hr.availability.index') }}" class="sidebar-link {{ request()->routeIs('admin.hr.availability.*') ? 'sidebar-link-active' : '' }}" title="Staff Availability">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span x-show="!sidebarCollapsed" x-transition>Staff Availability</span>
+            </a>
+            @endcan
+
+            @can('manage staff attendance')
+            <a href="{{ route('admin.hr.staff-attendance.index') }}" class="sidebar-link {{ request()->routeIs('admin.hr.staff-attendance.*') ? 'sidebar-link-active' : '' }}" title="Staff Attendance">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span x-show="!sidebarCollapsed" x-transition>Staff Attendance</span>
+            </a>
+            @endcan
+
+            @can('manage leave requests')
+            <a href="{{ route('admin.hr.leave-requests.index') }}" class="sidebar-link {{ request()->routeIs('admin.hr.leave-requests.*') ? 'sidebar-link-active' : '' }}" title="Leave Requests">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <span x-show="!sidebarCollapsed" x-transition>Leave Requests</span>
             </a>
             @endcan
         </div>

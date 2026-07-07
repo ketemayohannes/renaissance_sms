@@ -39,8 +39,13 @@ class RedirectController extends Controller
             return redirect()->route('parent.dashboard');
         }
 
-        // 5. Staff / Other Employees (Future)
-        if ($user->hasRole(['HR Manager', 'Senior Finance Officer', 'Junior Finance Officer', 'Librarian', 'School Nurse', 'Inventory Manager'])) {
+        // 5. HR Manager: lands on the staff availability board (their portal home).
+        if ($user->hasRole('HR Manager')) {
+            return redirect()->route('admin.hr.availability.index');
+        }
+
+        // 6. Staff / Other Employees (Future)
+        if ($user->hasRole(['Senior Finance Officer', 'Junior Finance Officer', 'Librarian', 'School Nurse', 'Inventory Manager'])) {
              // return redirect()->route('employee.dashboard');
         }
 

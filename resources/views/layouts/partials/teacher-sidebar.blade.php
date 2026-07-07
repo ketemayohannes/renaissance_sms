@@ -91,6 +91,15 @@
                 <span x-show="!sidebarCollapsed" x-transition>My Schedule</span>
             </a>
 
+            @can('request leave')
+            <a href="{{ route('teacher.leave.index') }}" class="sidebar-link {{ request()->routeIs('teacher.leave.*') ? 'sidebar-link-active' : '' }}" title="My Leave">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"></path>
+                </svg>
+                <span x-show="!sidebarCollapsed" x-transition>My Leave</span>
+            </a>
+            @endcan
+
             <a href="{{ route('teacher.exams.index') }}" class="sidebar-link {{ request()->routeIs('teacher.exams.*') ? 'sidebar-link-active' : '' }}" title="Exam Papers">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>

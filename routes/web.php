@@ -38,6 +38,25 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/activities/{activity}/exam', [App\Http\Controllers\Student\ActivityController::class, 'submitExam'])->name('activities.exam.submit');
     });
 
+    // Staff HR Routes (own group so HR Manager can be admitted WITHOUT joining the main
+    // admin group above/below, which contains permission-ungated routes like dashboard,
+    // settings, and messaging. Every route here carries its own permission gate; the
+    // shared 'admin.' name/prefix keeps the admin layout and sidebar links working.)
+    Route::middleware(['role:Super Admin|Principal|Vice Principal|Supervisor|IT / System Admin|Registrar|General Manager|HR Manager'])->prefix('admin')->name('admin.')->group(function () {
+        // Staff Leave Requests (HR / Principal approval)
+        Route::get('hr/leave-requests', [App\Http\Controllers\Admin\LeaveRequestController::class, 'index'])->name('hr.leave-requests.index')->middleware('permission:manage leave requests');
+        Route::post('hr/leave-requests', [App\Http\Controllers\Admin\LeaveRequestController::class, 'store'])->name('hr.leave-requests.store')->middleware('permission:manage leave requests');
+        Route::post('hr/leave-requests/{leaveRequest}/approve', [App\Http\Controllers\Admin\LeaveRequestController::class, 'approve'])->name('hr.leave-requests.approve')->middleware('permission:manage leave requests');
+        Route::post('hr/leave-requests/{leaveRequest}/reject', [App\Http\Controllers\Admin\LeaveRequestController::class, 'reject'])->name('hr.leave-requests.reject')->middleware('permission:manage leave requests');
+
+        // Staff Daily Attendance Register (HR-entered)
+        Route::get('hr/staff-attendance', [App\Http\Controllers\Admin\StaffAttendanceController::class, 'index'])->name('hr.staff-attendance.index')->middleware('permission:manage staff attendance');
+        Route::post('hr/staff-attendance', [App\Http\Controllers\Admin\StaffAttendanceController::class, 'store'])->name('hr.staff-attendance.store')->middleware('permission:manage staff attendance');
+
+        // Staff Availability (today status + teaching load / free periods)
+        Route::get('hr/availability', [App\Http\Controllers\Admin\StaffAvailabilityController::class, 'index'])->name('hr.availability.index')->middleware('permission:view staff availability');
+    });
+
     // Admin Routes
     Route::middleware(['role:Super Admin|Principal|Vice Principal|Supervisor|IT / System Admin|Registrar|General Manager'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
@@ -313,7 +332,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('employees/documents/{document}/delete', [App\Http\Controllers\Admin\EmployeeController::class, 'deleteDocument'])->name('employees.documents.delete')->middleware('permission:manage employees');
 
         Route::resource('employees', App\Http\Controllers\Admin\EmployeeController::class)->middleware('permission:view employees');
-        
+
         Route::resource('teacher-assignments', App\Http\Controllers\Admin\TeacherAssignmentController::class)->middleware('permission:manage employees');
 
         // Parent Management (permission-gated)
@@ -429,6 +448,13 @@ Route::middleware(['auth'])->group(function () {
 
         // My Schedule
         Route::get('/schedule', [\App\Http\Controllers\Teacher\ScheduleController::class, 'index'])->name('schedule.index');
+
+        // My Leave (self-service requests)
+        Route::middleware('permission:request leave')->group(function () {
+            Route::get('/leave', [\App\Http\Controllers\Teacher\LeaveRequestController::class, 'index'])->name('leave.index');
+            Route::post('/leave', [\App\Http\Controllers\Teacher\LeaveRequestController::class, 'store'])->name('leave.store');
+            Route::delete('/leave/{leaveRequest}', [\App\Http\Controllers\Teacher\LeaveRequestController::class, 'cancel'])->name('leave.cancel');
+        });
 
         // Homeroom Management
         Route::prefix('homeroom')->name('homeroom.')->group(function () {

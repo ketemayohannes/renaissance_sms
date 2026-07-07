@@ -59,6 +59,7 @@ return [
         'promotion'         => ['sms' => false, 'email' => true,  'in_app' => true],
         'disciplinary'      => ['sms' => true,  'email' => true,  'in_app' => true],
         'report_card_ready' => ['sms' => false, 'email' => true,  'in_app' => true],
+        'leave_status'      => ['sms' => false, 'email' => true,  'in_app' => true],
     ],
 
 ];
