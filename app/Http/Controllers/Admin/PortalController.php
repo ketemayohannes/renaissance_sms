@@ -22,10 +22,11 @@ class PortalController extends Controller
     }
 
     /**
-     * Inventory Management Portal (Placeholder)
+     * Inventory Management Portal — the module is now built; keep this legacy route
+     * working by forwarding any old links to the real dashboard.
      */
     public function inventory()
     {
-        return view('admin.portals.inventory');
+        return redirect()->route('admin.inventory.dashboard');
     }
 }

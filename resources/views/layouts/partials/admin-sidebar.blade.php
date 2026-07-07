@@ -441,8 +441,43 @@
         </div>
         @endcanany
 
+        @can('view inventory')
+        <div class="sidebar-category-header flex items-center cursor-pointer group"
+             :class="sidebarCollapsed ? 'text-center px-0 justify-center w-full' : 'justify-between sticky top-0 z-10 bg-white/95 backdrop-blur-md'"
+             @click="toggleCategory('inventory')">
+            <span x-show="!sidebarCollapsed" class="group-hover:text-slate-600 transition-colors uppercase tracking-widest">Inventory</span>
+            <span x-show="!sidebarCollapsed">
+                <svg class="w-3 h-3 text-slate-400 transition-transform duration-200"
+                     :class="openCategories['inventory'] ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </span>
+            <span x-show="sidebarCollapsed">•••</span>
+        </div>
+        <div x-show="openCategories['inventory'] || sidebarCollapsed" x-collapse>
+            <a href="{{ route('admin.inventory.dashboard') }}" class="sidebar-link {{ request()->routeIs('admin.inventory.dashboard') ? 'sidebar-link-active' : '' }}" title="Inventory Dashboard">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                </svg>
+                <span x-show="!sidebarCollapsed" x-transition>Dashboard</span>
+            </a>
+            <a href="{{ route('admin.inventory.items.index') }}" class="sidebar-link {{ request()->routeIs('admin.inventory.items.*') ? 'sidebar-link-active' : '' }}" title="Items & Assets">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                </svg>
+                <span x-show="!sidebarCollapsed" x-transition>Items & Assets</span>
+            </a>
+            <a href="{{ route('admin.inventory.reports.index') }}" class="sidebar-link {{ request()->routeIs('admin.inventory.reports.*') ? 'sidebar-link-active' : '' }}" title="Inventory Reports">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <span x-show="!sidebarCollapsed" x-transition>Reports</span>
+            </a>
+        </div>
+        @endcan
+
         @canany(['view finance', 'view payroll'])
-        <div class="sidebar-category-header flex items-center cursor-pointer group" 
+        <div class="sidebar-category-header flex items-center cursor-pointer group"
              :class="sidebarCollapsed ? 'text-center px-0 justify-center w-full' : 'justify-between sticky top-0 z-10 bg-white/95 backdrop-blur-md'"
              @click="toggleCategory('finance')">
             <span x-show="!sidebarCollapsed" class="group-hover:text-slate-600 transition-colors uppercase tracking-widest">Finance & Ops</span>

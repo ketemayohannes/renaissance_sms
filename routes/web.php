@@ -57,6 +57,33 @@ Route::middleware(['auth'])->group(function () {
         Route::get('hr/availability', [App\Http\Controllers\Admin\StaffAvailabilityController::class, 'index'])->name('hr.availability.index')->middleware('permission:view staff availability');
     });
 
+    // Inventory Routes (own group so Inventory Manager can be admitted without joining
+    // the main admin group — same reasoning as the Staff HR group above).
+    Route::middleware(['role:Super Admin|Principal|Vice Principal|Supervisor|IT / System Admin|Registrar|General Manager|Inventory Manager'])->prefix('admin')->name('admin.')->group(function () {
+        // Read-only (view inventory): dashboard, catalog, ledgers, reports
+        Route::middleware('permission:view inventory')->group(function () {
+            Route::get('inventory', [App\Http\Controllers\Admin\InventoryController::class, 'dashboard'])->name('inventory.dashboard');
+            Route::get('inventory/items', [App\Http\Controllers\Admin\InventoryItemController::class, 'index'])->name('inventory.items.index');
+            Route::get('inventory/items/{item}', [App\Http\Controllers\Admin\InventoryItemController::class, 'show'])->name('inventory.items.show');
+            Route::get('inventory/reports', [App\Http\Controllers\Admin\InventoryReportController::class, 'index'])->name('inventory.reports.index');
+            Route::get('inventory/reports/{report}/pdf', [App\Http\Controllers\Admin\InventoryReportController::class, 'pdf'])->name('inventory.reports.pdf');
+        });
+
+        // Write (manage inventory): CRUD, asset lifecycle, stock movements
+        Route::middleware('permission:manage inventory')->group(function () {
+            Route::post('inventory/categories', [App\Http\Controllers\Admin\InventoryItemController::class, 'storeCategory'])->name('inventory.categories.store');
+            Route::post('inventory/items', [App\Http\Controllers\Admin\InventoryItemController::class, 'store'])->name('inventory.items.store');
+            Route::put('inventory/items/{item}', [App\Http\Controllers\Admin\InventoryItemController::class, 'update'])->name('inventory.items.update');
+            Route::post('inventory/items/{item}/assets', [App\Http\Controllers\Admin\InventoryAssetController::class, 'store'])->name('inventory.assets.store');
+            Route::put('inventory/assets/{asset}', [App\Http\Controllers\Admin\InventoryAssetController::class, 'update'])->name('inventory.assets.update');
+            Route::post('inventory/assets/{asset}/assign', [App\Http\Controllers\Admin\InventoryAssetController::class, 'assign'])->name('inventory.assets.assign');
+            Route::post('inventory/assets/{asset}/return', [App\Http\Controllers\Admin\InventoryAssetController::class, 'returnAsset'])->name('inventory.assets.return');
+            Route::post('inventory/assets/{asset}/status', [App\Http\Controllers\Admin\InventoryAssetController::class, 'setStatus'])->name('inventory.assets.status');
+            Route::post('inventory/items/{item}/stock-in', [App\Http\Controllers\Admin\InventoryStockController::class, 'stockIn'])->name('inventory.stock.in');
+            Route::post('inventory/items/{item}/stock-out', [App\Http\Controllers\Admin\InventoryStockController::class, 'stockOut'])->name('inventory.stock.out');
+        });
+    });
+
     // Admin Routes
     Route::middleware(['role:Super Admin|Principal|Vice Principal|Supervisor|IT / System Admin|Registrar|General Manager'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');

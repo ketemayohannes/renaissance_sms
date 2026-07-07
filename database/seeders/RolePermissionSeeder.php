@@ -97,10 +97,11 @@ class RolePermissionSeeder extends Seeder
         $vicePrincipal = Role::firstOrCreate(['name' => 'Vice Principal']);
         $vicePrincipal->syncPermissions($principal->permissions);
 
-        // Principal-only HR grants, added AFTER the Vice Principal copy above so the VP
-        // does not inherit leave-approval / register powers (approvers are HR Manager,
-        // Super Admin, and Principal only). Both still get the read-only availability view.
-        $principal->givePermissionTo(['manage staff attendance', 'manage leave requests', 'view staff availability']);
+        // Principal-only grants, added AFTER the Vice Principal copy above so the VP
+        // does not inherit them (leave approvers are HR Manager, Super Admin, and
+        // Principal only; inventory visibility is Principal + General Manager).
+        // Both still get the read-only staff availability view.
+        $principal->givePermissionTo(['manage staff attendance', 'manage leave requests', 'view staff availability', 'view inventory']);
         $vicePrincipal->givePermissionTo(['view staff availability']);
 
         // Supervisor
