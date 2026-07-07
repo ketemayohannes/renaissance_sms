@@ -108,6 +108,44 @@ class ParentStudentGradeConsistencyTest extends TestCase
         $this->assertTermsPresentAndCorrect($response->viewData('grades'), $response->viewData('termRecords'));
     }
 
+    /** @test */
+    public function parent_and_student_views_split_into_report_and_assessment_tabs(): void
+    {
+        Role::findOrCreate('Parent');
+        Role::findOrCreate('Student');
+
+        $child = $this->makeEnrolledStudentWithQuarterMarks();
+
+        $parent = User::factory()->create();
+        $parent->assignRole('Parent');
+        StudentGuardian::create([
+            'student_id' => $child->id,
+            'user_id' => $parent->id,
+            'guardian_type' => 'primary',
+            'first_name' => 'Test', 'father_name' => 'Parent', 'grandfather_name' => 'Guardian', 'phone' => '0900000000',
+        ]);
+
+        $parentResponse = $this->actingAs($parent)->get(route('parent.student.grades.index', $child));
+        $parentResponse->assertOk();
+        $parentResponse->assertSee('Report');
+        $parentResponse->assertSee('Assessment');
+        // The component template name only appears on the Assessment tab (quarter matrix);
+        // its presence confirms that tab actually rendered real per-component data.
+        $parentResponse->assertSee('Quiz 1');
+        $parentResponse->assertDontSee('No quarter assessment data');
+
+        $studentUser = User::factory()->create();
+        $studentUser->assignRole('Student');
+        $child->update(['user_id' => $studentUser->id]);
+
+        $studentResponse = $this->actingAs($studentUser)->get(route('student.grades.index'));
+        $studentResponse->assertOk();
+        $studentResponse->assertSee('Report');
+        $studentResponse->assertSee('Assessment');
+        $studentResponse->assertSee('Quiz 1');
+        $studentResponse->assertDontSee('No quarter assessment data');
+    }
+
     private function makeEnrolledStudentWithQuarterMarks(): Student
     {
         $student = Student::factory()->create();
@@ -126,6 +164,7 @@ class ParentStudentGradeConsistencyTest extends TestCase
                 'academic_year_id' => $this->academicYear->id,
                 'term_id' => $termId,
                 'assessment_type_id' => $this->componentType->id,
+                'name' => 'Quiz 1',
             ]);
             StudentMark::factory()->create([
                 'student_id' => $student->id,
