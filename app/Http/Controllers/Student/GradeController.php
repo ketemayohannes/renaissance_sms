@@ -39,57 +39,25 @@ class GradeController extends Controller
 
         if ($enrollment) {
             $academicYearId = $enrollment->academic_year_id;
-            
+
             // Get all terms for filter dropdown
             $allTerms = \App\Models\Term::where('academic_year_id', $academicYearId)->get();
             $quarters = $allTerms->where('type', 'quarter');
             $semesters = $allTerms->where('type', 'semester');
 
-            $allMarks = \App\Models\StudentMark::where('student_id', $student->id)
-                ->where('academic_year_id', $academicYearId)
-                ->with(['subject', 'assessmentTemplate', 'term'])
-                ->get();
+            // Single source of truth (shared with the parent portal): quarters resolved
+            // components-first, semesters + yearly computed live via GradingService — so the
+            // numbers match the report card and the admin profile, and Semester 2 / Yearly show.
+            $history = app(\App\Services\StudentAcademicHistoryService::class)->build($student, (int) $academicYearId);
+            $grades = collect($history['academicRecords']->first() ?? collect());
+            $termRecords = collect($history['termRecords']->first() ?? collect());
 
-            // Filter out Term Totals for subjects that have component marks in that term
-            $filteredMarks = collect();
-            foreach ($allMarks->groupBy('term_id') as $termId => $termMarks) {
-                foreach ($termMarks->groupBy('subject_id') as $subjectId => $subjectMarks) {
-                    $components = $subjectMarks->filter(function($m) {
-                        return $m->assessmentTemplate && $m->assessmentTemplate->name !== 'Term Total';
-                    });
-                    
-                    if ($components->isNotEmpty()) {
-                        $filteredMarks = $filteredMarks->concat($components);
-                    } else {
-                        $termTotal = $subjectMarks->first(function($m) {
-                            return $m->assessmentTemplate && $m->assessmentTemplate->name === 'Term Total';
-                        });
-                        if ($termTotal) {
-                            $filteredMarks->push($termTotal);
-                        }
-                    }
-                }
-            }
-
-            // Apply Filter
-            if (str_starts_with($selectedPeriod, 'term_')) {
-                $termId = (int) str_replace('term_', '', $selectedPeriod);
-                $filteredMarks = $filteredMarks->where('term_id', $termId);
-                $periodName = $quarters->find($termId)->name ?? 'Selected Term';
-            } elseif (str_starts_with($selectedPeriod, 'semester_')) {
-                $semesterId = (int) str_replace('semester_', '', $selectedPeriod);
-                $filteredMarks = $filteredMarks->where('term_id', $semesterId);
-                $periodName = $semesters->find($semesterId)->name ?? 'Selected Semester';
-            } elseif ($selectedPeriod === 'yearly') {
-                $periodName = 'Yearly Report';
-            }
-
-            // Determine active term
+            // Determine active term (for highlighting).
             $activeTerm = \App\Models\Term::where('academic_year_id', $academicYearId)
                 ->where('type', 'quarter')
                 ->where('is_grading_open', true)
                 ->first();
-                
+
             if (!$activeTerm) {
                 $activeTerm = \App\Models\Term::where('academic_year_id', $academicYearId)
                     ->where('type', 'quarter')
@@ -98,28 +66,17 @@ class GradeController extends Controller
                     ->first();
             }
 
-            $activeTermName = $activeTerm ? $activeTerm->name : null;
-
-            $grades = $filteredMarks->groupBy('term.name')
-                ->sortBy(function ($termGrades, $termName) use ($activeTermName) {
-                    $term = $termGrades->first()->term ?? null;
-                    $termNumber = $term ? $term->term_number : 0;
-                    
-                    if ($activeTermName && $termName === $activeTermName) {
-                        return -100;
-                    }
-                    
-                    return -$termNumber;
-                });
-
-            // Fetch term records (rank, average) for this student
-            $termRecords = \App\Models\StudentTermRecord::where('student_id', $student->id)
-                ->where('academic_year_id', $academicYearId)
-                ->with('term')
-                ->get()
-                ->keyBy(function($record) {
-                    return $record->term->name ?? '';
-                });
+            // Apply period filter over the resolved terms.
+            if (str_starts_with($selectedPeriod, 'term_')) {
+                $periodName = optional($quarters->find((int) str_replace('term_', '', $selectedPeriod)))->name ?? 'Selected Term';
+                $grades = $grades->only([$periodName]);
+            } elseif (str_starts_with($selectedPeriod, 'semester_')) {
+                $periodName = optional($semesters->find((int) str_replace('semester_', '', $selectedPeriod)))->name ?? 'Selected Semester';
+                $grades = $grades->only([$periodName]);
+            } elseif ($selectedPeriod === 'yearly') {
+                $periodName = 'Yearly Report';
+                $grades = $grades->only(['Yearly']);
+            }
         }
 
         return view('student.grades.index', compact('student', 'grades', 'enrollment', 'quarters', 'semesters', 'selectedPeriod', 'periodName', 'termRecords', 'activeTerm'));

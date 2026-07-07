@@ -189,7 +189,17 @@
                                                 @endif
                                             </td>
                                         @endforeach
-                                        
+
+                                        @php
+                                            // Computed Semester / Yearly rows have no per-component columns, so the
+                                            // column loop above leaves the total at 0. Derive it directly from the
+                                            // resolved marks (out of 100) so the summary rows show real values.
+                                            if ($uniqueAssessments->isEmpty()) {
+                                                $subjectTotal = $marks->sum('score');
+                                                $subjectMax = 100;
+                                            }
+                                        @endphp
+
                                         <!-- Total Score cell -->
                                         @php
                                             $percentage = $subjectMax > 0 ? ($subjectTotal / $subjectMax) * 100 : 0;
