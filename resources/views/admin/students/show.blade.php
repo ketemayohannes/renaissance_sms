@@ -722,14 +722,6 @@
                                                     <div class="px-6 pb-6">
                                                         @php
                                                             $pivotedMarks = $marks->groupBy('subject_id');
-                                                            // Group by name to avoid diagonal view when multiple templates have the same name
-                                                            $assessmentTemplates = $marks->pluck('assessmentTemplate')->unique('name')->sortBy('order');
-                                                            $caTemplates = $assessmentTemplates->filter(fn($t) => stripos($t->name, 'Final') === false);
-                                                            $finalTemplate = $assessmentTemplates->first(fn($t) => stripos($t->name, 'Final') !== false);
-                                                            
-                                                            // Calculate total max score for headers
-                                                            $caMaxTotal = $caTemplates->sum('max_score');
-                                                            $finalMaxScore = $finalTemplate ? $finalTemplate->max_score : 0;
                                                         @endphp
                                                         <div class="overflow-x-auto no-scrollbar pb-4">
                                                             <table class="w-full text-left border-separate border-spacing-x-2">

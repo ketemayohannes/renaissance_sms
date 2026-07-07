@@ -107,9 +107,17 @@ class DashboardController extends Controller
                             $subject = $subjectMarks->first()->subject;
                             if (!$subject) continue;
                             
-                            $termTotal = $subjectMarks->first(fn($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
-                            $score = $termTotal ? $termTotal->score : $subjectMarks->sum('score');
-                            
+                            // Components-first: prefer live component marks; fall back to the
+                            // TERM_TOTAL row only when no components exist. This keeps parent
+                            // low-performance alerts in sync with corrected component grades.
+                            $components = $subjectMarks->filter(fn($m) => !$m->assessmentTemplate || $m->assessmentTemplate->assessment_type_id != $termTotalTypeId);
+                            if ($components->isNotEmpty()) {
+                                $score = $components->sum('score');
+                            } else {
+                                $termTotal = $subjectMarks->first(fn($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
+                                $score = $termTotal ? $termTotal->score : 0;
+                            }
+
                             if ($score <= 50) {
                                 $alertsByTerm[$quarter->id]['critical'][] = [
                                     'subject_name' => $subject->name,
