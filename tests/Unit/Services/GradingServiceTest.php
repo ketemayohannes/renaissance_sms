@@ -374,6 +374,152 @@ class GradingServiceTest extends TestCase
         $this->assertEquals(49, $reportData['marks'][$subject->id]);
     }
 
+    /** @test */
+    public function semester_total_reflects_live_quarter_marks_even_when_a_stale_direct_semester_mark_exists(): void
+    {
+        $student = Student::factory()->create();
+        $this->enrollStudent($student);
+
+        $semester = Term::factory()->create([
+            'academic_year_id' => $this->academicYear->id,
+            'type' => 'semester',
+            'term_number' => 2,
+        ]);
+        $q3 = Term::factory()->create([
+            'academic_year_id' => $this->academicYear->id,
+            'parent_term_id' => $semester->id,
+            'type' => 'quarter',
+            'term_number' => 3,
+        ]);
+        $q4 = Term::factory()->create([
+            'academic_year_id' => $this->academicYear->id,
+            'parent_term_id' => $semester->id,
+            'type' => 'quarter',
+            'term_number' => 4,
+        ]);
+
+        $subject = Subject::factory()->create();
+        $this->gradeLevel->subjects()->attach($subject->id, [
+            'academic_year_id' => $this->academicYear->id,
+            'is_required' => true,
+            'sort_order' => 1,
+        ]);
+
+        // Simulate "Auto-Calculate Semester" having run in the past and frozen a
+        // semester-level TERM_TOTAL mark (Chemistry-bug scenario: 74.5).
+        $semesterTemplate = AssessmentTemplate::factory()->termTotal()->create([
+            'academic_year_id' => $this->academicYear->id,
+            'term_id' => $semester->id,
+        ]);
+        StudentMark::factory()->create([
+            'student_id' => $student->id,
+            'academic_year_id' => $this->academicYear->id,
+            'term_id' => $semester->id,
+            'subject_id' => $subject->id,
+            'assessment_template_id' => $semesterTemplate->id,
+            'section_id' => $this->section->id,
+            'score' => 74.5,
+        ]);
+
+        // Quarters were corrected afterwards: Q3 = 97, Q4 = 90 => live average 93.5.
+        foreach ([$q3->id => 97, $q4->id => 90] as $termId => $score) {
+            $template = AssessmentTemplate::factory()->termTotal()->create([
+                'academic_year_id' => $this->academicYear->id,
+                'term_id' => $termId,
+            ]);
+            StudentMark::factory()->create([
+                'student_id' => $student->id,
+                'academic_year_id' => $this->academicYear->id,
+                'term_id' => $termId,
+                'subject_id' => $subject->id,
+                'assessment_template_id' => $template->id,
+                'section_id' => $this->section->id,
+                'score' => $score,
+            ]);
+        }
+
+        $result = $this->gradingService->calculateStudentTotals(
+            $student,
+            $semester,
+            $this->academicYear,
+            collect([$subject])
+        );
+
+        // Must reflect the live, corrected quarter data (93.5), not the stale frozen mark (74.5).
+        $this->assertEquals(93.5, $result['marks'][$subject->id]);
+    }
+
+    /** @test */
+    public function quarter_scores_prefer_live_components_over_a_stale_term_total_row_and_never_double_count(): void
+    {
+        // Reproduces the real "Chemistry Q4 = 52" bug: a stale TERM_TOTAL row is left over
+        // from an earlier master-sheet entry, and live component marks are entered/edited
+        // afterwards. Every read path must trust the live components (90), never the stale
+        // TERM_TOTAL (52), and must never sum both together.
+        $student = Student::factory()->create();
+        $this->enrollStudent($student);
+
+        $subject = Subject::factory()->create();
+        $this->gradeLevel->subjects()->attach($subject->id, [
+            'academic_year_id' => $this->academicYear->id,
+            'is_required' => true,
+            'sort_order' => 1,
+        ]);
+
+        $termTotalType = \App\Models\AssessmentType::firstOrCreate(
+            ['code' => 'TERM_TOTAL'],
+            ['name' => 'Term Total', 'weight' => 100, 'max_score' => 100, 'is_active' => true]
+        );
+        $componentType = \App\Models\AssessmentType::factory()->create(['code' => 'QUIZ1']);
+
+        $termTotalTemplate = AssessmentTemplate::factory()->create([
+            'academic_year_id' => $this->academicYear->id,
+            'term_id' => $this->term->id,
+            'assessment_type_id' => $termTotalType->id,
+        ]);
+        StudentMark::factory()->create([
+            'student_id' => $student->id,
+            'academic_year_id' => $this->academicYear->id,
+            'term_id' => $this->term->id,
+            'subject_id' => $subject->id,
+            'assessment_template_id' => $termTotalTemplate->id,
+            'section_id' => $this->section->id,
+            'score' => 52,
+        ]);
+
+        foreach ([10, 5, 5, 5, 22, 38, 5] as $score) {
+            $componentTemplate = AssessmentTemplate::factory()->create([
+                'academic_year_id' => $this->academicYear->id,
+                'term_id' => $this->term->id,
+                'assessment_type_id' => $componentType->id,
+            ]);
+            StudentMark::factory()->create([
+                'student_id' => $student->id,
+                'academic_year_id' => $this->academicYear->id,
+                'term_id' => $this->term->id,
+                'subject_id' => $subject->id,
+                'assessment_template_id' => $componentTemplate->id,
+                'section_id' => $this->section->id,
+                'score' => $score,
+            ]);
+        }
+
+        $studentResult = $this->gradingService->calculateStudentTotals(
+            $student, $this->term, $this->academicYear, collect([$subject])
+        );
+        $this->assertEquals(90, $studentResult['marks'][$subject->id]);
+        $this->assertEquals(90, $studentResult['total']);
+
+        $sectionResult = $this->gradingService->calculateSectionTotals(
+            collect([$student]), $this->term, $this->academicYear, collect([$subject])
+        );
+        $this->assertEquals(90, $sectionResult[$student->id]['marks'][$subject->id]);
+        $this->assertEquals(90, $sectionResult[$student->id]['total']);
+
+        $reportData = $this->gradingService->getStudentReportData($student, $this->term, $this->academicYear);
+        $this->assertEquals(90, $reportData['marks'][$subject->id]);
+    }
+
     /**
      * Helper to enroll a student in the test section
      */

@@ -382,8 +382,18 @@ class GradingService
                 foreach ($subjects as $subject) {
                     $subMarks = $studentMarks->get($subject->id);
                     if ($subMarks && $subMarks->isNotEmpty()) {
-                        $termTotal = $subMarks->first(fn($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
-                        $score = $termTotal ? $termTotal->score : $subMarks->sum('score');
+                        // Prefer live components; fall back to TERM_TOTAL only if no components exist.
+                        // A stale leftover TERM_TOTAL row must never outrank fresh component marks.
+                        $components = $subMarks->filter(
+                            fn($m) => !$m->assessmentTemplate
+                                   || $m->assessmentTemplate->assessment_type_id != $termTotalTypeId
+                        );
+                        if ($components->isNotEmpty()) {
+                            $score = $components->sum('score');
+                        } else {
+                            $termTotal = $subMarks->first(fn($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
+                            $score = $termTotal ? $termTotal->score : 0;
+                        }
                         $subjectScores[$subject->id] = $score;
                         $total += $score;
                     }
@@ -477,10 +487,17 @@ class GradingService
                         $score = $count > 0 ? array_sum($quarterSums) / $count : 0;
                     }
                     
-                    // 2. FALLBACK: Use direct semester mark if it exists
-                    $directSemMark = $subMarks->firstWhere('term_id', $term->id);
-                    if ($directSemMark && ($score == 0 || $directSemMark->score > 0)) {
-                        $score = $directSemMark->score;
+                    // 2. FALLBACK: only use a direct semester mark when the quarters produced no
+                    // live score at all (e.g. master grading opened directly on the semester term
+                    // with no quarter data behind it). Never let it override a real quarter-derived
+                    // score — that previously let a stale semester mark (frozen the last time
+                    // "Auto-Calculate Semester" ran) silently outlive later corrections to the
+                    // underlying quarter marks, e.g. Chemistry Q3/Q4 edited but semester still 74.5.
+                    if ($score == 0) {
+                        $directSemMark = $subMarks->firstWhere('term_id', $term->id);
+                        if ($directSemMark) {
+                            $score = $directSemMark->score;
+                        }
                     }
 
                     if ($score > 0 || $subMarks->isNotEmpty()) {
@@ -569,11 +586,32 @@ class GradingService
                     }
                 }
             } else {
+                $termTotalTypeId = $this->getTermTotalTypeId();
                 $marks = StudentMark::where('student_id', $student->id)
                     ->where('term_id', $term->id)
-                    ->get();
-                $total = $marks->sum('score');
-                $subjectScores = $marks->pluck('score', 'subject_id')->toArray();
+                    ->with('assessmentTemplate')
+                    ->get()
+                    ->groupBy('subject_id');
+
+                $total = 0;
+                $subjectScores = [];
+                foreach ($marks as $subjectId => $subMarks) {
+                    // Prefer live components; fall back to TERM_TOTAL only if no components exist.
+                    // Summing every row regardless of type previously double-counted subjects that
+                    // had both fresh component marks AND a stale leftover TERM_TOTAL row.
+                    $components = $subMarks->filter(
+                        fn($m) => !$m->assessmentTemplate
+                               || $m->assessmentTemplate->assessment_type_id != $termTotalTypeId
+                    );
+                    if ($components->isNotEmpty()) {
+                        $score = $components->sum('score');
+                    } else {
+                        $termTotal = $subMarks->first(fn($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
+                        $score = $termTotal ? $termTotal->score : 0;
+                    }
+                    $subjectScores[$subjectId] = $score;
+                    $total += $score;
+                }
             }
             
             // Determine effective elective count
@@ -885,30 +923,24 @@ class GradingService
             $marks = collect($stats['marks']);
         } else {
             $rawMarks = $preFetchedMarks ? $preFetchedMarks->where('term_id', $term->id) : StudentMark::with('assessmentTemplate')->where('student_id', $student->id)->where('term_id', $term->id)->get();
-            
-            // Check for Term Total Templates first
+
             $termTotalTypeId = \App\Models\AssessmentType::where('code', 'TERM_TOTAL')->value('id');
             $marks = collect();
-            
-            // First pass: Explicit Term Totals
-            foreach ($rawMarks as $mark) {
-                if ($mark->assessmentTemplate && $mark->assessmentTemplate->assessment_type_id == $termTotalTypeId) {
-                    $marks[$mark->subject_id] = $mark->score;
+
+            // Prefer live components; fall back to TERM_TOTAL only if no components exist for
+            // that subject. A stale leftover TERM_TOTAL row must never outrank fresh component
+            // marks entered/edited afterwards.
+            foreach ($rawMarks->groupBy('subject_id') as $subId => $subMarks) {
+                $components = $subMarks->filter(
+                    fn($m) => !$m->assessmentTemplate
+                           || $m->assessmentTemplate->assessment_type_id != $termTotalTypeId
+                );
+                if ($components->isNotEmpty()) {
+                    $marks[$subId] = $components->sum('score');
+                } else {
+                    $termTotal = $subMarks->first(fn($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
+                    if ($termTotal) $marks[$subId] = $termTotal->score;
                 }
-            }
-            
-            // Second pass: Sum components if no Term Total
-            $components = [];
-            foreach ($rawMarks as $mark) {
-                if (!isset($marks[$mark->subject_id])) {
-                    if (!isset($components[$mark->subject_id])) $components[$mark->subject_id] = 0;
-                    $components[$mark->subject_id] += $mark->score;
-                }
-            }
-            
-            // Merge components
-            foreach ($components as $subId => $total) {
-                $marks[$subId] = $total;
             }
         }
 
