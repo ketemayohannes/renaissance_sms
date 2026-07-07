@@ -697,7 +697,7 @@
                                                         @if($termRecord)
                                                             <div class="flex items-center gap-3 ml-4">
                                                                 @if($termRecord->average_score)
-                                                                    <span class="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded text-[10px] font-black">AVG: {{ number_format($termRecord->average_score, 2) }}</span>
+                                                                    <span class="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded text-[10px] font-black">AVG: {{ \App\Helpers\NumberFormatter::format($termRecord->average_score) }}</span>
                                                                 @endif
                                                                 @if($termRecord->rank)
                                                                     <span class="px-2 py-0.5 bg-amber-50 text-amber-600 rounded text-[10px] font-black">RANK: {{ $termRecord->rank }}/{{ $termRecord->rank_out_of }}</span>
@@ -742,7 +742,7 @@
                                                                             @endphp
                                                                             <td class="py-6 text-center bg-white border border-slate-100 rounded-b-xl shadow-sm">
                                                                                 <span class="text-xl font-black text-indigo-600">
-                                                                                    {{ number_format($total, 1) }}
+                                                                                    {{ \App\Helpers\NumberFormatter::format($total) }}
                                                                                 </span>
                                                                                 <div class="text-[8px] font-black text-slate-300 uppercase tracking-widest mt-1">Total Score</div>
                                                                             </td>

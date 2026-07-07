@@ -141,6 +141,70 @@ class ParentStudentGradeConsistencyTest extends TestCase
         return $student;
     }
 
+    /** @test */
+    public function parent_and_student_grade_views_do_not_truncate_scores_to_one_decimal(): void
+    {
+        // Regression for a real reported bug: Yearly Environmental Science was computed as
+        // 98.25, but the parent/student/admin views hard-rounded to 1 decimal (number_format
+        // ($x, 1)) and showed "98.3" while the report card (NumberFormatter::format, full
+        // precision) correctly showed "98.25". Use scores that produce a value with a
+        // non-trivial second decimal digit so 1-decimal truncation would be visible.
+        Role::findOrCreate('Parent');
+        Role::findOrCreate('Student');
+
+        $child = $this->makeEnrolledStudentWithQuarterMarks();
+
+        // Q1=98, Q2=98 => Sem1=98 ; Q3=98.5, Q4=99 => Sem2=98.75 ; Yearly=(98+98.75)/2=98.375,
+        // rounded to 2dp by GradingService => 98.38 (not representable in 1 decimal without
+        // rounding to 98.4).
+        StudentMark::where('student_id', $child->id)->delete();
+        $scores = [
+            $this->quarters['q1']->id => 98,
+            $this->quarters['q2']->id => 98,
+            $this->quarters['q3']->id => 98.5,
+            $this->quarters['q4']->id => 99,
+        ];
+        foreach ($scores as $termId => $score) {
+            $template = AssessmentTemplate::factory()->create([
+                'academic_year_id' => $this->academicYear->id,
+                'term_id' => $termId,
+                'assessment_type_id' => $this->componentType->id,
+            ]);
+            StudentMark::factory()->create([
+                'student_id' => $child->id,
+                'academic_year_id' => $this->academicYear->id,
+                'term_id' => $termId,
+                'subject_id' => $this->subject->id,
+                'assessment_template_id' => $template->id,
+                'section_id' => $this->section->id,
+                'score' => $score,
+            ]);
+        }
+
+        $parent = User::factory()->create();
+        $parent->assignRole('Parent');
+        StudentGuardian::create([
+            'student_id' => $child->id,
+            'user_id' => $parent->id,
+            'guardian_type' => 'primary',
+            'first_name' => 'Test', 'father_name' => 'Parent', 'grandfather_name' => 'Guardian', 'phone' => '0900000000',
+        ]);
+
+        $parentResponse = $this->actingAs($parent)->get(route('parent.student.grades.index', $child));
+        $parentResponse->assertOk();
+        $parentResponse->assertSee('98.38');
+        $parentResponse->assertDontSee('98.4');
+
+        $studentUser = User::factory()->create();
+        $studentUser->assignRole('Student');
+        $child->update(['user_id' => $studentUser->id]);
+
+        $studentResponse = $this->actingAs($studentUser)->get(route('student.grades.index'));
+        $studentResponse->assertOk();
+        $studentResponse->assertSee('98.38');
+        $studentResponse->assertDontSee('98.4');
+    }
+
     private function assertTermsPresentAndCorrect($groupedMarks, $termRecords): void
     {
         $groupedMarks = collect($groupedMarks);

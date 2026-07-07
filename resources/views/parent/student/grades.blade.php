@@ -128,7 +128,7 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
                                         </svg>
                                         <span class="text-[9px] font-black uppercase tracking-wider hidden sm:inline opacity-70">Average</span>
-                                        <span>{{ number_format($termRecord->average_score, 1) }}%</span>
+                                        <span>{{ \App\Helpers\NumberFormatter::format($termRecord->average_score) }}%</span>
                                     </div>
                                 @endif
 
@@ -249,7 +249,7 @@
                                                     @if($isRelevant)
                                                         @if($score !== null)
                                                             <span class="font-extrabold text-slate-800 dark:text-slate-200 font-mono text-sm">
-                                                                {{ number_format($score, 1) }}
+                                                                {{ \App\Helpers\NumberFormatter::format($score) }}
                                                             </span>
                                                         @else
                                                             <span class="text-slate-350 dark:text-slate-650 font-bold">-</span>
@@ -287,7 +287,7 @@
                                             <td class="px-6 py-4 text-center">
                                                 <div class="flex flex-col items-center justify-center gap-1.5">
                                                     <div class="flex items-baseline gap-0.5">
-                                                        <span class="{{ $scoreColor }} text-sm font-black font-mono">{{ number_format($subjectTotal, 1) }}</span>
+                                                        <span class="{{ $scoreColor }} text-sm font-black font-mono">{{ \App\Helpers\NumberFormatter::format($subjectTotal) }}</span>
                                                         <span class="text-slate-400 dark:text-slate-500 text-[10px] font-bold">/ {{ number_format($subjectMax, 0) }}</span>
                                                     </div>
                                                     <div class="w-24 h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden border border-slate-200/10 dark:border-slate-700/10 shadow-inner">
