@@ -105,7 +105,7 @@
                         @if($termHasEnded && $termRecord && $termRecord->average_score !== null)
                             <div class="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/30 rounded-2xl px-4 py-2 text-center">
                                 <span class="block text-[8px] font-black text-indigo-400 dark:text-indigo-500 uppercase tracking-widest leading-none mb-1">Average</span>
-                                <span class="text-base font-black text-indigo-600 dark:text-indigo-300">{{ number_format($termRecord->average_score, 1) }}%</span>
+                                <span class="text-base font-black text-indigo-600 dark:text-indigo-300">{{ \App\Helpers\NumberFormatter::format($termRecord->average_score) }}%</span>
                             </div>
                         @endif
                         @if($termHasEnded && $termRecord && $termRecord->rank !== null)
@@ -179,7 +179,7 @@
                                                 @if($isRelevant)
                                                     @if($score !== null)
                                                         <span class="text-sm font-extrabold text-slate-800 dark:text-slate-100">
-                                                            {{ number_format($score, 2) }}
+                                                            {{ \App\Helpers\NumberFormatter::format($score) }}
                                                         </span>
                                                     @else
                                                         <span class="text-sm text-slate-350 dark:text-slate-700 font-bold">-</span>
@@ -189,7 +189,17 @@
                                                 @endif
                                             </td>
                                         @endforeach
-                                        
+
+                                        @php
+                                            // Computed Semester / Yearly rows have no per-component columns, so the
+                                            // column loop above leaves the total at 0. Derive it directly from the
+                                            // resolved marks (out of 100) so the summary rows show real values.
+                                            if ($uniqueAssessments->isEmpty()) {
+                                                $subjectTotal = $marks->sum('score');
+                                                $subjectMax = 100;
+                                            }
+                                        @endphp
+
                                         <!-- Total Score cell -->
                                         @php
                                             $percentage = $subjectMax > 0 ? ($subjectTotal / $subjectMax) * 100 : 0;
@@ -201,7 +211,7 @@
                                         @endphp
                                         <td class="py-4 text-center">
                                             <span class="px-2.5 py-1 rounded-lg text-xs font-black {{ $scoreColor }}">
-                                                {{ number_format($subjectTotal, 2) }} <span class="text-[10px] font-bold opacity-60">/ {{ number_format($subjectMax, 0) }}</span>
+                                                {{ \App\Helpers\NumberFormatter::format($subjectTotal) }} <span class="text-[10px] font-bold opacity-60">/ {{ number_format($subjectMax, 0) }}</span>
                                             </span>
                                         </td>
                                         

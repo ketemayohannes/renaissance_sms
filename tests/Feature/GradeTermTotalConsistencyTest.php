@@ -100,9 +100,10 @@ class GradeTermTotalConsistencyTest extends TestCase
         );
         $this->assertEquals(73, $records->where('subject_id', $subject->id)->sum('score'));
 
-        // Rendered total is the component sum, not the doubled value.
-        $response->assertSee('73.0');
-        $response->assertDontSee('146.0');
+        // Rendered total is the component sum, not the doubled value. The view uses
+        // NumberFormatter (matching the report card), which trims trailing zeros.
+        $response->assertSee('73');
+        $response->assertDontSee('146');
     }
 
     /** @test */
