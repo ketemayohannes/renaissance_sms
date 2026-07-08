@@ -5,9 +5,12 @@ FROM node:22-alpine AS assets
 
 WORKDIR /app
 
-# Copy package files first for better layer caching
+# Copy package files first for better layer caching.
+# Use `npm ci` (not `npm install`): it installs strictly from package-lock.json and
+# fails if the lock is out of sync — so the image always matches the committed lock,
+# and dependency bumps only take effect once package-lock.json is updated on the host.
 COPY package.json package-lock.json ./
-RUN npm install
+RUN npm ci
 
 # Copy full source so Vite can see all JS/CSS files
 COPY . .
