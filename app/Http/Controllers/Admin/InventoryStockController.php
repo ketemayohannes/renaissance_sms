@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 
 class InventoryStockController extends Controller
 {
+    public function __construct(private \App\Services\InventoryService $inventory) {}
+
     public function stockIn(Request $request, InventoryItem $item)
     {
         if ($item->kind !== 'consumable') {
@@ -24,15 +26,7 @@ class InventoryStockController extends Controller
             'remarks' => 'nullable|string|max:500',
         ]);
 
-        DB::transaction(function () use ($item, $validated) {
-            InventoryStockMovement::create($validated + [
-                'inventory_item_id' => $item->id,
-                'direction' => 'in',
-                'recorded_by' => auth()->id(),
-            ]);
-
-            $item->increment('quantity', $validated['quantity']);
-        });
+        $this->inventory->receiveStock($item, $validated, auth()->id());
 
         return back()->with('success', "Stock-in recorded (+{$validated['quantity']} {$item->unit}).");
     }
@@ -52,22 +46,7 @@ class InventoryStockController extends Controller
         ]);
 
         try {
-            DB::transaction(function () use ($item, $validated) {
-                // Lock the row so concurrent issues can't take the balance negative.
-                $fresh = InventoryItem::whereKey($item->id)->lockForUpdate()->first();
-
-                if ($fresh->quantity < $validated['quantity']) {
-                    throw new \RuntimeException("Only {$fresh->quantity} {$fresh->unit} in stock — cannot issue {$validated['quantity']}.");
-                }
-
-                InventoryStockMovement::create($validated + [
-                    'inventory_item_id' => $item->id,
-                    'direction' => 'out',
-                    'recorded_by' => auth()->id(),
-                ]);
-
-                $fresh->decrement('quantity', $validated['quantity']);
-            });
+            $this->inventory->issueStock($item, $validated, auth()->id());
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }

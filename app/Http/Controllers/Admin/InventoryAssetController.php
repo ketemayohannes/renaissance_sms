@@ -62,18 +62,7 @@ class InventoryAssetController extends Controller
             'notes' => 'nullable|string|max:1000',
         ]);
 
-        DB::transaction(function () use ($asset, $validated) {
-            InventoryAssignment::create([
-                'inventory_asset_id' => $asset->id,
-                'employee_id' => $validated['employee_id'] ?? null,
-                'location' => $validated['location'] ?? null,
-                'assigned_at' => now(),
-                'assigned_by' => auth()->id(),
-                'notes' => $validated['notes'] ?? null,
-            ]);
-
-            $asset->update(['status' => 'assigned']);
-        });
+        app(\App\Services\InventoryService::class)->assignAsset($asset, $validated, auth()->id());
 
         return back()->with('success', "Unit {$asset->asset_tag} assigned.");
     }

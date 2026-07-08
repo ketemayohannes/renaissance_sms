@@ -60,6 +60,8 @@ return [
         'disciplinary'      => ['sms' => true,  'email' => true,  'in_app' => true],
         'report_card_ready' => ['sms' => false, 'email' => true,  'in_app' => true],
         'leave_status'      => ['sms' => false, 'email' => true,  'in_app' => true],
+        'inventory_request' => ['sms' => false, 'email' => true,  'in_app' => true],
+        'inventory_purchase'=> ['sms' => false, 'email' => true,  'in_app' => true],
     ],
 
 ];
