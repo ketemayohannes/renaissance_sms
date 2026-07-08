@@ -90,7 +90,7 @@
         
         <div x-show="openCategories['students'] || sidebarCollapsed" x-collapse>
             @can('view students')
-            <a href="{{ route('admin.students.index') }}" class="sidebar-link {{ request()->routeIs('admin.students.*') && !request()->has('status') ? 'sidebar-link-active' : '' }}" title="Active Students">
+            <a href="{{ route('admin.students.index') }}" class="sidebar-link {{ (request()->routeIs('admin.students.index') || (request()->routeIs('admin.students.*') && !request()->routeIs('admin.students.enrollments') && !request()->has('status'))) ? 'sidebar-link-active' : '' }}" title="Active Students">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                 </svg>
@@ -109,6 +109,13 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
                 </svg>
                 <span x-show="!sidebarCollapsed" x-transition>Graduates</span>
+            </a>
+
+            <a href="{{ route('admin.students.enrollments') }}" class="sidebar-link {{ request()->routeIs('admin.students.enrollments') ? 'sidebar-link-active' : '' }}" title="Enrollments">
+                <svg class="w-5 h-5 flex-shrink-0 text-slate-400 group-hover:text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                </svg>
+                <span x-show="!sidebarCollapsed" x-transition>Enrollments</span>
             </a>
             @endcan
 
