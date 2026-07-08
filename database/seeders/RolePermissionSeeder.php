@@ -45,6 +45,10 @@ class RolePermissionSeeder extends Seeder
             'view employees', 'manage employees',
             'view payroll', 'process payroll',
             'manage attendance',
+            // Staff attendance & leave (HR availability module).
+            // Deliberately separate from 'manage attendance', which is the STUDENT
+            // attendance permission held by teachers/homeroom teachers.
+            'manage staff attendance', 'manage leave requests', 'request leave', 'view staff availability',
 
             // Library
             'view library', 'manage books', 'issue books', 'return books',
@@ -59,6 +63,10 @@ class RolePermissionSeeder extends Seeder
 
             // Inventory
             'view inventory', 'manage inventory',
+            // Inventory requests & procurement approvals
+            'request inventory',            // staff/admins submit item & purchase requests
+            'approve inventory requests',   // Principal: item-request decisions + purchase stage 1
+            'approve inventory purchases',  // General Manager: purchase final decision
 
             // Gradebook (fine-grained)
             'view master gradebook', 'edit master gradebook',
@@ -93,18 +101,32 @@ class RolePermissionSeeder extends Seeder
         $vicePrincipal = Role::firstOrCreate(['name' => 'Vice Principal']);
         $vicePrincipal->syncPermissions($principal->permissions);
 
+        // Principal-only grants, added AFTER the Vice Principal copy above so the VP
+        // does not inherit them (leave approvers are HR Manager, Super Admin, and
+        // Principal only; inventory visibility is Principal + General Manager).
+        // Both still get the read-only staff availability view.
+        $principal->givePermissionTo([
+            'manage staff attendance', 'manage leave requests', 'view staff availability', 'view inventory',
+            // Principal approves inventory item requests + first-stage purchases, and can
+            // also submit requests themselves.
+            'approve inventory requests', 'request inventory',
+        ]);
+        $vicePrincipal->givePermissionTo(['view staff availability', 'request inventory']);
+
         // Supervisor
         $supervisor = Role::firstOrCreate(['name' => 'Supervisor']);
         $supervisor->syncPermissions([
             'view students', 'view grade levels', 'view sections', 'view subjects',
             'view marks', 'generate report cards', 'access chat', 'manage notice board',
             'view master gradebook', 'view subject gradebook', 'edit subject gradebook',
+            'view staff availability', 'request inventory',
         ]);
 
         // Teacher
         $teacher = Role::firstOrCreate(['name' => 'Teacher']);
         $teacher->syncPermissions([
-            'view students', 'view subjects', 'view marks', 'enter marks', 'view library', 'access chat'
+            'view students', 'view subjects', 'view marks', 'enter marks', 'view library', 'access chat',
+            'request leave', 'request inventory',
         ]);
 
         // Homeroom Teacher
@@ -122,7 +144,8 @@ class RolePermissionSeeder extends Seeder
         // Assistant Teacher
         $asstTeacher = Role::firstOrCreate(['name' => 'Assistant Teacher']);
         $asstTeacher->syncPermissions([
-            'view students', 'view subjects', 'view marks', 'enter marks', 'access chat'
+            'view students', 'view subjects', 'view marks', 'enter marks', 'access chat',
+            'request leave', 'request inventory',
         ]);
 
         // Senior Finance Officer
@@ -153,13 +176,23 @@ class RolePermissionSeeder extends Seeder
         // Inventory Manager
         $inventory = Role::firstOrCreate(['name' => 'Inventory Manager']);
         $inventory->syncPermissions([
-            'view inventory', 'manage inventory', 'access chat'
+            'view inventory', 'manage inventory', 'access chat',
+            // Fulfils approved item requests via 'manage inventory'; also raises purchase
+            // requests for restocking.
+            'request inventory',
         ]);
+
+        // General Manager: final approver on the purchase-request chain. The role's base
+        // permission set is defined in the add_general_manager_role migration; grant the
+        // new purchase-approval permission additively here (source of truth for grants).
+        $gm = Role::firstOrCreate(['name' => 'General Manager']);
+        $gm->givePermissionTo('approve inventory purchases');
 
         // HR Manager
         $hr = Role::firstOrCreate(['name' => 'HR Manager']);
         $hr->syncPermissions([
-            'view employees', 'manage employees', 'view payroll', 'process payroll', 'manage attendance', 'access chat'
+            'view employees', 'manage employees', 'view payroll', 'process payroll', 'manage attendance', 'access chat',
+            'manage staff attendance', 'manage leave requests', 'view staff availability',
         ]);
 
         // Librarian

@@ -38,6 +38,79 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/activities/{activity}/exam', [App\Http\Controllers\Student\ActivityController::class, 'submitExam'])->name('activities.exam.submit');
     });
 
+    // Staff HR Routes (own group so HR Manager can be admitted WITHOUT joining the main
+    // admin group above/below, which contains permission-ungated routes like dashboard,
+    // settings, and messaging. Every route here carries its own permission gate; the
+    // shared 'admin.' name/prefix keeps the admin layout and sidebar links working.)
+    Route::middleware(['role:Super Admin|Principal|Vice Principal|Supervisor|IT / System Admin|Registrar|General Manager|HR Manager'])->prefix('admin')->name('admin.')->group(function () {
+        // Staff Leave Requests (HR / Principal approval)
+        Route::get('hr/leave-requests', [App\Http\Controllers\Admin\LeaveRequestController::class, 'index'])->name('hr.leave-requests.index')->middleware('permission:manage leave requests');
+        Route::post('hr/leave-requests', [App\Http\Controllers\Admin\LeaveRequestController::class, 'store'])->name('hr.leave-requests.store')->middleware('permission:manage leave requests');
+        Route::post('hr/leave-requests/{leaveRequest}/approve', [App\Http\Controllers\Admin\LeaveRequestController::class, 'approve'])->name('hr.leave-requests.approve')->middleware('permission:manage leave requests');
+        Route::post('hr/leave-requests/{leaveRequest}/reject', [App\Http\Controllers\Admin\LeaveRequestController::class, 'reject'])->name('hr.leave-requests.reject')->middleware('permission:manage leave requests');
+
+        // Staff Daily Attendance Register (HR-entered)
+        Route::get('hr/staff-attendance', [App\Http\Controllers\Admin\StaffAttendanceController::class, 'index'])->name('hr.staff-attendance.index')->middleware('permission:manage staff attendance');
+        Route::post('hr/staff-attendance', [App\Http\Controllers\Admin\StaffAttendanceController::class, 'store'])->name('hr.staff-attendance.store')->middleware('permission:manage staff attendance');
+
+        // Staff Availability (today status + teaching load / free periods)
+        Route::get('hr/availability', [App\Http\Controllers\Admin\StaffAvailabilityController::class, 'index'])->name('hr.availability.index')->middleware('permission:view staff availability');
+    });
+
+    // Inventory Routes (own group so Inventory Manager can be admitted without joining
+    // the main admin group — same reasoning as the Staff HR group above).
+    Route::middleware(['role:Super Admin|Principal|Vice Principal|Supervisor|IT / System Admin|Registrar|General Manager|Inventory Manager'])->prefix('admin')->name('admin.')->group(function () {
+        // Read-only (view inventory): dashboard, catalog, ledgers, reports
+        Route::middleware('permission:view inventory')->group(function () {
+            Route::get('inventory', [App\Http\Controllers\Admin\InventoryController::class, 'dashboard'])->name('inventory.dashboard');
+            Route::get('inventory/items', [App\Http\Controllers\Admin\InventoryItemController::class, 'index'])->name('inventory.items.index');
+            Route::get('inventory/items/{item}', [App\Http\Controllers\Admin\InventoryItemController::class, 'show'])->name('inventory.items.show');
+            Route::get('inventory/reports', [App\Http\Controllers\Admin\InventoryReportController::class, 'index'])->name('inventory.reports.index');
+            Route::get('inventory/reports/{report}/pdf', [App\Http\Controllers\Admin\InventoryReportController::class, 'pdf'])->name('inventory.reports.pdf');
+        });
+
+        // Inventory requests — submit (any requester), approve (Principal), fulfil (IM)
+        Route::middleware('permission:request inventory')->group(function () {
+            Route::get('inventory/my-requests', [App\Http\Controllers\Admin\InventoryRequestController::class, 'myRequests'])->name('inventory.my-requests.index');
+            Route::post('inventory/my-requests/item', [App\Http\Controllers\Admin\InventoryRequestController::class, 'storeItem'])->name('inventory.my-requests.item.store');
+            Route::delete('inventory/my-requests/item/{itemRequest}', [App\Http\Controllers\Admin\InventoryRequestController::class, 'cancelItem'])->name('inventory.my-requests.item.cancel');
+            Route::post('inventory/my-requests/purchase', [App\Http\Controllers\Admin\InventoryPurchaseRequestController::class, 'store'])->name('inventory.my-requests.purchase.store');
+            Route::delete('inventory/my-requests/purchase/{purchaseRequest}', [App\Http\Controllers\Admin\InventoryPurchaseRequestController::class, 'cancel'])->name('inventory.my-requests.purchase.cancel');
+        });
+
+        Route::middleware('permission:approve inventory requests')->group(function () {
+            Route::get('inventory/requests', [App\Http\Controllers\Admin\InventoryRequestController::class, 'index'])->name('inventory.requests.index');
+            Route::post('inventory/requests/{itemRequest}/approve', [App\Http\Controllers\Admin\InventoryRequestController::class, 'approve'])->name('inventory.requests.approve');
+            Route::post('inventory/requests/{itemRequest}/reject', [App\Http\Controllers\Admin\InventoryRequestController::class, 'reject'])->name('inventory.requests.reject');
+            Route::post('inventory/purchases/{purchaseRequest}/principal', [App\Http\Controllers\Admin\InventoryPurchaseRequestController::class, 'principalDecision'])->name('inventory.purchases.principal');
+        });
+
+        // Purchase queues + lists — visible to any inventory viewer; GM decision gated separately.
+        Route::middleware('permission:view inventory')->group(function () {
+            Route::get('inventory/purchases', [App\Http\Controllers\Admin\InventoryPurchaseRequestController::class, 'index'])->name('inventory.purchases.index');
+            Route::get('inventory/purchases/list', [App\Http\Controllers\Admin\InventoryPurchaseRequestController::class, 'purchaseList'])->name('inventory.purchases.list');
+            Route::get('inventory/purchases/declined', [App\Http\Controllers\Admin\InventoryPurchaseRequestController::class, 'declineList'])->name('inventory.purchases.declined');
+        });
+
+        Route::post('inventory/purchases/{purchaseRequest}/gm', [App\Http\Controllers\Admin\InventoryPurchaseRequestController::class, 'gmDecision'])->name('inventory.purchases.gm')->middleware('permission:approve inventory purchases');
+
+        // Write (manage inventory): CRUD, asset lifecycle, stock movements, fulfilment
+        Route::middleware('permission:manage inventory')->group(function () {
+            Route::get('inventory/requests/fulfilment', [App\Http\Controllers\Admin\InventoryRequestController::class, 'fulfilment'])->name('inventory.requests.fulfilment');
+            Route::post('inventory/requests/{itemRequest}/fulfil', [App\Http\Controllers\Admin\InventoryRequestController::class, 'fulfil'])->name('inventory.requests.fulfil');
+            Route::post('inventory/categories', [App\Http\Controllers\Admin\InventoryItemController::class, 'storeCategory'])->name('inventory.categories.store');
+            Route::post('inventory/items', [App\Http\Controllers\Admin\InventoryItemController::class, 'store'])->name('inventory.items.store');
+            Route::put('inventory/items/{item}', [App\Http\Controllers\Admin\InventoryItemController::class, 'update'])->name('inventory.items.update');
+            Route::post('inventory/items/{item}/assets', [App\Http\Controllers\Admin\InventoryAssetController::class, 'store'])->name('inventory.assets.store');
+            Route::put('inventory/assets/{asset}', [App\Http\Controllers\Admin\InventoryAssetController::class, 'update'])->name('inventory.assets.update');
+            Route::post('inventory/assets/{asset}/assign', [App\Http\Controllers\Admin\InventoryAssetController::class, 'assign'])->name('inventory.assets.assign');
+            Route::post('inventory/assets/{asset}/return', [App\Http\Controllers\Admin\InventoryAssetController::class, 'returnAsset'])->name('inventory.assets.return');
+            Route::post('inventory/assets/{asset}/status', [App\Http\Controllers\Admin\InventoryAssetController::class, 'setStatus'])->name('inventory.assets.status');
+            Route::post('inventory/items/{item}/stock-in', [App\Http\Controllers\Admin\InventoryStockController::class, 'stockIn'])->name('inventory.stock.in');
+            Route::post('inventory/items/{item}/stock-out', [App\Http\Controllers\Admin\InventoryStockController::class, 'stockOut'])->name('inventory.stock.out');
+        });
+    });
+
     // Admin Routes
     Route::middleware(['role:Super Admin|Principal|Vice Principal|Supervisor|IT / System Admin|Registrar|General Manager'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
@@ -313,7 +386,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('employees/documents/{document}/delete', [App\Http\Controllers\Admin\EmployeeController::class, 'deleteDocument'])->name('employees.documents.delete')->middleware('permission:manage employees');
 
         Route::resource('employees', App\Http\Controllers\Admin\EmployeeController::class)->middleware('permission:view employees');
-        
+
         Route::resource('teacher-assignments', App\Http\Controllers\Admin\TeacherAssignmentController::class)->middleware('permission:manage employees');
 
         // Parent Management (permission-gated)
@@ -431,6 +504,22 @@ Route::middleware(['auth'])->group(function () {
 
         // My Schedule
         Route::get('/schedule', [\App\Http\Controllers\Teacher\ScheduleController::class, 'index'])->name('schedule.index');
+
+        // My Leave (self-service requests)
+        Route::middleware('permission:request leave')->group(function () {
+            Route::get('/leave', [\App\Http\Controllers\Teacher\LeaveRequestController::class, 'index'])->name('leave.index');
+            Route::post('/leave', [\App\Http\Controllers\Teacher\LeaveRequestController::class, 'store'])->name('leave.store');
+            Route::delete('/leave/{leaveRequest}', [\App\Http\Controllers\Teacher\LeaveRequestController::class, 'cancel'])->name('leave.cancel');
+        });
+
+        // Inventory Requests (self-service: item requests + purchase requests)
+        Route::middleware('permission:request inventory')->prefix('inventory-requests')->name('inventory-requests.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Teacher\InventoryRequestController::class, 'index'])->name('index');
+            Route::post('/item', [\App\Http\Controllers\Teacher\InventoryRequestController::class, 'storeItem'])->name('item.store');
+            Route::delete('/item/{itemRequest}', [\App\Http\Controllers\Teacher\InventoryRequestController::class, 'cancelItem'])->name('item.cancel');
+            Route::post('/purchase', [\App\Http\Controllers\Teacher\InventoryRequestController::class, 'storePurchase'])->name('purchase.store');
+            Route::delete('/purchase/{purchaseRequest}', [\App\Http\Controllers\Teacher\InventoryRequestController::class, 'cancelPurchase'])->name('purchase.cancel');
+        });
 
         // Homeroom Management
         Route::prefix('homeroom')->name('homeroom.')->group(function () {

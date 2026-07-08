@@ -379,8 +379,8 @@
             @endrole
         </div>
 
-        @canany(['view employees', 'view section assignments'])
-        <div class="sidebar-category-header flex items-center cursor-pointer group" 
+        @canany(['view employees', 'view section assignments', 'view staff availability', 'manage staff attendance', 'manage leave requests'])
+        <div class="sidebar-category-header flex items-center cursor-pointer group"
              :class="sidebarCollapsed ? 'text-center px-0 justify-center w-full' : 'justify-between sticky top-0 z-10 bg-white/95 backdrop-blur-md'"
              @click="toggleCategory('hr')">
             <span x-show="!sidebarCollapsed" class="group-hover:text-slate-600 transition-colors">Human Resources</span>
@@ -411,11 +411,111 @@
                 <span x-show="!sidebarCollapsed" x-transition>Section Assignments</span>
             </a>
             @endcan
+
+            @can('view staff availability')
+            <a href="{{ route('admin.hr.availability.index') }}" class="sidebar-link {{ request()->routeIs('admin.hr.availability.*') ? 'sidebar-link-active' : '' }}" title="Staff Availability">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span x-show="!sidebarCollapsed" x-transition>Staff Availability</span>
+            </a>
+            @endcan
+
+            @can('manage staff attendance')
+            <a href="{{ route('admin.hr.staff-attendance.index') }}" class="sidebar-link {{ request()->routeIs('admin.hr.staff-attendance.*') ? 'sidebar-link-active' : '' }}" title="Staff Attendance">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span x-show="!sidebarCollapsed" x-transition>Staff Attendance</span>
+            </a>
+            @endcan
+
+            @can('manage leave requests')
+            <a href="{{ route('admin.hr.leave-requests.index') }}" class="sidebar-link {{ request()->routeIs('admin.hr.leave-requests.*') ? 'sidebar-link-active' : '' }}" title="Leave Requests">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <span x-show="!sidebarCollapsed" x-transition>Leave Requests</span>
+            </a>
+            @endcan
+        </div>
+        @endcanany
+
+        @canany(['view inventory', 'request inventory', 'approve inventory requests'])
+        <div class="sidebar-category-header flex items-center cursor-pointer group"
+             :class="sidebarCollapsed ? 'text-center px-0 justify-center w-full' : 'justify-between sticky top-0 z-10 bg-white/95 backdrop-blur-md'"
+             @click="toggleCategory('inventory')">
+            <span x-show="!sidebarCollapsed" class="group-hover:text-slate-600 transition-colors uppercase tracking-widest">Inventory</span>
+            <span x-show="!sidebarCollapsed">
+                <svg class="w-3 h-3 text-slate-400 transition-transform duration-200"
+                     :class="openCategories['inventory'] ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </span>
+            <span x-show="sidebarCollapsed">•••</span>
+        </div>
+        <div x-show="openCategories['inventory'] || sidebarCollapsed" x-collapse>
+            @can('view inventory')
+            <a href="{{ route('admin.inventory.dashboard') }}" class="sidebar-link {{ request()->routeIs('admin.inventory.dashboard') ? 'sidebar-link-active' : '' }}" title="Inventory Dashboard">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                </svg>
+                <span x-show="!sidebarCollapsed" x-transition>Dashboard</span>
+            </a>
+            <a href="{{ route('admin.inventory.items.index') }}" class="sidebar-link {{ request()->routeIs('admin.inventory.items.*') ? 'sidebar-link-active' : '' }}" title="Items & Assets">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                </svg>
+                <span x-show="!sidebarCollapsed" x-transition>Items & Assets</span>
+            </a>
+            @endcan
+
+            @can('request inventory')
+            <a href="{{ route('admin.inventory.my-requests.index') }}" class="sidebar-link {{ request()->routeIs('admin.inventory.my-requests.*') ? 'sidebar-link-active' : '' }}" title="My Requests">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                </svg>
+                <span x-show="!sidebarCollapsed" x-transition>My Requests</span>
+            </a>
+            @endcan
+
+            @can('approve inventory requests')
+            <a href="{{ route('admin.inventory.requests.index') }}" class="sidebar-link {{ request()->routeIs('admin.inventory.requests.index') ? 'sidebar-link-active' : '' }}" title="Item Request Approvals">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span x-show="!sidebarCollapsed" x-transition>Item Approvals</span>
+            </a>
+            @endcan
+
+            @can('manage inventory')
+            <a href="{{ route('admin.inventory.requests.fulfilment') }}" class="sidebar-link {{ request()->routeIs('admin.inventory.requests.fulfilment') ? 'sidebar-link-active' : '' }}" title="Fulfilment">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"></path>
+                </svg>
+                <span x-show="!sidebarCollapsed" x-transition>Fulfilment</span>
+            </a>
+            @endcan
+
+            @can('view inventory')
+            <a href="{{ route('admin.inventory.purchases.index') }}" class="sidebar-link {{ request()->routeIs('admin.inventory.purchases.*') ? 'sidebar-link-active' : '' }}" title="Purchase Approvals">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                </svg>
+                <span x-show="!sidebarCollapsed" x-transition>Purchases</span>
+            </a>
+            <a href="{{ route('admin.inventory.reports.index') }}" class="sidebar-link {{ request()->routeIs('admin.inventory.reports.*') ? 'sidebar-link-active' : '' }}" title="Inventory Reports">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <span x-show="!sidebarCollapsed" x-transition>Reports</span>
+            </a>
+            @endcan
         </div>
         @endcanany
 
         @canany(['view finance', 'view payroll'])
-        <div class="sidebar-category-header flex items-center cursor-pointer group" 
+        <div class="sidebar-category-header flex items-center cursor-pointer group"
              :class="sidebarCollapsed ? 'text-center px-0 justify-center w-full' : 'justify-between sticky top-0 z-10 bg-white/95 backdrop-blur-md'"
              @click="toggleCategory('finance')">
             <span x-show="!sidebarCollapsed" class="group-hover:text-slate-600 transition-colors uppercase tracking-widest">Finance & Ops</span>
