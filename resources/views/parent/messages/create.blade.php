@@ -1,5 +1,10 @@
 <x-parent-layout header="New Message">
     <div class="space-y-6">
+        <x-breadcrumb :items="[
+            ['label' => 'Messages', 'url' => route('parent.messages.index')],
+            ['label' => 'New Message', 'url' => '#']
+        ]" />
+
         <div class="flex items-center gap-3">
             <a href="{{ route('parent.messages.index') }}" class="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>

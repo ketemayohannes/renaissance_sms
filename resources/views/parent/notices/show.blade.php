@@ -1,5 +1,10 @@
 <x-parent-layout header="Announcement Details">
     <div class="space-y-6 max-w-4xl mx-auto">
+        <x-breadcrumb :items="[
+            ['label' => 'Announcements', 'url' => route('parent.notices.index')],
+            ['label' => \Illuminate\Support\Str::limit($notice->title, 40), 'url' => '#']
+        ]" />
+
         <!-- Back Button -->
         <a href="{{ route('parent.notices.index') }}" class="inline-flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors group">
             <svg class="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

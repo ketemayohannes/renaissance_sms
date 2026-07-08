@@ -1,5 +1,9 @@
 <x-parent-layout header="School Announcements">
     <div class="space-y-6">
+        <x-breadcrumb :items="[
+            ['label' => 'Announcements', 'url' => '#']
+        ]" />
+
         <!-- Announcements Header Card -->
         <div class="relative bg-gradient-to-r from-violet-600 via-indigo-600 to-indigo-700 rounded-3xl p-6 lg:p-8 text-white overflow-hidden shadow-lg shadow-indigo-100 dark:shadow-none">
             <div class="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-xl"></div>

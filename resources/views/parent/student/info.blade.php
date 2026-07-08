@@ -1,6 +1,11 @@
 <x-parent-layout header="{{ $student->full_name }}'s Profile Details">
     <div class="space-y-8 max-w-6xl mx-auto" x-data="{ tab: 'overview' }">
-        
+        <x-breadcrumb :items="[
+            ['label' => $student->full_name, 'url' => route('parent.student.dashboard', $student)],
+            ['label' => 'Profile Details', 'url' => '#']
+        ]" />
+
+
         <!-- Profile Header Banner -->
         <div class="relative bg-gradient-to-r from-violet-600 via-indigo-600 to-indigo-700 rounded-3xl p-5 sm:p-6 lg:p-8 text-white overflow-hidden shadow-lg shadow-indigo-100 dark:shadow-none">
             <div class="absolute -right-10 -top-10 w-32 sm:w-40 h-32 sm:h-40 bg-white/10 rounded-full blur-xl"></div>

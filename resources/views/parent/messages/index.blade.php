@@ -1,5 +1,9 @@
 <x-parent-layout header="Messages">
     <div class="space-y-6">
+        <x-breadcrumb :items="[
+            ['label' => 'Messages', 'url' => '#']
+        ]" />
+
         {{-- Header --}}
         <div class="relative bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-700 rounded-3xl p-6 lg:p-8 text-white overflow-hidden shadow-lg">
             <div class="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-xl"></div>

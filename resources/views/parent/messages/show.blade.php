@@ -1,5 +1,10 @@
 <x-parent-layout header="Conversation">
     <div class="space-y-4 pb-6">
+        <x-breadcrumb :items="[
+            ['label' => 'Messages', 'url' => route('parent.messages.index')],
+            ['label' => \Illuminate\Support\Str::limit($conversation->name, 40), 'url' => '#']
+        ]" />
+
         {{-- Back + Thread Title --}}
         <div class="flex items-center gap-3">
             <a href="{{ route('parent.messages.index') }}" class="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">

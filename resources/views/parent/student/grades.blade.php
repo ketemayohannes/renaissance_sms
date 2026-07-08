@@ -1,5 +1,10 @@
 <x-parent-layout header="{{ $student->full_name }}'s Academic Report">
     <div class="space-y-8" x-data="{ mobileDrawerOpen: false, selectedPeriodTemp: '{{ $selectedPeriod }}' }">
+        <x-breadcrumb :items="[
+            ['label' => $student->full_name, 'url' => route('parent.student.dashboard', $student)],
+            ['label' => 'Grades', 'url' => '#']
+        ]" />
+
         <!-- Modern Premium Banner -->
         <div class="relative bg-gradient-to-r from-violet-600 via-indigo-600 to-indigo-700 rounded-3xl p-6 lg:p-8 text-white overflow-hidden shadow-lg shadow-indigo-100 dark:shadow-none">
             <!-- Translucent decorative glow shapes -->

@@ -1,5 +1,9 @@
 <x-parent-layout header="My Profile">
     <div class="space-y-8 max-w-6xl mx-auto">
+        <x-breadcrumb :items="[
+            ['label' => 'My Profile', 'url' => '#']
+        ]" />
+
         <!-- Profile Header / Hero Card -->
         <div class="relative bg-gradient-to-r from-indigo-900 to-slate-900 dark:from-slate-900 dark:to-slate-950 rounded-3xl p-6 lg:p-8 text-white overflow-hidden shadow-xl border border-slate-100/10">
             <div class="absolute -right-10 -top-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-xl"></div>

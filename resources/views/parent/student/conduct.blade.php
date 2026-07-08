@@ -1,5 +1,9 @@
 <x-parent-layout header="{{ $student->full_name }}'s Conduct & Behavior Report">
     <div class="space-y-6 max-w-6xl mx-auto">
+        <x-breadcrumb :items="[
+            ['label' => $student->full_name, 'url' => route('parent.student.dashboard', $student)],
+            ['label' => 'Conduct & Behavior', 'url' => '#']
+        ]" />
 
         <!-- Premium Banner -->
         <div class="relative bg-gradient-to-r from-violet-600 via-indigo-600 to-indigo-700 rounded-3xl p-5 sm:p-6 lg:p-8 text-white overflow-hidden shadow-lg shadow-indigo-100 dark:shadow-none">
