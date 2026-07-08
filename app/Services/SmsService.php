@@ -80,8 +80,27 @@ class SmsService
                 ->post($this->atUrl, $postData);
 
             if ($response->successful()) {
-                Log::info("SMS sent successfully via Africa's Talking to {$to}");
-                return true;
+                $data = $response->json();
+                $recipients = $data['SMSMessageData']['Recipients'] ?? [];
+
+                if (empty($recipients)) {
+                    $errorMessage = $data['SMSMessageData']['Message'] ?? 'Unknown Error';
+                    Log::error("Failed to send SMS via Africa's Talking to {$to}. API Message: {$errorMessage}");
+                    return false;
+                }
+
+                foreach ($recipients as $recipient) {
+                    $status = strtolower($recipient['status'] ?? '');
+                    $statusCode = isset($recipient['statusCode']) ? (int) $recipient['statusCode'] : null;
+
+                    if ($status === 'success' || in_array($statusCode, [100, 101, 102], true)) {
+                        Log::info("SMS sent successfully via Africa's Talking to {$to} (MessageID: " . ($recipient['messageId'] ?? 'N/A') . ")");
+                        return true;
+                    }
+                }
+
+                Log::error("Failed to send SMS via Africa's Talking to {$to}. Recipients response: " . json_encode($recipients));
+                return false;
             }
 
             Log::error("Failed to send SMS via Africa's Talking to {$to}. Output: " . $response->body());
