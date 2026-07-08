@@ -20,35 +20,32 @@ return new class extends Migration
             $table->string('publisher')->nullable();
             $table->string('category')->nullable(); // Fiction, Science, etc.
             $table->enum('type', ['physical', 'digital'])->default('physical');
-            
-            // Physical Book Details
+
+            // Physical copies — checked out and back via library_borrowings.
             $table->integer('quantity')->default(1);
             $table->integer('available_copies')->default(1);
             $table->string('shelf_location')->nullable();
-            
-            // Digital Book Details
+
+            // Digital resource — a hosted file (PDF/EPUB), available while active. No borrowing.
             $table->string('file_path')->nullable();
             $table->string('file_format')->nullable(); // PDF, EPUB
-            $table->integer('file_size')->nullable(); // In KB
-            
+
             $table->string('cover_image')->nullable();
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
 
-        // Borrowing Records
+        // Borrowing Records — simple check-out / check-in only (no due dates, no fines).
         Schema::create('library_borrowings', function (Blueprint $table) {
             $table->id();
             $table->foreignId('book_id')->constrained('library_books')->onDelete('cascade');
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('user_id')->constrained()->onDelete('cascade'); // the borrower
             $table->date('issued_date');
-            $table->date('due_date');
-            $table->date('returned_date')->nullable();
-            $table->decimal('fine_amount', 8, 2)->default(0);
-            $table->enum('status', ['issued', 'returned', 'overdue', 'lost'])->default('issued');
+            $table->date('returned_date')->nullable(); // null = currently checked out
+            $table->enum('status', ['borrowed', 'returned'])->default('borrowed');
             $table->text('remarks')->nullable();
-            $table->foreignId('issued_by')->constrained('users')->onDelete('cascade');
+            $table->foreignId('issued_by')->constrained('users')->onDelete('cascade'); // librarian who issued it
             $table->timestamps();
         });
     }
