@@ -49,8 +49,13 @@ class RedirectController extends Controller
             return redirect()->route('admin.inventory.dashboard');
         }
 
-        // 7. Staff / Other Employees (Future)
-        if ($user->hasRole(['Senior Finance Officer', 'Junior Finance Officer', 'Librarian', 'School Nurse'])) {
+        // 7. Librarian: lands on the library catalog (their portal home).
+        if ($user->hasRole('Librarian')) {
+            return redirect()->route('admin.library.index');
+        }
+
+        // 8. Staff / Other Employees (Future)
+        if ($user->hasRole(['Senior Finance Officer', 'Junior Finance Officer', 'School Nurse'])) {
              // return redirect()->route('employee.dashboard');
         }
 

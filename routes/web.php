@@ -36,6 +36,14 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/activities/{activity}/submit', [App\Http\Controllers\Student\ActivityController::class, 'submit'])->name('activities.submit');
         Route::get('/activities/{activity}/exam', [App\Http\Controllers\Student\ActivityController::class, 'takeExam'])->name('activities.exam');
         Route::post('/activities/{activity}/exam', [App\Http\Controllers\Student\ActivityController::class, 'submitExam'])->name('activities.exam.submit');
+
+        // Library (read-only browse + digital downloads + personal loans)
+        Route::middleware('permission:view library')->prefix('library')->name('library.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Student\LibraryController::class, 'index'])->name('index');
+            Route::get('/my-borrowings', [\App\Http\Controllers\Student\LibraryController::class, 'myBorrowings'])->name('my-borrowings');
+            Route::get('/{book}', [\App\Http\Controllers\Student\LibraryController::class, 'show'])->name('show');
+            Route::get('/{book}/download', [\App\Http\Controllers\Student\LibraryController::class, 'download'])->name('download');
+        });
     });
 
     // Staff HR Routes (own group so HR Manager can be admitted WITHOUT joining the main
@@ -109,6 +117,27 @@ Route::middleware(['auth'])->group(function () {
             Route::post('inventory/items/{item}/stock-in', [App\Http\Controllers\Admin\InventoryStockController::class, 'stockIn'])->name('inventory.stock.in');
             Route::post('inventory/items/{item}/stock-out', [App\Http\Controllers\Admin\InventoryStockController::class, 'stockOut'])->name('inventory.stock.out');
         });
+    });
+
+    // Library Routes (own group so the Librarian role can be admitted without joining the
+    // main admin group, which contains permission-ungated screens like the dashboard).
+    Route::middleware(['role:Super Admin|Principal|Vice Principal|Supervisor|IT / System Admin|Registrar|General Manager|Librarian'])->prefix('admin')->name('admin.')->group(function () {
+        // Read-only catalog + digital downloads (view library)
+        Route::middleware('permission:view library')->group(function () {
+            Route::get('library', [App\Http\Controllers\Admin\LibraryBookController::class, 'index'])->name('library.index');
+            Route::get('library/books/{book}', [App\Http\Controllers\Admin\LibraryBookController::class, 'show'])->name('library.show');
+            Route::get('library/books/{book}/download', [App\Http\Controllers\Admin\LibraryBookController::class, 'download'])->name('library.download');
+        });
+
+        // Manage the catalog — add/edit books, upload digital files (manage books)
+        Route::middleware('permission:manage books')->group(function () {
+            Route::post('library/books', [App\Http\Controllers\Admin\LibraryBookController::class, 'store'])->name('library.store');
+            Route::put('library/books/{book}', [App\Http\Controllers\Admin\LibraryBookController::class, 'update'])->name('library.update');
+        });
+
+        // Check-out / check-in for physical copies (issue books / return books)
+        Route::post('library/books/{book}/check-out', [App\Http\Controllers\Admin\LibraryBorrowingController::class, 'checkOut'])->name('library.check-out')->middleware('permission:issue books');
+        Route::post('library/borrowings/{borrowing}/check-in', [App\Http\Controllers\Admin\LibraryBorrowingController::class, 'checkIn'])->name('library.check-in')->middleware('permission:return books');
     });
 
     // Admin Routes
@@ -520,6 +549,14 @@ Route::middleware(['auth'])->group(function () {
             Route::delete('/item/{itemRequest}', [\App\Http\Controllers\Teacher\InventoryRequestController::class, 'cancelItem'])->name('item.cancel');
             Route::post('/purchase', [\App\Http\Controllers\Teacher\InventoryRequestController::class, 'storePurchase'])->name('purchase.store');
             Route::delete('/purchase/{purchaseRequest}', [\App\Http\Controllers\Teacher\InventoryRequestController::class, 'cancelPurchase'])->name('purchase.cancel');
+        });
+
+        // Library (read-only browse + digital downloads + personal loans)
+        Route::middleware('permission:view library')->prefix('library')->name('library.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Teacher\LibraryController::class, 'index'])->name('index');
+            Route::get('/my-borrowings', [\App\Http\Controllers\Teacher\LibraryController::class, 'myBorrowings'])->name('my-borrowings');
+            Route::get('/{book}', [\App\Http\Controllers\Teacher\LibraryController::class, 'show'])->name('show');
+            Route::get('/{book}/download', [\App\Http\Controllers\Teacher\LibraryController::class, 'download'])->name('download');
         });
 
         // Homeroom Management
