@@ -2,18 +2,33 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Students\ProcessStudentWithdrawal;
+use App\Helpers\CachedData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreStudentRequest;
 use App\Http\Requests\UpdateStudentRequest;
-use App\Models\Student;
-use App\Models\User;
-use App\Models\Section;
 use App\Models\AcademicYear;
+use App\Models\AssessmentType;
+use App\Models\Division;
+use App\Models\GradeLevel;
+use App\Models\IdCardSetting;
+use App\Models\ReportCardSetting;
+use App\Models\Section;
+use App\Models\Student;
+use App\Models\StudentEnrollment;
+use App\Models\StudentMark;
+use App\Models\StudentPromotion;
+use App\Models\StudentStatusHistory;
+use App\Models\StudentTermRecord;
+use App\Models\Term;
+use App\Models\User;
+use App\Services\GradingService;
 use App\Services\StudentService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class StudentController extends Controller
 {
@@ -23,11 +38,12 @@ class StudentController extends Controller
     {
         $this->studentService = $studentService;
     }
+
     public function index(Request $request)
     {
         // PERFORMANCE: Simplified eager loading - only load current enrollment
         $query = Student::with([
-            'enrollments' => function($q) {
+            'enrollments' => function ($q) {
                 $q->whereNull('end_date')->with('section.gradeLevel');
             },
             'latestPromotion',
@@ -65,14 +81,13 @@ class StudentController extends Controller
         } else {
             // By default, exclude graduated students from the main listing
             // unless a specific status filter is applied
-            $query->where(function($q) {
+            $query->where(function ($q) {
                 $q->where('is_active', true)
-                  ->orWhereDoesntHave('statusHistory', function($sq) {
-                      $sq->where('new_status', 'graduated');
-                  });
+                    ->orWhereDoesntHave('statusHistory', function ($sq) {
+                        $sq->where('new_status', 'graduated');
+                    });
             });
         }
-
 
         // Grade & Section Filter - Using scopes
         if ($request->filled('grade_id') || $request->filled('section_name')) {
@@ -84,14 +99,13 @@ class StudentController extends Controller
                 }
                 if ($request->filled('section_name')) {
                     // PERFORMANCE: Direct join instead of nested whereHas
-                    $query->whereHas('enrollments', function($q) use ($request) {
+                    $query->whereHas('enrollments', function ($q) use ($request) {
                         $q->whereNull('end_date')
-                          ->whereHas('section', fn($sq) => $sq->where('name', $request->section_name));
+                            ->whereHas('section', fn ($sq) => $sq->where('name', $request->section_name));
                     });
                 }
             }
         }
-
 
         // Advanced Filters
         // Age Range
@@ -104,8 +118,8 @@ class StudentController extends Controller
 
         // Enrollment Year
         if ($request->filled('enrollment_year')) {
-            $query->whereHas('enrollments', function($q) use ($request) {
-                 $q->where('academic_year_id', $request->enrollment_year);
+            $query->whereHas('enrollments', function ($q) use ($request) {
+                $q->where('academic_year_id', $request->enrollment_year);
             });
         }
 
@@ -115,8 +129,8 @@ class StudentController extends Controller
 
         if ($sort === 'name') {
             $query->orderBy('first_name', $direction)
-                  ->orderBy('father_name', $direction)
-                  ->orderBy('grandfather_name', $direction);
+                ->orderBy('father_name', $direction)
+                ->orderBy('grandfather_name', $direction);
         } elseif (in_array($sort, ['student_id', 'admission_number', 'gender', 'is_active'])) {
             $query->orderBy($sort, $direction);
         } else {
@@ -125,13 +139,15 @@ class StudentController extends Controller
 
         $perPage = $request->input('per_page', 50);
         // Limit max per page to avoid performance issues
-        if ($perPage > 100) $perPage = 100;
-        
+        if ($perPage > 100) {
+            $perPage = 100;
+        }
+
         $students = $query->paginate($perPage)->withQueryString();
-        
-        $gradeLevels = \App\Models\GradeLevel::orderBy('sort_order')->get();
+
+        $gradeLevels = GradeLevel::orderBy('sort_order')->get();
         $allSections = Section::orderBy('name')->get();
-        $divisions = \App\Models\Division::where('is_active', true)->orderBy('sort_order')->get();
+        $divisions = Division::where('is_active', true)->orderBy('sort_order')->get();
         $graduatedCount = Student::graduated()->count();
 
         return view('admin.students.index', compact('students', 'gradeLevels', 'allSections', 'divisions', 'graduatedCount'));
@@ -142,15 +158,15 @@ class StudentController extends Controller
     {
         $activeYear = AcademicYear::where('is_active', true)->first();
         $sections = Section::with('gradeLevel.division')
-            ->withCount(['students as enrolled_count' => function($q) {
-                 $q->whereNull('student_enrollments.end_date');
+            ->withCount(['students as enrolled_count' => function ($q) {
+                $q->whereNull('student_enrollments.end_date');
             }])
             ->where('is_active', true)
-            ->when($activeYear, function($q) use ($activeYear) {
+            ->when($activeYear, function ($q) use ($activeYear) {
                 return $q->where('academic_year_id', $activeYear->id);
             })
             ->get();
-            
+
         return view('admin.students.create', compact('sections', 'activeYear'));
     }
 
@@ -165,10 +181,10 @@ class StudentController extends Controller
             );
 
             return redirect()->route('admin.students.index')
-                ->with('success', 'Student registered successfully. Student ID: ' . $student->student_id);
+                ->with('success', 'Student registered successfully. Student ID: '.$student->student_id);
 
         } catch (\Exception $e) {
-            return back()->with('error', 'Error registering student: ' . $e->getMessage())->withInput();
+            return back()->with('error', 'Error registering student: '.$e->getMessage())->withInput();
         }
     }
 
@@ -183,49 +199,49 @@ class StudentController extends Controller
             'documents',
             'latestStatusHistory',
         ]);
-        
+
         $enrollments = $student->enrollments()
             ->with(['section.gradeLevel', 'academicYear'])
             ->orderBy('enrollment_date', 'desc')
             ->get();
 
         // Attendance Stats
-        $academicYear = \App\Models\AcademicYear::where('is_active', true)->first();
+        $academicYear = AcademicYear::where('is_active', true)->first();
         $attendanceStats = [
-            'present' => 0, 'absent' => 0, 'late' => 0, 'excused' => 0, 'total' => 0, 'percentage' => 0
+            'present' => 0, 'absent' => 0, 'late' => 0, 'excused' => 0, 'total' => 0, 'percentage' => 0,
         ];
-        
+
         if ($academicYear) {
-             $stats = $student->attendance()
+            $stats = $student->attendance()
                 ->whereBetween('attendance_date', [$academicYear->start_date, $academicYear->end_date])
                 ->selectRaw('status, count(*) as count')
                 ->groupBy('status')
                 ->pluck('count', 'status')
                 ->toArray();
-            
+
             $attendanceStats['present'] = $stats['present'] ?? 0;
             $attendanceStats['late'] = $stats['late'] ?? 0;
             $attendanceStats['absent'] = $stats['absent'] ?? 0;
             $attendanceStats['excused'] = $stats['excused'] ?? 0;
-            
+
             $attendanceStats['total'] = array_sum($attendanceStats);
             // Don't double count total if percentage is added key (it is not yet)
-            
-             if ($attendanceStats['total'] > 0) {
+
+            if ($attendanceStats['total'] > 0) {
                 $attendanceStats['percentage'] = round((($attendanceStats['present'] + $attendanceStats['late']) / $attendanceStats['total']) * 100, 1);
             }
         }
-        
+
         // Recent Attendance Log (last 15 entries)
         $recentAttendance = $student->attendance()
             ->with(['section.gradeLevel'])
             ->latest('attendance_date')
             ->take(15)
             ->get();
-        
+
         // Disciplinary
         $disciplinaryRecords = $student->disciplinaryRecords()->with(['reporter', 'academicYear'])->latest('incident_date')->take(10)->get();
-        
+
         // Academic History (Grouped by Academic Year -> Term)
         //
         // Quarters are rendered from their real StudentMark rows, resolved components-first
@@ -238,16 +254,17 @@ class StudentController extends Controller
         // live via GradingService (the same engine report cards use), so they are always
         // fresh, components-first, and consistent with the report card — and so Semester 2 /
         // Yearly appear even when no semester marks were ever written for the student.
-        $termTotalTypeId = \App\Models\AssessmentType::where('code', 'TERM_TOTAL')->value('id');
-        $resolveTermMarks = function($termMarks) use ($termTotalTypeId) {
+        $termTotalTypeId = AssessmentType::where('code', 'TERM_TOTAL')->value('id');
+        $resolveTermMarks = function ($termMarks) use ($termTotalTypeId) {
             return $termMarks
                 ->groupBy('subject_id')
-                ->flatMap(function($subjectMarks) use ($termTotalTypeId) {
-                    $components = $subjectMarks->reject(function($mark) use ($termTotalTypeId) {
+                ->flatMap(function ($subjectMarks) use ($termTotalTypeId) {
+                    $components = $subjectMarks->reject(function ($mark) use ($termTotalTypeId) {
                         return $termTotalTypeId
                             && $mark->assessmentTemplate
                             && $mark->assessmentTemplate->assessment_type_id == $termTotalTypeId;
                     });
+
                     return $components->isNotEmpty() ? $components : $subjectMarks;
                 })
                 ->values();
@@ -259,43 +276,47 @@ class StudentController extends Controller
 
         // Quarter rows straight from stored marks, ordered Quarter 1..4 within each year.
         $academicRecords = $studentMarks
-            ->filter(fn($mark) => optional($mark->term)->type === 'quarter')
-            ->groupBy(fn($mark) => $mark->academicYear->name)
-            ->map(function($yearMarks) use ($resolveTermMarks) {
+            ->filter(fn ($mark) => optional($mark->term)->type === 'quarter')
+            ->groupBy(fn ($mark) => $mark->academicYear->name)
+            ->map(function ($yearMarks) use ($resolveTermMarks) {
                 return $yearMarks
-                    ->groupBy(fn($mark) => $mark->term->name)
+                    ->groupBy(fn ($mark) => $mark->term->name)
                     ->map($resolveTermMarks)
-                    ->sortBy(fn($marks) => optional($marks->first()->term)->term_number ?? 99);
+                    ->sortBy(fn ($marks) => optional($marks->first()->term)->term_number ?? 99);
             });
 
         // Stored term summaries (avg / rank) for the badge chips on each term.
-        $termRecords = \App\Models\StudentTermRecord::where('student_id', $student->id)
+        $termRecords = StudentTermRecord::where('student_id', $student->id)
             ->with(['term', 'academicYear'])
             ->get()
-            ->groupBy(fn($record) => $record->academicYear->name)
-            ->map(fn($yearRecords) => $yearRecords->keyBy(fn($record) => $record->term->name));
+            ->groupBy(fn ($record) => $record->academicYear->name)
+            ->map(fn ($yearRecords) => $yearRecords->keyBy(fn ($record) => $record->term->name));
 
         // Inject computed Semester + Yearly rows (cells and badge) for every academic year
         // the student has marks in — sourced from GradingService, never from stored marks.
-        $gradingService = app(\App\Services\GradingService::class);
+        $gradingService = app(GradingService::class);
 
-        $buildComputedRow = function(array $report, $term, AcademicYear $ay) {
+        $buildComputedRow = function (array $report, $term, AcademicYear $ay) {
             $subjectsById = collect($report['subjects'] ?? [])->keyBy('id');
             $marks = collect();
             foreach (($report['marks'] ?? []) as $subjectId => $score) {
-                if ($score === null || $score === '') continue;
+                if ($score === null || $score === '') {
+                    continue;
+                }
                 $subject = $subjectsById->get($subjectId);
-                if (!$subject) continue;
+                if (! $subject) {
+                    continue;
+                }
                 // In-memory (never saved) mark so the existing per-subject sum renders the
                 // computed value with no view changes.
-                $synthetic = new \App\Models\StudentMark();
+                $synthetic = new StudentMark;
                 $synthetic->subject_id = $subjectId;
                 $synthetic->score = $score;
                 $synthetic->setRelation('subject', $subject);
                 $marks->push($synthetic);
             }
 
-            $record = new \App\Models\StudentTermRecord();
+            $record = new StudentTermRecord;
             $record->term_id = $term->id;
             $record->academic_year_id = $ay->id;
             $record->average_score = $report['average'] ?? null;
@@ -307,14 +328,14 @@ class StudentController extends Controller
 
         foreach ($studentMarks->pluck('academic_year_id')->unique()->filter() as $yearId) {
             $ay = AcademicYear::find($yearId);
-            if (!$ay) {
+            if (! $ay) {
                 continue;
             }
 
             $computedTerms = collect();
             $computedRecords = collect();
 
-            $semesters = \App\Models\Term::where('academic_year_id', $yearId)
+            $semesters = Term::where('academic_year_id', $yearId)
                 ->where('type', 'semester')
                 ->orderBy('term_number')
                 ->get();
@@ -331,12 +352,12 @@ class StudentController extends Controller
                 }
             }
 
-            $yearlyTerm = new \App\Models\Term(['type' => 'yearly', 'name' => 'Yearly', 'academic_year_id' => $yearId]);
+            $yearlyTerm = new Term(['type' => 'yearly', 'name' => 'Yearly', 'academic_year_id' => $yearId]);
             $yearlyTerm->incrementing = false;
             $yearlyTerm->id = 'yearly';
 
             $yearlyReport = $gradingService->getStudentReportData($student, $yearlyTerm, $ay);
-            if (!empty($yearlyReport)) {
+            if (! empty($yearlyReport)) {
                 [$marks, $record] = $buildComputedRow($yearlyReport, $yearlyTerm, $ay);
                 if ($marks->isNotEmpty()) {
                     $computedTerms->put('Yearly', $marks);
@@ -356,19 +377,19 @@ class StudentController extends Controller
         }
 
         // For Report Card Modal
-        $availableYears = \App\Models\AcademicYear::orderBy('start_date', 'desc')->get();
-        $availableTerms = \App\Models\Term::with('academicYear')
+        $availableYears = AcademicYear::orderBy('start_date', 'desc')->get();
+        $availableTerms = Term::with('academicYear')
             ->orderBy('academic_year_id', 'desc')
             ->orderBy('term_number', 'asc')
             ->get();
 
         return view('admin.students.show', compact(
-            'student', 
-            'enrollments', 
-            'attendanceStats', 
-            'recentAttendance', 
-            'disciplinaryRecords', 
-            'academicRecords', 
+            'student',
+            'enrollments',
+            'attendanceStats',
+            'recentAttendance',
+            'disciplinaryRecords',
+            'academicRecords',
             'termRecords',
             'availableYears',
             'availableTerms',
@@ -436,15 +457,15 @@ class StudentController extends Controller
     public function edit(Student $student)
     {
         $student->load(['guardians', 'medicalInfo', 'transportation']);
-        
+
         $activeYear = AcademicYear::where('is_active', true)->first();
         $sections = Section::with('gradeLevel.division')
             ->where('is_active', true)
-            ->when($activeYear, function($q) use ($activeYear) {
+            ->when($activeYear, function ($q) use ($activeYear) {
                 return $q->where('academic_year_id', $activeYear->id);
             })
             ->get();
-            
+
         return view('admin.students.edit', compact('student', 'sections', 'activeYear'));
     }
 
@@ -463,7 +484,7 @@ class StudentController extends Controller
                 ->with('success', 'Student updated successfully.');
 
         } catch (\Exception $e) {
-            return back()->withInput()->with('error', 'Update failed: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Update failed: '.$e->getMessage());
         }
     }
 
@@ -478,9 +499,10 @@ class StudentController extends Controller
 
         try {
             $student->update($validated);
+
             return back()->with('success', 'Student details updated quickly.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Update failed: ' . $e->getMessage());
+            return back()->with('error', 'Update failed: '.$e->getMessage());
         }
     }
 
@@ -492,7 +514,7 @@ class StudentController extends Controller
 
         $headers = [
             'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="students_export_' . date('Y-m-d') . '.csv"',
+            'Content-Disposition' => 'attachment; filename="students_export_'.date('Y-m-d').'.csv"',
         ];
 
         $columns = [
@@ -503,25 +525,25 @@ class StudentController extends Controller
             'Primary Guardian Name', 'Primary Guardian Phone', 'Primary Guardian Email', 'Primary Guardian Relationship',
             'Secondary Guardian Name', 'Secondary Guardian Phone', 'Secondary Guardian Email', 'Secondary Guardian Relationship',
             'Blood Type', 'Allergies', 'Medical Issues',
-            'Driver Name', 'Route', 'Status'
+            'Driver Name', 'Route', 'Status',
         ];
 
-        $callback = function() use ($students, $columns) {
+        $callback = function () use ($students, $columns) {
             $file = fopen('php://output', 'w');
-            
+
             // Add BOM for Excel compatibility
             fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
-            
+
             // Force Excel to use comma as separator
             fwrite($file, "sep=,\n");
-            
+
             fputcsv($file, $columns);
-            
+
             foreach ($students as $student) {
                 $primaryGuardian = $student->guardians->where('guardian_type', 'primary')->first();
                 $secondaryGuardian = $student->guardians->where('guardian_type', 'secondary')->first();
                 $enrollment = $student->enrollments->first();
-                
+
                 $row = [
                     $student->student_id,
                     $student->first_name,
@@ -542,25 +564,25 @@ class StudentController extends Controller
                     $student->house_number,
                     $student->phone,
                     $student->user->email ?? '',
-                    $primaryGuardian ? $primaryGuardian->first_name . ' ' . $primaryGuardian->father_name : '',
+                    $primaryGuardian ? $primaryGuardian->first_name.' '.$primaryGuardian->father_name : '',
                     $primaryGuardian->phone ?? '',
                     $primaryGuardian->email ?? '',
                     $primaryGuardian->relationship ?? '',
-                    $secondaryGuardian ? $secondaryGuardian->first_name . ' ' . $secondaryGuardian->father_name : '',
+                    $secondaryGuardian ? $secondaryGuardian->first_name.' '.$secondaryGuardian->father_name : '',
                     $secondaryGuardian->phone ?? '',
                     $secondaryGuardian->email ?? '',
                     $secondaryGuardian->relationship ?? '',
                     $student->medicalInfo->blood_group ?? '',
                     $student->medicalInfo->allergies ?? '',
                     $student->medicalInfo->medical_issues ?? '',
-                    $student->transportation ? ($student->transportation->driver_first_name . ' ' . $student->transportation->driver_father_name) : '',
+                    $student->transportation ? ($student->transportation->driver_first_name.' '.$student->transportation->driver_father_name) : '',
                     $student->transportation->route ?? '',
                     $student->is_active ? 'Active' : 'Inactive',
                 ];
-                
+
                 fputcsv($file, $row);
             }
-            
+
             fclose($file);
         };
 
@@ -569,7 +591,7 @@ class StudentController extends Controller
 
     public function enrollmentsIndex(Request $request)
     {
-        $query = \App\Models\StudentEnrollment::with([
+        $query = StudentEnrollment::with([
             'student',
             'section.gradeLevel',
             'academicYear',
@@ -581,10 +603,10 @@ class StudentController extends Controller
             $query->whereHas('student', function ($q) use ($search) {
                 $q->where(function ($sq) use ($search) {
                     $sq->where('first_name', 'like', "%{$search}%")
-                       ->orWhere('father_name', 'like', "%{$search}%")
-                       ->orWhere('grandfather_name', 'like', "%{$search}%")
-                       ->orWhere('student_id', 'like', "%{$search}%")
-                       ->orWhere('admission_number', 'like', "%{$search}%");
+                        ->orWhere('father_name', 'like', "%{$search}%")
+                        ->orWhere('grandfather_name', 'like', "%{$search}%")
+                        ->orWhere('student_id', 'like', "%{$search}%")
+                        ->orWhere('admission_number', 'like', "%{$search}%");
                 });
             });
         }
@@ -596,7 +618,7 @@ class StudentController extends Controller
 
         // Filter by grade level
         if ($request->filled('grade_level_id')) {
-            $query->whereHas('section', fn($q) => $q->where('grade_level_id', $request->grade_level_id));
+            $query->whereHas('section', fn ($q) => $q->where('grade_level_id', $request->grade_level_id));
         }
 
         // Filter by section
@@ -611,16 +633,44 @@ class StudentController extends Controller
 
         $enrollments = $query
             ->orderByDesc('enrollment_date')
-            ->paginate(50)
-            ->withQueryString();
+            ->paginate(50, ['*'], 'page')
+            ->withQueryString()
+            ->appends('tab', 'enrollments');
 
-        $academicYears  = \App\Models\AcademicYear::orderByDesc('start_date')->get();
-        $gradeLevels    = \App\Models\GradeLevel::orderBy('sort_order')->get();
-        $sections       = Section::with('gradeLevel')->orderBy('name')->get();
+        $academicYears = AcademicYear::orderByDesc('start_date')->get();
+        $gradeLevels = GradeLevel::orderBy('sort_order')->get();
+        $sections = Section::with('gradeLevel')->orderBy('name')->get();
 
         // Summary counts
-        $totalCount  = \App\Models\StudentEnrollment::count();
-        $activeCount = \App\Models\StudentEnrollment::where('status', 'active')->count();
+        $totalCount = StudentEnrollment::count();
+        $activeCount = StudentEnrollment::where('status', 'active')->count();
+
+        // "Pending Enrollment" queue: approved promotion decisions held until a registrar
+        // enrols the student into next year. Graduated students never need enrolling, so
+        // they are excluded (mirrors PromotionController::enrollStudent's guards).
+        $pendingBase = StudentPromotion::where('is_enrolled', false)
+            ->where('status', '!=', 'graduated');
+
+        $pending = (clone $pendingBase)
+            ->with(['student', 'fromGradeLevel', 'fromAcademicYear', 'toGradeLevel', 'toSection', 'toAcademicYear'])
+            ->when($request->filled('search'), fn ($q) => $q->whereHas('student', fn ($s) => $s->search($request->search)))
+            ->orderByDesc('created_at')
+            ->paginate(50, ['*'], 'pendingPage')
+            ->withQueryString()
+            ->appends('tab', 'pending');
+
+        $pendingCount = (clone $pendingBase)->count();
+
+        // For the Enrollments tab: which enrollments resulted from a promotion that can be
+        // reversed. Keyed by "studentId:academicYearId" -> promotion id, so a row can offer
+        // an in-place Reverse without a second query per row.
+        $reversibleMap = StudentPromotion::where('is_enrolled', true)
+            ->whereIn('student_id', $enrollments->pluck('student_id')->filter()->unique()->all())
+            ->get(['id', 'student_id', 'to_academic_year_id'])
+            ->keyBy(fn ($p) => $p->student_id.':'.$p->to_academic_year_id)
+            ->map->id;
+
+        $activeTab = $request->input('tab', $pendingCount > 0 ? 'pending' : 'enrollments');
 
         return view('admin.students.enrollments', compact(
             'enrollments',
@@ -628,13 +678,17 @@ class StudentController extends Controller
             'gradeLevels',
             'sections',
             'totalCount',
-            'activeCount'
+            'activeCount',
+            'pending',
+            'pendingCount',
+            'reversibleMap',
+            'activeTab'
         ));
     }
 
     public function toggleBlock(Student $student)
     {
-        $student->is_active = !$student->is_active;
+        $student->is_active = ! $student->is_active;
         $student->save();
 
         // Also toggle user account status
@@ -645,6 +699,7 @@ class StudentController extends Controller
         }
 
         $status = $student->is_active ? 'unblocked' : 'blocked';
+
         return redirect()->back()->with('success', "Student has been {$status} successfully.");
     }
 
@@ -652,18 +707,18 @@ class StudentController extends Controller
     {
         $student->load('enrollments.section.gradeLevel');
         $currentEnrollment = $student->enrollments()->whereNull('end_date')->first();
-        
+
         $activeYear = AcademicYear::where('is_active', true)->first();
-        
+
         // Get current grade level ID if available
         $currentGradeLevelId = $currentEnrollment?->section?->grade_level_id;
 
         $sections = Section::with('gradeLevel.division')
             ->where('is_active', true)
-            ->when($activeYear, function($q) use ($activeYear) {
+            ->when($activeYear, function ($q) use ($activeYear) {
                 return $q->where('academic_year_id', $activeYear->id);
             })
-            ->when($currentGradeLevelId, function($q) use ($currentGradeLevelId) {
+            ->when($currentGradeLevelId, function ($q) use ($currentGradeLevelId) {
                 // Restrict to same grade level
                 return $q->where('grade_level_id', $currentGradeLevelId);
             })
@@ -684,8 +739,8 @@ class StudentController extends Controller
         try {
             // End current enrollment
             $currentEnrollment = $student->enrollments()->whereNull('end_date')->first();
-            
-            if (!$currentEnrollment) {
+
+            if (! $currentEnrollment) {
                 return back()->with('error', 'Student has no active enrollment.');
             }
 
@@ -714,33 +769,35 @@ class StudentController extends Controller
             ]);
 
             DB::commit();
+
             return redirect()->route('admin.students.show', $student)
                 ->with('success', 'Student transferred successfully.');
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Transfer failed: ' . $e->getMessage());
+
+            return back()->with('error', 'Transfer failed: '.$e->getMessage());
         }
     }
 
     public function assignElectivesForm(Student $student)
     {
-        $student->load(['enrollments' => function($q) {
+        $student->load(['enrollments' => function ($q) {
             $q->whereNull('end_date')->latest(); // Active enrollment
         }, 'enrollments.section.gradeLevel.subjects']);
 
         $currentEnrollment = $student->enrollments->first();
 
-        if (!$currentEnrollment) {
+        if (! $currentEnrollment) {
             return back()->with('error', 'Student must have an active enrollment to assign electives.');
         }
 
         $academicYearId = $currentEnrollment->academic_year_id;
-        
+
         // Get elective subjects available for this student's grade level
         // We filter the subjects relation on the grade level model manually or query it
         $gradeLevel = $currentEnrollment->section->gradeLevel;
-        
+
         // Assuming GradeLevel has 'subjects' relationship, we filter for electives
         // If relationship returns all subjects (pivot), we check is_elective column on Subject
         $availableElectives = $gradeLevel->subjects()->where('is_elective', true)->get();
@@ -763,7 +820,7 @@ class StudentController extends Controller
 
         $currentEnrollment = $student->enrollments()->whereNull('end_date')->first();
 
-        if (!$currentEnrollment) {
+        if (! $currentEnrollment) {
             return back()->with('error', 'Student must have an active enrollment.');
         }
 
@@ -772,7 +829,7 @@ class StudentController extends Controller
         // Sync electives for this academic year
         // We need to attach with academic_year_id
         // sync() supports pivot data
-        
+
         $syncData = [];
         if ($request->has('electives')) {
             foreach ($request->electives as $subjectId) {
@@ -780,12 +837,12 @@ class StudentController extends Controller
             }
         }
 
-        // We only want to sync for the CURRENT academic year. 
+        // We only want to sync for the CURRENT academic year.
         // Sync replaces all records. If a student has records for PAST years, we shouldn't touch them.
-        // sync() usually replaces all related records. 
+        // sync() usually replaces all related records.
         // To scoped sync, we can use detach() then attach(), or manual logic.
         // Let's remove current year electives first, then add new ones.
-        
+
         DB::transaction(function () use ($student, $academicYearId, $syncData) {
             // Detach all electives for this student for this academic year
             DB::table('student_electives')
@@ -794,7 +851,7 @@ class StudentController extends Controller
                 ->delete();
 
             // Attach new ones
-            if (!empty($syncData)) {
+            if (! empty($syncData)) {
                 $student->electives()->attach($syncData);
             }
         });
@@ -806,12 +863,14 @@ class StudentController extends Controller
     {
         try {
             $this->studentService->deleteStudent($student);
+
             return redirect()->route('admin.students.index')
                 ->with('success', 'Student deleted successfully.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Error deleting student: ' . $e->getMessage());
+            return back()->with('error', 'Error deleting student: '.$e->getMessage());
         }
     }
+
     public function import()
     {
         return view('admin.students.import');
@@ -830,20 +889,20 @@ class StudentController extends Controller
             'admission_number', 'admission_date', 'grade_level', 'section_name',
             'subcity', 'woreda', 'house_number', 'phone', 'email',
             'primary_guardian_first_name', 'primary_guardian_father_name', 'primary_guardian_grandfather_name',
-            'primary_guardian_phone', 'primary_guardian_relationship', 'primary_guardian_email'
+            'primary_guardian_phone', 'primary_guardian_relationship', 'primary_guardian_email',
         ];
 
-        $callback = function() use ($columns) {
+        $callback = function () use ($columns) {
             $file = fopen('php://output', 'w');
-            
+
             // Add BOM for Excel compatibility
             fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
-            
+
             // Force Excel to use comma as separator
             fwrite($file, "sep=,\n");
-            
+
             fputcsv($file, $columns);
-            
+
             // Add sample row
             fputcsv($file, [
                 'Abebe', 'Kebede', 'Tesfaye', 'M', '2015-09-01',
@@ -851,9 +910,9 @@ class StudentController extends Controller
                 'STU001', '2023-09-01', 'Grade 1', 'A',
                 'Bole', '03', '123', '0911234567', 'student@example.com',
                 'Kebede', 'Tesfaye', 'Alemu',
-                '0911987654', 'Father', 'parent@example.com'
+                '0911987654', 'Father', 'parent@example.com',
             ]);
-            
+
             fclose($file);
         };
 
@@ -863,7 +922,7 @@ class StudentController extends Controller
     public function downloadQuickTemplate()
     {
         $headers = [
-            'Content-Type'        => 'text/csv',
+            'Content-Type' => 'text/csv',
             'Content-Disposition' => 'attachment; filename="students_quick_import_template.csv"',
         ];
 
@@ -871,7 +930,7 @@ class StudentController extends Controller
 
         $callback = function () use ($columns) {
             $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
             fwrite($file, "sep=,\n");
             fputcsv($file, $columns);
             fputcsv($file, ['Abebe',  'Kebede', 'Tesfaye', 'M', 'Grade 1', 'A']);
@@ -887,38 +946,47 @@ class StudentController extends Controller
         $request->validate(['file' => 'required|file|mimes:csv,txt|max:2048']);
 
         $activeYear = AcademicYear::where('is_active', true)->first();
-        if (!$activeYear) return back()->with('error', 'No active academic year found.');
+        if (! $activeYear) {
+            return back()->with('error', 'No active academic year found.');
+        }
 
         ini_set('auto_detect_line_endings', true);
         $lines = file($request->file('file')->getRealPath(), FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        if (empty($lines)) return back()->with('error', 'The file is empty.');
+        if (empty($lines)) {
+            return back()->with('error', 'The file is empty.');
+        }
 
-        if (strpos($lines[0], 'sep=') === 0) array_shift($lines);
+        if (strpos($lines[0], 'sep=') === 0) {
+            array_shift($lines);
+        }
         $delimiter = strpos($lines[0], ';') !== false ? ';' : ',';
-        if (strpos($lines[0], "\xEF\xBB\xBF") === 0) $lines[0] = substr($lines[0], 3);
+        if (strpos($lines[0], "\xEF\xBB\xBF") === 0) {
+            $lines[0] = substr($lines[0], 3);
+        }
 
-        $data   = array_map(fn($line) => str_getcsv($line, $delimiter), $lines);
+        $data = array_map(fn ($line) => str_getcsv($line, $delimiter), $lines);
         $header = array_map('trim', array_shift($data));
         $headerMap = array_flip($header);
 
         $today = now()->format('Y-m-d');
 
-        $gradeLevels = \App\Models\GradeLevel::with('division')->get();
+        $gradeLevels = GradeLevel::with('division')->get();
         $gradeLevelMap = [];
         foreach ($gradeLevels as $gl) {
             $gradeLevelMap[strtolower($gl->name)] = $gl;
         }
 
         $getCounter = function ($prefix, $default = 1) {
-            $last = \App\Models\Student::where('admission_number', 'like', $prefix . '%')
+            $last = Student::where('admission_number', 'like', $prefix.'%')
                 ->orderByRaw('LENGTH(admission_number) DESC, admission_number DESC')
                 ->value('admission_number');
             if ($last) {
-                preg_match('/' . preg_quote($prefix, '/') . '(\d+)/', $last, $matches);
-                if (!empty($matches[1])) {
-                    return (int)$matches[1] + 1;
+                preg_match('/'.preg_quote($prefix, '/').'(\d+)/', $last, $matches);
+                if (! empty($matches[1])) {
+                    return (int) $matches[1] + 1;
                 }
             }
+
             return $default;
         };
 
@@ -927,7 +995,7 @@ class StudentController extends Controller
         $hsCounter = $getCounter('RISHS');
 
         $rows = array_map(function ($row) use ($headerMap, $today, $gradeLevelMap, &$kgCounter, &$esCounter, &$hsCounter) {
-            $val = fn($key) => isset($headerMap[$key]) && isset($row[$headerMap[$key]])
+            $val = fn ($key) => isset($headerMap[$key]) && isset($row[$headerMap[$key]])
                 ? trim($row[$headerMap[$key]])
                 : null;
 
@@ -936,8 +1004,8 @@ class StudentController extends Controller
             if ($gradeLevelName) {
                 $glKey = strtolower(trim($gradeLevelName));
                 $gl = $gradeLevelMap[$glKey] ?? null;
-                if (!$gl && !str_contains($glKey, 'grade') && !str_contains($glKey, 'kg')) {
-                    $gl = $gradeLevelMap['grade ' . $glKey] ?? null;
+                if (! $gl && ! str_contains($glKey, 'grade') && ! str_contains($glKey, 'kg')) {
+                    $gl = $gradeLevelMap['grade '.$glKey] ?? null;
                 }
                 if ($gl && $gl->division) {
                     $divisionCode = $gl->division->code;
@@ -945,49 +1013,49 @@ class StudentController extends Controller
             }
 
             if ($divisionCode === 'KG') {
-                $admissionNumber = 'RISKG' . str_pad($kgCounter++, 3, '0', STR_PAD_LEFT);
+                $admissionNumber = 'RISKG'.str_pad($kgCounter++, 3, '0', STR_PAD_LEFT);
                 $dob = now()->subYears(5)->format('Y-m-d');
             } elseif ($divisionCode === 'HS') {
-                $admissionNumber = 'RISHS' . str_pad($hsCounter++, 3, '0', STR_PAD_LEFT);
+                $admissionNumber = 'RISHS'.str_pad($hsCounter++, 3, '0', STR_PAD_LEFT);
                 $dob = now()->subYears(16)->format('Y-m-d');
             } else {
                 // Default to ES (Elementary)
-                $admissionNumber = 'RISEL' . str_pad($esCounter++, 4, '0', STR_PAD_LEFT);
+                $admissionNumber = 'RISEL'.str_pad($esCounter++, 4, '0', STR_PAD_LEFT);
                 $dob = now()->subYears(10)->format('Y-m-d');
             }
 
             return [
-                'first_name'                        => $val('first_name'),
-                'father_name'                       => $val('father_name'),
-                'grandfather_name'                  => $val('grandfather_name'),
-                'gender'                            => $val('gender'),
-                'date_of_birth'                     => $dob,
-                'birth_country'                     => null,
-                'birth_city'                        => null,
-                'nationality'                       => 'Ethiopian',
-                'language_spoken'                   => null,
-                'admission_number'                  => $admissionNumber,
-                'admission_date'                    => $today,
-                'grade_level'                       => $gradeLevelName,
-                'section_name'                      => $val('section_name'),
-                'phone'                             => null,
-                'subcity'                           => null,
-                'woreda'                            => null,
-                'house_number'                      => null,
-                'email'                             => null,
-                'student_id'                        => null,
-                'primary_guardian_first_name'       => null,
-                'primary_guardian_father_name'      => null,
+                'first_name' => $val('first_name'),
+                'father_name' => $val('father_name'),
+                'grandfather_name' => $val('grandfather_name'),
+                'gender' => $val('gender'),
+                'date_of_birth' => $dob,
+                'birth_country' => null,
+                'birth_city' => null,
+                'nationality' => 'Ethiopian',
+                'language_spoken' => null,
+                'admission_number' => $admissionNumber,
+                'admission_date' => $today,
+                'grade_level' => $gradeLevelName,
+                'section_name' => $val('section_name'),
+                'phone' => null,
+                'subcity' => null,
+                'woreda' => null,
+                'house_number' => null,
+                'email' => null,
+                'student_id' => null,
+                'primary_guardian_first_name' => null,
+                'primary_guardian_father_name' => null,
                 'primary_guardian_grandfather_name' => null,
-                'primary_guardian_phone'            => null,
-                'primary_guardian_email'            => null,
-                'primary_guardian_relationship'     => null,
+                'primary_guardian_phone' => null,
+                'primary_guardian_email' => null,
+                'primary_guardian_relationship' => null,
             ];
         }, $data);
 
         $result = $this->studentService->bulkImport($rows, $activeYear);
 
-        $message  = "Quick Import completed. {$result['success']} student(s) added, {$result['skipped']} skipped.";
+        $message = "Quick Import completed. {$result['success']} student(s) added, {$result['skipped']} skipped.";
         $redirect = redirect()->route('admin.students.index')->with('success', $message);
 
         if (count($result['errors']) > 0) {
@@ -1002,22 +1070,31 @@ class StudentController extends Controller
         $request->validate(['file' => 'required|file|mimes:csv,txt|max:2048']);
 
         $activeYear = AcademicYear::where('is_active', true)->first();
-        if (!$activeYear) return back()->with('error', 'No active academic year found.');
+        if (! $activeYear) {
+            return back()->with('error', 'No active academic year found.');
+        }
 
         ini_set('auto_detect_line_endings', true);
         $lines = file($request->file('file')->getRealPath(), FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        if (empty($lines)) return back()->with('error', 'The file is empty.');
+        if (empty($lines)) {
+            return back()->with('error', 'The file is empty.');
+        }
 
-        if (strpos($lines[0], 'sep=') === 0) array_shift($lines);
+        if (strpos($lines[0], 'sep=') === 0) {
+            array_shift($lines);
+        }
         $delimiter = strpos($lines[0], ';') !== false ? ';' : ',';
-        if (strpos($lines[0], "\xEF\xBB\xBF") === 0) $lines[0] = substr($lines[0], 3);
+        if (strpos($lines[0], "\xEF\xBB\xBF") === 0) {
+            $lines[0] = substr($lines[0], 3);
+        }
 
-        $data = array_map(fn($line) => str_getcsv($line, $delimiter), $lines);
+        $data = array_map(fn ($line) => str_getcsv($line, $delimiter), $lines);
         $header = array_map('trim', array_shift($data));
         $headerMap = array_flip($header);
 
-        $rows = array_map(function($row) use ($headerMap) {
-            $val = fn($key) => isset($headerMap[$key]) && isset($row[$headerMap[$key]]) ? trim($row[$headerMap[$key]]) : null;
+        $rows = array_map(function ($row) use ($headerMap) {
+            $val = fn ($key) => isset($headerMap[$key]) && isset($row[$headerMap[$key]]) ? trim($row[$headerMap[$key]]) : null;
+
             return [
                 'first_name' => $val('first_name'),
                 'father_name' => $val('father_name'),
@@ -1051,13 +1128,14 @@ class StudentController extends Controller
 
         $message = "Import completed. Success: {$result['success']}, Skipped: {$result['skipped']}.";
         $redirect = redirect()->route('admin.students.index')->with('success', $message);
-        
+
         if (count($result['errors']) > 0) {
             $redirect->with('import_errors', $result['errors']);
         }
 
         return $redirect;
     }
+
     public function bulkDestroy(Request $request)
     {
         $request->validate([
@@ -1067,9 +1145,10 @@ class StudentController extends Controller
 
         try {
             $count = $this->studentService->bulkDeleteStudents($request->ids);
+
             return redirect()->route('admin.students.index')->with('success', "$count students deleted successfully.");
         } catch (\Exception $e) {
-            return back()->with('error', 'Error deleting students: ' . $e->getMessage());
+            return back()->with('error', 'Error deleting students: '.$e->getMessage());
         }
     }
 
@@ -1087,8 +1166,8 @@ class StudentController extends Controller
                 $student = Student::findOrFail($id);
                 if ($student->is_active) {
                     $student->update(['is_active' => false]);
-                    
-                    \App\Models\StudentStatusHistory::create([
+
+                    StudentStatusHistory::create([
                         'student_id' => $student->id,
                         'old_status' => 'active',
                         'new_status' => 'inactive',
@@ -1111,10 +1190,12 @@ class StudentController extends Controller
                 }
             }
             DB::commit();
+
             return redirect()->route('admin.students.index')->with('success', "$count students deactivated successfully.");
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Error deactivating students: ' . $e->getMessage());
+
+            return back()->with('error', 'Error deactivating students: '.$e->getMessage());
         }
     }
 
@@ -1162,54 +1243,53 @@ class StudentController extends Controller
             }
 
             DB::commit();
+
             return redirect()->route('admin.students.index')->with('success', "$count students transferred successfully to {$newSection->gradeLevel->name} - {$newSection->name}.");
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Bulk transfer failed: ' . $e->getMessage());
+
+            return back()->with('error', 'Bulk transfer failed: '.$e->getMessage());
         }
     }
 
-
     public function idCardsIndex()
     {
-        $academicYear = \App\Helpers\CachedData::activeAcademicYear();
-        $sections = \App\Models\Section::with('gradeLevel')
+        $academicYear = CachedData::activeAcademicYear();
+        $sections = Section::with('gradeLevel')
             ->where('academic_year_id', $academicYear->id)
             ->withCount('students')
             ->get();
-            
+
         return view('admin.students.id-cards-index', compact('sections'));
     }
 
     public function generateIdCard(Student $student)
     {
         $student->load(['currentEnrollment.section.gradeLevel', 'primaryGuardian']);
-        $academicYear = \App\Models\AcademicYear::where('is_active', true)->first();
-        $settings = \App\Models\ReportCardSetting::first();
-        $idSettings = \App\Models\IdCardSetting::first();
+        $academicYear = AcademicYear::where('is_active', true)->first();
+        $settings = ReportCardSetting::first();
+        $idSettings = IdCardSetting::first();
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.students.id-card-pdf', compact('student', 'academicYear', 'settings', 'idSettings'))
+        $pdf = Pdf::loadView('admin.students.id-card-pdf', compact('student', 'academicYear', 'settings', 'idSettings'))
             ->setPaper([0, 0, 242.65, 153.07], 'landscape'); // 8.56cm x 5.40cm in points
-
 
         return $pdf->stream("id-card-{$student->student_id}.pdf");
     }
 
-    public function bulkIdCards(\App\Models\Section $section)
+    public function bulkIdCards(Section $section)
     {
-        $academicYear = \App\Models\AcademicYear::where('is_active', true)->first();
-        $students = Student::whereHas('enrollments', function($q) use ($section, $academicYear) {
+        $academicYear = AcademicYear::where('is_active', true)->first();
+        $students = Student::whereHas('enrollments', function ($q) use ($section, $academicYear) {
             $q->where('section_id', $section->id)
-              ->where('academic_year_id', $academicYear->id)
-              ->where('status', 'active');
+                ->where('academic_year_id', $academicYear->id)
+                ->where('status', 'active');
         })->with(['currentEnrollment.section.gradeLevel', 'primaryGuardian'])->orderBy('first_name')->get();
 
-        $settings = \App\Models\ReportCardSetting::first();
-        $idSettings = \App\Models\IdCardSetting::first();
+        $settings = ReportCardSetting::first();
+        $idSettings = IdCardSetting::first();
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.students.id-cards-bulk-pdf', compact('students', 'section', 'academicYear', 'settings', 'idSettings'))
+        $pdf = Pdf::loadView('admin.students.id-cards-bulk-pdf', compact('students', 'section', 'academicYear', 'settings', 'idSettings'))
             ->setPaper([0, 0, 242.65, 153.07], 'landscape');
-
 
         return $pdf->stream("id-cards-{$section->name}.pdf");
     }
@@ -1217,9 +1297,9 @@ class StudentController extends Controller
     public function withdrawForm(Student $student)
     {
         $student->load('currentEnrollment.section.gradeLevel');
-        $reasons = \App\Models\StudentStatusHistory::withdrawalReasons();
-        $statuses = \App\Models\StudentStatusHistory::statusOptions();
-        
+        $reasons = StudentStatusHistory::withdrawalReasons();
+        $statuses = StudentStatusHistory::statusOptions();
+
         return view('admin.students.withdraw', compact('student', 'reasons', 'statuses'));
     }
 
@@ -1232,15 +1312,15 @@ class StudentController extends Controller
             'effective_date' => 'required|date',
         ]);
 
-        \App\Actions\Students\ProcessStudentWithdrawal::run($student, $request->only(['new_status', 'reason', 'notes', 'effective_date']));
+        ProcessStudentWithdrawal::run($student, $request->only(['new_status', 'reason', 'notes', 'effective_date']));
 
         return redirect()->route('admin.students.show', $student)
-            ->with('success', 'Student status updated to ' . ucfirst(str_replace('_', ' ', $request->new_status)) . ' successfully!');
+            ->with('success', 'Student status updated to '.ucfirst(str_replace('_', ' ', $request->new_status)).' successfully!');
     }
 
     public function statusHistory(Student $student)
     {
-        $history = \App\Models\StudentStatusHistory::where('student_id', $student->id)
+        $history = StudentStatusHistory::where('student_id', $student->id)
             ->with('changer')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -1259,33 +1339,33 @@ class StudentController extends Controller
         if (empty($student->email)) {
             // Option: Generate a dummy email or fail?
             // For now, let's require an email or generate one based on ID.
-            // Let's generate one if missing: ID@school.com (Example) 
+            // Let's generate one if missing: ID@school.com (Example)
             // Better behavior: Require email update first or use generated.
             // Let's use generated if empty: studentID@domain
-            $email = $student->admission_number . '@renaissance.edu';
-             // return back()->with('error', 'Student must have an email address to create a portal account.');
+            $email = $student->admission_number.'@renaissance.edu';
+            // return back()->with('error', 'Student must have an email address to create a portal account.');
         } else {
             $email = $student->email;
         }
 
         // Check if user exists with this email
         $existingUser = User::where('email', $email)->first();
-        
+
         $password = null;
 
-        DB::transaction(function() use ($student, $email, $existingUser, &$password) {
+        DB::transaction(function () use ($student, $email, $existingUser, &$password) {
             if ($existingUser) {
                 // Link to existing user
                 $student->update(['user_id' => $existingUser->id]);
-                
+
                 // Ensure role
-                if (!$existingUser->hasRole('Student')) {
+                if (! $existingUser->hasRole('Student')) {
                     $existingUser->assignRole('Student');
                 }
             } else {
                 // Create new user
-                $password = \Illuminate\Support\Str::random(10);
-                
+                $password = Str::random(10);
+
                 $user = User::create([
                     'name' => $student->full_name,
                     'email' => $email,
@@ -1299,32 +1379,34 @@ class StudentController extends Controller
         });
 
         if ($password) {
-            return back()->with('success', 'Portal account created. Password: ' . $password);
+            return back()->with('success', 'Portal account created. Password: '.$password);
         } else {
             return back()->with('success', 'Portal account linked successfully.');
         }
     }
+
     public function resetStudentPassword(Student $student)
     {
-        if (!$student->user_id || !$student->user) {
+        if (! $student->user_id || ! $student->user) {
             return back()->with('error', 'Student does not have a portal account.');
         }
 
-        $password = \Illuminate\Support\Str::random(10);
+        $password = Str::random(10);
         $student->user->update([
             'password' => Hash::make($password),
             'temp_password' => $password,
         ]);
 
-        return back()->with('success', 'Password reset successfully. New Password: ' . $password);
+        return back()->with('success', 'Password reset successfully. New Password: '.$password);
     }
+
     public function restore(string $id)
     {
         $student = Student::withTrashed()->findOrFail($id);
         $student->restore();
-        
+
         // Optionally restore user account if needed, but keeping it simple for now
-        
+
         return redirect()->back()->with('success', 'Student restored successfully.');
     }
 
@@ -1404,21 +1486,20 @@ class StudentController extends Controller
             ->orderBy('first_name')
             ->get();
 
-        $academicYear = \App\Models\AcademicYear::where('is_active', true)->first();
-        $settings = \App\Models\ReportCardSetting::first();
-        
+        $academicYear = AcademicYear::where('is_active', true)->first();
+        $settings = ReportCardSetting::first();
+
         // We can reuse the bulk PDF view but pass students directly
         // The existing view expects $students and $section (for title)
         // We'll pass a dummy section or adjust the view to handle mixed sections
-        
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.students.id-cards-bulk-pdf', [
+
+        $pdf = Pdf::loadView('admin.students.id-cards-bulk-pdf', [
             'students' => $students,
             'section' => null, // View should handle null section
             'academicYear' => $academicYear,
-            'settings' => $settings
+            'settings' => $settings,
         ])->setPaper([0, 0, 243.78, 153.07], 'landscape');
 
         return $pdf->stream('selected-students-id-cards.pdf');
     }
 }
-

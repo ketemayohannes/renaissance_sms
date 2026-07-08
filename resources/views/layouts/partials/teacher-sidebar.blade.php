@@ -66,7 +66,7 @@
         <div class="sidebar-category-header flex items-center cursor-pointer group" 
              :class="sidebarCollapsed ? 'text-center px-0 justify-center w-full' : 'justify-between sticky top-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md'"
              @click="toggleCategory('teaching')">
-            <span x-show="!sidebarCollapsed" class="group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors uppercase tracking-widest font-black text-[10px] text-slate-400 dark:text-slate-500">Classroom</span>
+            <span x-show="!sidebarCollapsed" class="group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors uppercase tracking-widest font-black text-[10px] text-slate-400 dark:text-slate-500">My Workspace</span>
             <span x-show="!sidebarCollapsed">
                 <svg class="w-3 h-3 text-slate-400 transition-transform duration-200"
                      :class="openCategories['teaching'] ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">

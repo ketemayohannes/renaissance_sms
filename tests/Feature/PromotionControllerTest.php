@@ -9,11 +9,12 @@ use App\Models\GradeLevel;
 use App\Models\PromotionRule;
 use App\Models\Section;
 use App\Models\Student;
+use App\Models\StudentEnrollment;
 use App\Models\StudentMark;
+use App\Models\StudentPromotion;
 use App\Models\Subject;
 use App\Models\Term;
 use App\Models\User;
-use App\Models\StudentEnrollment;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -23,29 +24,42 @@ class PromotionControllerTest extends TestCase
     use RefreshDatabase;
 
     protected User $adminUser;
+
     protected AcademicYear $academicYear;
+
     protected AcademicYear $nextAcademicYear;
+
     protected Term $term;
+
     protected Section $section;
+
     protected GradeLevel $gradeLevel;
+
     protected GradeLevel $nextGradeLevel;
+
     protected Division $division;
+
     protected Subject $subjectAmharic;
+
     protected Subject $subjectMath;
+
     protected Subject $subjectGeography;
+
     protected Student $student;
+
     protected Term $semester;
+
     protected Term $quarter;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Create admin user with role
         Role::firstOrCreate(['name' => 'Super Admin']);
         $this->adminUser = User::factory()->create();
         $this->adminUser->assignRole('Super Admin');
-        
+
         // Create base academic structure
         $this->division = Division::factory()->create(['name' => 'Primary']);
         $this->academicYear = AcademicYear::factory()->active()->create();
@@ -114,7 +128,7 @@ class PromotionControllerTest extends TestCase
         $this->gradeLevel->subjects()->attach([
             $this->subjectAmharic->id,
             $this->subjectMath->id,
-            $this->subjectGeography->id
+            $this->subjectGeography->id,
         ], ['academic_year_id' => $this->academicYear->id]);
 
         // Create student and enroll
@@ -167,7 +181,7 @@ class PromotionControllerTest extends TestCase
         ]);
 
         $rule = PromotionRule::where('from_grade_level_id', $this->gradeLevel->id)->first();
-        $this->assertContains((string)$this->subjectMath->id, array_map('strval', $rule->major_subjects));
+        $this->assertContains((string) $this->subjectMath->id, array_map('strval', $rule->major_subjects));
         $this->assertCount(3, $rule->conditional_rules);
         $this->assertEquals(52, $rule->conditional_rules[1]['avg']);
     }
@@ -198,7 +212,7 @@ class PromotionControllerTest extends TestCase
         $marks = [
             $this->subjectMath->id => 80,
             $this->subjectAmharic->id => 85,
-            $this->subjectGeography->id => 40
+            $this->subjectGeography->id => 40,
         ];
 
         foreach ($marks as $subId => $score) {
@@ -250,7 +264,7 @@ class PromotionControllerTest extends TestCase
         $marks = [
             $this->subjectMath->id => 45,
             $this->subjectAmharic->id => 95,
-            $this->subjectGeography->id => 90
+            $this->subjectGeography->id => 90,
         ];
 
         foreach ($marks as $subId => $score) {
@@ -475,7 +489,7 @@ class PromotionControllerTest extends TestCase
         ]);
 
         // Retrieve the promotion record for student
-        $promo = \App\Models\StudentPromotion::where('student_id', $this->student->id)->first();
+        $promo = StudentPromotion::where('student_id', $this->student->id)->first();
         $this->assertNotNull($promo);
         $this->assertFalse($promo->is_enrolled);
 
@@ -526,9 +540,14 @@ class PromotionControllerTest extends TestCase
     /** @test */
     public function admin_can_filter_promotion_history(): void
     {
+        // Distinct, non-overlapping names so the search/assertDontSee checks below are
+        // deterministic (the faker name pool is small enough that two random students can
+        // share a first name, which previously made this test flaky).
+        $this->student->update(['first_name' => 'Aaronunique', 'father_name' => 'Firstfather', 'grandfather_name' => 'Firstgrand']);
+
         // Create another student promotion record
-        $anotherStudent = Student::factory()->create();
-        $promo1 = \App\Models\StudentPromotion::create([
+        $anotherStudent = Student::factory()->create(['first_name' => 'Zephyrunique', 'father_name' => 'Secondfather', 'grandfather_name' => 'Secondgrand']);
+        $promo1 = StudentPromotion::create([
             'student_id' => $this->student->id,
             'from_academic_year_id' => $this->academicYear->id,
             'to_academic_year_id' => $this->nextAcademicYear->id,
@@ -539,7 +558,7 @@ class PromotionControllerTest extends TestCase
             'processed_by' => $this->adminUser->id,
         ]);
 
-        $promo2 = \App\Models\StudentPromotion::create([
+        $promo2 = StudentPromotion::create([
             'student_id' => $anotherStudent->id,
             'from_academic_year_id' => $this->academicYear->id,
             'to_academic_year_id' => $this->nextAcademicYear->id,
@@ -583,7 +602,7 @@ class PromotionControllerTest extends TestCase
             'status' => 'active',
         ]);
 
-        $promo1 = \App\Models\StudentPromotion::create([
+        $promo1 = StudentPromotion::create([
             'student_id' => $this->student->id,
             'from_academic_year_id' => $this->academicYear->id,
             'to_academic_year_id' => $this->nextAcademicYear->id,
@@ -595,7 +614,7 @@ class PromotionControllerTest extends TestCase
             'processed_by' => $this->adminUser->id,
         ]);
 
-        $promo2 = \App\Models\StudentPromotion::create([
+        $promo2 = StudentPromotion::create([
             'student_id' => $anotherStudent->id,
             'from_academic_year_id' => $this->academicYear->id,
             'to_academic_year_id' => $this->nextAcademicYear->id,
@@ -609,7 +628,7 @@ class PromotionControllerTest extends TestCase
 
         $response = $this->actingAs($this->adminUser)
             ->post(route('admin.promotions.bulk-enroll', [
-                'ids' => [$promo1->id, $promo2->id]
+                'ids' => [$promo1->id, $promo2->id],
             ]));
 
         $response->assertRedirect(route('admin.promotions.history'));
@@ -649,7 +668,7 @@ class PromotionControllerTest extends TestCase
             'status' => 'active',
         ]);
 
-        $promo1 = \App\Models\StudentPromotion::create([
+        $promo1 = StudentPromotion::create([
             'student_id' => $this->student->id,
             'from_academic_year_id' => $this->academicYear->id,
             'to_academic_year_id' => $this->nextAcademicYear->id,
@@ -661,7 +680,7 @@ class PromotionControllerTest extends TestCase
             'processed_by' => $this->adminUser->id,
         ]);
 
-        $promo2 = \App\Models\StudentPromotion::create([
+        $promo2 = StudentPromotion::create([
             'student_id' => $anotherStudent->id,
             'from_academic_year_id' => $this->academicYear->id,
             'to_academic_year_id' => $this->nextAcademicYear->id,
@@ -692,7 +711,7 @@ class PromotionControllerTest extends TestCase
 
         $response = $this->actingAs($this->adminUser)
             ->post(route('admin.promotions.bulk-reverse', [
-                'ids' => [$promo1->id, $promo2->id]
+                'ids' => [$promo1->id, $promo2->id],
             ]));
 
         $response->assertRedirect(route('admin.promotions.history'));
