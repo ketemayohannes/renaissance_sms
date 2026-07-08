@@ -409,6 +409,8 @@ Route::middleware(['auth'])->group(function () {
 
         // Messaging
         Route::get('/messages', [App\Http\Controllers\Teacher\MessagingController::class, 'index'])->name('messages.index');
+        Route::get('/messages/create', [App\Http\Controllers\Teacher\MessagingController::class, 'create'])->name('messages.create');
+        Route::post('/messages', [App\Http\Controllers\Teacher\MessagingController::class, 'store'])->name('messages.store');
         Route::get('/messages/{conversation}', [App\Http\Controllers\Teacher\MessagingController::class, 'show'])->name('messages.show');
         Route::post('/messages/{conversation}/reply', [App\Http\Controllers\Teacher\MessagingController::class, 'reply'])->name('messages.reply');
         Route::get('/messages/unread-count', [App\Http\Controllers\Teacher\MessagingController::class, 'unreadCount'])->name('messages.unread-count');

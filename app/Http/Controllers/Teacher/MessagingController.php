@@ -8,6 +8,9 @@ use App\Models\ConversationParticipant;
 use App\Models\Message;
 use App\Models\MessageRead;
 use App\Notifications\NewMessageReceived;
+use App\Models\StudentGuardian;
+use App\Services\TeacherService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 
 class MessagingController extends Controller
@@ -69,6 +72,108 @@ class MessagingController extends Controller
 
         return redirect()->route('teacher.messages.show', $conversation)
             ->with('success', 'Reply sent.');
+    }
+
+    public function create(Request $request)
+    {
+        $user = auth()->user();
+        $section = app(TeacherService::class)->getHomeroomSection($user);
+
+        if (!$section) {
+            return redirect()->route('teacher.messages.index')
+                ->with('error', 'You must be a Homeroom Teacher to initiate conversations with parents.');
+        }
+
+        // Fetch active students in the homeroom section
+        $students = $section->enrollments()
+            ->where('status', 'active')
+            ->with(['student.user', 'student.guardians.user'])
+            ->get()
+            ->pluck('student');
+
+        // Extract guardians with active portal accounts
+        $recipients = [];
+        foreach ($students as $student) {
+            foreach ($student->guardians as $guardian) {
+                if ($guardian->user) {
+                    $recipients[] = [
+                        'guardian_user_id' => $guardian->user->id,
+                        'guardian_name'    => $guardian->full_name,
+                        'student_name'     => $student->user->name,
+                        'relationship'     => $guardian->relationship ?? 'Guardian',
+                    ];
+                }
+            }
+        }
+
+        $recipients = collect($recipients)->unique('guardian_user_id')->values();
+
+        // Check if there is a pre-selected recipient from URL
+        $preselectedId = $request->query('recipient_id');
+
+        return view('teacher.messages.create', compact('recipients', 'section', 'preselectedId'));
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'recipient_id' => 'required|exists:users,id|different:' . auth()->id(),
+            'subject'      => 'required|string|max:255',
+            'body'         => 'required|string|max:3000',
+        ]);
+
+        $user = auth()->user();
+        $section = app(TeacherService::class)->getHomeroomSection($user);
+
+        if (!$section) {
+            return redirect()->route('teacher.messages.index')
+                ->with('error', 'You must be a Homeroom Teacher to initiate conversations.');
+        }
+
+        $recipientId = $validated['recipient_id'];
+
+        // Secure IDOR check: Verify the recipient is a guardian of an active student in the teacher's homeroom section
+        $studentGuardian = StudentGuardian::with('student.user')
+            ->where('user_id', $recipientId)
+            ->whereIn('student_id', function ($query) use ($section) {
+                $query->select('student_id')
+                    ->from('student_enrollments')
+                    ->where('section_id', $section->id)
+                    ->where('status', 'active');
+            })
+            ->first();
+
+        abort_unless($studentGuardian, 403, 'You can only message parents of active students in your homeroom class.');
+
+        $studentName = $studentGuardian->student->user->name;
+        $recipient   = \App\Models\User::findOrFail($recipientId);
+
+        $conversation = DB::transaction(function () use ($user, $recipient, $validated, $studentName) {
+            $conv = Conversation::create([
+                'type'       => 'private',
+                'name'       => $validated['subject'] . ' — ' . $studentName,
+                'created_by' => $user->id,
+            ]);
+
+            ConversationParticipant::insert([
+                ['conversation_id' => $conv->id, 'user_id' => $user->id,        'joined_at' => now(), 'created_at' => now(), 'updated_at' => now()],
+                ['conversation_id' => $conv->id, 'user_id' => $recipient->id, 'joined_at' => now(), 'created_at' => now(), 'updated_at' => now()],
+            ]);
+
+            Message::create([
+                'conversation_id' => $conv->id,
+                'sender_id'       => $user->id,
+                'body'            => $validated['body'],
+            ]);
+
+            return $conv;
+        });
+
+        // Notify parent
+        $recipient->notify(new NewMessageReceived($conversation, $user));
+
+        return redirect()->route('teacher.messages.show', $conversation)
+            ->with('success', 'Message sent successfully.');
     }
 
     public function unreadCount()

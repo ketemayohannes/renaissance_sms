@@ -131,11 +131,24 @@
                                 {{ $enrollment->student->gender }}
                             </td>
                              <td class="px-6 py-4">
-                                <div class="text-sm font-bold text-slate-700">
-                                    {{ $enrollment->student->primaryGuardian->full_name ?? 'N/A' }}
-                                </div>
-                                <div class="text-[10px] text-slate-400 font-mono">
-                                    {{ $enrollment->student->primaryGuardian->phone ?? '' }}
+                                <div class="flex items-center justify-between gap-2">
+                                    <div>
+                                        <div class="text-sm font-bold text-slate-700">
+                                            {{ $enrollment->student->primaryGuardian->full_name ?? 'N/A' }}
+                                        </div>
+                                        <div class="text-[10px] text-slate-400 font-mono">
+                                            {{ $enrollment->student->primaryGuardian->phone ?? '' }}
+                                        </div>
+                                    </div>
+                                    @if($enrollment->student->primaryGuardian && $enrollment->student->primaryGuardian->user_id)
+                                        <a href="{{ route('teacher.messages.create', ['recipient_id' => $enrollment->student->primaryGuardian->user_id]) }}" 
+                                           class="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all flex-shrink-0"
+                                           title="Send direct message to parent">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                                            </svg>
+                                        </a>
+                                    @endif
                                 </div>
                             </td>
                             <td class="px-6 py-4 text-right">
