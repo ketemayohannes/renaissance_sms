@@ -39,10 +39,11 @@ class CommunicationSetting extends Model
                 'mail.default'                  => 'resend',
                 'mail.mailers.resend.transport' => 'resend',
                 'resend.api_key'                => $this->resend_api_key,
+                'services.resend.key'           => $this->resend_api_key,
                 'mail.from.address'             => $this->mail_from_address ?? config('mail.from.address'),
                 'mail.from.name'                => $this->mail_from_name    ?? config('mail.from.name'),
             ]);
-        } elseif ($mailer === 'smtp' && $this->mail_host !== null) {
+        } elseif ($mailer === 'smtp' && !empty($this->mail_host)) {
             config([
                 'mail.default'                 => 'smtp',
                 'mail.mailers.smtp.host'       => $this->mail_host,

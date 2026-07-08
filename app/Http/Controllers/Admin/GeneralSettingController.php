@@ -238,10 +238,11 @@ class GeneralSettingController extends Controller
             return redirect()
                 ->route('admin.settings.general.index', ['tab' => 'communication'])
                 ->with('success', 'Test email sent to ' . $request->email . '.' . $note);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            $driver = config('mail.default', 'log');
             return redirect()
                 ->route('admin.settings.general.index', ['tab' => 'communication'])
-                ->with('error', 'Email delivery failed: ' . $e->getMessage());
+                ->with('error', 'Email delivery failed [driver: ' . $driver . ']: ' . $e->getMessage());
         }
     }
 
