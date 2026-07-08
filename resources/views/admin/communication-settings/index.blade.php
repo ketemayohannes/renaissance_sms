@@ -87,6 +87,7 @@
                                     <select name="sms_provider" x-model="config.sms_provider" class="w-full bg-slate-50 border-slate-100 rounded-xl text-sm font-bold text-slate-600 focus:ring-slate-200 focus:border-slate-200">
                                         <option value="africastalking">Africa's Talking (International / East Africa)</option>
                                         <option value="smsethiopia">SMS Ethiopia (smsethiopia.com)</option>
+                                        <option value="geezsms">GeezSMS (geezsms.com — Ethiopia)</option>
                                     </select>
                                 </div>
 
@@ -127,6 +128,23 @@
                                         <label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block ml-1">SMS Ethiopia API Key</label>
                                         <input type="password" name="smsethiopia_api_key" x-model="config.smsethiopia_api_key" class="w-full bg-slate-50 border-slate-100 rounded-xl font-bold text-sm text-slate-600 focus:ring-slate-200 focus:border-slate-200" placeholder="••••••••••••••••••••••••••••••••••••">
                                     </div>
+                                </div>
+
+                                <!-- GeezSMS Block -->
+                                <div class="space-y-4" x-show="config.sms_provider === 'geezsms'" x-collapse>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block ml-1">API Token</label>
+                                            <input type="password" name="geezsms_token" x-model="config.geezsms_token" class="w-full bg-slate-50 border-slate-100 rounded-xl font-bold text-sm text-slate-600 focus:ring-slate-200 focus:border-slate-200" placeholder="••••••••••••••••••••••••••••••••••••">
+                                        </div>
+                                        <div>
+                                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block ml-1">Sender ID (Optional)</label>
+                                            <input type="text" name="geezsms_sender_id" x-model="config.geezsms_sender_id" class="w-full bg-slate-50 border-slate-100 rounded-xl font-bold text-sm text-slate-600 focus:ring-slate-200 focus:border-slate-200" placeholder="e.g. MySchool">
+                                        </div>
+                                    </div>
+                                    <p class="text-[10px] text-slate-400 font-semibold ml-1">
+                                        Phone numbers are sent in Ethiopian format <span class="font-black text-slate-500">251XXXXXXXXX</span>. Get your token from <a href="https://geezsms.com" target="_blank" class="text-indigo-500 hover:underline">geezsms.com</a>.
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -305,6 +323,8 @@
                     africastalking_from: "{{ $settings->africastalking_from ?? '' }}",
                     africastalking_sandbox: {{ $settings->africastalking_sandbox ? 'true' : 'false' }},
                     smsethiopia_api_key: "{{ $settings->smsethiopia_api_key ?? '' }}",
+                    geezsms_token: "{{ $settings->geezsms_token ?? '' }}",
+                    geezsms_sender_id: "{{ $settings->geezsms_sender_id ?? '' }}",
                     mail_mailer: "{{ $settings->mail_mailer ?? 'smtp' }}",
                     mail_host: "{{ $settings->mail_host ?? '' }}",
                     mail_port: "{{ $settings->mail_port ?? '' }}",

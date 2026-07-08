@@ -176,6 +176,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('graduates', [App\Http\Controllers\Admin\GraduatesController::class, 'index'])->name('graduates.index')->middleware('permission:view students');
 
         // Student Management (permission-gated)
+        Route::get('students/enrollments', [App\Http\Controllers\Admin\StudentController::class, 'enrollmentsIndex'])->name('students.enrollments')->middleware('permission:view students');
         Route::get('students/export', [App\Http\Controllers\Admin\StudentController::class, 'export'])->name('students.export')->middleware('permission:view students');
 
         Route::get('students/import', [App\Http\Controllers\Admin\StudentController::class, 'import'])->name('students.import')->middleware('permission:create students');

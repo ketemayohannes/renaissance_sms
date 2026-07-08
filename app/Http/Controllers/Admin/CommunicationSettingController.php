@@ -34,7 +34,7 @@ class CommunicationSettingController extends Controller
 
         $validated = $request->validate([
             'sms_enabled' => 'boolean',
-            'sms_provider' => 'required|string|in:africastalking,smsethiopia',
+            'sms_provider' => 'required|string|in:africastalking,smsethiopia,geezsms',
             'email_enabled' => 'boolean',
             
             'africastalking_username' => 'nullable|string',
@@ -43,6 +43,9 @@ class CommunicationSettingController extends Controller
             'africastalking_sandbox' => 'boolean',
 
             'smsethiopia_api_key' => 'nullable|string',
+
+            'geezsms_token'     => 'nullable|string|max:512',
+            'geezsms_sender_id' => 'nullable|string|max:20',
 
             'mail_mailer' => 'required|string|in:smtp,log',
             'mail_host' => 'nullable|string',

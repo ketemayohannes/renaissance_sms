@@ -20,6 +20,11 @@ class SmsService
     protected string $smsEthiopiaApiKey;
     protected string $smsEthiopiaUrl = 'https://smsethiopia.com/api/sms/send';
 
+    // GeezSMS Settings
+    protected string $geezSmsToken;
+    protected ?string $geezSmsSenderId;
+    protected string $geezSmsUrl = 'https://api.geezsms.com/api/v1/sms/send/bulk';
+
     public function __construct()
     {
         $this->provider = config('communication.sms.provider', 'africastalking');
@@ -36,6 +41,10 @@ class SmsService
 
         // Load SMS Ethiopia configs
         $this->smsEthiopiaApiKey = config('communication.sms.smsethiopia.api_key') ?? '';
+
+        // Load GeezSMS configs
+        $this->geezSmsToken    = config('communication.sms.geezsms.token') ?? '';
+        $this->geezSmsSenderId = config('communication.sms.geezsms.sender_id') ?? null;
     }
 
     public function send(string $to, string $message): bool
@@ -47,6 +56,10 @@ class SmsService
 
         if ($this->provider === 'smsethiopia') {
             return $this->sendViaSmsEthiopia($to, $message);
+        }
+
+        if ($this->provider === 'geezsms') {
+            return $this->sendViaGeezSms($to, $message);
         }
 
         return $this->sendViaAfricasTalking($to, $message);
@@ -139,6 +152,53 @@ class SmsService
             return false;
         } catch (\Exception $e) {
             Log::error("SMS Ethiopia sending exception: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    protected function sendViaGeezSms(string $to, string $message): bool
+    {
+        // GeezSMS uses the same 12-digit format as SMS Ethiopia (251XXXXXXXXX)
+        $to = $this->formatPhoneNumberForSmsEthiopia($to);
+
+        if (empty($this->geezSmsToken)) {
+            Log::warning("GeezSMS token missing. Logging SMS to {$to}: {$message}");
+            return false;
+        }
+
+        try {
+            $payload = [
+                'token'    => $this->geezSmsToken,
+                'msg'      => $message,
+                'contacts' => [['phone_number' => $to]],
+            ];
+
+            if ($this->geezSmsSenderId) {
+                $payload['sender_id'] = $this->geezSmsSenderId;
+            }
+
+            $response = Http::withHeaders([
+                'Content-Type' => 'application/json',
+                'Accept'       => 'application/json',
+            ])->post($this->geezSmsUrl, $payload);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                // GeezSMS returns {status: true/false} or {message: '...'}
+                if (($data['status'] ?? false) === true || ($data['sent'] ?? false) === true) {
+                    Log::info("SMS sent successfully via GeezSMS to {$to}");
+                    return true;
+                }
+
+                $errorMsg = $data['message'] ?? $response->body();
+                Log::error("Failed to send SMS via GeezSMS to {$to}. Response: {$errorMsg}");
+                return false;
+            }
+
+            Log::error("Failed to send SMS via GeezSMS to {$to}. HTTP {$response->status()}: " . $response->body());
+            return false;
+        } catch (\Exception $e) {
+            Log::error("GeezSMS sending exception: " . $e->getMessage());
             return false;
         }
     }

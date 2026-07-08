@@ -10,6 +10,7 @@ class CommunicationSetting extends Model
         'sms_enabled', 'sms_provider', 'email_enabled', 'in_app_enabled',
         'africastalking_username', 'africastalking_api_key', 'africastalking_from', 'africastalking_sandbox',
         'smsethiopia_api_key',
+        'geezsms_token', 'geezsms_sender_id',
         'resend_api_key',
         'mail_mailer', 'mail_host', 'mail_port', 'mail_username', 'mail_password', 'mail_encryption', 'mail_from_address', 'mail_from_name',
         'event_settings'
@@ -71,6 +72,8 @@ class CommunicationSetting extends Model
             'communication.sms.africastalking.from'     => $this->africastalking_from,
             'communication.sms.africastalking.sandbox'  => (bool) $this->africastalking_sandbox,
             'communication.sms.smsethiopia.api_key'     => $this->smsethiopia_api_key ?? '',
+            'communication.sms.geezsms.token'           => $this->geezsms_token      ?? '',
+            'communication.sms.geezsms.sender_id'       => $this->geezsms_sender_id  ?? null,
 
             // ── Channels ──────────────────────────────────────────────────────
             'communication.email.enabled'               => (bool) $this->email_enabled,

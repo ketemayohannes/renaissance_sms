@@ -23,6 +23,11 @@ return [
         'smsethiopia' => [
             'api_key' => env('SMSETHIOPIA_API_KEY', ''),
         ],
+
+        'geezsms' => [
+            'token'     => env('GEEZSMS_TOKEN', ''),
+            'sender_id' => env('GEEZSMS_SENDER_ID', null),
+        ],
     ],
 
     /*

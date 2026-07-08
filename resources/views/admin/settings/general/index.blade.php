@@ -230,6 +230,15 @@
                                                 <span class="text-[10px] text-slate-400 font-medium">smsethiopia.com</span>
                                             </div>
                                         </label>
+                                        <label :class="cfg.sms_provider === 'geezsms' ? 'border-orange-400 bg-orange-50/30 ring-1 ring-orange-300' : 'border-slate-100 hover:border-slate-200 bg-slate-50/50'"
+                                            class="flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all">
+                                            <input type="radio" name="sms_provider" value="geezsms" x-model="cfg.sms_provider" class="sr-only">
+                                            <span class="text-2xl">✉️</span>
+                                            <div>
+                                                <span class="text-xs font-black text-slate-700 block">GeezSMS</span>
+                                                <span class="text-[10px] text-slate-400 font-medium">geezsms.com — Ethiopia</span>
+                                            </div>
+                                        </label>
                                     </div>
                                 </div>
 
@@ -266,6 +275,21 @@
                                 <div x-show="cfg.sms_provider === 'smsethiopia'" x-collapse>
                                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block ml-1">SMS Ethiopia API Key</label>
                                     <input type="password" name="smsethiopia_api_key" class="w-full bg-slate-50 border-slate-100 rounded-xl font-bold text-sm text-slate-600 focus:ring-slate-200 p-3 mt-1" placeholder="{{ $settings->smsethiopia_api_key ? '••••••••' : 'Enter API key' }}">
+                                </div>
+
+                                {{-- GeezSMS Fields --}}
+                                <div x-show="cfg.sms_provider === 'geezsms'" x-collapse class="space-y-4">
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block ml-1">API Token</label>
+                                            <input type="password" name="geezsms_token" class="w-full bg-slate-50 border-slate-100 rounded-xl font-bold text-sm text-slate-600 focus:ring-slate-200 p-3" placeholder="{{ $settings->geezsms_token ? '••••••••' : 'Enter API token' }}">
+                                        </div>
+                                        <div>
+                                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 block ml-1">Sender ID (Optional)</label>
+                                            <input type="text" name="geezsms_sender_id" value="{{ old('geezsms_sender_id', $settings->geezsms_sender_id) }}" class="w-full bg-slate-50 border-slate-100 rounded-xl font-bold text-sm text-slate-600 focus:ring-slate-200 p-3" placeholder="e.g. MySchool">
+                                        </div>
+                                    </div>
+                                    <p class="text-[10px] text-slate-400 font-semibold ml-1">Numbers sent as <span class="font-black text-slate-500">251XXXXXXXXX</span>. Get your token from <a href="https://geezsms.com" target="_blank" class="text-indigo-500 hover:underline">geezsms.com</a>.</p>
                                 </div>
                             </div>
 

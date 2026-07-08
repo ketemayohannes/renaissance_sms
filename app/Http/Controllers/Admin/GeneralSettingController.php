@@ -51,7 +51,7 @@ class GeneralSettingController extends Controller
     {
         $validated = $request->validate([
             'sms_enabled'            => 'boolean',
-            'sms_provider'           => 'required|string|in:africastalking,smsethiopia',
+            'sms_provider'           => 'required|string|in:africastalking,smsethiopia,geezsms',
             'email_enabled'          => 'boolean',
             'in_app_enabled'         => 'boolean',
 
@@ -63,6 +63,10 @@ class GeneralSettingController extends Controller
 
             // SMS Ethiopia
             'smsethiopia_api_key'    => 'nullable|string|max:255',
+
+            // GeezSMS
+            'geezsms_token'          => 'nullable|string|max:512',
+            'geezsms_sender_id'      => 'nullable|string|max:20',
 
             // Mailer
             'mail_mailer'        => ['required', 'string', Rule::in(['smtp', 'log', 'resend'])],
@@ -87,7 +91,7 @@ class GeneralSettingController extends Controller
         // Password/key masking: only update if a new non-empty value was submitted
         $settings = $this->resolveSettings();
 
-        foreach (['africastalking_api_key', 'smsethiopia_api_key', 'mail_password', 'resend_api_key'] as $secretField) {
+        foreach (['africastalking_api_key', 'smsethiopia_api_key', 'geezsms_token', 'mail_password', 'resend_api_key'] as $secretField) {
             if (empty($validated[$secretField])) {
                 // Keep existing value — remove from update payload
                 unset($validated[$secretField]);

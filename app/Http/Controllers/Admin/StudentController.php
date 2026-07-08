@@ -567,6 +567,71 @@ class StudentController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 
+    public function enrollmentsIndex(Request $request)
+    {
+        $query = \App\Models\StudentEnrollment::with([
+            'student',
+            'section.gradeLevel',
+            'academicYear',
+        ]);
+
+        // Search by student name or ID
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('student', function ($q) use ($search) {
+                $q->where(function ($sq) use ($search) {
+                    $sq->where('first_name', 'like', "%{$search}%")
+                       ->orWhere('father_name', 'like', "%{$search}%")
+                       ->orWhere('grandfather_name', 'like', "%{$search}%")
+                       ->orWhere('student_id', 'like', "%{$search}%")
+                       ->orWhere('admission_number', 'like', "%{$search}%");
+                });
+            });
+        }
+
+        // Filter by academic year
+        if ($request->filled('academic_year_id')) {
+            $query->where('academic_year_id', $request->academic_year_id);
+        }
+
+        // Filter by grade level
+        if ($request->filled('grade_level_id')) {
+            $query->whereHas('section', fn($q) => $q->where('grade_level_id', $request->grade_level_id));
+        }
+
+        // Filter by section
+        if ($request->filled('section_id')) {
+            $query->where('section_id', $request->section_id);
+        }
+
+        // Filter by status
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $enrollments = $query
+            ->orderByDesc('enrollment_date')
+            ->paginate(50)
+            ->withQueryString();
+
+        $academicYears  = \App\Models\AcademicYear::orderByDesc('start_date')->get();
+        $gradeLevels    = \App\Models\GradeLevel::orderBy('sort_order')->get();
+        $sections       = Section::with('gradeLevel')->orderBy('name')->get();
+
+        // Summary counts
+        $totalCount  = \App\Models\StudentEnrollment::count();
+        $activeCount = \App\Models\StudentEnrollment::where('status', 'active')->count();
+
+        return view('admin.students.enrollments', compact(
+            'enrollments',
+            'academicYears',
+            'gradeLevels',
+            'sections',
+            'totalCount',
+            'activeCount'
+        ));
+    }
+
     public function toggleBlock(Student $student)
     {
         $student->is_active = !$student->is_active;
