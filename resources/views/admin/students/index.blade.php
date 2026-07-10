@@ -400,7 +400,7 @@
                                                 <div>
                                                     <div class="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{{ $student->full_name }}</div>
                                                     <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{{ $student->admission_number }}</div>
-                                                    @if($student->latestPromotion)
+                                                    @if($student->latestPromotion && $activeAcademicYearId && $student->latestPromotion->from_academic_year_id == $activeAcademicYearId)
                                                         @php
                                                             $promoStatus = $student->latestPromotion->status;
                                                             $promoBadge = match($promoStatus) {

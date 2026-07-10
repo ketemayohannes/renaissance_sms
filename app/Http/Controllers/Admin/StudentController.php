@@ -157,8 +157,9 @@ class StudentController extends Controller
         $allSections = Section::orderBy('name')->get();
         $divisions = Division::where('is_active', true)->orderBy('sort_order')->get();
         $graduatedCount = Student::graduated()->count();
+        $activeAcademicYearId = CachedData::activeAcademicYear()?->id;
 
-        return view('admin.students.index', compact('students', 'gradeLevels', 'allSections', 'divisions', 'graduatedCount'));
+        return view('admin.students.index', compact('students', 'gradeLevels', 'allSections', 'divisions', 'graduatedCount', 'activeAcademicYearId'));
 
     }
 
