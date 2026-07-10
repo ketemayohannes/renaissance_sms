@@ -38,6 +38,8 @@ class AcademicYearController extends Controller
 
         AcademicYear::create($data);
 
+        \App\Helpers\CachedData::flush();
+
         return redirect()->route('admin.academic-years.index')
             ->with('success', 'Academic Year created successfully.');
     }
@@ -68,6 +70,8 @@ class AcademicYearController extends Controller
 
         $academicYear->update($data);
 
+        \App\Helpers\CachedData::flush();
+
         return redirect()->route('admin.academic-years.index')
             ->with('success', 'Academic Year updated successfully.');
     }
@@ -90,6 +94,8 @@ class AcademicYearController extends Controller
         }
 
         $academicYear->delete();
+
+        \App\Helpers\CachedData::flush();
 
         return redirect()->route('admin.academic-years.index')
             ->with('success', 'Academic Year deleted successfully.');
