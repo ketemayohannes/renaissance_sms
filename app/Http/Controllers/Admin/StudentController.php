@@ -137,9 +137,7 @@ class StudentController extends Controller
     public function index(Request $request)
     {
         $query = $this->buildStudentQuery($request, [
-            'enrollments' => function($q) {
-                $q->whereNull('end_date')->with('section.gradeLevel');
-            },
+            'currentEnrollment.section.gradeLevel',
             'latestPromotion',
             'latestStatusHistory',
         ]);

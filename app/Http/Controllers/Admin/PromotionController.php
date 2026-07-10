@@ -514,7 +514,10 @@ class PromotionController extends Controller
             $toSectionId = $studentPromotion->to_section_id;
             $nextAcademicYear = $studentPromotion->toAcademicYear;
 
-            if ($toSectionId && $nextAcademicYear) {
+            if ($nextAcademicYear) {
+                // section_id is left null (Unassigned) when no target section exists yet
+                // for the new year — the student is still recorded as enrolled and shows
+                // up in Student Management pending a registrar assigning a section.
                 StudentEnrollment::updateOrCreate(
                     [
                         'student_id' => $studentPromotion->student_id,
@@ -527,8 +530,9 @@ class PromotionController extends Controller
                     ]
                 );
 
-                // Recalculate roll numbers for the target section
-                StudentEnrollment::recalculateRollNumbers($toSectionId, $nextAcademicYear->id);
+                if ($toSectionId) {
+                    StudentEnrollment::recalculateRollNumbers($toSectionId, $nextAcademicYear->id);
+                }
             }
 
             $studentPromotion->update(['is_enrolled' => true]);
@@ -666,7 +670,10 @@ class PromotionController extends Controller
                 $toSectionId = $promo->to_section_id;
                 $nextAcademicYear = $promo->toAcademicYear;
 
-                if ($toSectionId && $nextAcademicYear) {
+                if ($nextAcademicYear) {
+                    // section_id is left null (Unassigned) when no target section exists yet
+                    // for the new year — the student is still recorded as enrolled and shows
+                    // up in Student Management pending a registrar assigning a section.
                     StudentEnrollment::updateOrCreate(
                         [
                             'student_id' => $promo->student_id,
@@ -679,7 +686,9 @@ class PromotionController extends Controller
                         ]
                     );
 
-                    $sectionsToRecalculate[$toSectionId] = $nextAcademicYear->id;
+                    if ($toSectionId) {
+                        $sectionsToRecalculate[$toSectionId] = $nextAcademicYear->id;
+                    }
                 }
 
                 $promo->update(['is_enrolled' => true]);
@@ -718,7 +727,10 @@ class PromotionController extends Controller
                 $toSectionId = $promo->to_section_id;
                 $nextAcademicYear = $promo->toAcademicYear;
 
-                if ($toSectionId && $nextAcademicYear) {
+                if ($nextAcademicYear) {
+                    // section_id is left null (Unassigned) when no target section exists yet
+                    // for the new year — the student is still recorded as enrolled and shows
+                    // up in Student Management pending a registrar assigning a section.
                     StudentEnrollment::updateOrCreate(
                         [
                             'student_id' => $promo->student_id,
@@ -731,7 +743,9 @@ class PromotionController extends Controller
                         ]
                     );
 
-                    $sectionsToRecalculate[$toSectionId] = $nextAcademicYear->id;
+                    if ($toSectionId) {
+                        $sectionsToRecalculate[$toSectionId] = $nextAcademicYear->id;
+                    }
                 }
 
                 $promo->update(['is_enrolled' => true]);

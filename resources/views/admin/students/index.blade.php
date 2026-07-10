@@ -428,10 +428,12 @@
                                             </span>
                                         </td>
                                         <td class="p-4">
-                                            @if($student->enrollments->whereNull('end_date')->first())
-                                                @php $enrollment = $student->enrollments->whereNull('end_date')->first(); @endphp
-                                                <div class="text-sm font-bold text-slate-700">{{ $enrollment->section->gradeLevel->name }}</div>
-                                                <div class="text-xs font-medium text-slate-400">{{ $enrollment->section->name }}</div>
+                                            @if($student->currentEnrollment && $student->currentEnrollment->section)
+                                                <div class="text-sm font-bold text-slate-700">{{ $student->currentEnrollment->section->gradeLevel->name }}</div>
+                                                <div class="text-xs font-medium text-slate-400">{{ $student->currentEnrollment->section->name }}</div>
+                                            @elseif($student->currentEnrollment)
+                                                <div class="text-sm font-bold text-slate-700">Unassigned</div>
+                                                <div class="text-xs font-medium text-slate-400">No section yet</div>
                                             @elseif($student->latestPromotion && $student->latestPromotion->status === 'graduated')
                                                 @php
                                                     $gradedFrom = $student->latestPromotion->fromGradeLevel?->name ?? 'Grade 12';
