@@ -334,12 +334,24 @@ class Student extends Model
     }
 
     /**
+     * A promoted/retained student can have two enrollment rows with end_date IS NULL at
+     * once: last year's (kept open on purpose so its gradebook/master-sheet data stays
+     * visible) and this year's. Any "current enrollment" filter must pin to the active
+     * academic year too, or it can match the older row instead of the current one.
+     */
+    private static function activeAcademicYearId()
+    {
+        return \App\Helpers\CachedData::activeAcademicYear()?->id;
+    }
+
+    /**
      * Scope: Students in a specific grade level.
      */
     public function scopeInGrade($query, $gradeLevelId)
     {
         return $query->whereHas('enrollments', function ($q) use ($gradeLevelId) {
             $q->whereNull('end_date')
+              ->when(self::activeAcademicYearId(), fn ($sq, $yearId) => $sq->where('academic_year_id', $yearId))
               ->whereHas('section', fn($sq) => $sq->where('grade_level_id', $gradeLevelId));
         });
     }
@@ -351,6 +363,7 @@ class Student extends Model
     {
         return $query->whereHas('enrollments', function ($q) use ($sectionId) {
             $q->whereNull('end_date')
+              ->when(self::activeAcademicYearId(), fn ($sq, $yearId) => $sq->where('academic_year_id', $yearId))
               ->where('section_id', $sectionId);
         });
     }
@@ -412,6 +425,7 @@ class Student extends Model
 
         return $query->whereHas('enrollments', function ($q) use ($divisionId) {
             $q->whereNull('end_date')
+              ->when(self::activeAcademicYearId(), fn ($sq, $yearId) => $sq->where('academic_year_id', $yearId))
               ->whereHas('section.gradeLevel', fn($sq) => $sq->where('division_id', $divisionId));
         });
     }

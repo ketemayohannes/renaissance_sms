@@ -92,9 +92,12 @@ class StudentController extends Controller
                     $query->inGrade($request->grade_id);
                 }
                 if ($request->filled('section_name')) {
+                    $activeYearId = \App\Helpers\CachedData::activeAcademicYear()?->id;
+
                     // PERFORMANCE: Direct join instead of nested whereHas
-                    $query->whereHas('enrollments', function ($q) use ($request) {
+                    $query->whereHas('enrollments', function ($q) use ($request, $activeYearId) {
                         $q->whereNull('end_date')
+                            ->when($activeYearId, fn ($sq) => $sq->where('academic_year_id', $activeYearId))
                             ->whereHas('section', fn ($sq) => $sq->where('name', $request->section_name));
                     });
                 }
