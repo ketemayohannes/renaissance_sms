@@ -44,11 +44,11 @@
                         <div class="space-y-6">
                             <div class="p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
                                 <span class="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">Grade Level</span>
-                                <span class="font-bold text-slate-700">{{ $currentEnrollment->section->gradeLevel->name }}</span>
+                                <span class="font-bold text-slate-700">{{ $currentEnrollment->section?->gradeLevel->name ?? 'Unassigned' }}</span>
                             </div>
                             <div class="p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
                                 <span class="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">Section</span>
-                                <span class="font-bold text-slate-700">{{ $currentEnrollment->section->name }}</span>
+                                <span class="font-bold text-slate-700">{{ $currentEnrollment->section->name ?? 'No section yet' }}</span>
                             </div>
                             <div class="p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
                                 <span class="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-1">Enrollment Date</span>

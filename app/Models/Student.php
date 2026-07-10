@@ -70,6 +70,19 @@ class Student extends Model
         return $this->hasOne(StudentEnrollment::class)->latestOfMany();
     }
 
+    /**
+     * The student's most recent enrollment that is still open (end_date IS NULL).
+     * A promoted/retained student can have two open rows at once — last year's, kept
+     * open on purpose so its gradebook stays visible, and this year's — so "the most
+     * recent still-open row" (not just "any open row") is what actually reflects where
+     * the student currently belongs. Use this wherever an action (transfer, elective
+     * assignment, etc.) requires an active enrollment rather than just showing history.
+     */
+    public function currentActiveEnrollment()
+    {
+        return $this->hasOne(StudentEnrollment::class)->whereNull('end_date')->latestOfMany();
+    }
+
     public function sections()
     {
         return $this->belongsToMany(Section::class, 'student_enrollments');

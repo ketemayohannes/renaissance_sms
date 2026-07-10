@@ -518,9 +518,7 @@ class StudentController extends Controller
     public function export(Request $request)
     {
         $students = $this->buildStudentQuery($request, [
-            'enrollments' => function($q) {
-                $q->whereNull('end_date')->with('section.gradeLevel');
-            },
+            'currentActiveEnrollment.section.gradeLevel',
             'latestPromotion',
             'latestStatusHistory',
             'guardians',
@@ -559,7 +557,7 @@ class StudentController extends Controller
             foreach ($students as $student) {
                 $primaryGuardian = $student->guardians->where('guardian_type', 'primary')->first();
                 $secondaryGuardian = $student->guardians->where('guardian_type', 'secondary')->first();
-                $enrollment = $student->enrollments->first();
+                $enrollment = $student->currentActiveEnrollment;
 
                 $row = [
                     $student->student_id,
@@ -574,8 +572,8 @@ class StudentController extends Controller
                     $student->language_spoken,
                     $student->admission_number,
                     $student->admission_date,
-                    $enrollment ? $enrollment->section->gradeLevel->name : '',
-                    $enrollment ? $enrollment->section->name : '',
+                    $enrollment?->section?->gradeLevel?->name ?? '',
+                    $enrollment?->section?->name ?? '',
                     $student->subcity,
                     $student->woreda,
                     $student->house_number,
@@ -722,8 +720,8 @@ class StudentController extends Controller
 
     public function transferForm(Student $student)
     {
-        $student->load('enrollments.section.gradeLevel');
-        $currentEnrollment = $student->enrollments()->whereNull('end_date')->first();
+        $student->load('currentActiveEnrollment.section.gradeLevel');
+        $currentEnrollment = $student->currentActiveEnrollment;
 
         $activeYear = AcademicYear::where('is_active', true)->first();
 
@@ -755,7 +753,7 @@ class StudentController extends Controller
         DB::beginTransaction();
         try {
             // End current enrollment
-            $currentEnrollment = $student->enrollments()->whereNull('end_date')->first();
+            $currentEnrollment = $student->currentActiveEnrollment;
 
             if (! $currentEnrollment) {
                 return back()->with('error', 'Student has no active enrollment.');
@@ -765,9 +763,11 @@ class StudentController extends Controller
                 return back()->with('error', 'Student is already in this section.');
             }
 
-            // Validate that the new section is in the same grade level
+            // Validate that the new section is in the same grade level. A student with no
+            // section yet (e.g. enrolled into a new year before sections were created) has
+            // nothing to compare against, so any section they're assigned is accepted.
             $newSection = Section::findOrFail($request->new_section_id);
-            if ($newSection->grade_level_id != $currentEnrollment->section->grade_level_id) {
+            if ($currentEnrollment->section && $newSection->grade_level_id != $currentEnrollment->section->grade_level_id) {
                 return back()->with('error', 'Transfers are only allowed within the same grade level.');
             }
 
@@ -799,14 +799,16 @@ class StudentController extends Controller
 
     public function assignElectivesForm(Student $student)
     {
-        $student->load(['enrollments' => function ($q) {
-            $q->whereNull('end_date')->latest(); // Active enrollment
-        }, 'enrollments.section.gradeLevel.subjects']);
+        $student->load('currentActiveEnrollment.section.gradeLevel.subjects');
 
-        $currentEnrollment = $student->enrollments->first();
+        $currentEnrollment = $student->currentActiveEnrollment;
 
         if (! $currentEnrollment) {
             return back()->with('error', 'Student must have an active enrollment to assign electives.');
+        }
+
+        if (! $currentEnrollment->section) {
+            return back()->with('error', 'Student has no section assigned yet — assign one before choosing electives.');
         }
 
         $academicYearId = $currentEnrollment->academic_year_id;
@@ -835,7 +837,7 @@ class StudentController extends Controller
             'electives.*' => 'exists:subjects,id',
         ]);
 
-        $currentEnrollment = $student->enrollments()->whereNull('end_date')->first();
+        $currentEnrollment = $student->currentActiveEnrollment;
 
         if (! $currentEnrollment) {
             return back()->with('error', 'Student must have an active enrollment.');
@@ -1195,7 +1197,7 @@ class StudentController extends Controller
                     ]);
 
                     // Close current active enrollment as well
-                    $enrollment = $student->enrollments()->whereNull('end_date')->first();
+                    $enrollment = $student->currentActiveEnrollment;
                     if ($enrollment) {
                         $enrollment->update([
                             'status' => 'withdrawn',
@@ -1233,7 +1235,7 @@ class StudentController extends Controller
             $count = 0;
             foreach ($request->ids as $id) {
                 $student = Student::findOrFail($id);
-                $currentEnrollment = $student->enrollments()->whereNull('end_date')->first();
+                $currentEnrollment = $student->currentActiveEnrollment;
 
                 // If already in that section, skip
                 if ($currentEnrollment && $currentEnrollment->section_id == $request->new_section_id) {
