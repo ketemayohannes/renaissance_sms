@@ -39,16 +39,10 @@ class StudentController extends Controller
         $this->studentService = $studentService;
     }
 
-    public function index(Request $request)
+    private function buildStudentQuery(Request $request, array $relations = [])
     {
-        // PERFORMANCE: Simplified eager loading - only load current enrollment
-        $query = Student::with([
-            'enrollments' => function ($q) {
-                $q->whereNull('end_date')->with('section.gradeLevel');
-            },
-            'latestPromotion',
-            'latestStatusHistory',
-        ]);
+        $query = Student::with($relations);
+
 
         // Search Filter - Using scope
         $query->search($request->search);
@@ -136,6 +130,19 @@ class StudentController extends Controller
         } else {
             $query->orderBy('created_at', 'desc');
         }
+
+        return $query;
+    }
+
+    public function index(Request $request)
+    {
+        $query = $this->buildStudentQuery($request, [
+            'enrollments' => function($q) {
+                $q->whereNull('end_date')->with('section.gradeLevel');
+            },
+            'latestPromotion',
+            'latestStatusHistory',
+        ]);
 
         $perPage = $request->input('per_page', 50);
         // Limit max per page to avoid performance issues
@@ -506,11 +513,19 @@ class StudentController extends Controller
         }
     }
 
-    public function export()
+    public function export(Request $request)
     {
-        $students = Student::with(['guardians', 'medicalInfo', 'transportation', 'enrollments.section.gradeLevel'])
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $students = $this->buildStudentQuery($request, [
+            'enrollments' => function($q) {
+                $q->whereNull('end_date')->with('section.gradeLevel');
+            },
+            'latestPromotion',
+            'latestStatusHistory',
+            'guardians',
+            'medicalInfo',
+            'transportation',
+            'user'
+        ])->get();
 
         $headers = [
             'Content-Type' => 'text/csv',

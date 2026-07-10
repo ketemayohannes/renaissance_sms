@@ -13,7 +13,7 @@
                     </svg>
                     Enrollments
                 </a>
-                <a href="{{ route('admin.students.export') }}" 
+                <a href="{{ route('admin.students.export', request()->query()) }}" 
                    class="inline-flex items-center px-4 py-2 bg-white border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 transition-all gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
