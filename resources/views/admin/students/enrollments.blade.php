@@ -59,14 +59,29 @@
         {{-- ============================ PENDING ENROLLMENT TAB ============================ --}}
         <div x-show="tab === 'pending'" x-cloak class="space-y-6">
             <x-ui.glass-card class="p-6">
-                <div class="flex items-start gap-3">
-                    <div class="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 flex-shrink-0">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <div class="flex items-start justify-between gap-3">
+                    <div class="flex items-start gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 flex-shrink-0">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-slate-800">Students awaiting enrollment into next year</p>
+                            <p class="text-xs text-slate-500 mt-0.5">These promotion decisions have been approved but not yet enrolled. Enroll them individually, in bulk, or all at once. Graduated students are excluded — they need no enrollment.</p>
+                        </div>
                     </div>
-                    <div>
-                        <p class="text-sm font-bold text-slate-800">Students awaiting enrollment into next year</p>
-                        <p class="text-xs text-slate-500 mt-0.5">These promotion decisions have been approved but not yet enrolled. Enroll them individually or in bulk. Graduated students are excluded — they need no enrollment.</p>
-                    </div>
+                    @can('promote students')
+                        @if($pendingCount > 0)
+                            <form method="POST" action="{{ route('admin.promotions.enroll-all') }}" class="flex-shrink-0"
+                                  onsubmit="return confirm('Enroll all {{ number_format($pendingCount) }} pending student(s)? This cannot be undone in bulk.')">
+                                @csrf
+                                <input type="hidden" name="redirect_to" value="{{ request()->fullUrl() }}">
+                                <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-sm whitespace-nowrap">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v6m3-3h-6M9 12a4 4 0 100-8 4 4 0 000 8zM3 20a6 6 0 0112 0"/></svg>
+                                    Enroll All ({{ number_format($pendingCount) }})
+                                </button>
+                            </form>
+                        @endif
+                    @endcan
                 </div>
             </x-ui.glass-card>
 

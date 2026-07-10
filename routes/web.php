@@ -377,6 +377,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('promotions/history/{studentPromotion}/enroll', [App\Http\Controllers\Admin\PromotionController::class, 'enrollStudent'])->name('promotions.enroll')->middleware('permission:promote students');
         Route::post('promotions/history/{studentPromotion}/reverse', [App\Http\Controllers\Admin\PromotionController::class, 'reversePromotion'])->name('promotions.reverse')->middleware('permission:promote students');
         Route::post('promotions/history/bulk-enroll', [App\Http\Controllers\Admin\PromotionController::class, 'bulkEnroll'])->name('promotions.bulk-enroll')->middleware('permission:promote students');
+        Route::post('promotions/history/enroll-all', [App\Http\Controllers\Admin\PromotionController::class, 'enrollAll'])->name('promotions.enroll-all')->middleware('permission:promote students');
         Route::post('promotions/history/bulk-reverse', [App\Http\Controllers\Admin\PromotionController::class, 'bulkReverse'])->name('promotions.bulk-reverse')->middleware('permission:promote students');
 
         // Disciplinary Records (permission-gated)

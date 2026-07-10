@@ -695,6 +695,58 @@ class PromotionController extends Controller
     }
 
     /**
+     * Registrar enrolls every pending promotion decision (all divisions the registrar can see,
+     * not just the current page) in one action.
+     */
+    public function enrollAll(Request $request)
+    {
+        $promotions = StudentPromotion::with('toAcademicYear')
+            ->where('is_enrolled', false)
+            ->where('status', '!=', 'graduated')
+            ->get();
+
+        if ($promotions->isEmpty()) {
+            return $this->actionRedirect($request, 'error', 'No pending promotion records to enroll.');
+        }
+
+        $enrolledCount = 0;
+
+        DB::transaction(function () use ($promotions, &$enrolledCount) {
+            $sectionsToRecalculate = [];
+
+            foreach ($promotions as $promo) {
+                $toSectionId = $promo->to_section_id;
+                $nextAcademicYear = $promo->toAcademicYear;
+
+                if ($toSectionId && $nextAcademicYear) {
+                    StudentEnrollment::updateOrCreate(
+                        [
+                            'student_id' => $promo->student_id,
+                            'academic_year_id' => $nextAcademicYear->id,
+                        ],
+                        [
+                            'section_id' => $toSectionId,
+                            'enrollment_date' => $nextAcademicYear->start_date,
+                            'status' => 'active',
+                        ]
+                    );
+
+                    $sectionsToRecalculate[$toSectionId] = $nextAcademicYear->id;
+                }
+
+                $promo->update(['is_enrolled' => true]);
+                $enrolledCount++;
+            }
+
+            foreach ($sectionsToRecalculate as $sectionId => $academicYearId) {
+                StudentEnrollment::recalculateRollNumbers($sectionId, $academicYearId);
+            }
+        });
+
+        return $this->actionRedirect($request, 'success', "Successfully enrolled {$enrolledCount} students.");
+    }
+
+    /**
      * Registrar bulk reverses multiple promotion decisions.
      */
     public function bulkReverse(Request $request)
