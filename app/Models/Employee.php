@@ -2,14 +2,14 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-
+use App\Helpers\CachedData;
 use App\Traits\HasDivisionRestriction;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Employee extends Model
 {
-    use HasFactory, HasDivisionRestriction;
+    use HasDivisionRestriction, HasFactory;
 
     protected $with = ['user', 'academicDetails', 'administrativeDetails'];
 
@@ -30,11 +30,11 @@ class Employee extends Model
         'HR Manager' => 'HR Manager',
         'Librarian' => 'Librarian',
     ];
-    
+
     protected static function booted()
     {
-        static::saved(fn() => \App\Helpers\CachedData::flushEmployeeCache());
-        static::deleted(fn() => \App\Helpers\CachedData::flushEmployeeCache());
+        static::saved(fn () => CachedData::flushEmployeeCache());
+        static::deleted(fn () => CachedData::flushEmployeeCache());
     }
 
     protected $fillable = [
@@ -142,22 +142,22 @@ class Employee extends Model
     {
         return $query->where(function ($q) {
             $q->where('designation', 'like', '%teacher%')
-              ->orWhereHas('user', function ($uq) {
-                  $uq->role('Teacher');
-              });
+                ->orWhereHas('user', function ($uq) {
+                    $uq->role('Teacher');
+                });
         });
     }
 
     public function scopeAcademic($query)
     {
-        return $query->whereHas('user.roles', function($q) {
+        return $query->whereHas('user.roles', function ($q) {
             $q->where('category', 'academic');
         });
     }
 
     public function scopeAdministrative($query)
     {
-        return $query->whereHas('user.roles', function($q) {
+        return $query->whereHas('user.roles', function ($q) {
             $q->where('category', 'administrative');
         });
     }

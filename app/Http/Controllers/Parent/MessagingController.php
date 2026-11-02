@@ -19,7 +19,7 @@ class MessagingController extends Controller
         $user = auth()->user();
 
         $conversations = $user->conversations()
-            ->with(['participants', 'messages' => fn($q) => $q->latest()->limit(1)])
+            ->with(['participants', 'messages' => fn ($q) => $q->latest()->limit(1)])
             ->get();
 
         // Batch the unread counts into one query to avoid an N+1 across the inbox.
@@ -28,22 +28,24 @@ class MessagingController extends Controller
         $conversations = $conversations
             ->map(function ($conv) use ($user, $unreadCounts) {
                 $conv->unread_count = (int) ($unreadCounts[$conv->id] ?? 0);
-                $conv->other        = $conv->otherParticipant($user);
-                $conv->preview      = $conv->messages->first();
+                $conv->other = $conv->otherParticipant($user);
+                $conv->preview = $conv->messages->first();
+
                 return $conv;
             })
-            ->sortByDesc(fn($c) => $c->preview?->created_at ?? $c->created_at);
+            ->sortByDesc(fn ($c) => $c->preview?->created_at ?? $c->created_at);
 
         return view('parent.messages.index', compact('conversations'));
     }
 
     public function create()
     {
-        $user     = auth()->user();
+        $user = auth()->user();
         $children = $user->linked_students->load([
             'currentEnrollment.section.homeroomTeacher',
             'currentEnrollment.section.gradeLevel',
         ]);
+
         return view('parent.messages.create', compact('children'));
     }
 
@@ -51,8 +53,8 @@ class MessagingController extends Controller
     {
         $validated = $request->validate([
             'student_id' => 'required|exists:students,id',
-            'subject'    => 'required|string|max:255',
-            'body'       => 'required|string|max:3000',
+            'subject' => 'required|string|max:255',
+            'body' => 'required|string|max:3000',
         ]);
 
         $user = auth()->user();
@@ -65,7 +67,7 @@ class MessagingController extends Controller
 
         $student = Student::with('currentEnrollment.section.homeroomTeacher')
             ->findOrFail($validated['student_id']);
-        $teacher     = $student->currentEnrollment?->section?->homeroomTeacher ?? null;
+        $teacher = $student->currentEnrollment?->section?->homeroomTeacher ?? null;
 
         abort_unless($teacher, 422, 'No homeroom teacher assigned to this student\'s section.');
 
@@ -75,8 +77,8 @@ class MessagingController extends Controller
 
         $conversation = DB::transaction(function () use ($user, $teacherUser, $validated, $student) {
             $conv = Conversation::create([
-                'type'       => 'private',
-                'name'       => $validated['subject'] . ' — ' . $student->full_name,
+                'type' => 'private',
+                'name' => $validated['subject'].' — '.$student->full_name,
                 'created_by' => $user->id,
             ]);
 
@@ -87,8 +89,8 @@ class MessagingController extends Controller
 
             Message::create([
                 'conversation_id' => $conv->id,
-                'sender_id'       => $user->id,
-                'body'            => $validated['body'],
+                'sender_id' => $user->id,
+                'body' => $validated['body'],
             ]);
 
             return $conv;
@@ -123,8 +125,8 @@ class MessagingController extends Controller
 
         $message = Message::create([
             'conversation_id' => $conversation->id,
-            'sender_id'       => $user->id,
-            'body'            => $request->body,
+            'sender_id' => $user->id,
+            'body' => $request->body,
         ]);
 
         $conversation->touch(); // update updated_at so inbox sort works
@@ -144,11 +146,11 @@ class MessagingController extends Controller
     {
         $user = auth()->user();
         $count = Message::whereIn('conversation_id',
-                    ConversationParticipant::where('user_id', $user->id)->pluck('conversation_id')
-                 )
-                 ->where('sender_id', '!=', $user->id)
-                 ->whereDoesntHave('reads', fn($q) => $q->where('user_id', $user->id))
-                 ->count();
+            ConversationParticipant::where('user_id', $user->id)->pluck('conversation_id')
+        )
+            ->where('sender_id', '!=', $user->id)
+            ->whereDoesntHave('reads', fn ($q) => $q->where('user_id', $user->id))
+            ->count();
 
         return response()->json(['count' => $count]);
     }
@@ -168,7 +170,7 @@ class MessagingController extends Controller
     {
         $unread = $conv->messages
             ->where('sender_id', '!=', $user->id)
-            ->filter(fn($m) => !$m->isReadBy($user));
+            ->filter(fn ($m) => ! $m->isReadBy($user));
 
         foreach ($unread as $message) {
             MessageRead::firstOrCreate(

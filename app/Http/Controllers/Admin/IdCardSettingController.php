@@ -30,7 +30,7 @@ class IdCardSettingController extends Controller
     public function update(Request $request)
     {
         $settings = IdCardSetting::first();
-        
+
         $validated = $request->validate([
             'school_name' => 'required|string|max:255',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',

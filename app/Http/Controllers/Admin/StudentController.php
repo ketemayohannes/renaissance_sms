@@ -43,7 +43,6 @@ class StudentController extends Controller
     {
         $query = Student::with($relations);
 
-
         // Search Filter - Using scope
         $query->search($request->search);
 
@@ -92,7 +91,7 @@ class StudentController extends Controller
                     $query->inGrade($request->grade_id);
                 }
                 if ($request->filled('section_name')) {
-                    $activeYearId = \App\Helpers\CachedData::activeAcademicYear()?->id;
+                    $activeYearId = CachedData::activeAcademicYear()?->id;
 
                     // PERFORMANCE: Direct join instead of nested whereHas
                     $query->whereHas('enrollments', function ($q) use ($request, $activeYearId) {
@@ -524,7 +523,7 @@ class StudentController extends Controller
             'guardians',
             'medicalInfo',
             'transportation',
-            'user'
+            'user',
         ])->get();
 
         $headers = [

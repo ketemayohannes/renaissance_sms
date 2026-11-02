@@ -55,7 +55,7 @@ class UpdateEmployeeRequest extends FormRequest
             'qualification_level' => 'nullable|string|max:255',
             'specialization' => 'nullable|string|max:255',
             'institution' => 'nullable|string|max:255',
-            'graduation_year' => 'nullable|integer|min:1900|max:' . (date('Y') + 1),
+            'graduation_year' => 'nullable|integer|min:1900|max:'.(date('Y') + 1),
             'last_degree' => 'nullable|string|max:255',
             'secondary_responsibilities' => 'nullable|string',
             'system_access_roles' => 'nullable|string',

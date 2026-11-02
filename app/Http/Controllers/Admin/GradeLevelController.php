@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\GradeLevel;
 use App\Models\Division;
+use App\Models\GradeLevel;
 use Illuminate\Http\Request;
 
 class GradeLevelController extends Controller
@@ -12,12 +12,14 @@ class GradeLevelController extends Controller
     public function index()
     {
         $gradeLevels = GradeLevel::with('division')->orderBy('sort_order')->get();
+
         return view('admin.grade-levels.index', compact('gradeLevels'));
     }
 
     public function create()
     {
         $divisions = Division::where('is_active', true)->orderBy('sort_order')->get();
+
         return view('admin.grade-levels.create', compact('divisions'));
     }
 
@@ -39,6 +41,7 @@ class GradeLevelController extends Controller
     public function edit(GradeLevel $gradeLevel)
     {
         $divisions = Division::where('is_active', true)->orderBy('sort_order')->get();
+
         return view('admin.grade-levels.edit', compact('gradeLevel', 'divisions'));
     }
 
@@ -47,7 +50,7 @@ class GradeLevelController extends Controller
         $request->validate([
             'division_id' => 'required|exists:divisions,id',
             'name' => 'required|string|max:255',
-            'code' => 'required|string|max:10|unique:grade_levels,code,' . $gradeLevel->id,
+            'code' => 'required|string|max:10|unique:grade_levels,code,'.$gradeLevel->id,
             'sort_order' => 'required|integer|min:0',
             'is_active' => 'boolean',
         ]);

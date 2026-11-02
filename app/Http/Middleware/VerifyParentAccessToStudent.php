@@ -4,17 +4,13 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\Response;
 
 class VerifyParentAccessToStudent
 {
     /**
      * Handle an incoming request.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure  $next
-     * @return \Symfony\Component\HttpFoundation\Response
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -23,7 +19,7 @@ class VerifyParentAccessToStudent
             $studentId = is_numeric($student) ? $student : $student->id;
             $user = Auth::user();
             // Guard against missing user (should be auth protected already)
-            if (!$user) {
+            if (! $user) {
                 abort(403, 'Unauthenticated');
             }
             $hasAccess = $user->guardianProfiles()

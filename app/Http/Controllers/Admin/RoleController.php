@@ -4,8 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\Cache;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class RoleController extends Controller
 {
@@ -15,6 +16,7 @@ class RoleController extends Controller
     public function index()
     {
         $roles = Role::with('permissions')->get();
+
         return view('admin.roles.index', compact('roles'));
     }
 
@@ -24,27 +26,53 @@ class RoleController extends Controller
     public function create()
     {
         // PERFORMANCE: Cache grouped permissions
-        $permissions = \Illuminate\Support\Facades\Cache::remember('grouped_permissions_by_module', 3600, function() {
-            return Permission::all()->groupBy(function($perm) {
+        $permissions = Cache::remember('grouped_permissions_by_module', 3600, function () {
+            return Permission::all()->groupBy(function ($perm) {
                 $name = strtolower($perm->name);
-                
-                if (str_contains($name, 'student')) return 'Student Management';
-                if (str_contains($name, 'promotion')) return 'Promotions';
-                if (str_contains($name, 'disciplinary')) return 'Disciplinary';
-                if (str_contains($name, 'employee')) return 'Human Resources';
-                if (str_contains($name, 'role') || str_contains($name, 'permission')) return 'System Security';
-                if (str_contains($name, 'attendance')) return 'Attendance';
-                if (str_contains($name, 'gradebook') || str_contains($name, 'mark') || str_contains($name, 'grading')) return 'Gradebook';
-                if (str_contains($name, 'report') || str_contains($name, 'analysis')) return 'Reports';
-                if (str_contains($name, 'finance') || str_contains($name, 'fee') || str_contains($name, 'payroll')) return 'Finance';
-                if (str_contains($name, 'inventory')) return 'Inventory';
-                if (str_contains($name, 'health')) return 'Health';
-                if (str_contains($name, 'timetable')) return 'Timetable';
-                
+
+                if (str_contains($name, 'student')) {
+                    return 'Student Management';
+                }
+                if (str_contains($name, 'promotion')) {
+                    return 'Promotions';
+                }
+                if (str_contains($name, 'disciplinary')) {
+                    return 'Disciplinary';
+                }
+                if (str_contains($name, 'employee')) {
+                    return 'Human Resources';
+                }
+                if (str_contains($name, 'role') || str_contains($name, 'permission')) {
+                    return 'System Security';
+                }
+                if (str_contains($name, 'attendance')) {
+                    return 'Attendance';
+                }
+                if (str_contains($name, 'gradebook') || str_contains($name, 'mark') || str_contains($name, 'grading')) {
+                    return 'Gradebook';
+                }
+                if (str_contains($name, 'report') || str_contains($name, 'analysis')) {
+                    return 'Reports';
+                }
+                if (str_contains($name, 'finance') || str_contains($name, 'fee') || str_contains($name, 'payroll')) {
+                    return 'Finance';
+                }
+                if (str_contains($name, 'inventory')) {
+                    return 'Inventory';
+                }
+                if (str_contains($name, 'health')) {
+                    return 'Health';
+                }
+                if (str_contains($name, 'timetable')) {
+                    return 'Timetable';
+                }
+
                 $parts = explode(' ', $perm->name);
+
                 return count($parts) > 1 ? ucfirst($parts[1]) : 'General';
             });
         });
+
         return view('admin.roles.create', compact('permissions'));
     }
 
@@ -55,12 +83,12 @@ class RoleController extends Controller
     {
         $request->validate([
             'name' => 'required|unique:roles,name',
-            'permissions' => 'array'
+            'permissions' => 'array',
         ]);
 
         $role = Role::create(['name' => $request->name]);
-        
-        if($request->has('permissions')) {
+
+        if ($request->has('permissions')) {
             $role->syncPermissions($request->permissions);
         }
 
@@ -74,26 +102,51 @@ class RoleController extends Controller
     {
         $role = Role::findById($id);
         // PERFORMANCE: Cache grouped permissions
-        $permissions = \Illuminate\Support\Facades\Cache::remember('grouped_permissions_by_module', 3600, function() {
-            return Permission::all()->groupBy(function($perm) {
+        $permissions = Cache::remember('grouped_permissions_by_module', 3600, function () {
+            return Permission::all()->groupBy(function ($perm) {
                 $name = strtolower($perm->name);
-                
+
                 // Common modules
-                if (str_contains($name, 'student')) return 'Student Management';
-                if (str_contains($name, 'promotion')) return 'Promotions';
-                if (str_contains($name, 'disciplinary')) return 'Disciplinary';
-                if (str_contains($name, 'employee')) return 'Human Resources';
-                if (str_contains($name, 'role') || str_contains($name, 'permission')) return 'System Security';
-                if (str_contains($name, 'attendance')) return 'Attendance';
-                if (str_contains($name, 'gradebook') || str_contains($name, 'mark') || str_contains($name, 'grading')) return 'Gradebook';
-                if (str_contains($name, 'report') || str_contains($name, 'analysis')) return 'Reports';
-                if (str_contains($name, 'finance') || str_contains($name, 'fee') || str_contains($name, 'payroll')) return 'Finance';
-                if (str_contains($name, 'inventory')) return 'Inventory';
-                if (str_contains($name, 'health')) return 'Health';
-                if (str_contains($name, 'timetable')) return 'Timetable';
-                
+                if (str_contains($name, 'student')) {
+                    return 'Student Management';
+                }
+                if (str_contains($name, 'promotion')) {
+                    return 'Promotions';
+                }
+                if (str_contains($name, 'disciplinary')) {
+                    return 'Disciplinary';
+                }
+                if (str_contains($name, 'employee')) {
+                    return 'Human Resources';
+                }
+                if (str_contains($name, 'role') || str_contains($name, 'permission')) {
+                    return 'System Security';
+                }
+                if (str_contains($name, 'attendance')) {
+                    return 'Attendance';
+                }
+                if (str_contains($name, 'gradebook') || str_contains($name, 'mark') || str_contains($name, 'grading')) {
+                    return 'Gradebook';
+                }
+                if (str_contains($name, 'report') || str_contains($name, 'analysis')) {
+                    return 'Reports';
+                }
+                if (str_contains($name, 'finance') || str_contains($name, 'fee') || str_contains($name, 'payroll')) {
+                    return 'Finance';
+                }
+                if (str_contains($name, 'inventory')) {
+                    return 'Inventory';
+                }
+                if (str_contains($name, 'health')) {
+                    return 'Health';
+                }
+                if (str_contains($name, 'timetable')) {
+                    return 'Timetable';
+                }
+
                 // Fallback to the second word or 'General'
                 $parts = explode(' ', $perm->name);
+
                 return count($parts) > 1 ? ucfirst($parts[1]) : 'General';
             });
         });
@@ -109,13 +162,13 @@ class RoleController extends Controller
     {
         $request->validate([
             'name' => 'required|unique:roles,name,'.$id,
-            'permissions' => 'array'
+            'permissions' => 'array',
         ]);
 
         $role = Role::findById($id);
         $role->update(['name' => $request->name]);
 
-        if($request->has('permissions')) {
+        if ($request->has('permissions')) {
             $role->syncPermissions($request->permissions);
         }
 
@@ -128,10 +181,11 @@ class RoleController extends Controller
     public function destroy(string $id)
     {
         $role = Role::findById($id);
-        if($role->name === 'Super Admin') {
+        if ($role->name === 'Super Admin') {
             return back()->with('error', 'Cannot delete Super Admin role.');
         }
         $role->delete();
+
         return redirect()->route('admin.roles.index')->with('success', 'Role deleted successfully.');
     }
 }

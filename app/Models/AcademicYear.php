@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class AcademicYear extends Model
 {
     use HasFactory;
+
     protected $fillable = [
         'name',
         'start_date',

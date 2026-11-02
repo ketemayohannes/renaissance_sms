@@ -4,13 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\InventoryItem;
-use App\Models\InventoryStockMovement;
+use App\Services\InventoryService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class InventoryStockController extends Controller
 {
-    public function __construct(private \App\Services\InventoryService $inventory) {}
+    public function __construct(private InventoryService $inventory) {}
 
     public function stockIn(Request $request, InventoryItem $item)
     {

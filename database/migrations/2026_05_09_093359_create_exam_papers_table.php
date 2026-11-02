@@ -18,19 +18,19 @@ return new class extends Migration
             $table->foreignId('grade_level_id')->constrained()->onDelete('cascade');
             $table->foreignId('term_id')->constrained()->onDelete('cascade');
             $table->foreignId('academic_year_id')->constrained()->onDelete('cascade');
-            
+
             $table->string('title');
             $table->enum('type', ['text', 'upload']);
             $table->longText('content')->nullable();
             $table->string('file_path')->nullable();
-            
+
             $table->enum('status', ['draft', 'submitted', 'under_review', 'approved', 'rejected'])->default('draft');
             $table->text('review_comments')->nullable();
-            
+
             $table->timestamp('submitted_at')->nullable();
             $table->timestamp('reviewed_at')->nullable();
             $table->foreignId('reviewed_by')->nullable()->constrained('users')->onDelete('set null');
-            
+
             $table->timestamps();
         });
     }

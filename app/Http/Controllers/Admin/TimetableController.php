@@ -2,15 +2,13 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Helpers\CachedData;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-
-use App\Models\AcademicYear;
-use App\Models\Section;
 use App\Models\ClassPeriod;
+use App\Models\Section;
 use App\Models\TeacherAssignment;
 use App\Models\Timetable;
-use App\Helpers\CachedData;
+use Illuminate\Http\Request;
 
 class TimetableController extends Controller
 {
@@ -20,7 +18,7 @@ class TimetableController extends Controller
         $sections = Section::with('gradeLevel')
             ->where('is_active', true)
             ->get()
-            ->groupBy(fn($s) => $s->gradeLevel->name);
+            ->groupBy(fn ($s) => $s->gradeLevel->name);
 
         return view('admin.timetable.index', compact('sections', 'academicYear'));
     }
@@ -33,7 +31,7 @@ class TimetableController extends Controller
 
         $section = Section::with('gradeLevel')->findOrFail($request->section_id);
         $academicYear = CachedData::activeAcademicYear();
-        
+
         $periods = ClassPeriod::orderBy('sort_order')->get();
         $days = [
             1 => 'Monday',
@@ -55,7 +53,7 @@ class TimetableController extends Controller
         $existingEntries = Timetable::where('section_id', $section->id)
             ->where('academic_year_id', $academicYear->id)
             ->get()
-            ->groupBy(fn($e) => $e->day_of_week . '-' . $e->class_period_id);
+            ->groupBy(fn ($e) => $e->day_of_week.'-'.$e->class_period_id);
 
         return view('admin.timetable.builder', compact('section', 'academicYear', 'periods', 'days', 'assignments', 'existingEntries'));
     }
@@ -74,7 +72,9 @@ class TimetableController extends Controller
         // Pre-validation: Check for conflicts across all submitted slots
         foreach ($request->timetable as $day => $slots) {
             foreach ($slots as $periodId => $data) {
-                if (empty($data['assignment_id'])) continue;
+                if (empty($data['assignment_id'])) {
+                    continue;
+                }
 
                 $assignment = TeacherAssignment::with(['subject', 'teacher'])->find($data['assignment_id']);
                 $period = ClassPeriod::find($periodId);
@@ -85,7 +85,7 @@ class TimetableController extends Controller
                     ->where('day_of_week', $day)
                     ->where('class_period_id', $periodId)
                     ->where('section_id', '!=', $sectionId)
-                    ->whereHas('teacherAssignment', function($q) use ($assignment) {
+                    ->whereHas('teacherAssignment', function ($q) use ($assignment) {
                         $q->where('teacher_id', $assignment->teacher_id);
                     })
                     ->first();
@@ -95,7 +95,7 @@ class TimetableController extends Controller
                 }
 
                 // 2. Room Conflict (Optional, only if room is provided)
-                if (!empty($data['room'])) {
+                if (! empty($data['room'])) {
                     $roomConflict = Timetable::where('academic_year_id', $academicYear->id)
                         ->where('day_of_week', $day)
                         ->where('class_period_id', $periodId)
@@ -110,11 +110,11 @@ class TimetableController extends Controller
             }
         }
 
-        if (!empty($errors)) {
+        if (! empty($errors)) {
             return back()->withInput()->with('error_conflicts', $errors);
         }
 
-        \DB::transaction(function() use ($request, $academicYear, $sectionId) {
+        \DB::transaction(function () use ($request, $academicYear, $sectionId) {
             // Clear existing for this specific section and year
             Timetable::where('section_id', $sectionId)
                 ->where('academic_year_id', $academicYear->id)
@@ -122,7 +122,7 @@ class TimetableController extends Controller
 
             foreach ($request->timetable as $day => $slots) {
                 foreach ($slots as $periodId => $data) {
-                    if (!empty($data['assignment_id'])) {
+                    if (! empty($data['assignment_id'])) {
                         Timetable::create([
                             'academic_year_id' => $academicYear->id,
                             'section_id' => $sectionId,

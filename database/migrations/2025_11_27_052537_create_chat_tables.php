@@ -42,7 +42,7 @@ return new class extends Migration
             $table->timestamp('read_at')->nullable(); // For 1-on-1 chats, or last read for groups
             $table->timestamps();
         });
-        
+
         // Message Reads (for group chats to track who read what)
         Schema::create('message_reads', function (Blueprint $table) {
             $table->id();

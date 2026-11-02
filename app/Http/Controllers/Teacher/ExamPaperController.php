@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers\Teacher;
 
+use App\Helpers\CachedData;
 use App\Http\Controllers\Controller;
+use App\Models\AcademicYear;
 use App\Models\ExamPaper;
 use App\Models\TeacherAssignment;
-use App\Models\AcademicYear;
 use App\Models\Term;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,8 +18,8 @@ class ExamPaperController extends Controller
     {
         $user = Auth::user();
         $employee = $user->employee;
-        
-        if (!$employee) {
+
+        if (! $employee) {
             return redirect()->route('dashboard')->with('error', 'Employee record not found.');
         }
 
@@ -36,10 +37,10 @@ class ExamPaperController extends Controller
             ->where('teacher_id', Auth::id())
             ->get()
             ->unique(function ($assignment) {
-                return $assignment->subject_id . '-' . $assignment->section->grade_level_id;
+                return $assignment->subject_id.'-'.$assignment->section->grade_level_id;
             });
 
-        $activeYear = \App\Helpers\CachedData::activeAcademicYear();
+        $activeYear = CachedData::activeAcademicYear();
         $academicYears = AcademicYear::where('is_active', true)->get();
         $terms = Term::where('academic_year_id', $activeYear?->id)->get();
 
@@ -60,11 +61,11 @@ class ExamPaperController extends Controller
         ]);
 
         $employee = Auth::user()->employee;
-        
+
         $data = $request->only(['title', 'subject_id', 'grade_level_id', 'term_id', 'academic_year_id', 'type', 'content']);
         $data['teacher_id'] = $employee->id;
         $data['status'] = $request->has('submit') ? 'submitted' : 'draft';
-        
+
         if ($request->has('submit')) {
             $data['submitted_at'] = now();
         }
@@ -94,7 +95,7 @@ class ExamPaperController extends Controller
             abort(403);
         }
 
-        if (!in_array($exam->status, ['draft', 'rejected'])) {
+        if (! in_array($exam->status, ['draft', 'rejected'])) {
             return redirect()->route('teacher.exams.index')->with('error', 'Only drafts or rejected papers can be edited.');
         }
 
@@ -102,10 +103,10 @@ class ExamPaperController extends Controller
             ->where('teacher_id', Auth::id())
             ->get()
             ->unique(function ($assignment) {
-                return $assignment->subject_id . '-' . $assignment->section->grade_level_id;
+                return $assignment->subject_id.'-'.$assignment->section->grade_level_id;
             });
 
-        $activeYear = \App\Helpers\CachedData::activeAcademicYear();
+        $activeYear = CachedData::activeAcademicYear();
         $academicYears = AcademicYear::where('is_active', true)->get();
         $terms = Term::where('academic_year_id', $activeYear?->id)->get();
 
@@ -130,7 +131,7 @@ class ExamPaperController extends Controller
         ]);
 
         $data = $request->only(['title', 'subject_id', 'grade_level_id', 'term_id', 'academic_year_id', 'type', 'content']);
-        
+
         if ($request->has('submit')) {
             $data['status'] = 'submitted';
             $data['submitted_at'] = now();
@@ -152,15 +153,15 @@ class ExamPaperController extends Controller
 
     public function download(ExamPaper $exam)
     {
-        if ($exam->teacher_id !== Auth::user()->employee?->id && !Auth::user()->hasAnyRole(['Super Admin', 'Vice Principal'])) {
+        if ($exam->teacher_id !== Auth::user()->employee?->id && ! Auth::user()->hasAnyRole(['Super Admin', 'Vice Principal'])) {
             abort(403);
         }
 
-        if (!$exam->file_path) {
+        if (! $exam->file_path) {
             abort(404);
         }
 
-        return Storage::disk('local')->download($exam->file_path, $exam->title . '.' . pathinfo($exam->file_path, PATHINFO_EXTENSION));
+        return Storage::disk('local')->download($exam->file_path, $exam->title.'.'.pathinfo($exam->file_path, PATHINFO_EXTENSION));
     }
 
     public function destroy(ExamPaper $exam)
@@ -169,7 +170,7 @@ class ExamPaperController extends Controller
             abort(403);
         }
 
-        if (!in_array($exam->status, ['draft', 'rejected'])) {
+        if (! in_array($exam->status, ['draft', 'rejected'])) {
             return redirect()->route('teacher.exams.index')->with('error', 'Only drafts or rejected papers can be deleted.');
         }
 

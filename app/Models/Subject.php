@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Traits\Auditable;
 
 class Subject extends Model
 {
-    use HasFactory, Auditable;
+    use Auditable, HasFactory;
+
     protected $fillable = [
         'name',
         'code',
@@ -33,7 +34,7 @@ class Subject extends Model
     public function gradeLevels()
     {
         return $this->belongsToMany(GradeLevel::class, 'grade_level_subjects')
-                    ->withPivot('academic_year_id', 'sort_order')
-                    ->withTimestamps();
+            ->withPivot('academic_year_id', 'sort_order')
+            ->withTimestamps();
     }
 }

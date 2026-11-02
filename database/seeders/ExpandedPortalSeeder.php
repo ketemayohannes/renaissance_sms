@@ -2,12 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\User;
 use App\Models\Department;
-use App\Models\Subject;
 use App\Models\Section;
-use App\Models\TeacherAssignment;
+use App\Models\Subject;
+use App\Models\User;
+use Illuminate\Database\Seeder;
 
 class ExpandedPortalSeeder extends Seeder
 {
@@ -30,10 +29,10 @@ class ExpandedPortalSeeder extends Seeder
         $teacher = User::role('Teacher')->first();
         if ($teacher) {
             $mathDept->update(['head_id' => $teacher->id]);
-            
+
             // Link math subjects to this department
             Subject::where('name', 'like', '%Math%')->update(['department_id' => $mathDept->id]);
-            
+
             $this->command->info("Teacher '{$teacher->name}' is now Head of Mathematics.");
         }
 

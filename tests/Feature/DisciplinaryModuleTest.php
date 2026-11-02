@@ -18,7 +18,9 @@ class DisciplinaryModuleTest extends TestCase
     use RefreshDatabase;
 
     protected User $adminUser;
+
     protected AcademicYear $academicYear;
+
     protected Student $student;
 
     protected function setUp(): void
@@ -95,7 +97,7 @@ class DisciplinaryModuleTest extends TestCase
             'is_active' => true,
         ]);
 
-        $service = new DisciplineEscalationService();
+        $service = new DisciplineEscalationService;
 
         // Create first record - should not trigger escalation
         $record1 = DisciplinaryRecord::create([
@@ -184,7 +186,7 @@ class DisciplinaryModuleTest extends TestCase
             'notify_parent' => true,
         ]);
 
-        $service = new DisciplineEscalationService();
+        $service = new DisciplineEscalationService;
         $triggeredRule = $service->evaluateEscalation($record);
 
         $this->assertNotNull($triggeredRule);

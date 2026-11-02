@@ -2,10 +2,12 @@
 
 namespace App\Services;
 
-use App\Models\Section;
-use App\Models\StudentAttendance;
 use App\Models\AcademicYear;
+use App\Models\Section;
+use App\Models\Student;
+use App\Models\StudentAttendance;
 use App\Models\StudentEnrollment;
+use App\Notifications\StudentAbsent;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -20,23 +22,23 @@ class AttendanceService
     {
         $today = Carbon::today()->format('Y-m-d');
         $academicYearId = $academicYear?->id;
-        
+
         // 1. Get sections with gradeLevel - simple query first
         $sections = Section::with('gradeLevel')
             ->where('is_active', true)
-            ->when($academicYearId, fn($q) => $q->where('academic_year_id', $academicYearId))
+            ->when($academicYearId, fn ($q) => $q->where('academic_year_id', $academicYearId))
             ->get();
-        
+
         if ($sections->isEmpty()) {
             return collect();
         }
-        
+
         $sectionIds = $sections->pluck('id');
-        
+
         // 2. Get enrolled counts per section in ONE efficient query
         $enrolledCounts = StudentEnrollment::whereIn('section_id', $sectionIds)
             ->where('status', 'active')
-            ->when($academicYearId, fn($q) => $q->where('academic_year_id', $academicYearId))
+            ->when($academicYearId, fn ($q) => $q->where('academic_year_id', $academicYearId))
             ->select('section_id', DB::raw('COUNT(DISTINCT student_id) as enrolled_count'))
             ->groupBy('section_id')
             ->pluck('enrolled_count', 'section_id');
@@ -57,22 +59,22 @@ class AttendanceService
             ->keyBy('section_id');
 
         // 4. Merge all stats into sections
-        return $sections->map(function($section) use ($enrolledCounts, $attendanceStats) {
+        return $sections->map(function ($section) use ($enrolledCounts, $attendanceStats) {
             $stats = $attendanceStats->get($section->id);
-            
+
             $section->enrolled_count = $enrolledCounts->get($section->id, 0);
             $section->marked_count = $stats ? $stats->marked_count : 0;
             $section->is_complete = $section->enrolled_count > 0 && $section->marked_count >= $section->enrolled_count;
-            $section->today_stats = $stats ?: (object)[
+            $section->today_stats = $stats ?: (object) [
                 'present' => 0,
                 'absent' => 0,
                 'late' => 0,
-                'excused' => 0
+                'excused' => 0,
             ];
-            
+
             return $section;
-        })->sortBy(function($section) {
-            return ($section->gradeLevel->sort_order ?? 99) . $section->name;
+        })->sortBy(function ($section) {
+            return ($section->gradeLevel->sort_order ?? 99).$section->name;
         })->values();
     }
 
@@ -106,11 +108,11 @@ class AttendanceService
                 );
 
                 // Dispatch notification if student is newly marked absent
-                if ($status === 'absent' && (!$existingRecord || $existingRecord->status !== 'absent')) {
-                    $student = \App\Models\Student::with('primaryGuardian.user')->find($studentId);
+                if ($status === 'absent' && (! $existingRecord || $existingRecord->status !== 'absent')) {
+                    $student = Student::with('primaryGuardian.user')->find($studentId);
                     $guardianUser = $student?->primaryGuardian?->user;
                     if ($guardianUser) {
-                        $guardianUser->notify(new \App\Notifications\StudentAbsent($student, $date));
+                        $guardianUser->notify(new StudentAbsent($student, $date));
                     }
                 }
             }

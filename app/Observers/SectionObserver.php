@@ -47,7 +47,7 @@ class SectionObserver
         // If there was an old teacher, check if they still have other homerooms. If not, remove role.
         if ($oldTeacherId) {
             $oldTeacherStillHasHomerooms = Section::where('homeroom_teacher_id', $oldTeacherId)->exists();
-            if (!$oldTeacherStillHasHomerooms) {
+            if (! $oldTeacherStillHasHomerooms) {
                 $oldTeacherUser = User::find($oldTeacherId);
                 if ($oldTeacherUser) {
                     $oldTeacherUser->removeRole('Homeroom Teacher');

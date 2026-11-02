@@ -16,12 +16,12 @@ return new class extends Migration
             $table->foreignId('teacher_assignment_id')->constrained()->cascadeOnDelete();
             $table->foreignId('term_id')->constrained()->cascadeOnDelete();
             $table->foreignId('academic_year_id')->constrained()->cascadeOnDelete();
-            
+
             $table->text('range_0_49_remark')->nullable();
             $table->text('range_50_74_remark')->nullable();
             $table->text('range_75_100_remark')->nullable();
             $table->text('comparison_comment')->nullable();
-            
+
             $table->timestamps();
 
             // Unique index to ensure only one report per class/term/year

@@ -15,9 +15,9 @@ return [
 
         'africastalking' => [
             'username' => env('AT_USERNAME', 'sandbox'),
-            'api_key'  => env('AT_API_KEY', ''),
-            'from'     => env('AT_FROM', null),
-            'sandbox'  => env('AT_SANDBOX', true),
+            'api_key' => env('AT_API_KEY', ''),
+            'from' => env('AT_FROM', null),
+            'sandbox' => env('AT_SANDBOX', true),
         ],
 
         'smsethiopia' => [
@@ -25,7 +25,7 @@ return [
         ],
 
         'geezsms' => [
-            'token'     => env('GEEZSMS_TOKEN', ''),
+            'token' => env('GEEZSMS_TOKEN', ''),
             'sender_id' => env('GEEZSMS_SENDER_ID', null),
         ],
     ],
@@ -57,16 +57,16 @@ return [
     | Keys: sms, email, in_app
     */
     'events' => [
-        'notice'            => ['sms' => false, 'email' => true,  'in_app' => true],
-        'absence'           => ['sms' => true,  'email' => true,  'in_app' => true],
-        'message'           => ['sms' => false, 'email' => true,  'in_app' => true],
-        'export'            => ['sms' => false, 'email' => true,  'in_app' => true],
-        'promotion'         => ['sms' => false, 'email' => true,  'in_app' => true],
-        'disciplinary'      => ['sms' => true,  'email' => true,  'in_app' => true],
+        'notice' => ['sms' => false, 'email' => true,  'in_app' => true],
+        'absence' => ['sms' => true,  'email' => true,  'in_app' => true],
+        'message' => ['sms' => false, 'email' => true,  'in_app' => true],
+        'export' => ['sms' => false, 'email' => true,  'in_app' => true],
+        'promotion' => ['sms' => false, 'email' => true,  'in_app' => true],
+        'disciplinary' => ['sms' => true,  'email' => true,  'in_app' => true],
         'report_card_ready' => ['sms' => false, 'email' => true,  'in_app' => true],
-        'leave_status'      => ['sms' => false, 'email' => true,  'in_app' => true],
+        'leave_status' => ['sms' => false, 'email' => true,  'in_app' => true],
         'inventory_request' => ['sms' => false, 'email' => true,  'in_app' => true],
-        'inventory_purchase'=> ['sms' => false, 'email' => true,  'in_app' => true],
+        'inventory_purchase' => ['sms' => false, 'email' => true,  'in_app' => true],
     ],
 
 ];

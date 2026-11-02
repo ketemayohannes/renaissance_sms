@@ -3,21 +3,22 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\StudentGuardian;
 use App\Models\Student;
+use App\Models\StudentGuardian;
 use App\Models\User;
 use App\Services\StudentService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class GuardianController extends Controller
 {
     public function search(Request $request)
     {
         $search = $request->get('q');
-        
+
         $guardians = StudentGuardian::query()
             ->where('first_name', 'like', "%{$search}%")
             ->orWhere('phone', 'like', "%{$search}%")
@@ -36,15 +37,15 @@ class GuardianController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('father_name', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhereHas('student', function($sq) use ($search) {
-                      $sq->where('first_name', 'like', "%{$search}%")
-                        ->orWhere('student_id', 'like', "%{$search}%");
-                  });
+                    ->orWhere('father_name', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhereHas('student', function ($sq) use ($search) {
+                        $sq->where('first_name', 'like', "%{$search}%")
+                            ->orWhere('student_id', 'like', "%{$search}%");
+                    });
             });
         }
 
@@ -58,18 +59,19 @@ class GuardianController extends Controller
         $phones = $guardians->pluck('phone')->filter()->unique();
         $emails = $guardians->pluck('email')->filter()->unique();
 
-        $allLinkedStudents = Student::whereHas('guardians', function($q) use ($phones, $emails) {
+        $allLinkedStudents = Student::whereHas('guardians', function ($q) use ($phones, $emails) {
             $q->whereIn('phone', $phones)->orWhereIn('email', $emails);
         })->with(['enrollments.section.gradeLevel', 'guardians'])->get();
 
         // Map students back to grouped guardians
-        $guardians->getCollection()->transform(function($guardian) use ($allLinkedStudents) {
-            $guardian->linked_students = $allLinkedStudents->filter(function($student) use ($guardian) {
-                return $student->guardians->contains(function($g) use ($guardian) {
+        $guardians->getCollection()->transform(function ($guardian) use ($allLinkedStudents) {
+            $guardian->linked_students = $allLinkedStudents->filter(function ($student) use ($guardian) {
+                return $student->guardians->contains(function ($g) use ($guardian) {
                     return ($guardian->phone && $g->phone === $guardian->phone) ||
                            ($guardian->email && $g->email === $guardian->email);
                 });
             });
+
             return $guardian;
         });
 
@@ -79,17 +81,21 @@ class GuardianController extends Controller
     public function show(StudentGuardian $guardian)
     {
         $guardian->load(['student.enrollments.section.gradeLevel', 'user']);
-        
+
         // Find other students who might share this guardian (by phone or email)
         $otherStudents = [];
         if ($guardian->phone || $guardian->email) {
-            $otherStudents = Student::whereHas('guardians', function($q) use ($guardian) {
-                if ($guardian->phone) $q->where('phone', $guardian->phone);
-                if ($guardian->email) $q->orWhere('email', $guardian->email);
+            $otherStudents = Student::whereHas('guardians', function ($q) use ($guardian) {
+                if ($guardian->phone) {
+                    $q->where('phone', $guardian->phone);
+                }
+                if ($guardian->email) {
+                    $q->orWhere('email', $guardian->email);
+                }
             })
-            ->where('id', '!=', $guardian->student_id)
-            ->with(['enrollments.section.gradeLevel'])
-            ->get();
+                ->where('id', '!=', $guardian->student_id)
+                ->with(['enrollments.section.gradeLevel'])
+                ->get();
         }
 
         return view('admin.guardians.show', compact('guardian', 'otherStudents'));
@@ -112,11 +118,11 @@ class GuardianController extends Controller
                 'email',
                 'max:255',
                 function ($attribute, $value, $fail) {
-                    $user = \App\Models\User::where('email', $value)->first();
-                    if ($user && !$user->hasRole('Parent')) {
+                    $user = User::where('email', $value)->first();
+                    if ($user && ! $user->hasRole('Parent')) {
                         $fail('This email address belongs to a staff or administrative account and cannot be used for a guardian.');
                     }
-                }
+                },
             ],
             'relationship' => 'required|string|max:50',
             'address' => 'nullable|string|max:500',
@@ -143,7 +149,7 @@ class GuardianController extends Controller
         if ($guardian->photo) {
             Storage::disk('public')->delete($guardian->photo);
         }
-        
+
         $guardian->delete();
 
         return redirect()->route('admin.guardians.index')
@@ -152,7 +158,7 @@ class GuardianController extends Controller
 
     public function createUser(Request $request, StudentGuardian $guardian, StudentService $studentService)
     {
-        if (!$guardian->email) {
+        if (! $guardian->email) {
             return back()->with('error', 'Guardian must have an email address to create a user account.');
         }
 
@@ -162,29 +168,31 @@ class GuardianController extends Controller
 
         DB::beginTransaction();
         try {
-            $password = $request->password ?: \Illuminate\Support\Str::random(12);
+            $password = $request->password ?: Str::random(12);
             $studentService->syncGuardianUser($guardian, $password);
 
             DB::commit();
+
             return back()->with('success', 'User account created successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Failed to create user account: ' . $e->getMessage());
+
+            return back()->with('error', 'Failed to create user account: '.$e->getMessage());
         }
     }
 
     public function resetPassword(StudentGuardian $guardian)
     {
-        if (!$guardian->user_id || !$guardian->user) {
+        if (! $guardian->user_id || ! $guardian->user) {
             return back()->with('error', 'Guardian does not have a user account.');
         }
 
-        $password = \Illuminate\Support\Str::random(10);
+        $password = Str::random(10);
         $guardian->user->update([
             'password' => Hash::make($password),
             'temp_password' => $password,
         ]);
 
-        return back()->with('success', 'Password reset successfully. New Password: ' . $password);
+        return back()->with('success', 'Password reset successfully. New Password: '.$password);
     }
 }

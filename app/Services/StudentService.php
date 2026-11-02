@@ -2,20 +2,20 @@
 
 namespace App\Services;
 
-use App\Models\Student;
-use App\Models\User;
-use App\Models\Section;
 use App\Models\AcademicYear;
+use App\Models\Section;
+use App\Models\Student;
 use App\Models\StudentEnrollment;
 use App\Models\StudentGuardian;
 use App\Models\StudentMedicalInfo;
 use App\Models\StudentTransportation;
 use App\Models\SystemCounter;
+use App\Models\User;
+use Carbon\Carbon;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Http\UploadedFile;
-use Carbon\Carbon;
 
 class StudentService
 {
@@ -25,7 +25,7 @@ class StudentService
     public function createStudent(array $data, ?UploadedFile $studentPhoto = null, array $guardianPhotos = [], ?UploadedFile $driverPhoto = null): Student
     {
         return DB::transaction(function () use ($data, $studentPhoto, $guardianPhotos, $driverPhoto) {
-            $email = $data['email'] ?? $data['admission_number'] . '@student.renaissance.com';
+            $email = $data['email'] ?? $data['admission_number'].'@student.renaissance.com';
             $password = Hash::make('student123');
 
             $user = User::create([
@@ -43,7 +43,7 @@ class StudentService
             }
 
             $nextValue = SystemCounter::next('student_id_sequence', Student::count());
-            $studentId = 'STU-' . date('Y') . '-' . str_pad($nextValue, 4, '0', STR_PAD_LEFT);
+            $studentId = 'STU-'.date('Y').'-'.str_pad($nextValue, 4, '0', STR_PAD_LEFT);
 
             $student = Student::create([
                 'user_id' => $user->id,
@@ -104,7 +104,7 @@ class StudentService
                 'emergency_contact' => $data['emergency_contact'] ?? null,
             ]);
 
-            if ($driverPhoto || !empty($data['driver_first_name'])) {
+            if ($driverPhoto || ! empty($data['driver_first_name'])) {
                 $driverPhotoPath = null;
                 if ($driverPhoto) {
                     $driverPhotoPath = $driverPhoto->store('drivers/photos', 'public');
@@ -202,7 +202,7 @@ class StudentService
                     foreach ($siblings as $sibling) {
                         // For synchronization, we replace sibling guardians with clones of current student's guardians
                         // but keeping the sibling's existing user_id if they have portal access
-                        
+
                         // Delete existing guardians for sibling (careful with user accounts)
                         $sibling->guardians()->delete();
 
@@ -235,7 +235,7 @@ class StudentService
                         'allergies' => $data['allergies'] ?? $student->medicalInfo->allergies ?? null,
                         'medical_issues' => $data['medical_conditions'] ?? $student->medicalInfo->medical_issues ?? null,
                         'current_medication' => $data['current_medication'] ?? $student->medicalInfo->current_medication ?? null,
-                        'emergency_contact' => ($data['emergency_contact_name'] ?? '') . (isset($data['emergency_contact_phone']) ? ' - ' . $data['emergency_contact_phone'] : ''),
+                        'emergency_contact' => ($data['emergency_contact_name'] ?? '').(isset($data['emergency_contact_phone']) ? ' - '.$data['emergency_contact_phone'] : ''),
                     ]
                 );
             }
@@ -252,7 +252,7 @@ class StudentService
                 }
 
                 $driverNameParts = explode(' ', $data['driver_name'] ?? '');
-                
+
                 $student->transportation()->updateOrCreate(
                     ['student_id' => $student->id],
                     [
@@ -312,6 +312,7 @@ class StudentService
                 $count++;
             }
         }
+
         return $count;
     }
 
@@ -323,10 +324,10 @@ class StudentService
         $successCount = 0;
         $skippedCount = 0;
         $errors = [];
-        
+
         $defaultPassword = Hash::make('student123');
         $year = date('Y');
-        
+
         $nextIdSeq = $this->getNextStudentIdSequence($year);
 
         foreach ($rows as $index => $row) {
@@ -337,7 +338,7 @@ class StudentService
 
                 // 1. Validate Section
                 $section = $this->findSection($row['grade_level'], $row['section_name'], $activeYear->id);
-                if (!$section) {
+                if (! $section) {
                     $gradeLabel = str_contains(strtolower($row['grade_level']), 'grade') ? $row['grade_level'] : "Grade {$row['grade_level']}";
                     throw new \Exception("Section '{$row['section_name']}' ($gradeLabel) not found in active year.");
                 }
@@ -348,11 +349,12 @@ class StudentService
                     $this->enrollExistingStudent($existingStudent, $section, $activeYear, $row['admission_date']);
                     DB::commit();
                     $successCount++;
+
                     continue;
                 }
 
                 // 3. New Student
-                $email = $row['email'] ?: $row['admission_number'] . '@student.renaissance.com';
+                $email = $row['email'] ?: $row['admission_number'].'@student.renaissance.com';
                 if (User::where('email', $email)->exists()) {
                     throw new \Exception("User/Email '$email' already exists.");
                 }
@@ -365,7 +367,7 @@ class StudentService
                 ]);
                 $user->assignRole('Student');
 
-                $studentId = 'STU-' . $year . '-' . str_pad($nextIdSeq++, 4, '0', STR_PAD_LEFT);
+                $studentId = 'STU-'.$year.'-'.str_pad($nextIdSeq++, 4, '0', STR_PAD_LEFT);
 
                 $student = Student::create([
                     'user_id' => $user->id,
@@ -396,7 +398,7 @@ class StudentService
                     'enrollment_date' => $this->parseDate($row['admission_date']),
                 ]);
 
-                if (!empty($row['primary_guardian_first_name'])) {
+                if (! empty($row['primary_guardian_first_name'])) {
                     $student->guardians()->create([
                         'first_name' => $row['primary_guardian_first_name'],
                         'father_name' => $row['primary_guardian_father_name'],
@@ -414,14 +416,14 @@ class StudentService
             } catch (\Exception $e) {
                 DB::rollBack();
                 $skippedCount++;
-                $errors[] = "Row $rowNum: " . $e->getMessage();
+                $errors[] = "Row $rowNum: ".$e->getMessage();
             }
         }
 
         return [
             'success' => $successCount,
             'skipped' => $skippedCount,
-            'errors' => $errors
+            'errors' => $errors,
         ];
     }
 
@@ -430,17 +432,20 @@ class StudentService
         $lastStudent = Student::where('student_id', 'like', "STU-{$year}-%")
             ->orderBy('student_id', 'desc')
             ->first();
-        
-        if (!$lastStudent) return 1;
-        
+
+        if (! $lastStudent) {
+            return 1;
+        }
+
         $parts = explode('-', $lastStudent->student_id);
-        return (int)end($parts) + 1;
+
+        return (int) end($parts) + 1;
     }
 
     private function findSection(string $gradeName, string $sectionName, int $yearId): ?Section
     {
         return Section::where('name', $sectionName)
-            ->whereHas('gradeLevel', fn($q) => $q->where('name', $gradeName))
+            ->whereHas('gradeLevel', fn ($q) => $q->where('name', $gradeName))
             ->where('academic_year_id', $yearId)
             ->first();
     }
@@ -453,7 +458,7 @@ class StudentService
             ->exists();
 
         if ($exists) {
-            throw new \Exception("Student already enrolled in this section for this academic year.");
+            throw new \Exception('Student already enrolled in this section for this academic year.');
         }
 
         $student->enrollments()->create([
@@ -477,7 +482,7 @@ class StudentService
 
         if ($user) {
             // Block linking if existing user belongs to staff/admin role and is not a Parent
-            if (!$user->hasRole('Parent')) {
+            if (! $user->hasRole('Parent')) {
                 throw new \Exception("The email {$guardian->email} belongs to a staff or administrative account and cannot be linked as a guardian.");
             }
         } else {
@@ -492,15 +497,21 @@ class StudentService
         }
 
         // Link all matching guardian records (siblings) to this user account
-        StudentGuardian::where(function($q) use ($guardian) {
-            if ($guardian->phone) $q->where('phone', $guardian->phone);
-            if ($guardian->email) $q->orWhere('email', $guardian->email);
+        StudentGuardian::where(function ($q) use ($guardian) {
+            if ($guardian->phone) {
+                $q->where('phone', $guardian->phone);
+            }
+            if ($guardian->email) {
+                $q->orWhere('email', $guardian->email);
+            }
         })->update(['user_id' => $user->id]);
     }
 
     private function parseDate(?string $date): ?string
     {
-        if (empty($date)) return null;
+        if (empty($date)) {
+            return null;
+        }
         try {
             return Carbon::parse($date)->format('Y-m-d');
         } catch (\Exception $e) {
@@ -511,19 +522,19 @@ class StudentService
     private function normalizeGender(?string $gender): string
     {
         if (empty($gender)) {
-            throw new \Exception("Gender is required.");
+            throw new \Exception('Gender is required.');
         }
-        
+
         $g = strtoupper(trim($gender));
-        
+
         if (in_array($g, ['M', 'MALE', 'BOY'])) {
             return 'M';
         }
-        
+
         if (in_array($g, ['F', 'FEMALE', 'GIRL'])) {
             return 'F';
         }
-        
+
         throw new \Exception("Invalid gender '$gender'. Please use 'M' or 'F'.");
     }
 }

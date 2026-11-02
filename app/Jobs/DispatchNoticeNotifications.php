@@ -35,12 +35,12 @@ class DispatchNoticeNotifications implements ShouldQueue
             });
         } else {
             $roleMap = [
-                'Parent'  => ['Parent'],
+                'Parent' => ['Parent'],
                 'Teacher' => ['Teacher', 'Homeroom Teacher'],
                 'Student' => ['Student'],
             ];
             $roles = $roleMap[$this->notice->target_audience] ?? [];
-            if (!empty($roles)) {
+            if (! empty($roles)) {
                 $query->whereHas('roles', function ($q) use ($roles) {
                     $q->whereIn('name', $roles);
                 });

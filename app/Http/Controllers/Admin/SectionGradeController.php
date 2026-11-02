@@ -2,20 +2,24 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Helpers\CachedData;
 use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
-use App\Models\GradeLevel;
-use App\Models\Section;
-use App\Models\Subject;
-use App\Models\StudentMark;
 use App\Models\AssessmentTemplate;
 use App\Models\AssessmentType;
+use App\Models\ReportCardSetting;
+use App\Models\Section;
+use App\Models\Student;
+use App\Models\StudentMark;
+use App\Models\Subject;
 use App\Models\Term;
+use App\Services\GradingService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class SectionGradeController extends Controller implements HasMiddleware
 {
@@ -27,24 +31,23 @@ class SectionGradeController extends Controller implements HasMiddleware
         ];
     }
 
-
     public function index()
     {
         // PERFORMANCE: Use cached data
-        $academicYears = \App\Helpers\CachedData::academicYears();
-        $gradeLevels = \App\Helpers\CachedData::gradeLevels();
-        
-        $currentYear = \App\Helpers\CachedData::activeAcademicYear() ?? $academicYears->first();
+        $academicYears = CachedData::academicYears();
+        $gradeLevels = CachedData::gradeLevels();
+
+        $currentYear = CachedData::activeAcademicYear() ?? $academicYears->first();
         $terms = $currentYear ? Term::where('academic_year_id', $currentYear->id)->get() : collect();
-        
+
         // Initial state for dependent dropdowns
         $sections = collect();
         $subjects = collect();
-        
+
         return view('admin.section-grades.index', compact('academicYears', 'gradeLevels', 'terms', 'sections', 'subjects'));
     }
 
-    public function entry(Request $request, \App\Services\GradingService $gradingService)
+    public function entry(Request $request, GradingService $gradingService)
     {
         $request->validate([
             'academic_year_id' => 'required|exists:academic_years,id',
@@ -56,10 +59,9 @@ class SectionGradeController extends Controller implements HasMiddleware
         $academicYear = AcademicYear::findOrFail($request->academic_year_id);
         $term = Term::findOrFail($request->term_id);
         $section = Section::findOrFail($request->section_id);
-        
+
         // Fetch subjects for this grade level - ordered by the pivot sort_order
         $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
-
 
         // Fetch students
         $students = $section->students()
@@ -73,10 +75,10 @@ class SectionGradeController extends Controller implements HasMiddleware
         // We look for a template with a specific convention, e.g., type "TERM_GRADE" or name "Term Total"
         // For simplicity, we'll try to find or create one with assessment_type code 'FINAL' or 'TERM_GRADE' if exists.
         // Based on seeder, 'FINAL' exists. Let's use 'FINAL' or create a specific 'TERM_TOTAL' type.
-        // User requested "out of 100". 'Final Exam' might be 40%. 
+        // User requested "out of 100". 'Final Exam' might be 40%.
         // We should PROBABLY use a specific type "TERM_TOTAL" to avoid confusion with the "Final Exam" component.
         // Let's check/create 'TERM_TOTAL' type first.
-        
+
         $termTotalType = AssessmentType::firstOrCreate(
             ['code' => 'TERM_TOTAL'],
             ['name' => 'Term Total', 'description' => 'Overall term grade out of 100', 'is_active' => true]
@@ -94,23 +96,21 @@ class SectionGradeController extends Controller implements HasMiddleware
             })
             ->toArray();
 
-
-        
         // REVISED LOGIC for New Schema
         $subjectTemplates = [];
-        
+
         foreach ($subjects as $subject) {
             // Find template assigned to this grade/subject for this year/term with type TERM_TOTAL
             $template = AssessmentTemplate::where('academic_year_id', $academicYear->id)
                 ->where('term_id', $term->id)
                 ->where('assessment_type_id', $termTotalType->id)
-                ->whereHas('assignments', function($q) use ($section, $subject) {
+                ->whereHas('assignments', function ($q) use ($section, $subject) {
                     $q->where('grade_level_id', $section->grade_level_id)
-                      ->where('subject_id', $subject->id);
+                        ->where('subject_id', $subject->id);
                 })
                 ->first();
 
-            if (!$template) {
+            if (! $template) {
                 // Create Template
                 $template = AssessmentTemplate::create([
                     'academic_year_id' => $academicYear->id,
@@ -137,21 +137,21 @@ class SectionGradeController extends Controller implements HasMiddleware
             ->where('term_id', $term->id)
             ->whereIn('student_id', $students->pluck('id'))
             ->get();
-            
+
         // Organize marks: [student_id][subject_id] => score
         $marksMap = [];
-        $componentSums = []; 
+        $componentSums = [];
 
         foreach ($allMarks as $mark) {
             // Check if this mark belongs to the "Term Total" template for this subject
             $termTotalTemplate = $subjectTemplates[$mark->subject_id] ?? null;
-            
+
             if ($termTotalTemplate && $mark->assessment_template_id == $termTotalTemplate->id) {
                 // This is the explicit Term Total
                 $marksMap[$mark->student_id][$mark->subject_id] = $mark->score;
             } else {
                 // This is a component mark (Quiz, Test, etc.)
-                if (!isset($componentSums[$mark->student_id][$mark->subject_id])) {
+                if (! isset($componentSums[$mark->student_id][$mark->subject_id])) {
                     $componentSums[$mark->student_id][$mark->subject_id] = 0;
                 }
                 $componentSums[$mark->student_id][$mark->subject_id] += $mark->score;
@@ -168,9 +168,9 @@ class SectionGradeController extends Controller implements HasMiddleware
             }
         }
 
-        if (!$term->is_master_grading_open) {
-             // If checking via AJAX or just blocking save
-             // Actually, for store/import we should block.
+        if (! $term->is_master_grading_open) {
+            // If checking via AJAX or just blocking save
+            // Actually, for store/import we should block.
         }
 
         $isGrade11Or12 = false;
@@ -185,7 +185,7 @@ class SectionGradeController extends Controller implements HasMiddleware
         return view('admin.section-grades.entry', compact('academicYear', 'term', 'section', 'students', 'subjects', 'marksMap', 'studentElectives', 'isGrade11Or12', 'stats'));
     }
 
-    public function store(Request $request, \App\Services\GradingService $gradingService)
+    public function store(Request $request, GradingService $gradingService)
     {
         $request->validate([
             'academic_year_id' => 'required',
@@ -193,18 +193,18 @@ class SectionGradeController extends Controller implements HasMiddleware
             'section_id' => 'required',
             'marks' => 'array', // marks[student_id][subject_id] = score
         ]);
-        
+
         $term = Term::findOrFail($request->term_id);
-        if (!$term->is_master_grading_open) {
+        if (! $term->is_master_grading_open) {
             return back()->with('error', 'Master Sheet grading is currently closed for this term.');
         }
-        
+
         $section = Section::findOrFail($request->section_id);
-        
+
         // We need to fetch the templates again to get their IDs
         // Optimization: We could pass template IDs in the form, but looking them up is safer
         $termTotalType = AssessmentType::where('code', 'TERM_TOTAL')->firstOrFail();
-        
+
         DB::beginTransaction();
         try {
             foreach ($request->marks as $studentId => $subjectMarks) {
@@ -213,13 +213,15 @@ class SectionGradeController extends Controller implements HasMiddleware
                     $template = AssessmentTemplate::where('academic_year_id', $request->academic_year_id)
                         ->where('term_id', $request->term_id)
                         ->where('assessment_type_id', $termTotalType->id)
-                        ->whereHas('assignments', function($q) use ($section, $subjectId) {
+                        ->whereHas('assignments', function ($q) use ($section, $subjectId) {
                             $q->where('grade_level_id', $section->grade_level_id)
-                              ->where('subject_id', $subjectId);
+                                ->where('subject_id', $subjectId);
                         })
                         ->first();
-                        
-                    if (!$template) continue; 
+
+                    if (! $template) {
+                        continue;
+                    }
 
                     if ($score === null || $score === '') {
                         // If score is empty, delete the existing record to clear it
@@ -230,12 +232,13 @@ class SectionGradeController extends Controller implements HasMiddleware
                             'subject_id' => $subjectId,
                             'assessment_template_id' => $template->id,
                         ])->delete();
+
                         continue;
                     }
 
                     // VALIDATION: Master Sheet scores are out of 100
                     if ($score > 100) {
-                        $student = \App\Models\Student::find($studentId);
+                        $student = Student::find($studentId);
                         $studentName = $student ? $student->full_name : "Student #$studentId"; // Use full_name property
                         throw new \Exception("$studentName: Score $score exceeds maximum 100.");
                     }
@@ -257,15 +260,16 @@ class SectionGradeController extends Controller implements HasMiddleware
                 }
             }
             DB::commit();
-            
+
             // Recalculate Statistics
             $academicYear = AcademicYear::findOrFail($request->academic_year_id);
             $gradingService->recalculateSectionStatistics($section, $term, $academicYear);
-            
+
             return back()->with('success', 'Grades saved and statistics recalculated.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Error saving grades: ' . $e->getMessage());
+
+            return back()->with('error', 'Error saving grades: '.$e->getMessage());
         }
     }
 
@@ -280,7 +284,7 @@ class SectionGradeController extends Controller implements HasMiddleware
         $section = Section::findOrFail($request->section_id);
         $term = Term::findOrFail($request->term_id);
         $academicYear = AcademicYear::findOrFail($request->academic_year_id);
-        
+
         $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
         $students = $section->students()
             ->wherePivot('academic_year_id', $academicYear->id)
@@ -290,32 +294,32 @@ class SectionGradeController extends Controller implements HasMiddleware
             ->get();
 
         $filename = "master_sheet_template_{$section->name}_{$term->name}.csv";
-        
+
         $headers = [
-            "Content-type" => "text/csv",
-            "Content-Disposition" => "attachment; filename=$filename",
-            "Pragma" => "no-cache",
-            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
-            "Expires" => "0"
+            'Content-type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=$filename",
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0',
         ];
 
-        $callback = function() use ($students, $subjects) {
+        $callback = function () use ($students, $subjects) {
             $file = fopen('php://output', 'w');
-            fputs($file, "\xEF\xBB\xBF"); // BOM
-            fputs($file, "sep=,\n"); // Force Excel to use comma
+            fwrite($file, "\xEF\xBB\xBF"); // BOM
+            fwrite($file, "sep=,\n"); // Force Excel to use comma
 
             // Header: Student ID, Student Name, [Subject Name]...
             $headerRow = ['Student ID', 'Student Name'];
             foreach ($subjects as $subject) {
                 // Use format "SubjectName (ID:123)" to make import reliable
-                $headerRow[] = $subject->name . " (ID:{$subject->id})";
+                $headerRow[] = $subject->name." (ID:{$subject->id})";
             }
             fputcsv($file, $headerRow);
 
             foreach ($students as $student) {
                 $row = [$student->student_id, $student->full_name];
                 foreach ($subjects as $subject) {
-                     $row[] = ''; // Empty grade
+                    $row[] = ''; // Empty grade
                 }
                 fputcsv($file, $row);
             }
@@ -325,7 +329,7 @@ class SectionGradeController extends Controller implements HasMiddleware
         return response()->stream($callback, 200, $headers);
     }
 
-    public function exportData(Request $request, \App\Services\GradingService $gradingService)
+    public function exportData(Request $request, GradingService $gradingService)
     {
         $request->validate([
             'academic_year_id' => 'required|exists:academic_years,id',
@@ -336,7 +340,7 @@ class SectionGradeController extends Controller implements HasMiddleware
         $section = Section::with('gradeLevel')->findOrFail($request->section_id);
         $term = Term::findOrFail($request->term_id);
         $academicYear = AcademicYear::findOrFail($request->academic_year_id);
-        
+
         $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
         $students = $section->students()
             ->wherePivot('academic_year_id', $academicYear->id)
@@ -352,12 +356,12 @@ class SectionGradeController extends Controller implements HasMiddleware
             $template = AssessmentTemplate::where('academic_year_id', $academicYear->id)
                 ->where('term_id', $term->id)
                 ->where('assessment_type_id', $termTotalType->id)
-                ->whereHas('assignments', function($q) use ($section, $subject) {
+                ->whereHas('assignments', function ($q) use ($section, $subject) {
                     $q->where('grade_level_id', $section->grade_level_id)
-                      ->where('subject_id', $subject->id);
+                        ->where('subject_id', $subject->id);
                 })
                 ->first();
-            
+
             if ($template) {
                 $subjectTemplates[$subject->id] = $template;
             }
@@ -367,16 +371,16 @@ class SectionGradeController extends Controller implements HasMiddleware
             ->where('term_id', $term->id)
             ->whereIn('student_id', $students->pluck('id'))
             ->get();
-            
+
         $marksMap = [];
-        $componentSums = []; 
+        $componentSums = [];
 
         foreach ($allMarks as $mark) {
             $termTotalTemplate = $subjectTemplates[$mark->subject_id] ?? null;
             if ($termTotalTemplate && $mark->assessment_template_id == $termTotalTemplate->id) {
                 $marksMap[$mark->student_id][$mark->subject_id] = $mark->score;
             } else {
-                if (!isset($componentSums[$mark->student_id][$mark->subject_id])) {
+                if (! isset($componentSums[$mark->student_id][$mark->subject_id])) {
                     $componentSums[$mark->student_id][$mark->subject_id] = 0;
                 }
                 $componentSums[$mark->student_id][$mark->subject_id] += $mark->score;
@@ -395,19 +399,19 @@ class SectionGradeController extends Controller implements HasMiddleware
         $stats = $gradingService->calculateSectionTotals($students, $term, $academicYear, $subjects);
 
         $filename = "master_sheet_data_{$section->name}_{$term->name}.csv";
-        
+
         $headers = [
-            "Content-type" => "text/csv",
-            "Content-Disposition" => "attachment; filename=$filename",
-            "Pragma" => "no-cache",
-            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
-            "Expires" => "0"
+            'Content-type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=$filename",
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0',
         ];
 
-        $callback = function() use ($students, $subjects, $marksMap, $stats) {
+        $callback = function () use ($students, $subjects, $marksMap, $stats) {
             $file = fopen('php://output', 'w');
-            fputs($file, "\xEF\xBB\xBF"); // BOM
-            fputs($file, "sep=,\n"); 
+            fwrite($file, "\xEF\xBB\xBF"); // BOM
+            fwrite($file, "sep=,\n");
 
             $headerRow = ['Student ID', 'Student Name'];
             foreach ($subjects as $subject) {
@@ -419,7 +423,7 @@ class SectionGradeController extends Controller implements HasMiddleware
             foreach ($students as $student) {
                 $row = [$student->student_id, $student->full_name];
                 foreach ($subjects as $subject) {
-                     $row[] = $marksMap[$student->id][$subject->id] ?? '';
+                    $row[] = $marksMap[$student->id][$subject->id] ?? '';
                 }
                 $row[] = number_format($stats[$student->id]['average'] ?? 0, 2);
                 fputcsv($file, $row);
@@ -440,12 +444,12 @@ class SectionGradeController extends Controller implements HasMiddleware
         ]);
 
         $term = Term::findOrFail($request->term_id);
-        if (!$term->is_master_grading_open) {
+        if (! $term->is_master_grading_open) {
             return back()->with('error', 'Master Sheet grading is currently closed for this term.');
         }
 
         $section = Section::findOrFail($request->section_id);
-        
+
         // Ensure Term Total Type exists
         $termTotalType = AssessmentType::where('code', 'TERM_TOTAL')->firstOrCreate(
             ['code' => 'TERM_TOTAL'],
@@ -454,10 +458,12 @@ class SectionGradeController extends Controller implements HasMiddleware
 
         $path = $request->file('file')->getRealPath();
         $file = fopen($path, 'r');
-        
+
         // Skip BOM
         $bom = fread($file, 3);
-        if ($bom !== "\xEF\xBB\xBF") { rewind($file); }
+        if ($bom !== "\xEF\xBB\xBF") {
+            rewind($file);
+        }
 
         // Read first line (possibly sep=)
         $line = fgets($file);
@@ -479,13 +485,15 @@ class SectionGradeController extends Controller implements HasMiddleware
                 $delimiter = $d;
             }
         }
-        
+
         $header = str_getcsv($headerLine, $delimiter);
 
         // Map columns to Subject IDs
         $subjectMap = []; // index => subject_id
         foreach ($header as $index => $colName) {
-            if ($index < 2) continue;
+            if ($index < 2) {
+                continue;
+            }
             // Extract ID from "Name (ID:123)"
             if (preg_match('/\(ID:(\d+)\)/', $colName, $matches)) {
                 $subjectMap[$index] = $matches[1];
@@ -501,16 +509,19 @@ class SectionGradeController extends Controller implements HasMiddleware
             $errors = [];
             while (($line = fgets($file)) !== false) {
                 $row = str_getcsv($line, $delimiter);
-                if (empty($row) || empty($row[0])) continue;
+                if (empty($row) || empty($row[0])) {
+                    continue;
+                }
 
                 $studentIdStr = trim($row[0]);
                 $csvName = isset($row[1]) ? trim($row[1]) : '';
-                
+
                 // Fetch from the pre-loaded section students to ensure they belong here
                 $student = $sectionStudents->get($studentIdStr);
 
-                if (!$student) {
+                if (! $student) {
                     $errors[] = "Student ID $studentIdStr not found in this section";
+
                     continue;
                 }
 
@@ -519,31 +530,35 @@ class SectionGradeController extends Controller implements HasMiddleware
                 // Calculate similarity, allow minor formatting differences but catch complete mismatches
                 $similarity = 0;
                 similar_text(strtolower($csvName), strtolower($dbName), $similarity);
-                if ($similarity < 70 && !str_contains(strtolower($dbName), strtolower(explode(' ', $csvName)[0]))) {
+                if ($similarity < 70 && ! str_contains(strtolower($dbName), strtolower(explode(' ', $csvName)[0]))) {
                     $errors[] = "CRITICAL MISMATCH: ID $studentIdStr belongs to '$dbName', but CSV has '$csvName'. The spreadsheet may have been sorted incorrectly.";
+
                     continue;
                 }
 
                 foreach ($subjectMap as $index => $subjectId) {
                     $score = isset($row[$index]) ? trim($row[$index]) : '';
-                    if ($score === '') continue;
+                    if ($score === '') {
+                        continue;
+                    }
 
-                    if (!is_numeric($score) || $score < 0 || $score > 100) {
-                         $errors[] = "Invalid score '$score' for student $studentIdStr";
-                         continue;
+                    if (! is_numeric($score) || $score < 0 || $score > 100) {
+                        $errors[] = "Invalid score '$score' for student $studentIdStr";
+
+                        continue;
                     }
 
                     // Find/Create Template
-                     $template = AssessmentTemplate::where('academic_year_id', $request->academic_year_id)
+                    $template = AssessmentTemplate::where('academic_year_id', $request->academic_year_id)
                         ->where('term_id', $request->term_id)
                         ->where('assessment_type_id', $termTotalType->id)
-                        ->whereHas('assignments', function($q) use ($section, $subjectId) {
+                        ->whereHas('assignments', function ($q) use ($section, $subjectId) {
                             $q->where('grade_level_id', $section->grade_level_id)
-                              ->where('subject_id', $subjectId);
+                                ->where('subject_id', $subjectId);
                         })
                         ->first();
-                        
-                    if (!$template) {
+
+                    if (! $template) {
                         $template = AssessmentTemplate::create([
                             'academic_year_id' => $request->academic_year_id,
                             'term_id' => $request->term_id,
@@ -576,38 +591,40 @@ class SectionGradeController extends Controller implements HasMiddleware
                 }
                 $count++;
             }
-            
+
             DB::commit();
             fclose($file);
 
             // Recalculate Statistics
             $academicYear = AcademicYear::findOrFail($request->academic_year_id);
-            $gradingService = app(\App\Services\GradingService::class);
+            $gradingService = app(GradingService::class);
             $gradingService->recalculateSectionStatistics($section, $term, $academicYear);
-            
-            // Clear roster cache
-            \Illuminate\Support\Facades\Cache::forget("roster_data_{$section->id}_{$term->id}_{$academicYear->id}");
 
-            if (!empty($errors)) {
-                 return back()->with('warning', "Imported $count rows. Errors: " . implode('; ', array_slice($errors, 0, 3)));
+            // Clear roster cache
+            Cache::forget("roster_data_{$section->id}_{$term->id}_{$academicYear->id}");
+
+            if (! empty($errors)) {
+                return back()->with('warning', "Imported $count rows. Errors: ".implode('; ', array_slice($errors, 0, 3)));
             }
+
             return back()->with('success', "Successfully imported process for $count students.");
 
         } catch (\Exception $e) {
             DB::rollBack();
             fclose($file);
-            return back()->with('error', 'Import failed: ' . $e->getMessage());
+
+            return back()->with('error', 'Import failed: '.$e->getMessage());
         }
     }
 
-    public function calculateSemester(Request $request, \App\Services\GradingService $gradingService)
+    public function calculateSemester(Request $request, GradingService $gradingService)
     {
         $request->validate([
             'section_id' => 'required|exists:sections,id',
             'grade_level_id' => 'required|exists:grade_levels,id',
             'subject_id' => 'nullable', // We calculate for ALL regular subjects, so subject_id is not strictly needed per se, but let's see.
-            // Actually, the plan says "Calculate for Regular Subjects". 
-            // The master sheet is usually subject specific? 
+            // Actually, the plan says "Calculate for Regular Subjects".
+            // The master sheet is usually subject specific?
             // No, the Master Sheet has ALL subjects.
             // So we can calculate ALL regular subjects for this section at once.
             'term_id' => 'required|exists:terms,id',
@@ -622,18 +639,20 @@ class SectionGradeController extends Controller implements HasMiddleware
             return back()->with('error', 'Auto-calculation is only available for Semester terms.');
         }
 
-        if (!$term->is_grading_open && !$term->is_master_grading_open) {
-             return back()->with('error', 'Grading is closed for this term.');
+        if (! $term->is_grading_open && ! $term->is_master_grading_open) {
+            return back()->with('error', 'Grading is closed for this term.');
         }
 
         try {
             $count = $gradingService->calculateSemesterGrades($section, $term, $academicYear);
+
             return back()->with('success', "Calculation complete. Updated $count student marks.");
         } catch (\Exception $e) {
-            return back()->with('error', 'Calculation failed: ' . $e->getMessage());
+            return back()->with('error', 'Calculation failed: '.$e->getMessage());
         }
     }
-    public function exportLowPerformance(Request $request, \App\Services\GradingService $gradingService)
+
+    public function exportLowPerformance(Request $request, GradingService $gradingService)
     {
         $request->validate([
             'academic_year_id' => 'required|exists:academic_years,id',
@@ -644,7 +663,7 @@ class SectionGradeController extends Controller implements HasMiddleware
         $section = Section::findOrFail($request->section_id);
         $term = Term::findOrFail($request->term_id);
         $academicYear = AcademicYear::findOrFail($request->academic_year_id);
-        
+
         $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
         $students = $section->students()
             ->wherePivot('academic_year_id', $academicYear->id)
@@ -655,32 +674,33 @@ class SectionGradeController extends Controller implements HasMiddleware
 
         $stats = $gradingService->calculateSectionTotals($students, $term, $academicYear, $subjects);
 
-        $lowPerformers = $students->filter(function($student) use ($stats) {
+        $lowPerformers = $students->filter(function ($student) use ($stats) {
             $average = $stats[$student->id]['average'] ?? 0;
+
             return $average > 0 && $average < 75;
         });
 
         $filename = "low_performance_alert_{$section->name}_{$term->name}.csv";
-        
+
         $headers = [
-            "Content-type" => "text/csv",
-            "Content-Disposition" => "attachment; filename=$filename",
-            "Pragma" => "no-cache",
-            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
-            "Expires" => "0"
+            'Content-type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=$filename",
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0',
         ];
 
-        $callback = function() use ($lowPerformers, $stats) {
+        $callback = function () use ($lowPerformers, $stats) {
             $file = fopen('php://output', 'w');
-            fputs($file, "\xEF\xBB\xBF"); // BOM
-            fputs($file, "sep=,\n"); // Excel separator hint
+            fwrite($file, "\xEF\xBB\xBF"); // BOM
+            fwrite($file, "sep=,\n"); // Excel separator hint
             fputcsv($file, ['Student ID', 'Student Name', 'Average Score (%)']);
 
             foreach ($lowPerformers as $student) {
                 fputcsv($file, [
                     $student->student_id,
                     $student->full_name,
-                    number_format($stats[$student->id]['average'] ?? 0, 1) . '%'
+                    number_format($stats[$student->id]['average'] ?? 0, 1).'%',
                 ]);
             }
             fclose($file);
@@ -689,7 +709,7 @@ class SectionGradeController extends Controller implements HasMiddleware
         return response()->stream($callback, 200, $headers);
     }
 
-    public function downloadLowPerformanceReport(Request $request, \App\Services\GradingService $gradingService)
+    public function downloadLowPerformanceReport(Request $request, GradingService $gradingService)
     {
         $request->validate([
             'academic_year_id' => 'required|exists:academic_years,id',
@@ -700,7 +720,7 @@ class SectionGradeController extends Controller implements HasMiddleware
         $section = Section::with('gradeLevel')->findOrFail($request->section_id);
         $term = Term::findOrFail($request->term_id);
         $academicYear = AcademicYear::findOrFail($request->academic_year_id);
-        
+
         $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
         $students = $section->students()
             ->wherePivot('academic_year_id', $academicYear->id)
@@ -711,23 +731,24 @@ class SectionGradeController extends Controller implements HasMiddleware
 
         $stats = $gradingService->calculateSectionTotals($students, $term, $academicYear, $subjects);
 
-        $lowPerformers = $students->filter(function($student) use ($stats) {
+        $lowPerformers = $students->filter(function ($student) use ($stats) {
             $average = $stats[$student->id]['average'] ?? 0;
+
             return $average > 0 && $average < 75;
         });
 
         // Fetch school logo from Report Card settings
-        $settings = \App\Models\ReportCardSetting::first();
+        $settings = ReportCardSetting::first();
         $logoBase64 = null;
         if ($settings && $settings->logo_path) {
-            $logoPath = storage_path('app/public/' . $settings->logo_path);
+            $logoPath = storage_path('app/public/'.$settings->logo_path);
             if (file_exists($logoPath)) {
                 $logoData = base64_encode(file_get_contents($logoPath));
-                $logoBase64 = 'data:image/' . pathinfo($logoPath, PATHINFO_EXTENSION) . ';base64,' . $logoData;
+                $logoBase64 = 'data:image/'.pathinfo($logoPath, PATHINFO_EXTENSION).';base64,'.$logoData;
             }
         }
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.section-grades.low-performance-report', [
+        $pdf = Pdf::loadView('admin.section-grades.low-performance-report', [
             'section' => $section,
             'term' => $term,
             'academicYear' => $academicYear,
@@ -740,6 +761,7 @@ class SectionGradeController extends Controller implements HasMiddleware
         $pdf->setPaper('a4', 'portrait');
 
         $filename = "academic_performance_alert_{$section->name}_{$term->name}.pdf";
+
         return $pdf->download($filename);
     }
 }

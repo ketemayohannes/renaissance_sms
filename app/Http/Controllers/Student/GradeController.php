@@ -3,31 +3,33 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
+use App\Models\Term;
+use App\Services\ReportCardService;
+use App\Services\StudentAcademicHistoryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use PDF;
 
 class GradeController extends Controller
 {
     public function index()
     {
         $user = Auth::user();
-        if (!$user->hasRole('Student') || !$user->student) {
+        if (! $user->hasRole('Student') || ! $user->student) {
             return redirect()->route('dashboard');
         }
 
         $student = $user->student;
-        
+
         // Eager load necessary relationships
         $student->load(['currentEnrollment.section.gradeLevel.subjects', 'currentEnrollment.academicYear']);
-        
+
         // Get Grades for the current enrollment
         // We'll need to fetch Gradebook records for this student and the current section's subjects
         $grades = [];
         $enrollment = $student->currentEnrollment;
-        
+
         $enrollment = $student->currentEnrollment;
-        
+
         $grades = collect();
         $academicYearTerms = collect();
         $selectedPeriod = request('period', 'all'); // 'all', 'term_X', 'semester_X', 'yearly'
@@ -41,25 +43,25 @@ class GradeController extends Controller
             $academicYearId = $enrollment->academic_year_id;
 
             // Get all terms for filter dropdown
-            $allTerms = \App\Models\Term::where('academic_year_id', $academicYearId)->get();
+            $allTerms = Term::where('academic_year_id', $academicYearId)->get();
             $quarters = $allTerms->where('type', 'quarter');
             $semesters = $allTerms->where('type', 'semester');
 
             // Single source of truth (shared with the parent portal): quarters resolved
             // components-first, semesters + yearly computed live via GradingService — so the
             // numbers match the report card and the admin profile, and Semester 2 / Yearly show.
-            $history = app(\App\Services\StudentAcademicHistoryService::class)->build($student, (int) $academicYearId);
+            $history = app(StudentAcademicHistoryService::class)->build($student, (int) $academicYearId);
             $grades = collect($history['academicRecords']->first() ?? collect());
             $termRecords = collect($history['termRecords']->first() ?? collect());
 
             // Determine active term (for highlighting).
-            $activeTerm = \App\Models\Term::where('academic_year_id', $academicYearId)
+            $activeTerm = Term::where('academic_year_id', $academicYearId)
                 ->where('type', 'quarter')
                 ->where('is_grading_open', true)
                 ->first();
 
-            if (!$activeTerm) {
-                $activeTerm = \App\Models\Term::where('academic_year_id', $academicYearId)
+            if (! $activeTerm) {
+                $activeTerm = Term::where('academic_year_id', $academicYearId)
                     ->where('type', 'quarter')
                     ->where('start_date', '<=', now())
                     ->where('end_date', '>=', now())
@@ -85,14 +87,14 @@ class GradeController extends Controller
     public function downloadReport(Request $request)
     {
         $user = Auth::user();
-        if (!$user->hasRole('Student') || !$user->student) {
+        if (! $user->hasRole('Student') || ! $user->student) {
             return redirect()->route('dashboard');
         }
         $student = $user->student;
         $enrollment = $student->currentEnrollment;
 
-        if (!$enrollment) {
-             return back()->with('error', 'You are not enrolled in any section.');
+        if (! $enrollment) {
+            return back()->with('error', 'You are not enrolled in any section.');
         }
 
         $period = $request->input('period');
@@ -101,15 +103,15 @@ class GradeController extends Controller
 
         if (str_starts_with($period, 'term_')) {
             $termId = str_replace('term_', '', $period);
-            $term = \App\Models\Term::where('id', $termId)->where('academic_year_id', $academicYear->id)->firstOrFail();
+            $term = Term::where('id', $termId)->where('academic_year_id', $academicYear->id)->firstOrFail();
         } elseif (str_starts_with($period, 'semester_')) {
             $termId = str_replace('semester_', '', $period);
-            $term = \App\Models\Term::where('id', $termId)->where('academic_year_id', $academicYear->id)->firstOrFail();
+            $term = Term::where('id', $termId)->where('academic_year_id', $academicYear->id)->firstOrFail();
         } elseif ($period === 'yearly') {
-            $term = new \App\Models\Term([
+            $term = new Term([
                 'type' => 'yearly',
                 'name' => 'Yearly Report',
-                'academic_year_id' => $academicYear->id
+                'academic_year_id' => $academicYear->id,
             ]);
             $term->incrementing = false;
             $term->id = 'yearly';
@@ -117,14 +119,14 @@ class GradeController extends Controller
             return back()->with('error', 'Invalid report period selected.');
         }
 
-        $reportCardService = app(\App\Services\ReportCardService::class);
+        $reportCardService = app(ReportCardService::class);
         $params = $reportCardService->getStudentReportParams($student, $term, $academicYear);
         $params['is_pdf'] = true;
-        
+
         $viewName = $params['isYearly'] ? 'admin.report-cards.yearly-pdf' : 'admin.report-cards.pdf';
-        
+
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView($viewName, $params)->setPaper('a4', 'portrait');
-        
-        return $pdf->download('ReportCard_' . $student->admission_number . '_' . str_replace(' ', '_', $term->name) . '.pdf');
+
+        return $pdf->download('ReportCard_'.$student->admission_number.'_'.str_replace(' ', '_', $term->name).'.pdf');
     }
 }

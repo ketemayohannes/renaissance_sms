@@ -29,9 +29,13 @@ class ParentStudentGradeConsistencyTest extends TestCase
     use RefreshDatabase;
 
     protected AcademicYear $academicYear;
+
     protected GradeLevel $gradeLevel;
+
     protected Section $section;
+
     protected Subject $subject;
+
     protected AssessmentType $componentType;
 
     protected function setUp(): void

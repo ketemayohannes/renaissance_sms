@@ -14,7 +14,7 @@ class ProfileController extends Controller
     /**
      * Display the user's profile form.
      */
-    public function edit(Request $request): \Illuminate\View\View|\Illuminate\Http\RedirectResponse
+    public function edit(Request $request): View|RedirectResponse
     {
         if ($request->user()->hasRole('Student')) {
             return redirect()->route('student.profile');

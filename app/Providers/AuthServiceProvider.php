@@ -3,8 +3,8 @@
 namespace App\Providers;
 
 use App\Models\Student;
-use App\Policies\StudentPolicy;
 use App\Policies\ReportPolicy;
+use App\Policies\StudentPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 

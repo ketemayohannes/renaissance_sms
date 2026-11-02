@@ -24,9 +24,9 @@ class DisciplinaryRecord extends Model
     ];
 
     protected $casts = [
-        'incident_date'   => 'date',
+        'incident_date' => 'date',
         'resolution_date' => 'date',
-        'notify_parent'   => 'boolean',
+        'notify_parent' => 'boolean',
     ];
 
     /* ── Relationships ── */

@@ -2,14 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\HasDivisionRestriction;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-use App\Traits\HasDivisionRestriction;
-
 class Division extends Model
 {
-    use HasFactory, HasDivisionRestriction;
+    use HasDivisionRestriction, HasFactory;
 
     protected $fillable = ['name', 'code', 'description', 'sort_order', 'is_active'];
 

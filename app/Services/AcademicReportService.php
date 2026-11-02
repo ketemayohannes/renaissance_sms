@@ -2,17 +2,22 @@
 
 namespace App\Services;
 
-use App\Models\AcademicYear;
-use App\Models\GradeLevel;
-use App\Models\Section;
-use App\Models\Term;
-use App\Models\Subject;
+use App\Helpers\KindergartenGradeHelper;
 use App\Models\AcademicReportSetting;
-use App\Models\StudentTermRecord;
+use App\Models\AcademicYear;
+use App\Models\AssessmentTemplate;
+use App\Models\AssessmentType;
+use App\Models\GradeLevel;
+use App\Models\ReportCardSetting;
+use App\Models\Section;
 use App\Models\StudentAttendance;
-use Illuminate\Support\Facades\Storage;
+use App\Models\StudentMark;
+use App\Models\StudentPromotion;
+use App\Models\Subject;
+use App\Models\Term;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 
 class AcademicReportService
 {
@@ -33,7 +38,6 @@ class AcademicReportService
         app(GradeCacheService::class)->clearSectionCache($sectionId, $academicYearId);
     }
 
-
     /**
      * Update academic report (roster) settings.
      */
@@ -52,13 +56,14 @@ class AcademicReportService
         $displayOptions = $settings->display_options ?? [];
         if (isset($data['subject_order'])) {
             $displayOptions['subject_order'] = collect($data['subject_order'])
-                ->filter(fn($val) => $val !== null && $val !== '')
-                ->map(fn($val) => (int)$val)
+                ->filter(fn ($val) => $val !== null && $val !== '')
+                ->map(fn ($val) => (int) $val)
                 ->toArray();
         }
         $settings->display_options = $displayOptions;
 
         $settings->save();
+
         return $settings;
     }
 
@@ -74,110 +79,117 @@ class AcademicReportService
             $term->id,
             (int) $academicYear->id,
             function () use ($section, $term, $academicYear) {
-            $gradeLevel = $section->gradeLevel;
-            $subjects = $gradeLevel->subjects()->orderByPivot('sort_order')->get();
-            $settings = \App\Models\AcademicReportSetting::first();
+                $gradeLevel = $section->gradeLevel;
+                $subjects = $gradeLevel->subjects()->orderByPivot('sort_order')->get();
+                $settings = AcademicReportSetting::first();
 
-            // Enforce Subject Ordering: Prioritize UI Settings, Fallback to Fixed List
-            if ($settings && isset($settings->display_options['subject_order'])) {
-                $orderMap = $settings->display_options['subject_order'];
-                $subjects = $subjects->sort(function ($a, $b) use ($orderMap) {
-                    $posA = $orderMap[$a->id] ?? 999;
-                    $posB = $orderMap[$b->id] ?? 999;
-                    return $posA <=> $posB;
-                })->values();
-            } else {
-                // Hardcoded Fallback (User Requested Step 162)
-                $fixedOrder = [
-                    'Amharic',
-                    'Mathematics',
-                    'Oromo',
-                    'English',
-                    'Afan',
-                    'Physics',
-                    'Chemistry',
-                    'Biology',
-                    'History',
-                    'Geography',
-                    'Citizenship',
-                    'Economics',
-                    'Information Technology',
-                    'Information Technolog',
-                    'Physical Education',
-                    'Physical Educathin'
-                ];
+                // Enforce Subject Ordering: Prioritize UI Settings, Fallback to Fixed List
+                if ($settings && isset($settings->display_options['subject_order'])) {
+                    $orderMap = $settings->display_options['subject_order'];
+                    $subjects = $subjects->sort(function ($a, $b) use ($orderMap) {
+                        $posA = $orderMap[$a->id] ?? 999;
+                        $posB = $orderMap[$b->id] ?? 999;
 
-                $subjects = $subjects->sort(function ($a, $b) use ($fixedOrder) {
-                    $getPos = function($name) use ($fixedOrder) {
-                        $pos = array_search($name, $fixedOrder);
-                        if ($pos !== false) return $pos;
-                        foreach ($fixedOrder as $index => $orderedName) {
-                            if (stripos($name, $orderedName) !== false) return $index;
-                        }
-                        return 999;
-                    };
-                    return $getPos($a->name) <=> $getPos($b->name);
-                })->values();
-            }
-
-            $students = $section->students()
-                ->wherePivot('academic_year_id', $academicYear->id)
-                ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated'])
-                ->orderBy('first_name')
-                ->get();
-            $sectionReportData = $this->gradingService->getSectionReportData($students, $section, $term, $academicYear);
-
-            $targetTermsForAttendance = collect([$term]);
-            if ($term->isSemester()) {
-                $targetTermsForAttendance = $targetTermsForAttendance->concat($term->quarters()->get());
-            } elseif ($term->type === 'yearly') {
-                $targetTermsForAttendance = $targetTermsForAttendance->concat(
-                    Term::where('academic_year_id', $academicYear->id)->whereIn('type', ['quarter', 'semester'])->get()
-                );
-            }
-            $batchAttendance = $this->getBatchAttendance($students, $targetTermsForAttendance, $academicYear);
-
-            $reports = [];
-            foreach ($students as $student) {
-                $studentData = $sectionReportData[$student->id] ?? null;
-                if ($studentData) {
-                    $reports[] = $this->prepareStudentRosterRow($student, $term, $academicYear, $subjects, $studentData, $batchAttendance[$student->id] ?? []);
+                        return $posA <=> $posB;
+                    })->values();
                 } else {
-                    // Include student with empty data if missing from grading service
-                    $absRaw = $batchAttendance[$student->id][$term->id]['absent'] ?? 0;
-                    $reports[] = [
-                        'student' => $student,
-                        'gender' => $student->gender,
-                        'marks' => [],
-                        'total' => 0,
-                        'average' => 0,
-                        'rank' => '-',
-                        'conduct' => 'A',
-                        'absence' => ($absRaw == 0) ? '_' : $absRaw,
-                        'rows' => []
+                    // Hardcoded Fallback (User Requested Step 162)
+                    $fixedOrder = [
+                        'Amharic',
+                        'Mathematics',
+                        'Oromo',
+                        'English',
+                        'Afan',
+                        'Physics',
+                        'Chemistry',
+                        'Biology',
+                        'History',
+                        'Geography',
+                        'Citizenship',
+                        'Economics',
+                        'Information Technology',
+                        'Information Technolog',
+                        'Physical Education',
+                        'Physical Educathin',
                     ];
+
+                    $subjects = $subjects->sort(function ($a, $b) use ($fixedOrder) {
+                        $getPos = function ($name) use ($fixedOrder) {
+                            $pos = array_search($name, $fixedOrder);
+                            if ($pos !== false) {
+                                return $pos;
+                            }
+                            foreach ($fixedOrder as $index => $orderedName) {
+                                if (stripos($name, $orderedName) !== false) {
+                                    return $index;
+                                }
+                            }
+
+                            return 999;
+                        };
+
+                        return $getPos($a->name) <=> $getPos($b->name);
+                    })->values();
                 }
-            }
 
-            // Calculate yearly ranks if applicable
-            if ($term->type === 'yearly') {
-                $reports = $this->calculateYearlyRanks($reports);
-            }
+                $students = $section->students()
+                    ->wherePivot('academic_year_id', $academicYear->id)
+                    ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated'])
+                    ->orderBy('first_name')
+                    ->get();
+                $sectionReportData = $this->gradingService->getSectionReportData($students, $section, $term, $academicYear);
 
-            // Filter out elective subjects with no data
-            $subjects = $this->filterEmptySubjects($subjects, $reports);
+                $targetTermsForAttendance = collect([$term]);
+                if ($term->isSemester()) {
+                    $targetTermsForAttendance = $targetTermsForAttendance->concat($term->quarters()->get());
+                } elseif ($term->type === 'yearly') {
+                    $targetTermsForAttendance = $targetTermsForAttendance->concat(
+                        Term::where('academic_year_id', $academicYear->id)->whereIn('type', ['quarter', 'semester'])->get()
+                    );
+                }
+                $batchAttendance = $this->getBatchAttendance($students, $targetTermsForAttendance, $academicYear);
 
-            return [
-                'academicYear' => $academicYear,
-                'term' => $term,
-                'section' => $section,
-                'subjects' => $subjects,
-                'reports' => $reports,
-                'settings' => $settings,
-                'generalSettings' => \App\Models\ReportCardSetting::first(),
-                'isKindergarten' => \App\Helpers\KindergartenGradeHelper::isKindergarten($section),
-            ];
-        });
+                $reports = [];
+                foreach ($students as $student) {
+                    $studentData = $sectionReportData[$student->id] ?? null;
+                    if ($studentData) {
+                        $reports[] = $this->prepareStudentRosterRow($student, $term, $academicYear, $subjects, $studentData, $batchAttendance[$student->id] ?? []);
+                    } else {
+                        // Include student with empty data if missing from grading service
+                        $absRaw = $batchAttendance[$student->id][$term->id]['absent'] ?? 0;
+                        $reports[] = [
+                            'student' => $student,
+                            'gender' => $student->gender,
+                            'marks' => [],
+                            'total' => 0,
+                            'average' => 0,
+                            'rank' => '-',
+                            'conduct' => 'A',
+                            'absence' => ($absRaw == 0) ? '_' : $absRaw,
+                            'rows' => [],
+                        ];
+                    }
+                }
+
+                // Calculate yearly ranks if applicable
+                if ($term->type === 'yearly') {
+                    $reports = $this->calculateYearlyRanks($reports);
+                }
+
+                // Filter out elective subjects with no data
+                $subjects = $this->filterEmptySubjects($subjects, $reports);
+
+                return [
+                    'academicYear' => $academicYear,
+                    'term' => $term,
+                    'section' => $section,
+                    'subjects' => $subjects,
+                    'reports' => $reports,
+                    'settings' => $settings,
+                    'generalSettings' => ReportCardSetting::first(),
+                    'isKindergarten' => KindergartenGradeHelper::isKindergarten($section),
+                ];
+            });
 
         // Promotion decisions are attached outside the cache: they are made (and can be
         // reversed) after grades are final, so a cached roster must not freeze them.
@@ -196,7 +208,7 @@ class AcademicReportService
     {
         $studentIds = array_map(fn ($r) => $r['student']->id, $reports);
 
-        $promotions = \App\Models\StudentPromotion::with('toGradeLevel')
+        $promotions = StudentPromotion::with('toGradeLevel')
             ->whereIn('student_id', $studentIds)
             ->where('from_academic_year_id', $academicYear->id)
             ->get()
@@ -226,27 +238,29 @@ class AcademicReportService
         $rows = [
             'q1' => null,
             'q2' => null,
-            'avg' => null
+            'avg' => null,
         ];
         $record = $reportData['record'] ?? null;
 
         if ($term->isSemester()) {
             $qIdx = 1;
-            $quarters = collect($reportData['quarters'])->sortBy(fn($q) => $q['term']->term_number ?? $q['term']->start_date);
-            
+            $quarters = collect($reportData['quarters'])->sortBy(fn ($q) => $q['term']->term_number ?? $q['term']->start_date);
+
             foreach ($quarters as $qData) {
-                $label = 'Quarter ' . ($qIdx == 1 ? 'I' : ($qIdx == 2 ? 'II' : ($qIdx == 3 ? 'III' : 'IV')));
+                $label = 'Quarter '.($qIdx == 1 ? 'I' : ($qIdx == 2 ? 'II' : ($qIdx == 3 ? 'III' : 'IV')));
                 $dynamicAbs = $studentAttendance[$qData['term']->id]['absent'] ?? null;
-                $rows['q' . $qIdx] = $this->formatRosterRow($label, $qData['marks'], $qData['total'], $qData['average'], $qData['record'], $qData['rank'], $dynamicAbs);
+                $rows['q'.$qIdx] = $this->formatRosterRow($label, $qData['marks'], $qData['total'], $qData['average'], $qData['record'], $qData['rank'], $dynamicAbs);
                 $qIdx++;
-                if ($qIdx > 2) break;
+                if ($qIdx > 2) {
+                    break;
+                }
             }
             $dynamicSemAbs = $studentAttendance[$term->id]['absent'] ?? null;
             $rows['avg'] = $this->formatRosterRow('Sem Avg', $reportData['marks'], $reportData['totalScore'], $reportData['average'], $record, $reportData['rank'], $dynamicSemAbs);
-            
+
         } elseif ($term->type === 'yearly') {
             return $this->prepareYearlyRosterRow($student, $academicYear, $subjects, $reportData, $studentAttendance);
-            
+
         } else {
             $dynamicAbs = $studentAttendance[$term->id]['absent'] ?? null;
             $rows['q1'] = $this->formatRosterRow($term->name, $reportData['marks'], $reportData['totalScore'], $reportData['average'], $record, $reportData['rank'], $dynamicAbs);
@@ -264,7 +278,7 @@ class AcademicReportService
             'rank' => $reportData['rank'],
             'conduct' => ($record ? $record->conduct_grade : null) ?? 'A',
             'absence' => $absence,
-            'rows' => $rows
+            'rows' => $rows,
         ];
     }
 
@@ -277,8 +291,8 @@ class AcademicReportService
         // Distribute quarter data into rows
         foreach ($reportData['quarters'] as $qId => $qData) {
             $quarter = $qData['term'];
-            $rows['q' . $quarter->term_number] = $this->formatRosterRow(
-                'Quarter ' . $this->romanNumeral($quarter->term_number),
+            $rows['q'.$quarter->term_number] = $this->formatRosterRow(
+                'Quarter '.$this->romanNumeral($quarter->term_number),
                 $qData['marks'],
                 $qData['total'],
                 $qData['average'],
@@ -292,7 +306,7 @@ class AcademicReportService
         if (isset($reportData['semesters']) && is_array($reportData['semesters'])) {
             foreach ($reportData['semesters'] as $sId => $sData) {
                 $semester = $sData['term'];
-                $rows['s' . $semester->term_number] = $this->formatRosterRow(
+                $rows['s'.$semester->term_number] = $this->formatRosterRow(
                     'Sem Avg',
                     $sData['marks'],
                     $sData['total'],
@@ -306,7 +320,7 @@ class AcademicReportService
 
         $yearRecord = $reportData['record'] ?? null;
         $dynamicYearlyAbs = $studentAttendance['yearly']['absent'] ?? ($studentAttendance['all_year']['absent'] ?? null);
-        
+
         $rows['avg'] = $this->formatRosterRow(
             'Year Avg',
             $reportData['marks'],
@@ -325,7 +339,7 @@ class AcademicReportService
             'gender' => $student->gender,
             'rows' => $rows,
             'yearTotal' => $yearTotal,
-            'absence' => $absence
+            'absence' => $absence,
         ];
     }
 
@@ -351,18 +365,18 @@ class AcademicReportService
             'average' => $average,
             'conduct' => ($record ? $record->conduct_grade : null) ?? ($label === 'Sem Avg' || $label === 'Year Avg' ? '-' : 'A'),
             'absence' => ($isSummaryRow || $absenceVal == 0) ? '_' : $absenceVal,
-            'rank' => $rank
+            'rank' => $rank,
         ];
     }
 
     private function getBatchAttendance(Collection $students, Collection $terms, AcademicYear $academicYear): array
     {
         $studentIds = $students->pluck('id')->toArray();
-        $termIds = $terms->pluck('id')->filter(fn($id) => is_numeric($id))->toArray();
+        $termIds = $terms->pluck('id')->filter(fn ($id) => is_numeric($id))->toArray();
 
         // PERFORMANCE FIX: Pre-fetch section IDs instead of using whereHas
         // whereHas creates a slow subquery per row; this uses a simple IN clause
-        $validSectionIds = \App\Models\Section::where('academic_year_id', $academicYear->id)
+        $validSectionIds = Section::where('academic_year_id', $academicYear->id)
             ->pluck('id')
             ->toArray();
 
@@ -373,7 +387,7 @@ class AcademicReportService
         $results = [];
         foreach ($students as $student) {
             $studentAttendance = $allAttendance->where('student_id', $student->id);
-            
+
             foreach ($terms as $term) {
                 $termAttendance = $studentAttendance;
                 if ($term->type !== 'yearly' && is_numeric($term->id)) {
@@ -383,7 +397,7 @@ class AcademicReportService
                 $absCount = $termAttendance->where('status', 'absent')->count();
                 $results[$student->id][$term->id] = ['absent' => $absCount];
             }
-            
+
             // All year total
             $results[$student->id]['all_year'] = ['absent' => $studentAttendance->where('status', 'absent')->count()];
         }
@@ -395,23 +409,26 @@ class AcademicReportService
     {
         $sortedTotals = collect($reports)->pluck('yearTotal')->sortDesc();
         foreach ($reports as &$report) {
-            $report['rows']['avg']['rank'] = $sortedTotals->filter(fn($score) => $score > ($report['yearTotal'] ?? 0))->count() + 1;
+            $report['rows']['avg']['rank'] = $sortedTotals->filter(fn ($score) => $score > ($report['yearTotal'] ?? 0))->count() + 1;
         }
+
         return $reports;
     }
 
     private function filterEmptySubjects($subjects, $reports): Collection
     {
-        return $subjects->filter(function($subject) use ($reports) {
+        return $subjects->filter(function ($subject) use ($reports) {
             // Never hide non-elective subjects
-            if (!$subject->is_elective) return true;
-            
+            if (! $subject->is_elective) {
+                return true;
+            }
+
             foreach ($reports as $r) {
                 // Check top-level marks (current term/yearly total)
                 if (isset($r['marks'][$subject->id]) && $r['marks'][$subject->id] !== null && $r['marks'][$subject->id] !== '') {
                     return true;
                 }
-                
+
                 // Check rows (Quarters, Semesters in Semester/Yearly view)
                 if (isset($r['rows']) && is_array($r['rows'])) {
                     foreach ($r['rows'] as $row) {
@@ -421,6 +438,7 @@ class AcademicReportService
                     }
                 }
             }
+
             return false;
         });
     }
@@ -436,20 +454,20 @@ class AcademicReportService
 
         // Resolve TERM_TOTAL template IDs once, to exclude them when summing component marks.
         // This prevents stale master-sheet totals from overriding the real component sum.
-        $termTotalTypeId = \App\Models\AssessmentType::where('code', 'TERM_TOTAL')->value('id');
+        $termTotalTypeId = AssessmentType::where('code', 'TERM_TOTAL')->value('id');
         $termTotalTemplateIds = $termTotalTypeId
-            ? \App\Models\AssessmentTemplate::where('assessment_type_id', $termTotalTypeId)->pluck('id')
+            ? AssessmentTemplate::where('assessment_type_id', $termTotalTypeId)->pluck('id')
             : collect();
 
         // Determine which term IDs to query marks for
         $isQuarter = $term->type === 'quarter';
         $isSemester = method_exists($term, 'isSemester') && $term->isSemester();
-        $isYearly   = $term->id === 'yearly' || $term->type === 'yearly';
+        $isYearly = $term->id === 'yearly' || $term->type === 'yearly';
 
         if ($isSemester) {
             $targetTermIds = $term->quarters()->pluck('id');
         } elseif ($isYearly) {
-            $semesters = \App\Models\Term::where('academic_year_id', $academicYear->id)
+            $semesters = Term::where('academic_year_id', $academicYear->id)
                 ->where('type', 'semester')->with('quarters')->get();
             $targetTermIds = $semesters->flatMap->quarters->pluck('id');
         } else {
@@ -462,15 +480,17 @@ class AcademicReportService
                 ->wherePivot('academic_year_id', $academicYear->id)
                 ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated'])
                 ->get();
-            if ($students->isEmpty()) continue;
+            if ($students->isEmpty()) {
+                continue;
+            }
 
             $studentIds = $students->pluck('id');
 
             // Fetch component marks only (no TERM_TOTAL rows) for all students in this section.
-            $rawMarks = \App\Models\StudentMark::whereIn('student_id', $studentIds)
+            $rawMarks = StudentMark::whereIn('student_id', $studentIds)
                 ->whereIn('term_id', $targetTermIds)
                 ->where('subject_id', $subject->id)
-                ->when($termTotalTemplateIds->isNotEmpty(), function($q) use ($termTotalTemplateIds) {
+                ->when($termTotalTemplateIds->isNotEmpty(), function ($q) use ($termTotalTemplateIds) {
                     $q->whereNotIn('assessment_template_id', $termTotalTemplateIds);
                 })
                 ->get()
@@ -482,11 +502,13 @@ class AcademicReportService
 
             foreach ($students as $student) {
                 $studentMarks = $rawMarks->get($student->id, collect());
-                if ($studentMarks->isEmpty()) continue;
+                if ($studentMarks->isEmpty()) {
+                    continue;
+                }
 
                 if ($isSemester || $isYearly) {
                     // Average the quarter sums
-                    $quarterSums = $studentMarks->groupBy('term_id')->map(fn($g) => $g->sum('score'));
+                    $quarterSums = $studentMarks->groupBy('term_id')->map(fn ($g) => $g->sum('score'));
                     $score = $quarterSums->isNotEmpty() ? $quarterSums->average() : null;
                 } else {
                     // Quarter: simple sum of components
@@ -494,41 +516,44 @@ class AcademicReportService
                 }
 
                 if ($score !== null && $score !== '') {
-                    $score = (float)$score;
+                    $score = (float) $score;
                     $appeared++;
                     $scores[] = $score;
-                    if ($score >= $passMark) $passed++;
+                    if ($score >= $passMark) {
+                        $passed++;
+                    }
                     $allStudentsData[] = ['student' => $student, 'section' => $section, 'score' => $score];
                 }
             }
 
             if ($appeared > 0) {
-                $sectionStats[$section->id] = (object)[
-                    'section'   => $section,
-                    'appeared'  => $appeared,
-                    'passed'    => $passed,
-                    'failed'    => $appeared - $passed,
+                $sectionStats[$section->id] = (object) [
+                    'section' => $section,
+                    'appeared' => $appeared,
+                    'passed' => $passed,
+                    'failed' => $appeared - $passed,
                     'pass_rate' => ($passed / $appeared) * 100,
-                    'highest'   => max($scores),
-                    'lowest'    => min($scores),
-                    'average'   => array_sum($scores) / $appeared,
+                    'highest' => max($scores),
+                    'lowest' => min($scores),
+                    'average' => array_sum($scores) / $appeared,
                 ];
             }
         }
 
         $allScores = collect($allStudentsData)->pluck('score');
+
         return [
-            'academicYear'  => $academicYear,
-            'term'          => $term,
-            'gradeLevel'    => $gradeLevel,
-            'subject'       => $subject,
-            'sectionStats'  => $sectionStats,
-            'overallStats'  => (object)[
+            'academicYear' => $academicYear,
+            'term' => $term,
+            'gradeLevel' => $gradeLevel,
+            'subject' => $subject,
+            'sectionStats' => $sectionStats,
+            'overallStats' => (object) [
                 'total_appeared' => $allScores->count(),
-                'total_passed'   => collect($allStudentsData)->filter(fn($d) => $d['score'] >= $passMark)->count(),
-                'highest'        => $allScores->isNotEmpty() ? $allScores->max() : 0,
-                'lowest'         => $allScores->isNotEmpty() ? $allScores->min() : 0,
-                'average'        => $allScores->isNotEmpty() ? $allScores->average() : 0,
+                'total_passed' => collect($allStudentsData)->filter(fn ($d) => $d['score'] >= $passMark)->count(),
+                'highest' => $allScores->isNotEmpty() ? $allScores->max() : 0,
+                'lowest' => $allScores->isNotEmpty() ? $allScores->min() : 0,
+                'average' => $allScores->isNotEmpty() ? $allScores->average() : 0,
             ],
             'topPerformers' => collect($allStudentsData)->sortByDesc('score')->take(10),
         ];
@@ -543,14 +568,15 @@ class AcademicReportService
 
         // Only include subjects that are actually assigned to these grade levels
         $allSubjects = $gradeLevels->flatMap->subjects->unique('id');
-        
+
         // Use custom Matrix order if available, otherwise fallback
-        $settings = \App\Models\AcademicReportSetting::first();
+        $settings = AcademicReportSetting::first();
         if ($settings && isset($settings->display_options['matrix_subject_order'])) {
             $orderMap = $settings->display_options['matrix_subject_order'];
             $allSubjects = $allSubjects->sort(function ($a, $b) use ($orderMap) {
                 $posA = $orderMap[$a->id] ?? 999;
                 $posB = $orderMap[$b->id] ?? 999;
+
                 return $posA <=> $posB;
             })->values();
         } else {
@@ -573,17 +599,19 @@ class AcademicReportService
                         ->wherePivot('academic_year_id', $academicYear->id)
                         ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated'])
                         ->get();
-                    
-                    if ($students->isEmpty()) continue;
+
+                    if ($students->isEmpty()) {
+                        continue;
+                    }
 
                     $batchResults = $this->gradingService->calculateSectionTotals($students, $t, $academicYear, $grade->subjects);
 
                     foreach ($grade->subjects as $subject) {
                         $scores = collect($students)
-                            ->map(fn($s) => $batchResults[$s->id]['marks'][$subject->id] ?? null)
-                            ->filter(fn($s) => $s !== null && $s !== '')
-                            ->map(fn($s) => (float)$s);
-                        
+                            ->map(fn ($s) => $batchResults[$s->id]['marks'][$subject->id] ?? null)
+                            ->filter(fn ($s) => $s !== null && $s !== '')
+                            ->map(fn ($s) => (float) $s);
+
                         if ($scores->isNotEmpty()) {
                             $sectionAvg = $scores->average();
                             $gradeSubjectAverages[$subject->id][] = $sectionAvg;
@@ -594,7 +622,7 @@ class AcademicReportService
                             $tempSubData[$subject->id]['count'] += $scores->count();
                         }
                     }
-                    
+
                     foreach ($students as $student) {
                         if (isset($batchResults[$student->id]['average'])) {
                             $studentScores->push($batchResults[$student->id]['average']);
@@ -635,13 +663,14 @@ class AcademicReportService
             'gradeLevels' => $gradeLevels,
             'allSubjects' => $allSubjects,
             'termData' => $termData,
-            'isMultiTerm' => $termsToProcess->count() > 1
+            'isMultiTerm' => $termsToProcess->count() > 1,
         ];
     }
 
     private function romanNumeral($num)
     {
         $numerals = [1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV'];
+
         return $numerals[$num] ?? $num;
     }
 }

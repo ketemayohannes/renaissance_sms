@@ -2,9 +2,8 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Helpers\CachedData;
 use App\Http\Controllers\Controller;
-use App\Models\AcademicYear;
-use App\Models\AssessmentType;
 use App\Models\GradeComponent;
 use App\Models\GradeLevel;
 use App\Models\Subject;
@@ -38,14 +37,15 @@ class GradeComponentController extends Controller
             ->get();
 
         // Group components by academic_year_id, term_id, and name
-        $groupedComponents = $components->groupBy(function($component) {
-            return $component->academic_year_id . '_' . 
-                   ($component->term_id ?? 'all') . '_' . 
-                   $component->name . '_' . 
-                   $component->weight . '_' . 
+        $groupedComponents = $components->groupBy(function ($component) {
+            return $component->academic_year_id.'_'.
+                   ($component->term_id ?? 'all').'_'.
+                   $component->name.'_'.
+                   $component->weight.'_'.
                    $component->assessment_type_id;
-        })->map(function($group) {
+        })->map(function ($group) {
             $first = $group->first();
+
             return [
                 'id' => $first->id,
                 'component_ids' => $group->pluck('id')->toArray(),
@@ -67,25 +67,25 @@ class GradeComponentController extends Controller
 
         // Calculate weight totals for each year/term/grade/subject combination
         // Only include combinations where the subject is actually assigned to the grade level
-        $weightTotals = $components->groupBy(function($component) {
-            return $component->academic_year_id . '_' . 
-                   ($component->term_id ?? 'all') . '_' . 
-                   $component->grade_level_id . '_' . 
+        $weightTotals = $components->groupBy(function ($component) {
+            return $component->academic_year_id.'_'.
+                   ($component->term_id ?? 'all').'_'.
+                   $component->grade_level_id.'_'.
                    $component->subject_id;
-        })->map(function($group) {
+        })->map(function ($group) {
             $first = $group->first();
-            
+
             // Check if this subject is assigned to this grade level
             $isAssigned = \DB::table('grade_level_subjects')
                 ->where('grade_level_id', $first->grade_level_id)
                 ->where('subject_id', $first->subject_id)
                 ->exists();
-            
+
             // Only return if the subject is assigned to the grade level
-            if (!$isAssigned) {
+            if (! $isAssigned) {
                 return null;
             }
-            
+
             return [
                 'total' => $group->sum('weight'),
                 'academic_year_id' => $first->academic_year_id,
@@ -97,15 +97,15 @@ class GradeComponentController extends Controller
                 'grade_level' => $first->gradeLevel->name,
                 'subject' => $first->subject->name,
             ];
-        })->filter(function($item) {
+        })->filter(function ($item) {
             return $item !== null && $item['total'] != 100; // Only show incomplete ones with valid assignments
         })->values();
 
         // PERFORMANCE: Use cached data
-        $academicYears = \App\Helpers\CachedData::academicYears();
-        $gradeLevels = \App\Helpers\CachedData::gradeLevels();
-        $subjects = \App\Helpers\CachedData::subjects();
-        $terms = \App\Helpers\CachedData::terms();
+        $academicYears = CachedData::academicYears();
+        $gradeLevels = CachedData::gradeLevels();
+        $subjects = CachedData::subjects();
+        $terms = CachedData::terms();
 
         return view('admin.grade-components.index', compact('groupedComponents', 'weightTotals', 'academicYears', 'gradeLevels', 'subjects', 'terms'));
     }
@@ -113,11 +113,11 @@ class GradeComponentController extends Controller
     public function create()
     {
         // PERFORMANCE: Use cached data
-        $academicYears = \App\Helpers\CachedData::academicYears(); // Although we filter it below, let's keep it consistent
-        $gradeLevels = \App\Helpers\CachedData::gradeLevels();
-        $subjects = \App\Helpers\CachedData::subjects();
-        $assessmentTypes = \App\Helpers\CachedData::assessmentTypes();
-        
+        $academicYears = CachedData::academicYears(); // Although we filter it below, let's keep it consistent
+        $gradeLevels = CachedData::gradeLevels();
+        $subjects = CachedData::subjects();
+        $assessmentTypes = CachedData::assessmentTypes();
+
         return view('admin.grade-components.create', compact('academicYears', 'gradeLevels', 'subjects', 'assessmentTypes'));
     }
 
@@ -152,6 +152,7 @@ class GradeComponentController extends Controller
 
                 if ($exists) {
                     $errors[] = "Component '{$request->name}' already exists for this combination";
+
                     continue;
                 }
 
@@ -163,10 +164,11 @@ class GradeComponentController extends Controller
                     ->sum('weight');
 
                 if (($currentWeight + $request->weight) > 100) {
-                    $gradeLevel = \App\Models\GradeLevel::find($gradeLevelId);
-                    $subject = \App\Models\Subject::find($subjectId);
+                    $gradeLevel = GradeLevel::find($gradeLevelId);
+                    $subject = Subject::find($subjectId);
                     $remaining = 100 - $currentWeight;
                     $errors[] = "{$gradeLevel->name} - {$subject->name}: Cannot add {$request->weight}%. Current total: {$currentWeight}%, Remaining: {$remaining}%";
+
                     continue;
                 }
 
@@ -183,21 +185,22 @@ class GradeComponentController extends Controller
         if ($created > 0) {
             $message = "Successfully created {$created} grade component(s).";
             if (count($errors) > 0) {
-                $message .= " Some components were skipped: " . implode(', ', array_unique($errors));
+                $message .= ' Some components were skipped: '.implode(', ', array_unique($errors));
             }
+
             return back()->with('success', $message);
         }
 
-        return back()->withInput()->withErrors(['error' => 'No components were created. ' . implode(', ', $errors)]);
+        return back()->withInput()->withErrors(['error' => 'No components were created. '.implode(', ', $errors)]);
     }
 
     public function edit(GradeComponent $gradeComponent)
     {
         // PERFORMANCE: Use cached data
-        $academicYears = \App\Helpers\CachedData::academicYears();
-        $gradeLevels = \App\Helpers\CachedData::gradeLevels();
-        $subjects = \App\Helpers\CachedData::subjects();
-        $assessmentTypes = \App\Helpers\CachedData::assessmentTypes();
+        $academicYears = CachedData::academicYears();
+        $gradeLevels = CachedData::gradeLevels();
+        $subjects = CachedData::subjects();
+        $assessmentTypes = CachedData::assessmentTypes();
         $terms = Term::where('academic_year_id', $gradeComponent->academic_year_id)->get();
 
         return view('admin.grade-components.edit', compact('gradeComponent', 'academicYears', 'gradeLevels', 'subjects', 'assessmentTypes', 'terms'));
@@ -244,7 +247,7 @@ class GradeComponentController extends Controller
                 ->sum('weight');
 
             if (($currentWeight + $request->weight) > 100) {
-                return back()->withInput()->withErrors(['weight' => 'Total weight cannot exceed 100%. Current total (excluding this): ' . $currentWeight . '%']);
+                return back()->withInput()->withErrors(['weight' => 'Total weight cannot exceed 100%. Current total (excluding this): '.$currentWeight.'%']);
             }
         }
 

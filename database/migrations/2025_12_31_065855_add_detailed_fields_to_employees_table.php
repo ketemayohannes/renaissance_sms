@@ -15,7 +15,7 @@ return new class extends Migration
             // Personal Information
             $table->string('grandfather_name')->nullable()->after('last_name');
             $table->enum('marital_status', ['single', 'married', 'divorced', 'widowed'])->nullable()->after('gender');
-            
+
             // Address & ID Information
             $table->string('region')->nullable()->after('address');
             $table->string('zone')->nullable()->after('region');
@@ -23,16 +23,16 @@ return new class extends Migration
             $table->string('national_id')->nullable()->after('woreda');
             $table->string('tin')->nullable()->after('national_id');
             $table->string('pension_number')->nullable()->after('tin');
-            
+
             // Employment & Category
             $table->string('staff_category')->default('administrative')->after('department'); // academic, administrative, support, etc.
-            
+
             // Payroll & Emergency Info
             $table->string('emergency_contact_name')->nullable()->after('basic_salary');
             $table->string('emergency_contact_phone')->nullable()->after('emergency_contact_name');
             $table->string('bank_name')->nullable()->after('emergency_contact_phone');
             $table->string('account_number')->nullable()->after('bank_name');
-            
+
             // Professional/Teaching Specific
             $table->string('teacher_rank')->nullable(); // as per MoE standards
             $table->string('qualification_level')->nullable(); // Diploma, Degree, Masters, PhD
@@ -48,13 +48,13 @@ return new class extends Migration
     {
         Schema::table('employees', function (Blueprint $table) {
             $table->dropColumn([
-                'grandfather_name', 
-                'marital_status', 
-                'region', 
-                'zone', 
-                'woreda', 
-                'national_id', 
-                'tin', 
+                'grandfather_name',
+                'marital_status',
+                'region',
+                'zone',
+                'woreda',
+                'national_id',
+                'tin',
                 'pension_number',
                 'staff_category',
                 'emergency_contact_name',
@@ -64,7 +64,7 @@ return new class extends Migration
                 'teacher_rank',
                 'qualification_level',
                 'specialization',
-                'periods_per_week'
+                'periods_per_week',
             ]);
         });
     }

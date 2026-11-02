@@ -13,7 +13,7 @@ class AcademicYearFactory extends Factory
     {
         $startYear = $this->faker->numberBetween(2020, 2025);
         $endYear = $startYear + 1;
-        
+
         return [
             'name' => "{$startYear}/{$endYear}",
             'start_date' => "{$startYear}-09-01",
@@ -34,7 +34,7 @@ class AcademicYearFactory extends Factory
         $currentYear = now()->year;
         $startYear = now()->month >= 9 ? $currentYear : $currentYear - 1;
         $endYear = $startYear + 1;
-        
+
         return $this->state(fn (array $attributes) => [
             'name' => "{$startYear}/{$endYear}",
             'start_date' => "{$startYear}-09-01",

@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -14,13 +14,13 @@ return new class extends Migration
             // Global Toggles
             $table->boolean('sms_enabled')->default(false);
             $table->boolean('email_enabled')->default(false);
-            
+
             // Africa's Talking SMS API Credentials
             $table->string('africastalking_username')->nullable();
             $table->string('africastalking_api_key')->nullable();
             $table->string('africastalking_from')->nullable(); // Sender ID or Shortcode
             $table->boolean('africastalking_sandbox')->default(true);
-            
+
             // SMTP Email Credentials
             $table->string('mail_mailer')->default('smtp');
             $table->string('mail_host')->nullable();

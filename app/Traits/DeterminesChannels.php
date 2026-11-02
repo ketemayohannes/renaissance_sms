@@ -2,9 +2,9 @@
 
 namespace App\Traits;
 
-use App\Models\User;
 use App\Channels\AfricasTalkingChannel;
 use App\Channels\SmsEthiopiaChannel;
+use App\Models\User;
 
 trait DeterminesChannels
 {
@@ -12,15 +12,14 @@ trait DeterminesChannels
      * Determine available notification channels based on global settings,
      * per-event routing, and individual user preferences.
      *
-     * @param object $notifiable
-     * @param string $eventKey     Key from communication.events config (e.g. 'absence')
-     * @param array  $allowed      Channels this notification class supports: 'mail', 'sms', 'in_app'
+     * @param  string  $eventKey  Key from communication.events config (e.g. 'absence')
+     * @param  array  $allowed  Channels this notification class supports: 'mail', 'sms', 'in_app'
      */
     protected function getChannels(object $notifiable, string $eventKey, array $allowed = ['mail', 'sms', 'in_app']): array
     {
         $channels = [];
 
-        if (!($notifiable instanceof User)) {
+        if (! ($notifiable instanceof User)) {
             // Non-User notifiables always get in-app only
             return ['database'];
         }
@@ -43,7 +42,7 @@ trait DeterminesChannels
         // Routes to the correct gateway based on the active provider setting.
         if (in_array('sms', $allowed) && config('communication.sms.enabled', false)) {
             if (config("communication.events.{$eventKey}.sms", false) && $this->prefersSms($notifiable)) {
-                $provider   = config('communication.sms.provider', 'africastalking');
+                $provider = config('communication.sms.provider', 'africastalking');
                 $channels[] = $provider === 'smsethiopia'
                     ? SmsEthiopiaChannel::class
                     : AfricasTalkingChannel::class;
@@ -62,9 +61,11 @@ trait DeterminesChannels
     {
         if ($user->guardianProfiles()->exists()) {
             $prefs = $user->guardianProfiles()->first()->communication_preferences ?? [];
+
             return in_array('email', $prefs);
         }
         $prefs = $user->preferences ?? [];
+
         return $prefs['email_notifications'] ?? true;
     }
 
@@ -72,9 +73,11 @@ trait DeterminesChannels
     {
         if ($user->guardianProfiles()->exists()) {
             $prefs = $user->guardianProfiles()->first()->communication_preferences ?? [];
+
             return in_array('sms', $prefs);
         }
         $prefs = $user->preferences ?? [];
+
         return $prefs['sms_notifications'] ?? false;
     }
 }

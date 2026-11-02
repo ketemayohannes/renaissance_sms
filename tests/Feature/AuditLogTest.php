@@ -2,22 +2,22 @@
 
 namespace Tests\Feature;
 
+use App\Actions\Grades\StoreBulkGrades;
 use App\Models\AcademicYear;
 use App\Models\AssessmentTemplate;
+use App\Models\AssessmentType;
+use App\Models\AuditLog;
 use App\Models\Division;
 use App\Models\GradeLevel;
 use App\Models\Section;
 use App\Models\Student;
-use App\Models\StudentMark;
 use App\Models\StudentAttendance;
+use App\Models\StudentMark;
+use App\Models\StudentTermRecord;
 use App\Models\Subject;
 use App\Models\Term;
 use App\Models\User;
-use App\Models\AuditLog;
-use App\Models\AssessmentType;
-use App\Models\StudentTermRecord;
 use App\Services\GradingService;
-use App\Actions\Grades\StoreBulkGrades;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -27,12 +27,19 @@ class AuditLogTest extends TestCase
     use RefreshDatabase;
 
     protected User $adminUser;
+
     protected AcademicYear $academicYear;
+
     protected Term $term;
+
     protected Section $section;
+
     protected GradeLevel $gradeLevel;
+
     protected Division $division;
+
     protected Subject $subject;
+
     protected AssessmentTemplate $assessmentTemplate;
 
     protected function setUp(): void
@@ -151,7 +158,7 @@ class AuditLogTest extends TestCase
         $this->actingAs($this->adminUser);
 
         // Run GradingService recalculation
-        $service = new GradingService();
+        $service = new GradingService;
         $service->recalculateSectionStatistics($this->section, $this->term, $this->academicYear);
 
         // Assert manual audit injection occurred with the section_id
@@ -184,10 +191,10 @@ class AuditLogTest extends TestCase
                 $student->id => [
                     $this->assessmentTemplate->id => [
                         'score' => 95.00,
-                        'remarks' => 'Great work'
-                    ]
-                ]
-            ]
+                        'remarks' => 'Great work',
+                    ],
+                ],
+            ],
         ], $this->adminUser->id);
 
         // Assert bulk grade entry audit log has section_id

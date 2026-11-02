@@ -43,7 +43,7 @@ class AttendanceAlertServiceTest extends TestCase
         // Three consecutive school days (newest last).
         $days = [now()->subDays(2), now()->subDay(), now()];
         $statuses = [
-            $atRisk->id    => ['absent', 'absent', 'absent'],
+            $atRisk->id => ['absent', 'absent', 'absent'],
             $recovered->id => ['absent', 'absent', 'present'],
         ];
 
@@ -60,7 +60,7 @@ class AttendanceAlertServiceTest extends TestCase
             }
         }
 
-        $result = (new AttendanceAlertService())->getAtRiskStudents($section);
+        $result = (new AttendanceAlertService)->getAtRiskStudents($section);
 
         $ids = $result->pluck('id');
         $this->assertTrue($ids->contains($atRisk->id), 'Student with 3 consecutive absences should be flagged.');

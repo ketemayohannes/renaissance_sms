@@ -12,7 +12,7 @@ class AssessmentTypeFactory extends Factory
     public function definition(): array
     {
         $name = $this->faker->unique()->randomElement(['Quiz', 'Test', 'Assignment', 'Project', 'Midterm', 'Final Exam']);
-        
+
         return [
             'name' => $name,
             'code' => strtoupper(substr($name, 0, 4)),
@@ -20,6 +20,7 @@ class AssessmentTypeFactory extends Factory
             'is_active' => true,
         ];
     }
+
     public function termTotal(): static
     {
         return $this->state(fn (array $attributes) => [

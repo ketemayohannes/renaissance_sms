@@ -2,27 +2,28 @@
 
 namespace App\Helpers;
 
-use Andegna\DateTime;
 use Andegna\Constants;
+use Andegna\DateTime;
 
 class EthiopianDateHelper
 {
     /**
      * Get the current Ethiopian date formatted.
-     * 
-     * @param string $format
+     *
+     * @param  string  $format
      * @return string
      */
     public static function now($format = Constants::DATE_ETHIOPIAN_ORTHODOX)
     {
-        $ethiopianDate = new DateTime();
+        $ethiopianDate = new DateTime;
+
         return $ethiopianDate->format($format);
     }
-    
+
     /**
      * Convert Gregorian to Ethiopian.
-     * 
-     * @param \DateTime $date
+     *
+     * @param  \DateTime  $date
      * @return DateTime
      */
     public static function fromGregorian($date)
@@ -33,8 +34,10 @@ class EthiopianDateHelper
     /**
      * Get array of date parts (DayName, MonthName, Day, Year) in Amharic
      */
-    public static function getCurrentParts() {
-        $date = new DateTime();
+    public static function getCurrentParts()
+    {
+        $date = new DateTime;
+
         // Custom formatting can be done here if the library's constants aren't enough
         // but Andegna is pretty good with default formatting.
         return [

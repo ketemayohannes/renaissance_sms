@@ -14,10 +14,6 @@ class AssignTeacherAssignments
      * Assign teachers to sections and subjects.
      * Enforces the Pre-Primary/Kindergarten single-section rule.
      *
-     * @param int $teacherUserId
-     * @param array $assignmentsData
-     * @param AcademicYear $academicYear
-     * @return void
      * @throws ValidationException
      */
     public function execute(int $teacherUserId, array $assignmentsData, AcademicYear $academicYear): void
@@ -39,7 +35,7 @@ class AssignTeacherAssignments
         // Rule 1: A Pre-Primary teacher can only be assigned to a single section per year
         if ($prePrimarySections->isNotEmpty() && $sections->count() > 1) {
             throw ValidationException::withMessages([
-                'assignments' => 'A Pre-Primary (Kindergarten) teacher can only be assigned to a single section per academic year.'
+                'assignments' => 'A Pre-Primary (Kindergarten) teacher can only be assigned to a single section per academic year.',
             ]);
         }
 

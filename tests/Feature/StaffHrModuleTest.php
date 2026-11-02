@@ -4,10 +4,10 @@ namespace Tests\Feature;
 
 use App\Models\AcademicYear;
 use App\Models\ClassPeriod;
+use App\Models\Division;
 use App\Models\Employee;
 use App\Models\EmployeeAttendance;
 use App\Models\GradeLevel;
-use App\Models\Division;
 use App\Models\LeaveRequest;
 use App\Models\Section;
 use App\Models\Subject;

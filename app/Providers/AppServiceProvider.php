@@ -2,11 +2,11 @@
 
 namespace App\Providers;
 
-use App\Models\Student;
+use App\Models\AppSetting;
+use App\Models\CommunicationSetting;
 use App\Models\Conversation;
-use App\Policies\StudentPolicy;
-use App\Policies\ReportPolicy;
 use App\Policies\ConversationPolicy;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -26,18 +26,18 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // Enforce strict mode to prevent N+1 queries during local development
-        \Illuminate\Database\Eloquent\Model::preventLazyLoading(! app()->isProduction());
+        Model::preventLazyLoading(! app()->isProduction());
 
         // Register policies
         Gate::policy(Conversation::class, ConversationPolicy::class);
-        
+
         // Load Communication Settings from Database (Cached).
         // Must run in BOTH web AND console (queue worker) contexts so that the
         // mail/SMS config values are available when queued notification jobs run.
         try {
             if (\Schema::hasTable('communication_settings')) {
-                $settings = \Cache::rememberForever('communication_settings', function() {
-                    return \App\Models\CommunicationSetting::first();
+                $settings = \Cache::rememberForever('communication_settings', function () {
+                    return CommunicationSetting::first();
                 });
                 if ($settings) {
                     $settings->applyConfigurations();
@@ -54,7 +54,7 @@ class AppServiceProvider extends ServiceProvider
         try {
             if (\Schema::hasTable('app_settings')) {
                 $timezone = \Cache::remember('app_settings_timezone', now()->addDay(), function () {
-                    return \App\Models\AppSetting::get('school.timezone', 'Africa/Addis_Ababa');
+                    return AppSetting::get('school.timezone', 'Africa/Addis_Ababa');
                 });
                 if ($timezone && in_array($timezone, \DateTimeZone::listIdentifiers())) {
                     config(['app.timezone' => $timezone]);

@@ -11,6 +11,7 @@ class AssessmentTypeController extends Controller
     public function index()
     {
         $assessmentTypes = AssessmentType::latest()->get();
+
         return view('admin.assessment-types.index', compact('assessmentTypes'));
     }
 
@@ -42,7 +43,7 @@ class AssessmentTypeController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:100',
-            'code' => 'required|string|max:20|unique:assessment_types,code,' . $assessmentType->id,
+            'code' => 'required|string|max:20|unique:assessment_types,code,'.$assessmentType->id,
             'description' => 'nullable|string',
         ]);
 

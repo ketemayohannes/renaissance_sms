@@ -4,6 +4,7 @@ namespace Tests\Unit\Services;
 
 use App\Models\AcademicYear;
 use App\Models\AssessmentTemplate;
+use App\Models\AssessmentType;
 use App\Models\Division;
 use App\Models\GradeLevel;
 use App\Models\Section;
@@ -20,18 +21,23 @@ class GradingServiceTest extends TestCase
     use RefreshDatabase;
 
     protected GradingService $gradingService;
+
     protected AcademicYear $academicYear;
+
     protected Term $term;
+
     protected Section $section;
+
     protected GradeLevel $gradeLevel;
+
     protected Division $division;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->gradingService = app(GradingService::class);
-        
+
         // Create base data structure
         $this->division = Division::factory()->create(['name' => 'Primary']);
         $this->academicYear = AcademicYear::factory()->active()->create();
@@ -55,9 +61,9 @@ class GradingServiceTest extends TestCase
         // Arrange
         $student = Student::factory()->create();
         $this->enrollStudent($student);
-        
+
         $subjects = Subject::factory()->count(3)->create();
-        
+
         // Create marks: 80, 90, 70 = Total 240, Avg 80
         $scores = [80, 90, 70];
         foreach ($subjects as $index => $subject) {
@@ -65,7 +71,7 @@ class GradingServiceTest extends TestCase
                 'academic_year_id' => $this->academicYear->id,
                 'term_id' => $this->term->id,
             ]);
-            
+
             StudentMark::factory()->create([
                 'student_id' => $student->id,
                 'academic_year_id' => $this->academicYear->id,
@@ -79,9 +85,9 @@ class GradingServiceTest extends TestCase
 
         // Act
         $result = $this->gradingService->calculateStudentTotals(
-            $student, 
-            $this->term, 
-            $this->academicYear, 
+            $student,
+            $this->term,
+            $this->academicYear,
             $subjects
         );
 
@@ -101,9 +107,9 @@ class GradingServiceTest extends TestCase
 
         // Act - No marks created
         $result = $this->gradingService->calculateStudentTotals(
-            $student, 
-            $this->term, 
-            $this->academicYear, 
+            $student,
+            $this->term,
+            $this->academicYear,
             $subjects
         );
 
@@ -119,16 +125,16 @@ class GradingServiceTest extends TestCase
         // Arrange
         $student = Student::factory()->create();
         $this->enrollStudent($student);
-        
+
         $subjects = Subject::factory()->count(2)->create();
-        
+
         // Create marks with zero scores
         foreach ($subjects as $subject) {
             $template = AssessmentTemplate::factory()->termTotal()->create([
                 'academic_year_id' => $this->academicYear->id,
                 'term_id' => $this->term->id,
             ]);
-            
+
             StudentMark::factory()->zero()->create([
                 'student_id' => $student->id,
                 'academic_year_id' => $this->academicYear->id,
@@ -141,9 +147,9 @@ class GradingServiceTest extends TestCase
 
         // Act
         $result = $this->gradingService->calculateStudentTotals(
-            $student, 
-            $this->term, 
-            $this->academicYear, 
+            $student,
+            $this->term,
+            $this->academicYear,
             $subjects
         );
 
@@ -159,17 +165,17 @@ class GradingServiceTest extends TestCase
         // Arrange
         $students = Student::factory()->count(3)->create();
         $subject = Subject::factory()->create();
-        
+
         $scores = [85, 75, 90];
-        
+
         foreach ($students as $index => $student) {
             $this->enrollStudent($student);
-            
+
             $template = AssessmentTemplate::factory()->termTotal()->create([
                 'academic_year_id' => $this->academicYear->id,
                 'term_id' => $this->term->id,
             ]);
-            
+
             StudentMark::factory()->create([
                 'student_id' => $student->id,
                 'academic_year_id' => $this->academicYear->id,
@@ -183,9 +189,9 @@ class GradingServiceTest extends TestCase
 
         // Act
         $results = $this->gradingService->calculateSectionTotals(
-            $students, 
-            $this->term, 
-            $this->academicYear, 
+            $students,
+            $this->term,
+            $this->academicYear,
             collect([$subject])
         );
 
@@ -202,14 +208,14 @@ class GradingServiceTest extends TestCase
         // Arrange
         $student = Student::factory()->create();
         $this->enrollStudent($student);
-        
+
         $subject = Subject::factory()->create();
-        
+
         $template = AssessmentTemplate::factory()->termTotal()->create([
             'academic_year_id' => $this->academicYear->id,
             'term_id' => $this->term->id,
         ]);
-        
+
         StudentMark::factory()->create([
             'student_id' => $student->id,
             'academic_year_id' => $this->academicYear->id,
@@ -222,8 +228,8 @@ class GradingServiceTest extends TestCase
 
         // Act
         $result = $this->gradingService->getStudentReportData(
-            $student, 
-            $this->term, 
+            $student,
+            $this->term,
             $this->academicYear
         );
 
@@ -239,9 +245,9 @@ class GradingServiceTest extends TestCase
         // Arrange
         $student = Student::factory()->create();
         $this->enrollStudent($student);
-        
+
         $subjects = Subject::factory()->count(3)->create();
-        
+
         // Create marks: 85, 88, 92 = Total 265, Avg 88.33...
         $scores = [85, 88, 92];
         foreach ($subjects as $index => $subject) {
@@ -249,7 +255,7 @@ class GradingServiceTest extends TestCase
                 'academic_year_id' => $this->academicYear->id,
                 'term_id' => $this->term->id,
             ]);
-            
+
             StudentMark::factory()->create([
                 'student_id' => $student->id,
                 'academic_year_id' => $this->academicYear->id,
@@ -263,9 +269,9 @@ class GradingServiceTest extends TestCase
 
         // Act
         $result = $this->gradingService->calculateStudentTotals(
-            $student, 
-            $this->term, 
-            $this->academicYear, 
+            $student,
+            $this->term,
+            $this->academicYear,
             $subjects
         );
 
@@ -466,11 +472,11 @@ class GradingServiceTest extends TestCase
             'sort_order' => 1,
         ]);
 
-        $termTotalType = \App\Models\AssessmentType::firstOrCreate(
+        $termTotalType = AssessmentType::firstOrCreate(
             ['code' => 'TERM_TOTAL'],
             ['name' => 'Term Total', 'weight' => 100, 'max_score' => 100, 'is_active' => true]
         );
-        $componentType = \App\Models\AssessmentType::factory()->create(['code' => 'QUIZ1']);
+        $componentType = AssessmentType::factory()->create(['code' => 'QUIZ1']);
 
         $termTotalTemplate = AssessmentTemplate::factory()->create([
             'academic_year_id' => $this->academicYear->id,

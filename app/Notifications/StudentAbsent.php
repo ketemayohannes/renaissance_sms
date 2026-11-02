@@ -3,9 +3,9 @@
 namespace App\Notifications;
 
 use App\Models\Student;
-use Illuminate\Notifications\Notification;
-use Illuminate\Notifications\Messages\MailMessage;
 use App\Traits\DeterminesChannels;
+use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
 
 class StudentAbsent extends Notification
 {
@@ -13,7 +13,7 @@ class StudentAbsent extends Notification
 
     public function __construct(
         public readonly Student $student,
-        public readonly string  $date,
+        public readonly string $date,
     ) {}
 
     public function via(object $notifiable): array
@@ -24,19 +24,19 @@ class StudentAbsent extends Notification
     public function toDatabase(object $notifiable): array
     {
         return [
-            'type'  => 'attendance',
-            'title' => $this->student->full_name . ' was marked absent',
-            'body'  => 'Your child was recorded as absent on ' . $this->date . '.',
-            'url'   => route('parent.student.attendance.index', $this->student),
+            'type' => 'attendance',
+            'title' => $this->student->full_name.' was marked absent',
+            'body' => 'Your child was recorded as absent on '.$this->date.'.',
+            'url' => route('parent.student.attendance.index', $this->student),
         ];
     }
 
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Absence Alert: ' . $this->student->full_name)
+            ->subject('Absence Alert: '.$this->student->full_name)
             ->greeting('Dear Parent/Guardian,')
-            ->line('This is to notify you that ' . $this->student->full_name . ' was marked ABSENT today, ' . $this->date . '.')
+            ->line('This is to notify you that '.$this->student->full_name.' was marked ABSENT today, '.$this->date.'.')
             ->action('View Attendance Record', route('parent.student.attendance.index', $this->student))
             ->line('If this is an error, please contact the homeroom teacher immediately.');
     }

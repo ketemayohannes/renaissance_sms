@@ -1,8 +1,6 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB; // Added this line
 
 return new class extends Migration
@@ -23,13 +21,13 @@ return new class extends Migration
         foreach ($adminRoles as $roleName) {
             // Ensure Registrar and IT exist
             $exists = DB::table('roles')->where('name', $roleName)->exists();
-            if (!$exists) {
+            if (! $exists) {
                 DB::table('roles')->insert([
                     'name' => $roleName,
                     'guard_name' => 'web',
                     'category' => 'administrative',
                     'created_at' => now(),
-                    'updated_at' => now()
+                    'updated_at' => now(),
                 ]);
             } else {
                 DB::table('roles')->where('name', $roleName)->update(['category' => 'administrative']);
@@ -48,7 +46,7 @@ return new class extends Migration
                     'specialization' => $employee->specialization,
                     'periods_per_week' => $employee->periods_per_week,
                     'created_at' => now(),
-                    'updated_at' => now()
+                    'updated_at' => now(),
                 ]);
             }
         }

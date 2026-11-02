@@ -21,17 +21,17 @@ class ActivityController extends Controller
     public function index()
     {
         $student = Auth::user()->student;
-        
+
         // Fetch activities for the student's section
-        $activities = AcademicActivity::whereHas('teacherAssignment', function($q) use ($student) {
+        $activities = AcademicActivity::whereHas('teacherAssignment', function ($q) use ($student) {
             $q->where('section_id', $student->currentEnrollment()->section_id);
         })
-        ->with(['teacherAssignment.subject', 'submissions' => function($q) use ($student) {
-            $q->where('student_id', $student->id);
-        }])
-        ->where('is_published', true)
-        ->latest()
-        ->get();
+            ->with(['teacherAssignment.subject', 'submissions' => function ($q) use ($student) {
+                $q->where('student_id', $student->id);
+            }])
+            ->where('is_published', true)
+            ->latest()
+            ->get();
 
         return view('student.activities.index', compact('activities'));
     }
@@ -41,9 +41,9 @@ class ActivityController extends Controller
         $this->authorizeActivity($activity);
         $student = Auth::user()->student;
         $submission = $activity->recordFor($student->id); // Custom helper or query
-        
+
         $activity->load(['attachments', 'teacherAssignment.subject']);
-        
+
         return view('student.activities.show', compact('activity', 'submission'));
     }
 
@@ -51,7 +51,7 @@ class ActivityController extends Controller
     {
         $this->authorizeActivity($activity);
         $student = Auth::user()->student;
-        
+
         $data = $request->validate([
             'attachments.*' => 'required|file|max:10240',
         ]);
@@ -82,13 +82,13 @@ class ActivityController extends Controller
         $this->authorizeActivity($activity);
         $student = Auth::user()->student;
         $answers = $request->input('answers', []);
-        
+
         $totalScore = 0;
         $activity->load('questions');
 
         foreach ($activity->questions as $question) {
             $studentAnswer = $answers[$question->id] ?? null;
-            
+
             // Auto-grading for objective types
             if (in_array($question->type, ['mcq', 'tf'])) {
                 if ($studentAnswer == $question->correct_answer) {
@@ -115,13 +115,13 @@ class ActivityController extends Controller
         }
 
         $submission->fill([
-            'started_at'   => $submission->started_at ?? now(),
+            'started_at' => $submission->started_at ?? now(),
             'submitted_at' => now(),
-            'answers'      => $answers, // keyed by question id, for teacher review
-            'status'       => $status,
-            'score'        => $totalScore, // Initial score (may change after manual grading)
-            'ip_address'   => $request->ip(),
-            'user_agent'   => $request->userAgent(),
+            'answers' => $answers, // keyed by question id, for teacher review
+            'status' => $status,
+            'score' => $totalScore, // Initial score (may change after manual grading)
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
         ]);
         $submission->save();
 
@@ -140,16 +140,16 @@ class ActivityController extends Controller
     private function authorizeActivity(AcademicActivity $activity)
     {
         $student = Auth::user()->student;
-        if (!$student) {
+        if (! $student) {
             abort(403, 'Unauthorized action.');
         }
 
         $enrollment = $student->currentEnrollment;
-        if (!$enrollment) {
+        if (! $enrollment) {
             abort(403, 'Student is not enrolled in any section.');
         }
 
-        if (!$activity->teacherAssignment || $activity->teacherAssignment->section_id !== $enrollment->section_id) {
+        if (! $activity->teacherAssignment || $activity->teacherAssignment->section_id !== $enrollment->section_id) {
             abort(403, 'Unauthorized action.');
         }
     }

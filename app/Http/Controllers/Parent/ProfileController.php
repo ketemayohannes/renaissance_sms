@@ -11,6 +11,7 @@ class ProfileController extends Controller
     public function show()
     {
         $user = auth()->user();
+
         return view('parent.profile.show', compact('user'));
     }
 
@@ -22,11 +23,12 @@ class ProfileController extends Controller
         ]);
 
         $user = auth()->user();
-        if (!Hash::check($request->current_password, $user->password)) {
+        if (! Hash::check($request->current_password, $user->password)) {
             return back()->withErrors(['current_password' => 'Current password is incorrect']);
         }
         $user->password = Hash::make($request->password);
         $user->save();
+
         return back()->with('success', 'Password updated successfully');
     }
 
@@ -35,6 +37,7 @@ class ProfileController extends Controller
         $user = auth()->user();
         $user->preferences = $request->input('preferences', []);
         $user->save();
+
         return back()->with('success', 'Preferences updated');
     }
 }

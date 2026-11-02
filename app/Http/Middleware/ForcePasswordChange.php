@@ -12,17 +12,17 @@ class ForcePasswordChange
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
         $user = Auth::user();
 
-        if ($user && !is_null($user->getRawOriginal('temp_password')) && $user->getRawOriginal('temp_password') !== '') {
-            if (!$request->routeIs('auth.change-password') && 
-                !$request->routeIs('auth.change-password.update') && 
-                !$request->routeIs('logout')) {
-                
+        if ($user && ! is_null($user->getRawOriginal('temp_password')) && $user->getRawOriginal('temp_password') !== '') {
+            if (! $request->routeIs('auth.change-password') &&
+                ! $request->routeIs('auth.change-password.update') &&
+                ! $request->routeIs('logout')) {
+
                 return redirect()->route('auth.change-password')
                     ->with('warning', 'For security reasons, you must change your default password before proceeding.');
             }

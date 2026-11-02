@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Notifications\NewMessageReceived;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Role;
 
 class MessagingController extends Controller
 {
@@ -19,7 +20,7 @@ class MessagingController extends Controller
         $user = auth()->user();
 
         $conversations = $user->conversations()
-            ->with(['participants', 'messages' => fn($q) => $q->latest()->limit(1)])
+            ->with(['participants', 'messages' => fn ($q) => $q->latest()->limit(1)])
             ->get();
 
         // Batch the unread counts into one query to avoid an N+1 across the inbox.
@@ -28,11 +29,12 @@ class MessagingController extends Controller
         $conversations = $conversations
             ->map(function ($conv) use ($user, $unreadCounts) {
                 $conv->unread_count = (int) ($unreadCounts[$conv->id] ?? 0);
-                $conv->other        = $conv->otherParticipant($user);
-                $conv->preview      = $conv->messages->first();
+                $conv->other = $conv->otherParticipant($user);
+                $conv->preview = $conv->messages->first();
+
                 return $conv;
             })
-            ->sortByDesc(fn($c) => $c->preview?->created_at ?? $c->created_at);
+            ->sortByDesc(fn ($c) => $c->preview?->created_at ?? $c->created_at);
 
         return view('admin.messages.index', compact('conversations'));
     }
@@ -40,7 +42,7 @@ class MessagingController extends Controller
     public function create()
     {
         // Fetch all roles for the filter tabs
-        $roles = \Spatie\Permission\Models\Role::orderBy('name')->get(['id', 'name']);
+        $roles = Role::orderBy('name')->get(['id', 'name']);
 
         // Admin can message any user with a portal account — include ALL roles for filtering
         $users = User::with('roles')
@@ -48,12 +50,12 @@ class MessagingController extends Controller
             ->where('id', '!=', auth()->id())
             ->orderBy('name')
             ->get(['id', 'name', 'email'])
-            ->map(fn($u) => [
-                'id'         => $u->id,
-                'name'       => $u->name,
-                'email'      => $u->email,
-                'roles'      => $u->roles->pluck('name')->values()->toArray(),
-                'primaryRole'=> $u->roles->first()?->name ?? 'Unknown',
+            ->map(fn ($u) => [
+                'id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+                'roles' => $u->roles->pluck('name')->values()->toArray(),
+                'primaryRole' => $u->roles->first()?->name ?? 'Unknown',
             ]);
 
         return view('admin.messages.create', compact('users', 'roles'));
@@ -62,18 +64,18 @@ class MessagingController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'recipient_id' => 'required|exists:users,id|different:' . auth()->id(),
-            'subject'      => 'required|string|max:255',
-            'body'         => 'required|string|max:3000',
+            'recipient_id' => 'required|exists:users,id|different:'.auth()->id(),
+            'subject' => 'required|string|max:255',
+            'body' => 'required|string|max:3000',
         ]);
 
-        $authUser  = auth()->user();
+        $authUser = auth()->user();
         $recipient = User::findOrFail($validated['recipient_id']);
 
         $conversation = DB::transaction(function () use ($authUser, $recipient, $validated) {
             $conv = Conversation::create([
-                'type'       => 'private',
-                'name'       => $validated['subject'],
+                'type' => 'private',
+                'name' => $validated['subject'],
                 'created_by' => $authUser->id,
             ]);
 
@@ -84,8 +86,8 @@ class MessagingController extends Controller
 
             Message::create([
                 'conversation_id' => $conv->id,
-                'sender_id'       => $authUser->id,
-                'body'            => $validated['body'],
+                'sender_id' => $authUser->id,
+                'body' => $validated['body'],
             ]);
 
             return $conv;
@@ -117,8 +119,8 @@ class MessagingController extends Controller
 
         Message::create([
             'conversation_id' => $conversation->id,
-            'sender_id'       => $user->id,
-            'body'            => $request->body,
+            'sender_id' => $user->id,
+            'body' => $request->body,
         ]);
 
         $conversation->touch();
@@ -135,13 +137,13 @@ class MessagingController extends Controller
 
     public function unreadCount()
     {
-        $user  = auth()->user();
+        $user = auth()->user();
         $count = Message::whereIn('conversation_id',
-                    ConversationParticipant::where('user_id', $user->id)->pluck('conversation_id')
-                 )
-                 ->where('sender_id', '!=', $user->id)
-                 ->whereDoesntHave('reads', fn($q) => $q->where('user_id', $user->id))
-                 ->count();
+            ConversationParticipant::where('user_id', $user->id)->pluck('conversation_id')
+        )
+            ->where('sender_id', '!=', $user->id)
+            ->whereDoesntHave('reads', fn ($q) => $q->where('user_id', $user->id))
+            ->count();
 
         return response()->json(['count' => $count]);
     }
@@ -161,7 +163,7 @@ class MessagingController extends Controller
     {
         $unread = $conv->messages
             ->where('sender_id', '!=', $user->id)
-            ->filter(fn($m) => !$m->isReadBy($user));
+            ->filter(fn ($m) => ! $m->isReadBy($user));
 
         foreach ($unread as $message) {
             MessageRead::firstOrCreate(

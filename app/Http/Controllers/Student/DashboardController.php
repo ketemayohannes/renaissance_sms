@@ -3,29 +3,29 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use App\Models\AcademicActivity;
+use App\Models\DisciplinaryRecord;
+use App\Models\Notice;
 use App\Models\StudentAttendance;
 use App\Models\StudentMark;
-use App\Models\AcademicActivity;
+use App\Models\Term;
 use App\Models\Timetable;
-use App\Models\Notice;
-use App\Models\DisciplinaryRecord;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
     public function index()
     {
         $user = Auth::user();
-        
+
         // Ensure user is a student
-        if (!$user->hasRole('Student')) {
+        if (! $user->hasRole('Student')) {
             return redirect()->route('dashboard');
         }
 
         $student = $user->student;
 
-        if (!$student) {
+        if (! $student) {
             return view('student.no-profile'); // Handle case where user has role but no linked student profile
         }
 
@@ -39,7 +39,7 @@ class DashboardController extends Controller
             'excused' => 0,
             'rate' => 0,
         ];
-        
+
         $currentEnrollment = $student->currentEnrollment;
         $timetable = collect();
         $recentGrades = collect();
@@ -56,17 +56,17 @@ class DashboardController extends Controller
             $attendances = StudentAttendance::where('student_id', $student->id)
                 ->where('academic_year_id', $academicYearId)
                 ->get();
-                
+
             $totalAttendanceDays = $attendances->count();
             if ($totalAttendanceDays > 0) {
                 $presentCount = $attendances->where('status', 'present')->count();
                 $absentCount = $attendances->where('status', 'absent')->count();
                 $lateCount = $attendances->where('status', 'late')->count();
                 $excusedCount = $attendances->where('status', 'excused')->count();
-                
+
                 // Presence rate calculation
                 $presenceRate = round((($presentCount + $lateCount + $excusedCount) / $totalAttendanceDays) * 100, 1);
-                
+
                 $attendanceStats = [
                     'present' => $presentCount,
                     'absent' => $absentCount,
@@ -81,19 +81,19 @@ class DashboardController extends Controller
                 ->where('section_id', $sectionId)
                 ->where('academic_year_id', $academicYearId)
                 ->get()
-                ->sortBy(function($t) {
+                ->sortBy(function ($t) {
                     return $t->classPeriod->sort_order ?? 0;
                 })
                 ->groupBy('day_of_week');
 
             // Determine active term (moved before recent grades so we can filter by it)
-            $activeTerm = \App\Models\Term::where('academic_year_id', $academicYearId)
+            $activeTerm = Term::where('academic_year_id', $academicYearId)
                 ->where('type', 'quarter')
                 ->where('is_grading_open', true)
                 ->first();
-                
-            if (!$activeTerm) {
-                $activeTerm = \App\Models\Term::where('academic_year_id', $academicYearId)
+
+            if (! $activeTerm) {
+                $activeTerm = Term::where('academic_year_id', $academicYearId)
                     ->where('type', 'quarter')
                     ->where('start_date', '<=', now())
                     ->where('end_date', '>=', now())
@@ -114,14 +114,14 @@ class DashboardController extends Controller
             $filteredRecentMarks = collect();
             foreach ($allRecentMarks->groupBy('term_id') as $termId => $termMarks) {
                 foreach ($termMarks->groupBy('subject_id') as $subjectId => $subjectMarks) {
-                    $components = $subjectMarks->filter(function($m) {
+                    $components = $subjectMarks->filter(function ($m) {
                         return $m->assessmentTemplate && $m->assessmentTemplate->name !== 'Term Total';
                     });
-                    
+
                     if ($components->isNotEmpty()) {
                         $filteredRecentMarks = $filteredRecentMarks->concat($components);
                     } else {
-                        $termTotal = $subjectMarks->first(function($m) {
+                        $termTotal = $subjectMarks->first(function ($m) {
                             return $m->assessmentTemplate && $m->assessmentTemplate->name === 'Term Total';
                         });
                         if ($termTotal) {
@@ -135,7 +135,7 @@ class DashboardController extends Controller
 
             // 4. Fetch upcoming academic activities & homework
             $recentActivities = AcademicActivity::with(['teacherAssignment.subject', 'teacherAssignment.teacher', 'assessmentTemplate'])
-                ->whereHas('teacherAssignment', function($q) use ($sectionId) {
+                ->whereHas('teacherAssignment', function ($q) use ($sectionId) {
                     $q->where('section_id', $sectionId);
                 })
                 ->where('academic_year_id', $academicYearId)
@@ -150,9 +150,9 @@ class DashboardController extends Controller
         // 5. Fetch active notices targeting all or students
         $activeNotices = Notice::where('is_active', true)
             ->whereIn('target_audience', ['All', 'Student'])
-            ->where(function($q) {
+            ->where(function ($q) {
                 $q->whereNull('expiry_date')
-                  ->orWhere('expiry_date', '>=', now()->toDateString());
+                    ->orWhere('expiry_date', '>=', now()->toDateString());
             })
             ->orderBy('publish_date', 'desc')
             ->get();

@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\ClassPeriod;
 use Illuminate\Database\Seeder;
 
 class ClassPeriodSeeder extends Seeder
@@ -12,7 +12,7 @@ class ClassPeriodSeeder extends Seeder
      */
     public function run(): void
     {
-        \App\Models\ClassPeriod::truncate();
+        ClassPeriod::truncate();
 
         $periods = [
             ['name' => 'Period 1', 'start_time' => '08:30:00', 'end_time' => '09:15:00', 'is_break' => false, 'sort_order' => 1],
@@ -27,7 +27,7 @@ class ClassPeriodSeeder extends Seeder
         ];
 
         foreach ($periods as $period) {
-            \App\Models\ClassPeriod::create($period);
+            ClassPeriod::create($period);
         }
     }
 }

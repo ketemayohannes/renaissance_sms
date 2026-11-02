@@ -13,7 +13,7 @@ class ProfileController extends Controller
     public function show()
     {
         $user = Auth::user();
-        if (!$user->hasRole('Student') || !$user->student) {
+        if (! $user->hasRole('Student') || ! $user->student) {
             return redirect()->route('dashboard');
         }
 
@@ -23,9 +23,9 @@ class ProfileController extends Controller
             'medicalInfo',
             'transportation',
             'enrollments.section.gradeLevel.division',
-            'enrollments.academicYear'
+            'enrollments.academicYear',
         ]);
-        
+
         return view('student.profile.show', compact('student', 'user'));
     }
 

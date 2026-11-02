@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use App\Traits\HasDivisionRestriction;
+use Illuminate\Database\Eloquent\Model;
 
 class TeacherAssignment extends Model
 {
     use HasDivisionRestriction;
+
     protected $fillable = [
         'teacher_id',
         'section_id',

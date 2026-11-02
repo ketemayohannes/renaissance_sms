@@ -16,7 +16,7 @@ return new class extends Migration
             $table->boolean('is_emergency_contact')->default(false)->after('guardian_type');
             $table->json('communication_preferences')->nullable()->after('email');
             $table->text('address')->nullable()->after('relationship');
-            
+
             // Create non-unique index first so MySQL doesn't complain about foreign key missing an index
             $table->index('student_id');
             $table->dropUnique('student_guardians_student_id_guardian_type_unique');
@@ -31,7 +31,7 @@ return new class extends Migration
         Schema::table('student_guardians', function (Blueprint $table) {
             $table->dropForeign(['user_id']);
             $table->dropColumn(['user_id', 'is_emergency_contact', 'communication_preferences', 'address']);
-            
+
             // Re-add unique constraint (might fail if data violates it, but standard down method behavior)
             $table->unique(['student_id', 'guardian_type']);
         });

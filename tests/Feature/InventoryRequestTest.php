@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AcademicYear;
 use App\Models\Employee;
 use App\Models\InventoryAsset;
 use App\Models\InventoryItem;
@@ -195,7 +196,7 @@ class InventoryRequestTest extends TestCase
     public function requester_pages_render_in_both_portals(): void
     {
         // The teacher layout's sidebar metrics need an active year to render.
-        \App\Models\AcademicYear::factory()->active()->create();
+        AcademicYear::factory()->active()->create();
         InventoryItem::factory()->consumable(10, 5)->create();
 
         $teacher = $this->userWithRole('Teacher', withEmployee: true);

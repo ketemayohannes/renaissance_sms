@@ -34,11 +34,17 @@ class GradeTermTotalConsistencyTest extends TestCase
     use RefreshDatabase;
 
     protected AcademicYear $academicYear;
+
     protected Division $division;
+
     protected GradeLevel $gradeLevel;
+
     protected Section $section;
+
     protected Term $quarter;
+
     protected AssessmentType $termTotalType;
+
     protected AssessmentType $componentType;
 
     protected function setUp(): void

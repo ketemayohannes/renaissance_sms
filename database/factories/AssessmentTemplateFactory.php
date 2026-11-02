@@ -2,10 +2,10 @@
 
 namespace Database\Factories;
 
-use App\Models\AssessmentTemplate;
 use App\Models\AcademicYear;
-use App\Models\Term;
+use App\Models\AssessmentTemplate;
 use App\Models\AssessmentType;
+use App\Models\Term;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class AssessmentTemplateFactory extends Factory

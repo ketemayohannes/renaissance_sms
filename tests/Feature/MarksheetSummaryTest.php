@@ -3,15 +3,13 @@
 namespace Tests\Feature;
 
 use App\Models\AcademicYear;
-use App\Models\AssessmentTemplate;
 use App\Models\Division;
 use App\Models\GradeLevel;
 use App\Models\Section;
-use App\Models\Student;
 use App\Models\Subject;
+use App\Models\TeacherAssignment;
 use App\Models\Term;
 use App\Models\User;
-use App\Models\TeacherAssignment;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -21,13 +19,21 @@ class MarksheetSummaryTest extends TestCase
     use RefreshDatabase;
 
     protected User $adminUser;
+
     protected User $teacherUser;
+
     protected AcademicYear $academicYear;
+
     protected Term $term;
+
     protected Section $section;
+
     protected GradeLevel $gradeLevel;
+
     protected Division $division;
+
     protected Subject $subject;
+
     protected TeacherAssignment $assignment;
 
     protected function setUp(): void

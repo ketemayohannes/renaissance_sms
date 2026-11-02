@@ -1,10 +1,8 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 return new class extends Migration
 {
@@ -24,7 +22,7 @@ return new class extends Migration
             'view divisions', 'view grade levels', 'view sections', 'view subjects',
             'view marks', 'view fees', 'view financial reports',
             'view library', 'view health', 'view inventory',
-            'send notifications', 'manage notice board', 'access chat'
+            'send notifications', 'manage notice board', 'access chat',
         ];
 
         // Ensure permissions exist before syncing

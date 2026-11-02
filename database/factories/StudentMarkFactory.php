@@ -2,13 +2,13 @@
 
 namespace Database\Factories;
 
-use App\Models\StudentMark;
-use App\Models\Student;
 use App\Models\AcademicYear;
-use App\Models\Term;
-use App\Models\Subject;
 use App\Models\AssessmentTemplate;
 use App\Models\Section;
+use App\Models\Student;
+use App\Models\StudentMark;
+use App\Models\Subject;
+use App\Models\Term;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 

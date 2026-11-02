@@ -4,14 +4,14 @@ namespace App\Http\Controllers\Teacher;
 
 use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
+use App\Models\ReportCardSetting;
+use App\Models\SubjectAnalysisReport;
 use App\Models\TeacherAssignment;
 use App\Models\Term;
-use App\Models\SubjectAnalysisReport;
-use App\Models\ReportCardSetting;
 use App\Services\GradingService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 class ResultAnalysisController extends Controller
 {
@@ -26,26 +26,26 @@ class ResultAnalysisController extends Controller
     {
         $teacher = Auth::user();
         $activeYear = AcademicYear::active()->first();
-        
+
         $assignments = TeacherAssignment::where('teacher_id', $teacher->id)
             ->where('academic_year_id', $activeYear->id)
             ->with(['section.gradeLevel', 'subject'])
             ->get();
 
-        $uniqueAssignments = $assignments->groupBy(function($a) {
-            return $a->section->grade_level_id . '-' . $a->subject_id;
-        })->map(function($group) {
+        $uniqueAssignments = $assignments->groupBy(function ($a) {
+            return $a->section->grade_level_id.'-'.$a->subject_id;
+        })->map(function ($group) {
             $first = $group->first();
             $sections = $group->pluck('section.name')->sort()->values();
             $gradeName = $first->section->gradeLevel->name;
             $subjectName = $first->subject->name;
-            
+
             if ($sections->count() > 1) {
-                $first->formatted_label = "{$gradeName} - " . $sections->implode(' & ') . ": {$subjectName}";
+                $first->formatted_label = "{$gradeName} - ".$sections->implode(' & ').": {$subjectName}";
             } else {
                 $first->formatted_label = "{$gradeName}: {$subjectName}";
             }
-            
+
             return $first;
         });
 
@@ -57,18 +57,18 @@ class ResultAnalysisController extends Controller
         return view('teacher.reports.result_analysis.index', [
             'assignments' => $uniqueAssignments,
             'terms' => $terms,
-            'activeYear' => $activeYear
+            'activeYear' => $activeYear,
         ]);
     }
 
     public function show(TeacherAssignment $assignment, Request $request)
     {
-        if ($assignment->teacher_id !== Auth::id() && !Auth::user()->hasRole('Super Admin')) {
+        if ($assignment->teacher_id !== Auth::id() && ! Auth::user()->hasRole('Super Admin')) {
             abort(403);
         }
 
         $termId = $request->input('term_id');
-        if (!$termId) {
+        if (! $termId) {
             return redirect()->route('teacher.reports.result-analysis')->with('error', 'Please select a term.');
         }
 
@@ -80,7 +80,7 @@ class ResultAnalysisController extends Controller
         $relevantAssignments = TeacherAssignment::where('teacher_id', Auth::id())
             ->where('academic_year_id', $academicYear->id)
             ->where('subject_id', $subject->id)
-            ->whereHas('section', function($q) use ($gradeLevelId) {
+            ->whereHas('section', function ($q) use ($gradeLevelId) {
                 $q->where('grade_level_id', $gradeLevelId);
             })
             ->with(['section', 'subject'])
@@ -98,9 +98,9 @@ class ResultAnalysisController extends Controller
             $section = $relAssignment->section;
             if ($subject->is_elective) {
                 $students = $section->students()
-                    ->whereHas('electives', function($q) use ($subject, $academicYear) {
+                    ->whereHas('electives', function ($q) use ($subject, $academicYear) {
                         $q->where('subject_id', $subject->id)
-                          ->where('student_electives.academic_year_id', $academicYear->id);
+                            ->where('student_electives.academic_year_id', $academicYear->id);
                     })
                     ->wherePivot('status', 'active')
                     ->where('students.is_active', true)
@@ -114,7 +114,7 @@ class ResultAnalysisController extends Controller
             }
 
             $batchResults = $this->gradingService->calculateSectionTotals($students, $term, $academicYear, collect([$subject]));
-            
+
             $analysis = [
                 '0-49' => ['male' => 0, 'female' => 0, 'total' => 0],
                 '50-74' => ['male' => 0, 'female' => 0, 'total' => 0],
@@ -126,7 +126,7 @@ class ResultAnalysisController extends Controller
                 $score = $batchResults[$student->id]['marks'][$subject->id] ?? 0;
                 $gender = strtolower($student->gender) === 'female' || strtolower($student->gender) === 'f' ? 'female' : 'male';
                 $range = $score <= 49 ? '0-49' : ($score <= 74 ? '50-74' : '75-100');
-                
+
                 $analysis[$range][$gender]++;
                 $analysis[$range]['total']++;
                 $analysis['total_students'][$gender]++;
@@ -146,7 +146,7 @@ class ResultAnalysisController extends Controller
             $sectionData[] = [
                 'assignment' => $relAssignment,
                 'analysis' => $analysis,
-                'report' => $report
+                'report' => $report,
             ];
         }
 
@@ -162,7 +162,7 @@ class ResultAnalysisController extends Controller
 
     public function store(TeacherAssignment $assignment, Request $request)
     {
-        if ($assignment->teacher_id !== Auth::id() && !Auth::user()->hasRole('Super Admin')) {
+        if ($assignment->teacher_id !== Auth::id() && ! Auth::user()->hasRole('Super Admin')) {
             abort(403);
         }
 
@@ -197,7 +197,7 @@ class ResultAnalysisController extends Controller
 
     public function print(TeacherAssignment $assignment, Request $request)
     {
-        if ($assignment->teacher_id !== Auth::id() && !Auth::user()->hasRole('Super Admin')) {
+        if ($assignment->teacher_id !== Auth::id() && ! Auth::user()->hasRole('Super Admin')) {
             abort(403);
         }
 
@@ -211,7 +211,7 @@ class ResultAnalysisController extends Controller
         $relevantAssignments = TeacherAssignment::where('teacher_id', Auth::id())
             ->where('academic_year_id', $academicYear->id)
             ->where('subject_id', $subject->id)
-            ->whereHas('section', function($q) use ($gradeLevelId) {
+            ->whereHas('section', function ($q) use ($gradeLevelId) {
                 $q->where('grade_level_id', $gradeLevelId);
             })
             ->with(['section', 'subject'])
@@ -229,9 +229,9 @@ class ResultAnalysisController extends Controller
             $section = $relAssignment->section;
             if ($subject->is_elective) {
                 $students = $section->students()
-                    ->whereHas('electives', function($q) use ($subject, $academicYear) {
+                    ->whereHas('electives', function ($q) use ($subject, $academicYear) {
                         $q->where('subject_id', $subject->id)
-                          ->where('student_electives.academic_year_id', $academicYear->id);
+                            ->where('student_electives.academic_year_id', $academicYear->id);
                     })
                     ->wherePivot('status', 'active')
                     ->where('students.is_active', true)
@@ -245,7 +245,7 @@ class ResultAnalysisController extends Controller
             }
 
             $batchResults = $this->gradingService->calculateSectionTotals($students, $term, $academicYear, collect([$subject]));
-            
+
             $analysis = [
                 '0-49' => ['male' => 0, 'female' => 0, 'total' => 0],
                 '50-74' => ['male' => 0, 'female' => 0, 'total' => 0],
@@ -276,7 +276,7 @@ class ResultAnalysisController extends Controller
             $sectionData[] = [
                 'assignment' => $relAssignment,
                 'analysis' => $analysis,
-                'report' => $report
+                'report' => $report,
             ];
         }
 
@@ -301,6 +301,7 @@ class ResultAnalysisController extends Controller
 
         $pdf = Pdf::loadView('teacher.reports.result_analysis.print', $data)
             ->setPaper('a4', 'landscape');
+
         return $pdf->stream("Result_Analysis_{$assignment->section->gradeLevel->name}_{$subject->name}_{$term->name}.pdf");
     }
 }

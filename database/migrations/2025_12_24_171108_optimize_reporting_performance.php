@@ -11,43 +11,43 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!Schema::hasIndex('sections', 'sections_grade_level_id_index')) {
+        if (! Schema::hasIndex('sections', 'sections_grade_level_id_index')) {
             Schema::table('sections', function (Blueprint $table) {
                 $table->index('grade_level_id');
             });
         }
 
-        if (!Schema::hasIndex('sections', 'sections_academic_year_id_index')) {
+        if (! Schema::hasIndex('sections', 'sections_academic_year_id_index')) {
             Schema::table('sections', function (Blueprint $table) {
                 $table->index('academic_year_id');
             });
         }
 
-        if (!Schema::hasIndex('student_term_records', 'str_student_term_academic_idx')) {
+        if (! Schema::hasIndex('student_term_records', 'str_student_term_academic_idx')) {
             Schema::table('student_term_records', function (Blueprint $table) {
                 $table->index(['student_id', 'term_id', 'academic_year_id'], 'str_student_term_academic_idx');
             });
         }
 
-        if (!Schema::hasIndex('student_attendance', 'sa_student_date_idx')) {
+        if (! Schema::hasIndex('student_attendance', 'sa_student_date_idx')) {
             Schema::table('student_attendance', function (Blueprint $table) {
                 $table->index(['student_id', 'attendance_date'], 'sa_student_date_idx');
             });
         }
 
-        if (!Schema::hasIndex('student_attendance', 'sa_section_date_idx')) {
+        if (! Schema::hasIndex('student_attendance', 'sa_section_date_idx')) {
             Schema::table('student_attendance', function (Blueprint $table) {
                 $table->index(['section_id', 'attendance_date'], 'sa_section_date_idx');
             });
         }
 
-        if (!Schema::hasIndex('assessment_templates', 'assessment_templates_academic_year_id_index')) {
+        if (! Schema::hasIndex('assessment_templates', 'assessment_templates_academic_year_id_index')) {
             Schema::table('assessment_templates', function (Blueprint $table) {
                 $table->index('academic_year_id');
             });
         }
 
-        if (!Schema::hasIndex('audit_logs', 'audit_logs_created_at_index')) {
+        if (! Schema::hasIndex('audit_logs', 'audit_logs_created_at_index')) {
             Schema::table('audit_logs', function (Blueprint $table) {
                 $table->index('created_at');
             });

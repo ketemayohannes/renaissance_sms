@@ -2,18 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\HasDivisionRestriction;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\AcademicYear;
-use App\Models\GradeLevel;
-use App\Models\Student;
-use App\Models\User;
-
-use App\Traits\HasDivisionRestriction;
 
 class Section extends Model
 {
-    use HasFactory, HasDivisionRestriction;
+    use HasDivisionRestriction, HasFactory;
 
     protected $fillable = ['grade_level_id', 'academic_year_id', 'name', 'capacity', 'homeroom_teacher_id', 'is_active'];
 
@@ -35,8 +30,8 @@ class Section extends Model
     public function students()
     {
         return $this->belongsToMany(Student::class, 'student_enrollments')
-                    ->withPivot('academic_year_id', 'enrollment_date', 'status')
-                    ->withTimestamps();
+            ->withPivot('academic_year_id', 'enrollment_date', 'status')
+            ->withTimestamps();
     }
 
     public function enrollments()

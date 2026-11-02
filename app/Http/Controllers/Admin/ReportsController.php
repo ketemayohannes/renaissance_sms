@@ -6,14 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
 use App\Models\Division;
 use App\Models\GradeLevel;
+use App\Models\ReportCardSetting;
 use App\Models\Section;
 use App\Models\Term;
-use App\Models\StudentTermRecord;
 use App\Services\AcademicReportService;
-use App\Models\ReportCardSetting;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
 
 class ReportsController extends Controller
 {
@@ -29,7 +27,7 @@ class ReportsController extends Controller
         $academicYears = AcademicYear::latest()->get();
         $divisions = Division::where('code', '!=', 'KG')->orderBy('sort_order')->get();
         $gradeLevels = GradeLevel::orderBy('sort_order')->get();
-        
+
         return view('admin.reports.index', compact('academicYears', 'divisions', 'gradeLevels'));
     }
 
@@ -95,6 +93,7 @@ class ReportsController extends Controller
                 $top3Mapped = $top3->map(function ($r) use ($termId) {
                     $student = $r['student'];
                     $student->setAttribute('average_score', $termId === 'yearly' ? ($r['rows']['avg']['average'] ?? 0) : ($r['average'] ?? 0));
+
                     return $student;
                 });
 
@@ -102,7 +101,7 @@ class ReportsController extends Controller
                     $sectionsData[] = [
                         'grade_level' => $gradeLevel,
                         'section' => $section,
-                        'students' => $top3Mapped
+                        'students' => $top3Mapped,
                     ];
                 }
             }
@@ -116,13 +115,14 @@ class ReportsController extends Controller
                 $student = $r['student'];
                 $student->setAttribute('average_score', $termId === 'yearly' ? ($r['rows']['avg']['average'] ?? 0) : ($r['average'] ?? 0));
                 $student->setAttribute('section_name', $r['section_name'] ?? '');
+
                 return $student;
             });
 
             if ($gradeTop3Mapped->isNotEmpty()) {
                 $gradeSummaryData[] = [
                     'grade_level' => $gradeLevel,
-                    'students' => $gradeTop3Mapped
+                    'students' => $gradeTop3Mapped,
                 ];
             }
         }
@@ -131,10 +131,10 @@ class ReportsController extends Controller
         $settings = ReportCardSetting::first();
         $logoBase64 = null;
         if ($settings && $settings->logo_path) {
-            $logoPath = storage_path('app/public/' . $settings->logo_path);
+            $logoPath = storage_path('app/public/'.$settings->logo_path);
             if (file_exists($logoPath)) {
                 $logoData = base64_encode(file_get_contents($logoPath));
-                $logoBase64 = 'data:image/' . pathinfo($logoPath, PATHINFO_EXTENSION) . ';base64,' . $logoData;
+                $logoBase64 = 'data:image/'.pathinfo($logoPath, PATHINFO_EXTENSION).';base64,'.$logoData;
             }
         }
 
@@ -153,6 +153,7 @@ class ReportsController extends Controller
         $termSlug = strtolower(str_replace([' ', '/'], '_', $term->name ?? $term->id));
         $divisionSlug = strtolower(str_replace(' ', '_', $division->name));
         $filename = "top3_per_section_summary_{$divisionSlug}_{$termSlug}.pdf";
+
         return $pdf->download($filename);
     }
 
@@ -162,13 +163,13 @@ class ReportsController extends Controller
 
         $request->validate([
             'academic_year_id' => 'required|exists:academic_years,id',
-            'term_id'          => 'required',
-            'division_id'      => 'required|exists:divisions,id',
+            'term_id' => 'required',
+            'division_id' => 'required|exists:divisions,id',
         ]);
 
         $academicYear = AcademicYear::findOrFail($request->academic_year_id);
-        $division     = Division::findOrFail($request->division_id);
-        $termId       = $request->term_id;
+        $division = Division::findOrFail($request->division_id);
+        $termId = $request->term_id;
 
         if ($termId === 'yearly') {
             $term = new Term(['type' => 'yearly', 'name' => 'Yearly', 'academic_year_id' => $academicYear->id]);
@@ -199,6 +200,7 @@ class ReportsController extends Controller
                         $avg = $termId === 'yearly'
                             ? ($r['rows']['avg']['average'] ?? 0)
                             : ($r['average'] ?? 0);
+
                         return $avg >= 90;
                     })
                     ->sortByDesc(function ($r) use ($termId) {
@@ -213,43 +215,45 @@ class ReportsController extends Controller
                             ? ($r['rows']['avg']['average'] ?? 0)
                             : ($r['average'] ?? 0);
                         $student->setAttribute('average_score', $avg);
+
                         return $student;
                     });
 
                 if ($excellentStudents->isNotEmpty()) {
                     $sectionsData[] = [
                         'grade_level' => $gradeLevel,
-                        'section'     => $section,
-                        'students'    => $excellentStudents,
+                        'section' => $section,
+                        'students' => $excellentStudents,
                     ];
                 }
             }
         }
 
-        $settings    = ReportCardSetting::first();
-        $logoBase64  = null;
+        $settings = ReportCardSetting::first();
+        $logoBase64 = null;
         if ($settings && $settings->logo_path) {
-            $logoPath = storage_path('app/public/' . $settings->logo_path);
+            $logoPath = storage_path('app/public/'.$settings->logo_path);
             if (file_exists($logoPath)) {
-                $logoData   = base64_encode(file_get_contents($logoPath));
-                $logoBase64 = 'data:image/' . pathinfo($logoPath, PATHINFO_EXTENSION) . ';base64,' . $logoData;
+                $logoData = base64_encode(file_get_contents($logoPath));
+                $logoBase64 = 'data:image/'.pathinfo($logoPath, PATHINFO_EXTENSION).';base64,'.$logoData;
             }
         }
 
         $pdf = Pdf::loadView('admin.reports.academic-excellence-pdf', [
             'academicYear' => $academicYear,
-            'division'     => $division,
-            'term'         => $term,
+            'division' => $division,
+            'term' => $term,
             'sectionsData' => $sectionsData,
-            'settings'     => $settings,
-            'logoBase64'   => $logoBase64,
+            'settings' => $settings,
+            'logoBase64' => $logoBase64,
         ]);
 
         $pdf->setPaper('a4', 'portrait');
 
-        $termSlug     = strtolower(str_replace([' ', '/'], '_', $term->name ?? $term->id));
+        $termSlug = strtolower(str_replace([' ', '/'], '_', $term->name ?? $term->id));
         $divisionSlug = strtolower(str_replace(' ', '_', $division->name));
-        $filename     = "academic_excellence_{$divisionSlug}_{$termSlug}.pdf";
+        $filename = "academic_excellence_{$divisionSlug}_{$termSlug}.pdf";
+
         return $pdf->download($filename);
     }
 
@@ -259,13 +263,13 @@ class ReportsController extends Controller
 
         $request->validate([
             'academic_year_id' => 'required|exists:academic_years,id',
-            'term_id'          => 'required',
-            'division_id'      => 'required|exists:divisions,id',
+            'term_id' => 'required',
+            'division_id' => 'required|exists:divisions,id',
         ]);
 
         $academicYear = AcademicYear::findOrFail($request->academic_year_id);
-        $division     = Division::findOrFail($request->division_id);
-        $termId       = $request->term_id;
+        $division = Division::findOrFail($request->division_id);
+        $termId = $request->term_id;
 
         if ($termId === 'yearly') {
             $term = new Term(['type' => 'yearly', 'name' => 'Yearly', 'academic_year_id' => $academicYear->id]);
@@ -296,11 +300,13 @@ class ReportsController extends Controller
                         $avg = $termId === 'yearly'
                             ? ($r['rows']['avg']['average'] ?? 0)
                             : ($r['average'] ?? 0);
+
                         return $avg > 0 && $avg < 75;
                     })
                     ->sortBy(function ($r) {
                         $student = $r['student'];
-                        return trim($student->first_name . ' ' . $student->father_name . ' ' . $student->grandfather_name);
+
+                        return trim($student->first_name.' '.$student->father_name.' '.$student->grandfather_name);
                     })
                     ->values()
                     ->map(function ($r) use ($termId) {
@@ -309,44 +315,45 @@ class ReportsController extends Controller
                             ? ($r['rows']['avg']['average'] ?? 0)
                             : ($r['average'] ?? 0);
                         $student->setAttribute('average_score', $avg);
+
                         return $student;
                     });
 
                 if ($failingStudents->isNotEmpty()) {
                     $sectionsData[] = [
                         'grade_level' => $gradeLevel,
-                        'section'     => $section,
-                        'students'    => $failingStudents,
+                        'section' => $section,
+                        'students' => $failingStudents,
                     ];
                 }
             }
         }
 
-        $settings    = ReportCardSetting::first();
-        $logoBase64  = null;
+        $settings = ReportCardSetting::first();
+        $logoBase64 = null;
         if ($settings && $settings->logo_path) {
-            $logoPath = storage_path('app/public/' . $settings->logo_path);
+            $logoPath = storage_path('app/public/'.$settings->logo_path);
             if (file_exists($logoPath)) {
-                $logoData   = base64_encode(file_get_contents($logoPath));
-                $logoBase64 = 'data:image/' . pathinfo($logoPath, PATHINFO_EXTENSION) . ';base64,' . $logoData;
+                $logoData = base64_encode(file_get_contents($logoPath));
+                $logoBase64 = 'data:image/'.pathinfo($logoPath, PATHINFO_EXTENSION).';base64,'.$logoData;
             }
         }
 
         $pdf = Pdf::loadView('admin.reports.below-75-pdf', [
             'academicYear' => $academicYear,
-            'division'     => $division,
-            'term'         => $term,
+            'division' => $division,
+            'term' => $term,
             'sectionsData' => $sectionsData,
-            'settings'     => $settings,
-            'logoBase64'   => $logoBase64,
+            'settings' => $settings,
+            'logoBase64' => $logoBase64,
         ]);
 
         $pdf->setPaper('a4', 'portrait');
 
-        $termSlug     = strtolower(str_replace([' ', '/'], '_', $term->name ?? $term->id));
+        $termSlug = strtolower(str_replace([' ', '/'], '_', $term->name ?? $term->id));
         $divisionSlug = strtolower(str_replace(' ', '_', $division->name));
-        $filename     = "student_average_below_75_{$divisionSlug}_{$termSlug}.pdf";
+        $filename = "student_average_below_75_{$divisionSlug}_{$termSlug}.pdf";
+
         return $pdf->download($filename);
     }
 }
-

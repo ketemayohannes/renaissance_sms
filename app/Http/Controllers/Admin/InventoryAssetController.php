@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\InventoryAsset;
-use App\Models\InventoryAssignment;
 use App\Models\InventoryItem;
+use App\Services\InventoryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -20,7 +20,7 @@ class InventoryAssetController extends Controller
         $validated = $request->validate([
             'asset_tag' => 'required|string|max:100|unique:inventory_assets,asset_tag',
             'serial_number' => 'nullable|string|max:255',
-            'condition' => 'required|in:' . implode(',', InventoryAsset::CONDITIONS),
+            'condition' => 'required|in:'.implode(',', InventoryAsset::CONDITIONS),
             'purchase_date' => 'nullable|date|before_or_equal:today',
             'unit_cost' => 'nullable|numeric|min:0',
             'supplier' => 'nullable|string|max:255',
@@ -38,7 +38,7 @@ class InventoryAssetController extends Controller
     {
         $validated = $request->validate([
             'serial_number' => 'nullable|string|max:255',
-            'condition' => 'required|in:' . implode(',', InventoryAsset::CONDITIONS),
+            'condition' => 'required|in:'.implode(',', InventoryAsset::CONDITIONS),
             'purchase_date' => 'nullable|date|before_or_equal:today',
             'unit_cost' => 'nullable|numeric|min:0',
             'supplier' => 'nullable|string|max:255',
@@ -62,7 +62,7 @@ class InventoryAssetController extends Controller
             'notes' => 'nullable|string|max:1000',
         ]);
 
-        app(\App\Services\InventoryService::class)->assignAsset($asset, $validated, auth()->id());
+        app(InventoryService::class)->assignAsset($asset, $validated, auth()->id());
 
         return back()->with('success', "Unit {$asset->asset_tag} assigned.");
     }
@@ -90,7 +90,7 @@ class InventoryAssetController extends Controller
     {
         $validated = $request->validate([
             'status' => 'required|in:available,in_maintenance,retired',
-            'condition' => 'nullable|in:' . implode(',', InventoryAsset::CONDITIONS),
+            'condition' => 'nullable|in:'.implode(',', InventoryAsset::CONDITIONS),
         ]);
 
         if ($asset->status === 'assigned') {

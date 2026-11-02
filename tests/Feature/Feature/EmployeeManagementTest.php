@@ -2,15 +2,13 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use App\Models\User;
-use App\Models\Employee;
 use App\Models\AcademicYear;
-use App\Models\SystemCounter;
+use App\Models\Employee;
+use App\Models\User;
 use App\Services\EmployeeService;
-use Tests\TestCase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
-use Illuminate\Support\Facades\DB;
+use Tests\TestCase;
 
 class EmployeeManagementTest extends TestCase
 {
@@ -21,20 +19,20 @@ class EmployeeManagementTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->employeeService = new EmployeeService();
-        
+        $this->employeeService = new EmployeeService;
+
         // Seed basic roles
         // Seed basic roles with categories (use firstOrCreate as migrations might have created them)
         Role::firstOrCreate(['name' => 'Teacher', 'guard_name' => 'web'], ['category' => 'academic']);
         Role::firstOrCreate(['name' => 'Secretary', 'guard_name' => 'web'], ['category' => 'administrative']);
         Role::firstOrCreate(['name' => 'Principal', 'guard_name' => 'web'], ['category' => 'academic']);
-        
+
         // Seed academic year
         AcademicYear::create([
             'name' => '2025/26',
             'start_date' => '2025-09-01',
             'end_date' => '2026-06-30',
-            'is_active' => true
+            'is_active' => true,
         ]);
     }
 
@@ -58,12 +56,12 @@ class EmployeeManagementTest extends TestCase
         $this->assertDatabaseHas('employees', [
             'first_name' => 'John',
             'last_name' => 'Adams',
-            'employee_id' => $employee->employee_id
+            'employee_id' => $employee->employee_id,
         ]);
 
         $this->assertDatabaseHas('users', [
             'email' => $employee->email,
-            'name' => 'John Quincy Adams'
+            'name' => 'John Quincy Adams',
         ]);
 
         $this->assertTrue($employee->user->hasRole('Teacher'));
@@ -92,7 +90,7 @@ class EmployeeManagementTest extends TestCase
         $this->assertDatabaseHas('academic_staff_details', [
             'employee_id' => $employee->id,
 
-            'specialization' => 'Biology'
+            'specialization' => 'Biology',
         ]);
 
         $this->assertEquals('Lab Coordinator', $employee->academicDetails->secondary_responsibilities);
@@ -116,9 +114,9 @@ class EmployeeManagementTest extends TestCase
 
         $this->assertDatabaseHas('administrative_staff_details', [
             'employee_id' => $employee->id,
-            'system_access_roles' => 'Full access to records'
+            'system_access_roles' => 'Full access to records',
         ]);
-        
+
         $this->assertNull($employee->academicDetails);
     }
 
@@ -146,7 +144,7 @@ class EmployeeManagementTest extends TestCase
                 'designation' => 'Teacher',
                 'staff_category' => 'academic',
                 'date_of_birth' => '1992-01-01',
-            ]
+            ],
         ];
 
         $result = $this->employeeService->bulkImport($rows);
@@ -157,7 +155,7 @@ class EmployeeManagementTest extends TestCase
 
         $this->assertDatabaseHas('employees', ['first_name' => 'Alice']);
         $this->assertDatabaseHas('employees', ['first_name' => 'Bob']);
-        
+
         $bob = Employee::where('first_name', 'Bob')->first();
         $this->assertEquals('bob.jones@renaissance.edu.et', $bob->email);
     }
@@ -168,7 +166,7 @@ class EmployeeManagementTest extends TestCase
         User::create([
             'name' => 'Existing User',
             'email' => 'existing@example.com',
-            'password' => 'password'
+            'password' => 'password',
         ]);
 
         $rows = [
@@ -179,7 +177,7 @@ class EmployeeManagementTest extends TestCase
                 'email' => 'existing@example.com', // Conflict
                 'gender' => 'M',
                 'phone' => '0911000003',
-            ]
+            ],
         ];
 
         $result = $this->employeeService->bulkImport($rows);

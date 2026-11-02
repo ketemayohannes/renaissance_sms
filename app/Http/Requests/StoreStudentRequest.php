@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Models\User;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreStudentRequest extends FormRequest
@@ -18,7 +20,7 @@ class StoreStudentRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -36,20 +38,20 @@ class StoreStudentRequest extends FormRequest
             'nationality' => 'nullable|string|max:255',
             'language_spoken' => 'nullable|string|max:255',
             'student_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            
+
             // Address
             'subcity' => 'nullable|string|in:Addis Ketema,Akaki Kality,Arada,Bole,Gullele,Kirkos,Kolfe Keranio,Lideta,Nifas Silk-Lafto,Yeka,Lemi Kura',
             'woreda' => 'nullable|string|max:255',
             'house_number' => 'nullable|string|max:255',
             'address' => 'nullable|string',
-            
+
             // Admission
             'admission_number' => 'required|string|unique:students,admission_number',
             'admission_date' => 'required|date',
             'section_id' => 'required|exists:sections,id',
             'email' => 'nullable|email|unique:users,email',
             'phone' => 'nullable|string|max:20',
-            
+
             // Guardians
             'guardians' => 'required|array|min:1',
             'guardians.*.first_name' => 'required|string|max:255',
@@ -60,24 +62,24 @@ class StoreStudentRequest extends FormRequest
                 'nullable',
                 'email',
                 function ($attribute, $value, $fail) {
-                    $user = \App\Models\User::where('email', $value)->first();
-                    if ($user && !$user->hasRole('Parent')) {
+                    $user = User::where('email', $value)->first();
+                    if ($user && ! $user->hasRole('Parent')) {
                         $fail('This email address belongs to a staff or administrative account and cannot be used for a guardian.');
                     }
-                }
+                },
             ],
             'guardians.*.relationship' => 'required|string',
             'guardians.*.communication_preferences' => 'nullable|array',
             'guardians.*.is_emergency_contact' => 'nullable|boolean',
             'guardians.*.photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            
+
             // Medical Info
             'blood_group' => 'nullable|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
             'medical_issues' => 'nullable|string',
             'current_medication' => 'nullable|string',
             'allergies' => 'nullable|string',
             'emergency_contact' => 'nullable|string|max:20',
-            
+
             // Transportation (Optional)
             'driver_id' => 'nullable|string|max:255',
             'driver_first_name' => 'nullable|string|max:255',

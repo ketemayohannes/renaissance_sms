@@ -2,9 +2,13 @@
 
 namespace App\Http\Controllers\Parent;
 
+use App\Helpers\CachedData;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Models\AssessmentType;
 use App\Models\Notice;
+use App\Models\StudentTermRecord;
+use App\Models\Term;
+use App\Services\GradingService;
 
 class DashboardController extends Controller
 {
@@ -15,13 +19,13 @@ class DashboardController extends Controller
         $children = $user->linked_students->load([
             'currentEnrollment.section.gradeLevel',
             'marks.subject',
-            'marks.assessmentTemplate'
+            'marks.assessmentTemplate',
         ]);
 
-        $academicYear = \App\Helpers\CachedData::activeAcademicYear();
+        $academicYear = CachedData::activeAcademicYear();
         $quarters = collect();
         if ($academicYear) {
-            $quarters = \App\Models\Term::where('academic_year_id', $academicYear->id)
+            $quarters = Term::where('academic_year_id', $academicYear->id)
                 ->where('type', 'quarter')
                 ->orderBy('term_number', 'asc')
                 ->get();
@@ -39,17 +43,17 @@ class DashboardController extends Controller
             $nearlyClosedTermName = '';
             $defaultTermId = '';
             $alertsByTerm = [];
-            
+
             if ($academicYear && $quarters->isNotEmpty()) {
                 $today = now();
                 // Find the last quarter that has started
-                $currentQuarter = $quarters->filter(fn($q) => $q->start_date <= $today)->last();
-                
-                if (!$currentQuarter) {
+                $currentQuarter = $quarters->filter(fn ($q) => $q->start_date <= $today)->last();
+
+                if (! $currentQuarter) {
                     $currentQuarter = $quarters->first();
                 }
-                
-                $currentIndex = $quarters->search(fn($q) => $q->id === $currentQuarter->id);
+
+                $currentIndex = $quarters->search(fn ($q) => $q->id === $currentQuarter->id);
                 if ($currentIndex > 0) {
                     // Previous term is the nearly closed term
                     $nearlyClosedTerm = $quarters->get($currentIndex - 1);
@@ -57,16 +61,16 @@ class DashboardController extends Controller
                     // If we are in Quarter 1, fallback to Quarter 1
                     $nearlyClosedTerm = $currentQuarter;
                 }
-                
+
                 if ($nearlyClosedTerm) {
                     $nearlyClosedTermName = $nearlyClosedTerm->name;
                     $defaultTermId = $nearlyClosedTerm->id;
-                    
+
                     // Try to get the calculated average and rank from StudentTermRecord first
-                    $termRecord = \App\Models\StudentTermRecord::where('student_id', $child->id)
+                    $termRecord = StudentTermRecord::where('student_id', $child->id)
                         ->where('term_id', $nearlyClosedTerm->id)
                         ->first();
-                    
+
                     $nearlyClosedTermRank = null;
                     if ($termRecord) {
                         if ($termRecord->average_score !== null) {
@@ -77,44 +81,46 @@ class DashboardController extends Controller
                         }
                     } else {
                         // Calculate dynamically via GradingService
-                        $gradingService = app(\App\Services\GradingService::class);
+                        $gradingService = app(GradingService::class);
                         $stats = $gradingService->calculateStudentTotals($child, $nearlyClosedTerm, $academicYear);
                         $averageScore = $stats['average'] ?? null;
                     }
                 } else {
                     $defaultTermId = $quarters->first()->id;
                 }
-                
+
                 // Pre-calculate warning/critical subject alerts by term
-                $termTotalTypeId = \App\Models\AssessmentType::where('code', 'TERM_TOTAL')->value('id') 
-                    ?? \App\Models\AssessmentType::firstOrCreate(
+                $termTotalTypeId = AssessmentType::where('code', 'TERM_TOTAL')->value('id')
+                    ?? AssessmentType::firstOrCreate(
                         ['code' => 'TERM_TOTAL'],
                         ['name' => 'Term Total', 'weight' => 100, 'max_score' => 100, 'is_active' => true]
                     )->id;
-                
+
                 $childMarks = $child->marks;
-                
+
                 foreach ($quarters as $quarter) {
                     $alertsByTerm[$quarter->id] = [
                         'term_name' => $quarter->name,
                         'warning' => [],
                         'critical' => [],
                     ];
-                    
+
                     $quarterMarks = $childMarks->where('term_id', $quarter->id);
                     if ($quarterMarks->isNotEmpty()) {
                         foreach ($quarterMarks->groupBy('subject_id') as $subjectId => $subjectMarks) {
                             $subject = $subjectMarks->first()->subject;
-                            if (!$subject) continue;
-                            
+                            if (! $subject) {
+                                continue;
+                            }
+
                             // Components-first: prefer live component marks; fall back to the
                             // TERM_TOTAL row only when no components exist. This keeps parent
                             // low-performance alerts in sync with corrected component grades.
-                            $components = $subjectMarks->filter(fn($m) => !$m->assessmentTemplate || $m->assessmentTemplate->assessment_type_id != $termTotalTypeId);
+                            $components = $subjectMarks->filter(fn ($m) => ! $m->assessmentTemplate || $m->assessmentTemplate->assessment_type_id != $termTotalTypeId);
                             if ($components->isNotEmpty()) {
                                 $score = $components->sum('score');
                             } else {
-                                $termTotal = $subjectMarks->first(fn($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
+                                $termTotal = $subjectMarks->first(fn ($m) => $m->assessmentTemplate && $m->assessmentTemplate->assessment_type_id == $termTotalTypeId);
                                 $score = $termTotal ? $termTotal->score : 0;
                             }
 
@@ -133,7 +139,7 @@ class DashboardController extends Controller
                     }
                 }
             }
-            
+
             $child->average_score = $averageScore !== null ? round($averageScore, 1) : null;
             $child->nearly_closed_term_name = $nearlyClosedTermName;
             $child->nearly_closed_term_rank = $nearlyClosedTermRank ?? null;

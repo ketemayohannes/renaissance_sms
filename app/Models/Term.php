@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Term extends Model
 {
     use HasFactory;
+
     protected $fillable = [
         'academic_year_id',
         'parent_term_id',
@@ -63,6 +64,7 @@ class Term extends Model
         if ($this->isSemester()) {
             return $this->quarters;
         }
+
         return collect();
     }
 }

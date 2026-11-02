@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
 use Illuminate\Support\Facades\DB;
 
 class SystemCounter extends Model
@@ -18,11 +17,12 @@ class SystemCounter extends Model
         return DB::transaction(function () use ($key, $startValue) {
             $counter = self::where('key', $key)->lockForUpdate()->first();
 
-            if (!$counter) {
+            if (! $counter) {
                 $counter = self::create(['key' => $key, 'value' => $startValue]);
             }
 
             $counter->increment('value');
+
             return $counter->value;
         });
     }

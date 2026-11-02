@@ -8,6 +8,7 @@ use App\Models\StudentTermRecord;
 use App\Models\Term;
 use App\Services\GradingService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -78,7 +79,7 @@ class RecalculateAllGrades extends Command
      * Every real quarter/semester Term for the year, plus a synthetic "Yearly" term —
      * matching the same virtual term used everywhere else in GradingService/report cards.
      */
-    private function termsForYear(AcademicYear $academicYear): \Illuminate\Support\Collection
+    private function termsForYear(AcademicYear $academicYear): Collection
     {
         $realTerms = Term::where('academic_year_id', $academicYear->id)
             ->whereIn('type', ['quarter', 'semester'])
@@ -196,7 +197,7 @@ class RecalculateAllGrades extends Command
         }
 
         $this->changedCombinations++;
-        $this->line("  {$label} ... " . count($changedLines) . " of {$students->count()} student(s) would change:");
+        $this->line("  {$label} ... ".count($changedLines)." of {$students->count()} student(s) would change:");
         foreach ($changedLines as $line) {
             $this->line($line);
         }
@@ -212,7 +213,7 @@ class RecalculateAllGrades extends Command
         }
 
         if (! empty($this->failures)) {
-            $this->error(count($this->failures) . ' failure(s):');
+            $this->error(count($this->failures).' failure(s):');
             foreach ($this->failures as $failure) {
                 $this->line("  - {$failure['label']}: {$failure['error']}");
             }

@@ -73,7 +73,7 @@ class InventoryItemRequestUpdate extends Notification
             'rejected' => [
                 'Your item request was rejected',
                 "Your request for {$qty} × {$itemName} was rejected."
-                    . ($this->request->decision_remarks ? " Remarks: {$this->request->decision_remarks}" : ''),
+                    .($this->request->decision_remarks ? " Remarks: {$this->request->decision_remarks}" : ''),
                 $this->requesterUrl($notifiable),
             ],
             'fulfilled' => [

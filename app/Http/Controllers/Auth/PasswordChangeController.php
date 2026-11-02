@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
-use Illuminate\Support\Facades\Auth;
 
 class PasswordChangeController extends Controller
 {
@@ -16,7 +16,7 @@ class PasswordChangeController extends Controller
     public function show()
     {
         // Only allow if they actually have a temp password
-        if (!Auth::user()->temp_password) {
+        if (! Auth::user()->temp_password) {
             return redirect()->route('dashboard');
         }
 
@@ -34,7 +34,7 @@ class PasswordChangeController extends Controller
         ]);
 
         $user = Auth::user();
-        
+
         // Update password and clear temp flag
         $user->update([
             'password' => Hash::make($request->password),

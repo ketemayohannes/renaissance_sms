@@ -2,12 +2,12 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\User;
-use App\Models\Division;
 use App\Models\AcademicYear;
-use App\Models\Term;
 use App\Models\ConductGrade;
+use App\Models\Division;
+use App\Models\Term;
+use App\Models\User;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class InitialDataSeeder extends Seeder
@@ -51,30 +51,30 @@ class InitialDataSeeder extends Seeder
             // 4. Create Terms (Quarters & Semesters)
             // Quarter 1
             Term::create([
-                'name' => 'Quarter 1', 
+                'name' => 'Quarter 1',
                 'academic_year_id' => $year->id,
-                'type' => 'quarter', 
-                'term_number' => 1, 
-                'start_date' => '2024-09-11', 
-                'end_date' => '2024-11-10'
+                'type' => 'quarter',
+                'term_number' => 1,
+                'start_date' => '2024-09-11',
+                'end_date' => '2024-11-10',
             ]);
             // Quarter 2
             Term::create([
-                'name' => 'Quarter 2', 
+                'name' => 'Quarter 2',
                 'academic_year_id' => $year->id,
-                'type' => 'quarter', 
-                'term_number' => 2, 
-                'start_date' => '2024-11-11', 
-                'end_date' => '2025-01-31'
+                'type' => 'quarter',
+                'term_number' => 2,
+                'start_date' => '2024-11-11',
+                'end_date' => '2025-01-31',
             ]);
             // Semester 1 (Aggregates Q1 & Q2)
             Term::create([
-                'name' => 'Semester 1', 
+                'name' => 'Semester 1',
                 'academic_year_id' => $year->id,
-                'type' => 'semester', 
-                'term_number' => 1, 
-                'start_date' => '2024-09-11', 
-                'end_date' => '2025-01-31'
+                'type' => 'semester',
+                'term_number' => 1,
+                'start_date' => '2024-09-11',
+                'end_date' => '2025-01-31',
             ]);
         }
 

@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
 class LeaveRequest extends Model
 {
     public const TYPES = ['sick', 'casual', 'annual', 'maternity', 'unpaid'];
+
     public const STATUSES = ['pending', 'approved', 'rejected'];
 
     protected $fillable = [
@@ -59,7 +61,7 @@ class LeaveRequest extends Model
      * Weekday (Mon–Fri) count between two dates, inclusive. Used to compute
      * total_days server-side so it can't be spoofed from the form.
      */
-    public static function weekdayCount(\Carbon\Carbon $start, \Carbon\Carbon $end): int
+    public static function weekdayCount(Carbon $start, Carbon $end): int
     {
         $days = 0;
         for ($d = $start->copy(); $d->lte($end); $d->addDay()) {

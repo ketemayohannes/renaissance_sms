@@ -14,7 +14,7 @@ class EmployeeFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
-            'employee_id' => 'EMP-' . $this->faker->unique()->numberBetween(1000, 99999),
+            'employee_id' => 'EMP-'.$this->faker->unique()->numberBetween(1000, 99999),
             'first_name' => $this->faker->firstName(),
             'middle_name' => $this->faker->firstName(),
             'last_name' => $this->faker->lastName(),

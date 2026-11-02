@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Employee;
+use App\Models\InventoryAsset;
 use App\Models\InventoryCategory;
 use App\Models\InventoryItem;
 use Illuminate\Http\Request;
@@ -42,11 +44,11 @@ class InventoryItemController extends Controller
             ? $item->stockMovements()->with(['recorder', 'issuedToEmployee'])->orderByDesc('movement_date')->orderByDesc('id')->paginate(20)
             : null;
 
-        $employees = \App\Models\Employee::where('status', 'active')
+        $employees = Employee::where('status', 'active')
             ->orderBy('first_name')
             ->get(['id', 'first_name', 'middle_name', 'last_name', 'employee_id']);
 
-        $suggestedTag = $item->kind === 'asset' ? \App\Models\InventoryAsset::suggestTag($item) : null;
+        $suggestedTag = $item->kind === 'asset' ? InventoryAsset::suggestTag($item) : null;
 
         return view('admin.inventory.items.show', compact('item', 'assets', 'movements', 'employees', 'suggestedTag'));
     }
@@ -56,7 +58,7 @@ class InventoryItemController extends Controller
         $validated = $request->validate([
             'inventory_category_id' => 'required|exists:inventory_categories,id',
             'name' => 'required|string|max:255',
-            'kind' => 'required|in:' . implode(',', InventoryItem::KINDS),
+            'kind' => 'required|in:'.implode(',', InventoryItem::KINDS),
             'unit' => 'nullable|string|max:50',
             'reorder_level' => 'nullable|integer|min:0',
             'description' => 'nullable|string|max:1000',
@@ -65,7 +67,7 @@ class InventoryItemController extends Controller
         $item = InventoryItem::create($validated + ['quantity' => 0, 'is_active' => true]);
 
         return redirect()->route('admin.inventory.items.show', $item)
-            ->with('success', 'Item created. ' . ($item->kind === 'asset' ? 'Add its physical units below.' : 'Record stock-in to set its starting quantity.'));
+            ->with('success', 'Item created. '.($item->kind === 'asset' ? 'Add its physical units below.' : 'Record stock-in to set its starting quantity.'));
     }
 
     public function update(Request $request, InventoryItem $item)

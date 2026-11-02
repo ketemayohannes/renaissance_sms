@@ -66,7 +66,7 @@ class InventoryPurchaseRequestUpdate extends Notification
             'principal_declined' => [
                 'Your purchase request was declined',
                 "Your request to purchase {$label} was declined by the Principal."
-                    . ($this->request->principal_remarks ? " Remarks: {$this->request->principal_remarks}" : ''),
+                    .($this->request->principal_remarks ? " Remarks: {$this->request->principal_remarks}" : ''),
                 $requesterUrl,
             ],
             'approved' => [
@@ -79,7 +79,7 @@ class InventoryPurchaseRequestUpdate extends Notification
             'declined' => [
                 'Your purchase request was declined',
                 "Your request to purchase {$label} was declined."
-                    . ($this->request->gm_remarks ? " Remarks: {$this->request->gm_remarks}" : ''),
+                    .($this->request->gm_remarks ? " Remarks: {$this->request->gm_remarks}" : ''),
                 $requesterUrl,
             ],
             default => ['Purchase request update', "Your request for {$label} was updated.", $requesterUrl],

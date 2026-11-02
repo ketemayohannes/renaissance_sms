@@ -1,16 +1,17 @@
 <?php
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\TeacherAssignment;
 use App\Models\AcademicYear;
-use App\Models\Term;
-use App\Models\SubjectAnalysisReport;
-use App\Models\StudentMark;
+use App\Models\AssessmentTemplate;
 use App\Models\AssessmentType;
+use App\Models\StudentMark;
+use App\Models\SubjectAnalysisReport;
+use App\Models\TeacherAssignment;
+use App\Models\Term;
 use App\Services\GradingService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class ResultAnalysisController extends Controller
 {
@@ -24,25 +25,25 @@ class ResultAnalysisController extends Controller
     public function index()
     {
         $activeYear = AcademicYear::active()->first();
-        
+
         $allAssignments = TeacherAssignment::where('academic_year_id', $activeYear->id)
             ->with(['section.gradeLevel', 'subject', 'teacher'])
             ->get();
 
         // Group by Teacher, Grade Level, and Subject
-        $assignments = $allAssignments->groupBy(function($a) {
-            return $a->teacher_id . '-' . $a->section->grade_level_id . '-' . $a->subject_id;
-        })->map(function($group) {
+        $assignments = $allAssignments->groupBy(function ($a) {
+            return $a->teacher_id.'-'.$a->section->grade_level_id.'-'.$a->subject_id;
+        })->map(function ($group) {
             // Get the first assignment as representative
             $first = $group->first();
-            
+
             // Collect all section names
             $sections = $group->pluck('section.name')->unique()->sort()->values()->toArray();
             $sectionLabel = count($sections) > 1 ? implode(' & ', $sections) : $sections[0];
-            
+
             // Attach formatted label
             $first->formatted_label = "{$first->teacher->name}: {$first->section->gradeLevel->name} - {$sectionLabel}: {$first->subject->name}";
-            
+
             return $first;
         })->values();
 
@@ -57,7 +58,7 @@ class ResultAnalysisController extends Controller
     public function show(TeacherAssignment $assignment, Request $request)
     {
         $termId = $request->input('term_id');
-        if (!$termId) {
+        if (! $termId) {
             return redirect()->route('admin.result-analysis.index')->with('error', 'Please select a term.');
         }
 
@@ -75,7 +76,7 @@ class ResultAnalysisController extends Controller
         $relevantAssignments = TeacherAssignment::where('teacher_id', $teacherId)
             ->where('academic_year_id', $academicYear->id)
             ->where('subject_id', $subject->id)
-            ->whereHas('section', function($q) use ($gradeLevelId) {
+            ->whereHas('section', function ($q) use ($gradeLevelId) {
                 $q->where('grade_level_id', $gradeLevelId);
             })
             ->with(['section', 'subject'])
@@ -83,9 +84,9 @@ class ResultAnalysisController extends Controller
 
         $sectionData = [];
         $grandTotalAnalysis = [
-            '0-49'           => ['male' => 0, 'female' => 0, 'total' => 0],
-            '50-74'          => ['male' => 0, 'female' => 0, 'total' => 0],
-            '75-100'         => ['male' => 0, 'female' => 0, 'total' => 0],
+            '0-49' => ['male' => 0, 'female' => 0, 'total' => 0],
+            '50-74' => ['male' => 0, 'female' => 0, 'total' => 0],
+            '75-100' => ['male' => 0, 'female' => 0, 'total' => 0],
             'total_students' => ['male' => 0, 'female' => 0, 'total' => 0],
         ];
 
@@ -98,9 +99,9 @@ class ResultAnalysisController extends Controller
 
             if ($subject->is_elective) {
                 $students = $section->students()
-                    ->whereHas('electives', function($q) use ($subject, $academicYear) {
+                    ->whereHas('electives', function ($q) use ($subject, $academicYear) {
                         $q->where('subject_id', $subject->id)
-                          ->where('student_electives.academic_year_id', $academicYear->id);
+                            ->where('student_electives.academic_year_id', $academicYear->id);
                     })
                     ->wherePivotIn('status', ['active', 'completed'])
                     ->where('students.is_active', true)
@@ -119,7 +120,7 @@ class ResultAnalysisController extends Controller
             // Using whereNotIn on template IDs is the safest way to avoid the stale
             // master-sheet override — no subquery scoping issues.
             $termTotalTemplateIds = $termTotalTypeId
-                ? \App\Models\AssessmentTemplate::where('assessment_type_id', $termTotalTypeId)
+                ? AssessmentTemplate::where('assessment_type_id', $termTotalTypeId)
                     ->pluck('id')
                 : collect();
 
@@ -127,16 +128,16 @@ class ResultAnalysisController extends Controller
             $allComponentMarks = StudentMark::whereIn('student_id', $studentIds)
                 ->where('term_id', $term->id)
                 ->where('subject_id', $subject->id)
-                ->when($termTotalTemplateIds->isNotEmpty(), function($q) use ($termTotalTemplateIds) {
+                ->when($termTotalTemplateIds->isNotEmpty(), function ($q) use ($termTotalTemplateIds) {
                     $q->whereNotIn('assessment_template_id', $termTotalTemplateIds);
                 })
                 ->get()
                 ->groupBy('student_id');
 
             $analysis = [
-                '0-49'           => ['male' => 0, 'female' => 0, 'total' => 0],
-                '50-74'          => ['male' => 0, 'female' => 0, 'total' => 0],
-                '75-100'         => ['male' => 0, 'female' => 0, 'total' => 0],
+                '0-49' => ['male' => 0, 'female' => 0, 'total' => 0],
+                '50-74' => ['male' => 0, 'female' => 0, 'total' => 0],
+                '75-100' => ['male' => 0, 'female' => 0, 'total' => 0],
                 'total_students' => ['male' => 0, 'female' => 0, 'total' => 0],
             ];
 
@@ -144,8 +145,8 @@ class ResultAnalysisController extends Controller
                 // Sum all component marks for this student's subject
                 $score = $allComponentMarks->get($student->id, collect())->sum('score');
                 $gender = in_array(strtolower($student->gender), ['female', 'f']) ? 'female' : 'male';
-                $range  = $score <= 49 ? '0-49' : ($score <= 74 ? '50-74' : '75-100');
-                
+                $range = $score <= 49 ? '0-49' : ($score <= 74 ? '50-74' : '75-100');
+
                 $analysis[$range][$gender]++;
                 $analysis[$range]['total']++;
                 $analysis['total_students'][$gender]++;
@@ -164,8 +165,8 @@ class ResultAnalysisController extends Controller
 
             $sectionData[] = [
                 'assignment' => $relAssignment,
-                'analysis'   => $analysis,
-                'report'     => $report,
+                'analysis' => $analysis,
+                'report' => $report,
             ];
         }
 

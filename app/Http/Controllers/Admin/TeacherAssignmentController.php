@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Teachers\AssignTeacherAssignments;
 use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
+use App\Models\Division;
 use App\Models\Employee;
 use App\Models\Section;
 use App\Models\Subject;
 use App\Models\TeacherAssignment;
-use App\Models\User;
 use Illuminate\Http\Request;
-use App\Actions\Teachers\AssignTeacherAssignments;
 use Illuminate\Validation\ValidationException;
 
 class TeacherAssignmentController extends Controller
@@ -18,17 +18,17 @@ class TeacherAssignmentController extends Controller
     public function index(Request $request)
     {
         $activeYear = AcademicYear::where('is_active', true)->firstOrFail();
-        
+
         $query = Employee::teachers()->active()->with('user');
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('middle_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('employee_id', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('middle_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('employee_id', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
@@ -45,7 +45,7 @@ class TeacherAssignmentController extends Controller
     public function create()
     {
         $teachers = Employee::teachers()->active()->with('user')->get();
-        $divisions = \App\Models\Division::where('is_active', true)->get();
+        $divisions = Division::where('is_active', true)->get();
         $sections = Section::with('gradeLevel')->where('is_active', true)->get();
         $subjects = Subject::where('is_active', true)->get();
         $activeYear = AcademicYear::where('is_active', true)->firstOrFail();
@@ -68,7 +68,7 @@ class TeacherAssignmentController extends Controller
                 ->map(function ($group, $subjectId) {
                     return [
                         'subject_id' => $subjectId,
-                        'section_ids' => $group->pluck('section_id')->toArray()
+                        'section_ids' => $group->pluck('section_id')->toArray(),
                     ];
                 })->values()->toArray();
         }
@@ -105,6 +105,7 @@ class TeacherAssignmentController extends Controller
     public function destroy(TeacherAssignment $teacherAssignment)
     {
         $teacherAssignment->delete();
+
         return back()->with('success', 'Assignment removed.');
     }
 }

@@ -42,7 +42,7 @@ class DepartmentObserver
         // If there was an old head, check if they are head of any other department. If not, remove role.
         if ($oldHeadId) {
             $stillHead = Department::where('head_id', $oldHeadId)->exists();
-            if (!$stillHead) {
+            if (! $stillHead) {
                 $oldHeadUser = User::find($oldHeadId);
                 if ($oldHeadUser) {
                     $oldHeadUser->removeRole('Department Head');

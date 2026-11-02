@@ -3,9 +3,9 @@
 namespace App\Notifications;
 
 use App\Models\ExportRequest;
-use Illuminate\Notifications\Notification;
-use Illuminate\Notifications\Messages\MailMessage;
 use App\Traits\DeterminesChannels;
+use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
 
 class ReportCardExportReady extends Notification
 {
@@ -21,10 +21,10 @@ class ReportCardExportReady extends Notification
     public function toDatabase(object $notifiable): array
     {
         return [
-            'type'  => 'export',
+            'type' => 'export',
             'title' => 'Export ready for download',
-            'body'  => 'Your bulk report card export has finished processing and is ready.',
-            'url'   => route('admin.report-cards.download-export', $this->exportRequest),
+            'body' => 'Your bulk report card export has finished processing and is ready.',
+            'url' => route('admin.report-cards.download-export', $this->exportRequest),
         ];
     }
 

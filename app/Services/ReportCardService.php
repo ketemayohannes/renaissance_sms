@@ -2,19 +2,20 @@
 
 namespace App\Services;
 
+use App\Helpers\KindergartenGradeHelper;
+use App\Jobs\GenerateSectionReportCards;
+use App\Models\AcademicYear;
+use App\Models\ExportRequest;
 use App\Models\ReportCardSetting;
 use App\Models\Section;
-use App\Models\Term;
-use App\Models\AcademicYear;
 use App\Models\Student;
-use App\Models\StudentTermRecord;
+use App\Models\StudentAttendance;
 use App\Models\StudentPromotion;
-use App\Models\ExportRequest;
-use App\Jobs\GenerateSectionReportCards;
+use App\Models\StudentTermRecord;
+use App\Models\Term;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Collection;
 
 class ReportCardService
 {
@@ -32,7 +33,7 @@ class ReportCardService
     {
         return DB::transaction(function () use ($data, $logo) {
             $settings = ReportCardSetting::firstOrNew();
-            
+
             if ($logo) {
                 if ($settings->logo_path) {
                     Storage::disk('public')->delete($settings->logo_path);
@@ -56,6 +57,7 @@ class ReportCardService
             ];
 
             $settings->save();
+
             return $settings;
         });
     }
@@ -67,34 +69,34 @@ class ReportCardService
     {
         $settings = ReportCardSetting::firstOrNew();
         $config = $settings->yearly_config ?? [];
-        
+
         $config['evaluation_method'] = $data['evaluation_method'] ?? null;
         $config['remark'] = $data['remark'] ?? null;
         $config['principal_name'] = $data['principal_name'] ?? null;
         $config['parent_instructions'] = $data['parent_instructions'] ?? null;
-        
+
         $settings->yearly_config = $config;
         $settings->save();
-        
+
         return $settings;
     }
 
     /**
      * Store bulk data entry for students.
      */
-    public function storeDataEntry(int $termId, int $academicYearId, array $records, Section $section = null): void
+    public function storeDataEntry(int $termId, int $academicYearId, array $records, ?Section $section = null): void
     {
         DB::transaction(function () use ($termId, $academicYearId, $records) {
             foreach ($records as $studentId => $data) {
                 StudentTermRecord::updateOrCreate(
                     [
-                        'student_id' => $studentId, 
+                        'student_id' => $studentId,
                         'term_id' => $termId,
                     ],
                     [
                         'academic_year_id' => $academicYearId,
                         'conduct_grade' => $data['conduct'] ?? null,
-                        'days_absent' => (isset($data['absent']) && $data['absent'] !== '' && $data['absent'] !== null) ? (int)$data['absent'] : null,
+                        'days_absent' => (isset($data['absent']) && $data['absent'] !== '' && $data['absent'] !== null) ? (int) $data['absent'] : null,
                         'homeroom_teacher_comment' => $data['comment'] ?? null,
                     ]
                 );
@@ -103,7 +105,7 @@ class ReportCardService
 
         // Clear roster cache for this section and term
         if ($section) {
-            \App\Services\AcademicReportService::clearRosterCache($section->id, $termId, $academicYearId);
+            AcademicReportService::clearRosterCache($section->id, $termId, $academicYearId);
         }
     }
 
@@ -113,7 +115,7 @@ class ReportCardService
     public function getStudentReportParams(Student $student, $term, AcademicYear $academicYear): array
     {
         $reportData = $this->gradingService->getStudentReportData($student, $term, $academicYear);
-        $settings = ReportCardSetting::first() ?? new ReportCardSetting();
+        $settings = ReportCardSetting::first() ?? new ReportCardSetting;
 
         $isSemester = $reportData['isSemester'];
         $isYearly = $term->type === 'yearly';
@@ -130,7 +132,7 @@ class ReportCardService
         $semesters = $isYearly ? Term::where('academic_year_id', $academicYear->id)->where('type', 'semester')->orderBy('start_date')->get() : collect();
 
         $totalStudents = $reportData['rank_out_of'];
-        if (!$totalStudents || $totalStudents === '-' || $totalStudents === 0) {
+        if (! $totalStudents || $totalStudents === '-' || $totalStudents === 0) {
             $totalStudents = $reportData['section'] ? $reportData['section']->students()
                 ->wherePivot('academic_year_id', $academicYear->id)
                 ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated'])
@@ -156,12 +158,17 @@ class ReportCardService
         }
 
         // Filter and prepare subjects
-        $subjects = $reportData['subjects']->filter(function($subject) use ($reportData, $preparedQuarters, $preparedSemesters, $isSemester, $isYearly, $isGrade12, $enrolledElectiveIds) {
+        $subjects = $reportData['subjects']->filter(function ($subject) use ($reportData, $preparedQuarters, $preparedSemesters, $isSemester, $isYearly, $isGrade12, $enrolledElectiveIds) {
             if ($isGrade12 && $isYearly && $subject->is_elective) {
                 return in_array($subject->id, $enrolledElectiveIds);
             }
-            if ($isSemester) return isset($preparedQuarters['marks'][$subject->id]);
-            if ($isYearly) return isset($preparedSemesters['marks'][$subject->id]);
+            if ($isSemester) {
+                return isset($preparedQuarters['marks'][$subject->id]);
+            }
+            if ($isYearly) {
+                return isset($preparedSemesters['marks'][$subject->id]);
+            }
+
             return isset($reportData['marks'][$subject->id]);
         });
 
@@ -191,7 +198,7 @@ class ReportCardService
             'marks' => $reportData['marks'],
             'termRecord' => $reportData['record'],
             'settings' => $settings,
-            'isKindergarten' => \App\Helpers\KindergartenGradeHelper::isKindergarten($reportData['section']),
+            'isKindergarten' => KindergartenGradeHelper::isKindergarten($reportData['section']),
             'totalScore' => $reportData['totalScore'],
             'average' => $reportData['average'],
             'section' => $section,
@@ -223,7 +230,7 @@ class ReportCardService
     public function getSectionReportParams(Section $section, $term, AcademicYear $academicYear): array
     {
         $this->gradingService->recalculateSectionStatistics($section, $term, $academicYear);
-        
+
         $students = $section->students()
             ->wherePivot('academic_year_id', $academicYear->id)
             ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated'])
@@ -231,7 +238,7 @@ class ReportCardService
             ->get();
 
         $sectionReportData = $this->gradingService->getSectionReportData($students, $section, $term, $academicYear);
-        $settings = ReportCardSetting::first() ?? new ReportCardSetting();
+        $settings = ReportCardSetting::first() ?? new ReportCardSetting;
 
         $isSemester = $term->isSemester();
         $isYearly = $term->type === 'yearly';
@@ -274,16 +281,18 @@ class ReportCardService
                 ->where('academic_year_id', $academicYear->id)
                 ->get()
                 ->groupBy('student_id')
-                ->map(fn($group) => $group->pluck('subject_id')->toArray());
+                ->map(fn ($group) => $group->pluck('subject_id')->toArray());
         }
 
         $reportCards = [];
         foreach ($students as $student) {
             $reportData = $sectionReportData[$student->id] ?? null;
-            if (!$reportData) continue;
+            if (! $reportData) {
+                continue;
+            }
 
             $totalStudents = $reportData['rank_out_of'];
-            if (!$totalStudents || $totalStudents === '-' || $totalStudents === 0) {
+            if (! $totalStudents || $totalStudents === '-' || $totalStudents === 0) {
                 $totalStudents = $students->count();
             }
 
@@ -292,14 +301,23 @@ class ReportCardService
 
             $enrolledElectiveIds = $electiveEnrollments->get($student->id) ?? [];
 
-            $studentSubjects = $reportData['subjects']->filter(function($subject) use ($reportData, $preparedQuarters, $preparedSemesters, $isSemester, $isYearly, $isGrade12, $enrolledElectiveIds) {
+            $studentSubjects = $reportData['subjects']->filter(function ($subject) use ($reportData, $preparedQuarters, $preparedSemesters, $isSemester, $isYearly, $isGrade12, $enrolledElectiveIds) {
                 if ($isGrade12 && $isYearly && $subject->is_elective) {
                     return in_array($subject->id, $enrolledElectiveIds);
                 }
-                if (!$subject->is_elective) return true;
-                if (isset($reportData['marks'][$subject->id])) return true;
-                if ($isSemester && isset($preparedQuarters['marks'][$subject->id])) return !empty($preparedQuarters['marks'][$subject->id]);
-                if ($isYearly && isset($preparedSemesters['marks'][$subject->id])) return !empty($preparedSemesters['marks'][$subject->id]);
+                if (! $subject->is_elective) {
+                    return true;
+                }
+                if (isset($reportData['marks'][$subject->id])) {
+                    return true;
+                }
+                if ($isSemester && isset($preparedQuarters['marks'][$subject->id])) {
+                    return ! empty($preparedQuarters['marks'][$subject->id]);
+                }
+                if ($isYearly && isset($preparedSemesters['marks'][$subject->id])) {
+                    return ! empty($preparedSemesters['marks'][$subject->id]);
+                }
+
                 return false;
             });
 
@@ -323,17 +341,17 @@ class ReportCardService
                 'rank' => $reportData['rank'],
                 'studentSubjects' => $studentSubjects,
                 'studentQuarterMarks' => $preparedQuarters['marks'],
-                'studentQuarterStats' => collect($preparedQuarters['totals'])->map(fn($t, $id) => [
+                'studentQuarterStats' => collect($preparedQuarters['totals'])->map(fn ($t, $id) => [
                     'total' => $t,
                     'avg' => $preparedQuarters['averages'][$id],
-                    'rank' => $preparedQuarters['ranks'][$id]
+                    'rank' => $preparedQuarters['ranks'][$id],
                 ]),
                 'studentQuarterRecords' => collect($preparedQuarters['records']),
                 'studentSemesterMarks' => $preparedSemesters['marks'],
-                'studentSemesterStats' => collect($preparedSemesters['totals'])->map(fn($t, $id) => [
+                'studentSemesterStats' => collect($preparedSemesters['totals'])->map(fn ($t, $id) => [
                     'total' => $t,
                     'avg' => $preparedSemesters['averages'][$id],
-                    'rank' => $preparedSemesters['ranks'][$id]
+                    'rank' => $preparedSemesters['ranks'][$id],
                 ]),
                 'attendance' => $batchAttendance[$student->id][$term->id] ?? $this->getAttendanceSummary($student, $term, $academicYear),
                 'subTermAttendance' => $this->calculateSubTermAttendance($student, $quarters, $semesters, $isSemester, $isYearly, $academicYear, $batchAttendance),
@@ -349,7 +367,7 @@ class ReportCardService
             'subjects' => $section->gradeLevel->subjects()->orderByPivot('sort_order')->get(),
             'reportCards' => $reportCards,
             'settings' => $settings,
-            'isKindergarten' => \App\Helpers\KindergartenGradeHelper::isKindergarten($section),
+            'isKindergarten' => KindergartenGradeHelper::isKindergarten($section),
             'totalStudents' => $students->count(),
             'isSemester' => $isSemester,
             'isYearly' => $isYearly,
@@ -365,7 +383,7 @@ class ReportCardService
     {
         $section = Section::findOrFail($sectionId);
         $academicYear = AcademicYear::findOrFail($academicYearId);
-        
+
         if ($termId === 'yearly') {
             $term = new Term(['type' => 'yearly', 'name' => 'Yearly Report', 'academic_year_id' => $academicYearId]);
             $term->incrementing = false;
@@ -402,7 +420,7 @@ class ReportCardService
             }
             $data['totals'][$id] = $subTermData['total'];
             $data['averages'][$id] = $subTermData['average'];
-            $data['ranks'][$id] = ($subTermData['rank'] && $subTermData['rank'] !== '-') ? ($subTermData['rank'] . " / " . $totalStudents) : '-';
+            $data['ranks'][$id] = ($subTermData['rank'] && $subTermData['rank'] !== '-') ? ($subTermData['rank'].' / '.$totalStudents) : '-';
             $data['records'][$id] = $subTermData['record'] ?? null;
         }
 
@@ -412,19 +430,19 @@ class ReportCardService
     public function getBatchAttendanceSummary(iterable $students, iterable $terms, AcademicYear $academicYear): array
     {
         $studentIds = $students->pluck('id')->toArray();
-        $termIds = collect($terms)->pluck('id')->filter(fn($id) => $id !== 'yearly')->toArray();
+        $termIds = collect($terms)->pluck('id')->filter(fn ($id) => $id !== 'yearly')->toArray();
         $termObjects = collect($terms)->keyBy('id');
 
-        $query = \App\Models\StudentAttendance::whereIn('student_id', $studentIds)
+        $query = StudentAttendance::whereIn('student_id', $studentIds)
             ->where('academic_year_id', $academicYear->id);
 
         // If we only have specific terms, filter by their dates
-        // This is complex because each term has its own dates. 
-        // We'll fetch all attendance for the year and filter in PHP for simplicity and correctness 
+        // This is complex because each term has its own dates.
+        // We'll fetch all attendance for the year and filter in PHP for simplicity and correctness
         // unless the dataset is huge. Usually, attendance for one year is manageable.
-        
+
         $allAttendance = $query->get(['student_id', 'attendance_date', 'status']);
-        
+
         // Fetch all relevant StudentTermRecords for manual overrides
         $allRecords = StudentTermRecord::whereIn('student_id', $studentIds)
             ->whereIn('term_id', collect($terms)->pluck('id'))
@@ -435,7 +453,7 @@ class ReportCardService
         foreach ($students as $student) {
             $studentAttendance = $allAttendance->where('student_id', $student->id);
             $studentRecords = $allRecords->get($student->id, collect())->keyBy('term_id');
-            
+
             foreach ($terms as $term) {
                 $termAttendance = $studentAttendance;
                 if ($term->type !== 'yearly' && $term->id !== 'yearly') {
@@ -443,7 +461,7 @@ class ReportCardService
                 }
 
                 $stats = $termAttendance->groupBy('status')->map->count();
-                
+
                 $present = $stats['present'] ?? 0;
                 $automatedAbsent = $stats['absent'] ?? 0;
                 $late = $stats['late'] ?? 0;
@@ -460,7 +478,7 @@ class ReportCardService
                     'present' => $present,
                     'absent' => $absent,
                     'late' => $late,
-                    'excused' => $excused
+                    'excused' => $excused,
                 ];
             }
         }
@@ -470,7 +488,7 @@ class ReportCardService
 
     public function getAttendanceSummary(Student $student, $term, AcademicYear $academicYear): array
     {
-        $query = \App\Models\StudentAttendance::where('student_id', $student->id)
+        $query = StudentAttendance::where('student_id', $student->id)
             ->where('academic_year_id', $academicYear->id);
 
         if ($term->type !== 'yearly' && $term->id !== 'yearly') {
@@ -502,26 +520,26 @@ class ReportCardService
             'present' => $present,
             'absent' => $absent,
             'late' => $late,
-            'excused' => $excused
+            'excused' => $excused,
         ];
     }
 
     public function calculateSubTermAttendance(Student $student, $quarters, $semesters, bool $isSemester, bool $isYearly, AcademicYear $academicYear, array $batchAttendance = []): array
     {
         $subTermAttendance = [];
-        
+
         if (($isSemester || $isYearly) && $quarters) {
             foreach ($quarters as $q) {
                 $subTermAttendance[$q->id] = $batchAttendance[$student->id][$q->id] ?? $this->getAttendanceSummary($student, $q, $academicYear);
             }
         }
-        
+
         if ($isYearly && $semesters) {
-             foreach ($semesters as $s) {
-                 $subTermAttendance[$s->id] = $batchAttendance[$student->id][$s->id] ?? $this->getAttendanceSummary($student, $s, $academicYear);
-             }
+            foreach ($semesters as $s) {
+                $subTermAttendance[$s->id] = $batchAttendance[$student->id][$s->id] ?? $this->getAttendanceSummary($student, $s, $academicYear);
+            }
         }
-        
+
         return $subTermAttendance;
     }
 }

@@ -2,33 +2,38 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\AcademicYear;
+use App\Models\AssessmentTemplate;
+use App\Models\AssessmentTemplateAssignment;
+use App\Models\Division;
 use App\Models\GradeLevel;
 use App\Models\Section;
 use App\Models\Student;
+use App\Models\StudentEnrollment;
 use App\Models\Subject;
 use App\Models\Term;
-use App\Models\AssessmentTemplate;
-use App\Models\AssessmentTemplateAssignment;
+use App\Models\User;
+use Faker\Factory;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class TestScenarioSeeder extends Seeder
 {
     public function run(): void
     {
         $year = AcademicYear::where('is_active', true)->firstOrFail();
-        
+
         // 1. Setup Grade 12
         $grade12 = GradeLevel::where('name', 'Grade 12')->first();
-        if (!$grade12) {
+        if (! $grade12) {
             // Fallback if not seeded
-            $hs = \App\Models\Division::where('code', 'HS')->first();
+            $hs = Division::where('code', 'HS')->first();
             $grade12 = GradeLevel::create([
                 'code' => 'G12',
                 'name' => 'Grade 12',
                 'division_id' => $hs?->id,
-                'sort_order' => 12
+                'sort_order' => 12,
             ]);
         }
 
@@ -39,21 +44,21 @@ class TestScenarioSeeder extends Seeder
         );
 
         // 3. Create Students
-        $faker = \Faker\Factory::create();
+        $faker = Factory::create();
         for ($i = 1; $i <= 20; $i++) {
-            $studentId = 'STU-' . $year->name . '-' . str_pad($i, 4, '0', STR_PAD_LEFT);
-            $email = 'student' . $i . '@renaissance.edu.et';
-            
+            $studentId = 'STU-'.$year->name.'-'.str_pad($i, 4, '0', STR_PAD_LEFT);
+            $email = 'student'.$i.'@renaissance.edu.et';
+
             // Create User
-            $user = \App\Models\User::firstOrCreate(
+            $user = User::firstOrCreate(
                 ['email' => $email],
                 [
                     'name' => $faker->name,
-                    'password' => \Illuminate\Support\Facades\Hash::make('password'),
+                    'password' => Hash::make('password'),
                 ]
             );
             $user->assignRole('Student');
-            
+
             $student = Student::firstOrCreate(
                 ['student_id' => $studentId],
                 [
@@ -63,7 +68,7 @@ class TestScenarioSeeder extends Seeder
                     'grandfather_name' => $faker->firstNameMale,
                     'middle_name' => $faker->firstNameMale, // Redundant but required by schema
                     'last_name' => $faker->lastName,
-                    'admission_number' => 'ADM-' . $year->name . '-' . str_pad($i, 4, '0', STR_PAD_LEFT),
+                    'admission_number' => 'ADM-'.$year->name.'-'.str_pad($i, 4, '0', STR_PAD_LEFT),
                     'gender' => $faker->randomElement(['M', 'F']),
                     'date_of_birth' => $faker->date('Y-m-d', '-18 years'),
                     'admission_date' => now(),
@@ -72,7 +77,7 @@ class TestScenarioSeeder extends Seeder
             );
 
             // Create Enrollment
-            \App\Models\StudentEnrollment::firstOrCreate(
+            StudentEnrollment::firstOrCreate(
                 [
                     'student_id' => $student->id,
                     'academic_year_id' => $year->id,
@@ -86,11 +91,11 @@ class TestScenarioSeeder extends Seeder
         }
 
         // Recalculate Roll Numbers
-        \App\Models\StudentEnrollment::recalculateRollNumbers($section->id, $year->id);
+        StudentEnrollment::recalculateRollNumbers($section->id, $year->id);
 
         // 4. Setup Subject (Biology)
         $biology = Subject::where('code', 'BIO')->first();
-        if (!$biology) {
+        if (! $biology) {
             $biology = Subject::create(['name' => 'Biology', 'code' => 'BIO']);
         }
 
@@ -111,14 +116,14 @@ class TestScenarioSeeder extends Seeder
         ];
 
         $term = Term::where('academic_year_id', $year->id)->where('name', 'Quarter 1')->first();
-        if (!$term) {
+        if (! $term) {
             $term = Term::create([
-                'name' => 'Quarter 1', 
+                'name' => 'Quarter 1',
                 'academic_year_id' => $year->id,
                 'type' => 'quarter',
                 'term_number' => 1,
                 'start_date' => now(),
-                'end_date' => now()->addMonths(2)
+                'end_date' => now()->addMonths(2),
             ]);
         }
 
@@ -132,7 +137,7 @@ class TestScenarioSeeder extends Seeder
                 [
                     'max_score' => $tpl['max_score'],
                     'weight' => $tpl['weight'],
-                    'description' => $tpl['name'] . ' for ' . $year->name,
+                    'description' => $tpl['name'].' for '.$year->name,
                     'is_active' => true,
                     'order' => $idx + 1,
                 ]

@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Subject;
 use App\Models\GradeLevel;
+use App\Models\Subject;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -13,6 +13,7 @@ class SubjectController extends Controller
     public function index()
     {
         $subjects = Subject::orderBy('sort_order')->get();
+
         return view('admin.subjects.index', compact('subjects'));
     }
 
@@ -32,7 +33,7 @@ class SubjectController extends Controller
 
         $data = $request->all();
         $data['is_elective'] = $request->has('is_elective');
-        
+
         Subject::create($data);
 
         return redirect()->route('admin.subjects.index')
@@ -48,7 +49,7 @@ class SubjectController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'code' => 'required|string|max:20|unique:subjects,code,' . $subject->id,
+            'code' => 'required|string|max:20|unique:subjects,code,'.$subject->id,
             'description' => 'nullable|string',
             'is_active' => 'boolean',
             'is_elective' => 'boolean',
@@ -122,16 +123,16 @@ class SubjectController extends Controller
 
         $columns = ['name', 'code', 'description', 'is_elective', 'sort_order'];
 
-        $callback = function() use ($columns) {
+        $callback = function () use ($columns) {
             $file = fopen('php://output', 'w');
             fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM
             fwrite($file, "sep=,\n");
             fputcsv($file, $columns);
-            
+
             // Sample rows
             fputcsv($file, ['Mathematics', 'MAT101', 'Core mathematics subject', '0', '1']);
             fputcsv($file, ['Art and Crafts', 'ART01', 'Elective art subject', '1', '10']);
-            
+
             fclose($file);
         };
 
@@ -147,10 +148,10 @@ class SubjectController extends Controller
         try {
             $file = $request->file('file');
             $path = $file->getRealPath();
-            
+
             ini_set('auto_detect_line_endings', true);
             $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-            
+
             if (empty($lines)) {
                 return back()->with('error', 'The file is empty.');
             }
@@ -162,19 +163,19 @@ class SubjectController extends Controller
 
             // Determine delimiter
             $delimiter = strpos($lines[0], ';') !== false ? ';' : ',';
-            
+
             // Handle BOM
             if (strpos($lines[0], "\xEF\xBB\xBF") === 0) {
                 $lines[0] = substr($lines[0], 3);
             }
 
-            $data = array_map(fn($line) => str_getcsv($line, $delimiter), $lines);
+            $data = array_map(fn ($line) => str_getcsv($line, $delimiter), $lines);
             $header = array_map('trim', array_shift($data));
             $expectedColumns = ['name', 'code', 'description', 'is_elective', 'sort_order'];
-            
+
             // Basic validation of header
             foreach ($expectedColumns as $col) {
-                if (!in_array($col, $header)) {
+                if (! in_array($col, $header)) {
                     return back()->with('error', "Missing required column: {$col}");
                 }
             }
@@ -185,23 +186,27 @@ class SubjectController extends Controller
 
             DB::beginTransaction();
             foreach ($data as $index => $row) {
-                if (empty(array_filter($row))) continue;
+                if (empty(array_filter($row))) {
+                    continue;
+                }
 
-                $getRowVal = function($key) use ($row, $headerMap) {
+                $getRowVal = function ($key) use ($row, $headerMap) {
                     return isset($row[$headerMap[$key]]) ? trim($row[$headerMap[$key]]) : null;
                 };
 
                 $name = $getRowVal('name');
                 $code = $getRowVal('code');
-                
+
                 if (empty($name) || empty($code)) {
-                    $errors[] = "Row " . ($index + 2) . ": Name and Code are required.";
+                    $errors[] = 'Row '.($index + 2).': Name and Code are required.';
+
                     continue;
                 }
 
                 // Check for duplicate code
                 if (Subject::where('code', $code)->exists()) {
-                    $errors[] = "Row " . ($index + 2) . ": Subject code '{$code}' already exists.";
+                    $errors[] = 'Row '.($index + 2).": Subject code '{$code}' already exists.";
+
                     continue;
                 }
 
@@ -220,7 +225,7 @@ class SubjectController extends Controller
             DB::commit();
 
             $message = "Import completed. {$successCount} subjects imported successfully.";
-            if (!empty($errors)) {
+            if (! empty($errors)) {
                 return redirect()->route('admin.subjects.index')
                     ->with('success', $message)
                     ->with('import_errors', $errors);
@@ -230,7 +235,8 @@ class SubjectController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Import failed: ' . $e->getMessage());
+
+            return back()->with('error', 'Import failed: '.$e->getMessage());
         }
     }
 }

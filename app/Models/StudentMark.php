@@ -4,15 +4,14 @@ namespace App\Models;
 
 use App\Services\GradeCacheService;
 use App\Traits\Auditable;
+use App\Traits\HasDivisionRestriction;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-use App\Traits\HasDivisionRestriction;
-
 class StudentMark extends Model
 {
-    use HasFactory, Auditable, HasDivisionRestriction;
+    use Auditable, HasDivisionRestriction, HasFactory;
 
     protected static function booted(): void
     {

@@ -26,12 +26,12 @@ class DisciplineEscalationService
         $rules = EscalationRule::active()
             ->where(function ($q) use ($infraction) {
                 $q->where('infraction_definition_id', $infraction->id)
-                  ->orWhere(function ($q2) use ($infraction) {
-                      $q2->whereNull('infraction_definition_id')
-                         ->where('tier', $infraction->tier);
-                  });
+                    ->orWhere(function ($q2) use ($infraction) {
+                        $q2->whereNull('infraction_definition_id')
+                            ->where('tier', $infraction->tier);
+                    });
             })
-            ->orderByRaw("CASE WHEN infraction_definition_id IS NOT NULL THEN 0 ELSE 1 END")
+            ->orderByRaw('CASE WHEN infraction_definition_id IS NOT NULL THEN 0 ELSE 1 END')
             ->orderBy('occurrence_threshold', 'desc') // highest threshold first
             ->get();
 
@@ -52,6 +52,7 @@ class DisciplineEscalationService
             // Count includes the current record
             if ($count >= $rule->occurrence_threshold) {
                 $this->applyEscalation($record, $rule);
+
                 return $rule;
             }
         }
@@ -88,7 +89,7 @@ class DisciplineEscalationService
     private function applyEscalation(DisciplinaryRecord $record, EscalationRule $rule): void
     {
         $updates = [
-            'escalation_rule_id'        => $rule->id,
+            'escalation_rule_id' => $rule->id,
             'escalation_action_applied' => $rule->escalation_action,
         ];
 

@@ -2,14 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
+use App\Traits\HasDivisionRestriction;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Traits\HasDivisionRestriction;
-use App\Traits\Auditable;
 
 class AcademicActivity extends Model
 {
-    use HasFactory, HasDivisionRestriction, Auditable;
+    use Auditable, HasDivisionRestriction, HasFactory;
 
     protected $fillable = [
         'teacher_assignment_id',

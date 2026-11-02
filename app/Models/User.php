@@ -3,27 +3,29 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Helpers\CachedData;
+use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use App\Models\StudentGuardian;
-use App\Models\Student;
-use App\Models\Conversation;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Crypt;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, \Spatie\Permission\Traits\HasRoles;
 
     protected static function booted()
     {
-        static::saved(function() {
-            \Illuminate\Support\Facades\Cache::forget('admin_dashboard_stats');
-            \App\Helpers\CachedData::flushEmployeeCache();
+        static::saved(function () {
+            Cache::forget('admin_dashboard_stats');
+            CachedData::flushEmployeeCache();
         });
-        static::deleted(function() {
-            \Illuminate\Support\Facades\Cache::forget('admin_dashboard_stats');
-            \App\Helpers\CachedData::flushEmployeeCache();
+        static::deleted(function () {
+            Cache::forget('admin_dashboard_stats');
+            CachedData::flushEmployeeCache();
         });
     }
 
@@ -78,22 +80,22 @@ class User extends Authenticatable
      * that were written as plaintext (before the encryption migration) are
      * returned as-is so the app keeps working during rollout.
      */
-    protected function tempPassword(): \Illuminate\Database\Eloquent\Casts\Attribute
+    protected function tempPassword(): Attribute
     {
-        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+        return Attribute::make(
             get: function ($value) {
                 if ($value === null || $value === '') {
                     return $value;
                 }
                 try {
-                    return \Illuminate\Support\Facades\Crypt::decryptString($value);
+                    return Crypt::decryptString($value);
                 } catch (\Throwable $e) {
                     return $value; // legacy plaintext, not yet migrated
                 }
             },
             set: fn ($value) => ($value === null || $value === '')
                 ? $value
-                : \Illuminate\Support\Facades\Crypt::encryptString($value),
+                : Crypt::encryptString($value),
         );
     }
 
@@ -128,9 +130,9 @@ class User extends Authenticatable
     public function conversations()
     {
         return $this->belongsToMany(Conversation::class, 'conversation_participants')
-                    ->withPivot(['is_admin', 'joined_at'])
-                    ->withTimestamps()
-                    ->latest('conversations.updated_at');
+            ->withPivot(['is_admin', 'joined_at'])
+            ->withTimestamps()
+            ->latest('conversations.updated_at');
     }
 
     /**
@@ -152,6 +154,7 @@ class User extends Authenticatable
         if ($this->employee()->exists()) {
             return $this->employee()->first()->phone;
         }
+
         return null;
     }
 }

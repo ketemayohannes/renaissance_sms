@@ -19,10 +19,10 @@ return new class extends Migration
             $table->integer('day_of_week')->comment('1=Monday, 7=Sunday');
             $table->foreignId('teacher_assignment_id')->constrained()->cascadeOnDelete();
             $table->string('room_number')->nullable();
-            
+
             // A section can only have one assigned activity during a specific period on a specific day
             $table->unique(['academic_year_id', 'section_id', 'day_of_week', 'class_period_id'], 'uq_timetable_slot');
-            
+
             $table->timestamps();
         });
     }
