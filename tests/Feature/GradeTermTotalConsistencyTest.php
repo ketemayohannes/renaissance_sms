@@ -108,8 +108,10 @@ class GradeTermTotalConsistencyTest extends TestCase
 
         // Rendered total is the component sum, not the doubled value. The view uses
         // NumberFormatter (matching the report card), which trims trailing zeros.
-        $response->assertSee('73');
-        $response->assertDontSee('146');
+        // Match only the "Total Score" cells: a page-wide assertDontSee('146') is flaky
+        // because random factory data and tokens elsewhere on the page can contain "146".
+        preg_match_all('/>\s*([\d.]+)\s*<\/span>\s*<div[^>]*>Total Score</', $response->getContent(), $totals);
+        $this->assertSame(['73'], $totals[1]);
     }
 
     /** @test */
