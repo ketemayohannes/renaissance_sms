@@ -69,7 +69,7 @@ class AcademicReportService
      */
     public function prepareRosterData(Section $section, $term, AcademicYear $academicYear): array
     {
-        return app(GradeCacheService::class)->getRosterData(
+        $data = app(GradeCacheService::class)->getRosterData(
             (int) $section->id,
             $term->id,
             (int) $academicYear->id,
@@ -178,6 +178,47 @@ class AcademicReportService
                 'isKindergarten' => \App\Helpers\KindergartenGradeHelper::isKindergarten($section),
             ];
         });
+
+        // Promotion decisions are attached outside the cache: they are made (and can be
+        // reversed) after grades are final, so a cached roster must not freeze them.
+        if ($term->type === 'yearly' && ! $data['isKindergarten']) {
+            $data['reports'] = $this->attachPromotionRemarks($data['reports'], $academicYear);
+        }
+
+        return $data;
+    }
+
+    /**
+     * Add a 'remark' (e.g. "Promoted to 12", "Retained in 11", "Graduated") to each
+     * yearly roster row from that student's promotion decision for this academic year.
+     */
+    private function attachPromotionRemarks(array $reports, AcademicYear $academicYear): array
+    {
+        $studentIds = array_map(fn ($r) => $r['student']->id, $reports);
+
+        $promotions = \App\Models\StudentPromotion::with('toGradeLevel')
+            ->whereIn('student_id', $studentIds)
+            ->where('from_academic_year_id', $academicYear->id)
+            ->get()
+            ->keyBy('student_id');
+
+        foreach ($reports as &$report) {
+            $promo = $promotions->get($report['student']->id);
+            $grade = $promo && $promo->toGradeLevel
+                ? str_replace('Grade ', '', trim(preg_replace('/\s*\(.*?\)/', '', $promo->toGradeLevel->name)))
+                : null;
+
+            $report['remark'] = match ($promo?->status) {
+                'promoted' => $grade ? "Promoted to {$grade}" : 'Promoted',
+                'retained' => $grade ? "Retained in {$grade}" : 'Retained',
+                'graduated' => 'Graduated',
+                null => '',
+                default => ucfirst($promo->status),
+            };
+        }
+        unset($report);
+
+        return $reports;
     }
 
     private function prepareStudentRosterRow($student, $term, $academicYear, $subjects, array $reportData, array $studentAttendance = []): array

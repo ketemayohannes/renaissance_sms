@@ -45,6 +45,7 @@
                 $isSem = $term->isSemester();
                 $isYearly = ($term->type === 'yearly');
                 $isKG = $isKindergarten ?? false;
+                $showRemark = $isYearly && !$isKG;
                 $subjectCount = count($subjects);
                 // Width calculations
                 // For KG: each subject has 2 columns (score + grade), no total/avg/rank
@@ -52,7 +53,7 @@
                     $fixedWidth = 3 + 22 + 3 + ($isYearly || $isSem ? 6 : 0) + 3 + 3;
                     $subjectColCount = $subjectCount * 2;
                 } else {
-                    $fixedWidth = 3 + 22 + 3 + ($isYearly || $isSem ? 6 : 0) + 5 + 5 + 3 + 3 + 4;
+                    $fixedWidth = 3 + 22 + 3 + ($isYearly || $isSem ? 6 : 0) + 5 + 5 + 3 + 3 + 4 + ($showRemark ? 3 : 0);
                     $subjectColCount = $subjectCount;
                 }
                 $subjectWidth = ($subjectColCount > 0) ? (100 - $fixedWidth) / $subjectColCount : 0;
@@ -147,6 +148,9 @@
                             @if(!$isKG)
                             <col style="width: 4%;"><!-- Rank -->
                             @endif
+                            @if($showRemark)
+                            <col style="width: 3%;"><!-- Remark -->
+                            @endif
                         </colgroup>
                         <thead>
                             <tr class="header-row">
@@ -157,11 +161,11 @@
                                 <th class="p-0 text-center"><div class="vertical-text">Term</div></th>
                                 @endif
                                 @foreach($subjects as $subject)
-                                    <th class="p-0 h-28 relative text-center align-bottom pb-1">
+                                    <th class="p-0 h-28 relative text-center align-middle">
                                         <div class="vertical-text">{{ $subject->name }}</div>
                                     </th>
                                     @if($isKG)
-                                    <th class="p-0 h-28 relative text-center align-bottom pb-1">
+                                    <th class="p-0 h-28 relative text-center align-middle">
                                         <div class="vertical-text">{{ $subject->name }} Grade</div>
                                     </th>
                                     @endif
@@ -174,6 +178,9 @@
                                 <th class="p-0 text-center"><div class="vertical-text">Absence</div></th>
                                 @if(!$isKG)
                                 <th class="p-0 text-center"><div class="vertical-text">Rank</div></th>
+                                @endif
+                                @if($showRemark)
+                                <th class="p-0 text-center"><div class="vertical-text">Remark</div></th>
                                 @endif
                             </tr>
                         </thead>
@@ -242,6 +249,9 @@
                                             <td class="p-0.5 text-center text-[10px] {{ $isSemM ? 'bg-gray-100' : '' }} {{ $isAyp ? 'border-b-[2pt] border-black bg-gray-300' : '' }}">{{ $report['rows'][$type]['absence'] ?? '_' }}</td>
                                             @if(!$isKG)
                                             <td class="p-0.5 text-center font-black text-[10px] {{ $isSemM ? 'bg-gray-100' : '' }} {{ $isAyp ? 'border-b-[2pt] border-black bg-gray-300' : '' }}">{{ $report['rows'][$type]['rank'] ?? '-' }}</td>
+                                            @endif
+                                            @if($showRemark && $rowIndex === 0)
+                                                <td rowspan="7" class="p-0 text-center align-middle border-b-[2pt] border-black"><div class="vertical-text" style="white-space: nowrap;">{{ $report['remark'] ?? '' }}</div></td>
                                             @endif
                                         </tr>
                                     @endforeach
@@ -329,7 +339,7 @@
             font-size: 11px;
             line-height: 0.95;
             margin: 0 auto;
-            text-align: left;
+            text-align: center;
             max-height: 140px;
             color: black;
             text-transform: uppercase;
