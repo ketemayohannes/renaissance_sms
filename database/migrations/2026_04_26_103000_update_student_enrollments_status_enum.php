@@ -1,12 +1,11 @@
 <?php
+
 /**
  * Migration to update student_enrollments status enum.
  * Created to fix 500 error during student withdrawal and promotion.
  */
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 
 return new class extends Migration

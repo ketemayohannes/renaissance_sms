@@ -11,6 +11,7 @@ class DivisionController extends Controller
     public function index()
     {
         $divisions = Division::withCount('gradeLevels')->orderBy('sort_order')->get();
+
         return view('admin.divisions.index', compact('divisions'));
     }
 
@@ -43,7 +44,7 @@ class DivisionController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'code' => 'required|string|max:10|unique:divisions,code,' . $division->id,
+            'code' => 'required|string|max:10|unique:divisions,code,'.$division->id,
             'description' => 'nullable|string',
             'sort_order' => 'required|integer|min:0',
             'is_active' => 'boolean',

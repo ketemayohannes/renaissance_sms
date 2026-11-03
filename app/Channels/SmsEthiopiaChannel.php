@@ -2,8 +2,8 @@
 
 namespace App\Channels;
 
-use Illuminate\Notifications\Notification;
 use App\Services\SmsService;
+use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
 
 class SmsEthiopiaChannel
@@ -12,7 +12,7 @@ class SmsEthiopiaChannel
 
     public function send(object $notifiable, Notification $notification): void
     {
-        if (!method_exists($notification, 'toSms')) {
+        if (! method_exists($notification, 'toSms')) {
             return;
         }
 
@@ -35,7 +35,8 @@ class SmsEthiopiaChannel
         }
 
         if (empty($phone)) {
-            Log::warning("SmsEthiopiaChannel: No phone number found for notifiable class " . get_class($notifiable));
+            Log::warning('SmsEthiopiaChannel: No phone number found for notifiable class '.get_class($notifiable));
+
             return;
         }
 

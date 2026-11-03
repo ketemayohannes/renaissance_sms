@@ -4,14 +4,15 @@ namespace App\Models;
 
 use App\Services\GradeCacheService;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class StudentEnrollment extends Model
 {
     protected static function booted()
     {
         // Dashboard widget cache
-        static::saved(fn()  => \Illuminate\Support\Facades\Cache::forget('admin_dashboard_students_by_grade'));
-        static::deleted(fn() => \Illuminate\Support\Facades\Cache::forget('admin_dashboard_students_by_grade'));
+        static::saved(fn () => Cache::forget('admin_dashboard_students_by_grade'));
+        static::deleted(fn () => Cache::forget('admin_dashboard_students_by_grade'));
 
         // Grade / roster cache — runs BEFORE save so we capture the original section_id
         static::updating(function (self $enrollment): void {
@@ -65,7 +66,7 @@ class StudentEnrollment extends Model
             return $value;
         }
 
-        if (!$this->section_id || !$this->academic_year_id) {
+        if (! $this->section_id || ! $this->academic_year_id) {
             return null;
         }
 

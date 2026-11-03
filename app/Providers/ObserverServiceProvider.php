@@ -2,11 +2,11 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
-use App\Models\Section;
 use App\Models\Department;
-use App\Observers\SectionObserver;
+use App\Models\Section;
 use App\Observers\DepartmentObserver;
+use App\Observers\SectionObserver;
+use Illuminate\Support\ServiceProvider;
 
 class ObserverServiceProvider extends ServiceProvider
 {

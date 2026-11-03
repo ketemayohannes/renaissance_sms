@@ -2,9 +2,6 @@
 
 namespace App\Jobs;
 
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Queue\Queueable;
-
 use App\Models\AcademicYear;
 use App\Models\ExportRequest;
 use App\Models\ReportCardSetting;
@@ -14,7 +11,11 @@ use App\Models\Term;
 use App\Models\User;
 use App\Notifications\ReportCardExportReady;
 use App\Services\GradingService;
+use App\Services\ReportCardService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class GenerateSectionReportCards implements ShouldQueue
@@ -22,8 +23,11 @@ class GenerateSectionReportCards implements ShouldQueue
     use Queueable;
 
     public $exportRequest;
+
     public $section;
+
     public $term;
+
     public $academicYear;
 
     /**
@@ -54,22 +58,22 @@ class GenerateSectionReportCards implements ShouldQueue
             $sectionReportData = $gradingService->getSectionReportData($students, $this->section, $this->term, $this->academicYear);
             $settings = ReportCardSetting::first();
 
-            $zipName = "report_cards_{$this->section->name}_{$this->term->name}_" . time() . ".zip";
+            $zipName = "report_cards_{$this->section->name}_{$this->term->name}_".time().'.zip';
             // Store on the PRIVATE disk (storage/app/private) — report cards contain
             // student PII/grades and must not be web-accessible via public/storage.
             $zipPath = storage_path("app/private/exports/{$zipName}");
 
             // Ensure the private exports directory exists
-            $exportsDir = storage_path("app/private/exports");
-            if (!file_exists($exportsDir)) {
+            $exportsDir = storage_path('app/private/exports');
+            if (! file_exists($exportsDir)) {
                 mkdir($exportsDir, 0755, true);
             }
 
             // Create a temporary directory for PDFs
-            $tempDirName = "temp_" . time() . "_" . uniqid();
+            $tempDirName = 'temp_'.time().'_'.uniqid();
             $tempDirPath = storage_path("app/private/exports/{$tempDirName}");
-            
-            if (!file_exists($tempDirPath)) {
+
+            if (! file_exists($tempDirPath)) {
                 mkdir($tempDirPath, 0755, true);
             }
 
@@ -87,29 +91,31 @@ class GenerateSectionReportCards implements ShouldQueue
             }
             $semesters = $isYearly ? Term::where('academic_year_id', $this->academicYear->id)->where('type', 'semester')->orderBy('start_date')->get() : collect();
 
-            $reportCardService = app(\App\Services\ReportCardService::class);
+            $reportCardService = app(ReportCardService::class);
             $targetTermsForAttendance = collect([$this->term])->concat($quarters)->concat($semesters)->unique('id');
             $batchAttendance = $reportCardService->getBatchAttendanceSummary($students, $targetTermsForAttendance, $this->academicYear);
 
             foreach ($students as $student) {
                 $reportData = $sectionReportData[$student->id] ?? null;
-                if (!$reportData) continue;
+                if (! $reportData) {
+                    continue;
+                }
 
                 $viewData = $this->prepareViewData($reportData, $isSemester, $isYearly, $batchAttendance);
-                
+
                 $view = $isYearly ? 'admin.report-cards.yearly-pdf' : 'admin.report-cards.pdf';
                 $pdf = Pdf::loadView($view, $viewData)->setPaper('a4', 'portrait');
-                
+
                 $filename = "{$student->student_id}_{$student->first_name}_{$student->last_name}.pdf";
                 // Clean filename for safety
                 $filename = preg_replace('/[^A-Za-z0-9_\-\.]/', '_', $filename);
-                file_put_contents($tempDirPath . DIRECTORY_SEPARATOR . $filename, $pdf->output());
+                file_put_contents($tempDirPath.DIRECTORY_SEPARATOR.$filename, $pdf->output());
             }
 
             // Use PHP native ZipArchive to zip the folder
-            $zip = new \ZipArchive();
+            $zip = new \ZipArchive;
             if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === true) {
-                $files = glob($tempDirPath . DIRECTORY_SEPARATOR . '*');
+                $files = glob($tempDirPath.DIRECTORY_SEPARATOR.'*');
                 foreach ($files as $file) {
                     if (is_file($file)) {
                         $zip->addFile($file, basename($file));
@@ -119,21 +125,23 @@ class GenerateSectionReportCards implements ShouldQueue
             } else {
                 throw new \Exception("Failed to generate ZIP file via PHP ZipArchive. Please ensure 'zip' extension is enabled in PHP.");
             }
-            
+
             // Cleanup temp directory
-            $files = glob($tempDirPath . DIRECTORY_SEPARATOR . '*');
+            $files = glob($tempDirPath.DIRECTORY_SEPARATOR.'*');
             foreach ($files as $file) {
-                if (is_file($file)) unlink($file);
+                if (is_file($file)) {
+                    unlink($file);
+                }
             }
             rmdir($tempDirPath);
 
-            if (!file_exists($zipPath)) {
-                throw new \Exception("Failed to generate ZIP file. Please contact support.");
+            if (! file_exists($zipPath)) {
+                throw new \Exception('Failed to generate ZIP file. Please contact support.');
             }
 
             $this->exportRequest->update([
-                'status'       => 'completed',
-                'file_path'    => "exports/{$zipName}",
+                'status' => 'completed',
+                'file_path' => "exports/{$zipName}",
                 'completed_at' => now(),
             ]);
 
@@ -146,7 +154,7 @@ class GenerateSectionReportCards implements ShouldQueue
         } catch (\Exception $e) {
             $this->exportRequest->update([
                 'status' => 'failed',
-                'error_message' => $e->getMessage()
+                'error_message' => $e->getMessage(),
             ]);
             throw $e;
         }
@@ -165,13 +173,13 @@ class GenerateSectionReportCards implements ShouldQueue
         $average = $reportData['average'];
         $rank = $reportData['rank'];
         $totalStudents = $reportData['rank_out_of'];
-        if (!$totalStudents || $totalStudents === '-' || $totalStudents === 0) {
+        if (! $totalStudents || $totalStudents === '-' || $totalStudents === 0) {
             $totalStudents = $section->students()
                 ->wherePivot('academic_year_id', $academicYear->id)
                 ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated'])
                 ->count();
         }
-        
+
         $quarters = collect();
         if ($isSemester) {
             $quarters = $term->quarters()->orderBy('term_number')->get();
@@ -189,7 +197,7 @@ class GenerateSectionReportCards implements ShouldQueue
         $quarterAverages = [];
         $quarterRanks = [];
         $quarterRecords = [];
-        
+
         if ($isSemester || $isYearly) {
             foreach ($reportData['quarters'] as $qId => $qData) {
                 foreach ($qData['marks'] as $subId => $score) {
@@ -197,7 +205,7 @@ class GenerateSectionReportCards implements ShouldQueue
                 }
                 $quarterTotals[$qId] = $qData['total'];
                 $quarterAverages[$qId] = $qData['average'];
-                $quarterRanks[$qId] = ($qData['rank'] && $qData['rank'] !== '-') ? ($qData['rank'] . " / " . $totalStudents) : '-';
+                $quarterRanks[$qId] = ($qData['rank'] && $qData['rank'] !== '-') ? ($qData['rank'].' / '.$totalStudents) : '-';
                 $quarterRecords[$qId] = $qData['record'];
             }
         }
@@ -213,7 +221,7 @@ class GenerateSectionReportCards implements ShouldQueue
                 }
                 $semesterTotals[$sId] = $sData['total'];
                 $semesterAverages[$sId] = $sData['average'];
-                $semesterRanks[$sId] = ($sData['rank'] && $sData['rank'] !== '-') ? ($sData['rank'] . " / " . $totalStudents) : '-';
+                $semesterRanks[$sId] = ($sData['rank'] && $sData['rank'] !== '-') ? ($sData['rank'].' / '.$totalStudents) : '-';
             }
         }
 
@@ -224,7 +232,7 @@ class GenerateSectionReportCards implements ShouldQueue
 
         $enrolledElectiveIds = [];
         if ($isGrade12 && $isYearly) {
-            $enrolledElectiveIds = \Illuminate\Support\Facades\DB::table('student_electives')
+            $enrolledElectiveIds = DB::table('student_electives')
                 ->where('student_id', $student->id)
                 ->where('academic_year_id', $academicYear->id)
                 ->pluck('subject_id')
@@ -232,16 +240,21 @@ class GenerateSectionReportCards implements ShouldQueue
         }
 
         // Filter Subjects (Remove those without marks in any pertinent term)
-        $subjects = $subjects->filter(function($subject) use ($marks, $quarterMarks, $semesterMarks, $isSemester, $isYearly, $isGrade12, $enrolledElectiveIds) {
+        $subjects = $subjects->filter(function ($subject) use ($marks, $quarterMarks, $semesterMarks, $isSemester, $isYearly, $isGrade12, $enrolledElectiveIds) {
             if ($isGrade12 && $isYearly && $subject->is_elective) {
                 return in_array($subject->id, $enrolledElectiveIds);
             }
-            if ($isSemester) return isset($quarterMarks[$subject->id]);
-            if ($isYearly) return isset($semesterMarks[$subject->id]);
+            if ($isSemester) {
+                return isset($quarterMarks[$subject->id]);
+            }
+            if ($isYearly) {
+                return isset($semesterMarks[$subject->id]);
+            }
+
             return isset($marks[$subject->id]);
         });
 
-        $reportCardService = app(\App\Services\ReportCardService::class);
+        $reportCardService = app(ReportCardService::class);
         $attendance = $batchAttendance[$student->id][$term->id] ?? $reportCardService->getAttendanceSummary($student, $term, $academicYear);
         $subTermAttendance = $reportCardService->calculateSubTermAttendance($student, $quarters, $semesters, $isSemester, $isYearly, $academicYear, $batchAttendance);
 

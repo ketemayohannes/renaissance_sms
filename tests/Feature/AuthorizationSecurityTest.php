@@ -2,18 +2,19 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
 use App\Models\AcademicActivity;
-use App\Models\TeacherAssignment;
-use App\Models\Section;
-use App\Models\Student;
 use App\Models\AcademicYear;
 use App\Models\GradeLevel;
 use App\Models\Notice;
-use App\Models\StudentGuardian;
+use App\Models\Section;
+use App\Models\Student;
+use App\Models\Subject;
+use App\Models\TeacherAssignment;
+use App\Models\User;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 class AuthorizationSecurityTest extends TestCase
@@ -25,10 +26,10 @@ class AuthorizationSecurityTest extends TestCase
         parent::setUp();
 
         // Reset cached roles and permissions
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         // Seed roles and permissions
-        $this->seed(\Database\Seeders\RolePermissionSeeder::class);
+        $this->seed(RolePermissionSeeder::class);
     }
 
     /**
@@ -38,6 +39,7 @@ class AuthorizationSecurityTest extends TestCase
     {
         $user = User::factory()->create();
         $user->assignRole($roleName);
+
         return $user;
     }
 
@@ -266,7 +268,7 @@ class AuthorizationSecurityTest extends TestCase
         // Setup academic structure
         $academicYear = AcademicYear::factory()->active()->create();
         $gradeLevel = GradeLevel::factory()->create();
-        
+
         // Setup Section A and Student A
         $sectionA = Section::factory()->create(['grade_level_id' => $gradeLevel->id, 'academic_year_id' => $academicYear->id]);
         $studentAUser = $this->createUserWithRole('Student');
@@ -283,7 +285,7 @@ class AuthorizationSecurityTest extends TestCase
         $teacherAssignmentB = TeacherAssignment::create([
             'teacher_id' => $teacherUser->id,
             'section_id' => $sectionB->id,
-            'subject_id' => \App\Models\Subject::factory()->create()->id,
+            'subject_id' => Subject::factory()->create()->id,
             'academic_year_id' => $academicYear->id,
         ]);
         $activityB = AcademicActivity::create([
@@ -303,7 +305,7 @@ class AuthorizationSecurityTest extends TestCase
 
         // Student A tries to submit Activity B
         $response = $this->actingAs($studentAUser)->post("/student/activities/{$activityB->id}/submit", [
-            'attachments' => []
+            'attachments' => [],
         ]);
         $response->assertStatus(403);
 
@@ -313,7 +315,7 @@ class AuthorizationSecurityTest extends TestCase
 
         // Student A tries to submit Exam B
         $response = $this->actingAs($studentAUser)->post("/student/activities/{$activityB->id}/exam", [
-            'answers' => []
+            'answers' => [],
         ]);
         $response->assertStatus(403);
     }
@@ -321,7 +323,7 @@ class AuthorizationSecurityTest extends TestCase
     public function test_parent_cannot_view_non_parent_notices(): void
     {
         $adminUser = $this->createUserWithRole('Super Admin');
-        
+
         // Notice targeted to Teacher
         $notice = Notice::create([
             'title' => 'Teacher Only Notice',
@@ -336,7 +338,7 @@ class AuthorizationSecurityTest extends TestCase
 
         // Parent tries to view show page of notice
         $response = $this->actingAs($parentUser)->get("/parent/notices/{$notice->id}");
-        
+
         // It redirects back to parent notices index with an error session message
         $response->assertRedirect(route('parent.notices.index'));
         $response->assertSessionHas('error');

@@ -2,21 +2,28 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Grades\StoreBulkGrades;
+use App\Helpers\CachedData;
 use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
-use App\Models\GradeLevel;
+use App\Models\AssessmentTemplate;
+use App\Models\AssessmentType;
+use App\Models\AuditLog;
+use App\Models\ReportCardSetting;
 use App\Models\Section;
-use App\Models\Subject;
 use App\Models\Student;
 use App\Models\StudentMark;
+use App\Models\Subject;
+use App\Models\TeacherAssignment;
 use App\Models\Term;
-use App\Models\ReportCardSetting;
+use App\Services\GradingService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
-use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class GradebookController extends Controller implements HasMiddleware
 {
@@ -31,16 +38,16 @@ class GradebookController extends Controller implements HasMiddleware
     public function index()
     {
         // PERFORMANCE: Use cached data
-        $academicYears = \App\Helpers\CachedData::academicYears();
-        $gradeLevels = \App\Helpers\CachedData::gradeLevels();
-        
-        $currentYear = \App\Helpers\CachedData::activeAcademicYear() ?? $academicYears->first();
+        $academicYears = CachedData::academicYears();
+        $gradeLevels = CachedData::gradeLevels();
+
+        $currentYear = CachedData::activeAcademicYear() ?? $academicYears->first();
         $terms = $currentYear ? Term::where('academic_year_id', $currentYear->id)->get() : collect();
-        
+
         // Initial state for dependent dropdowns
         $sections = collect();
         $subjects = collect();
-        
+
         return view('admin.gradebook.index', compact('academicYears', 'gradeLevels', 'terms', 'sections', 'subjects'));
     }
 
@@ -56,22 +63,21 @@ class GradebookController extends Controller implements HasMiddleware
         $section = Section::with(['gradeLevel', 'students'])->findOrFail($request->section_id);
         $subject = Subject::findOrFail($request->subject_id);
         $academicYear = AcademicYear::findOrFail($request->academic_year_id);
-        $term = \App\Models\Term::findOrFail($request->term_id);
-        
-        
+        $term = Term::findOrFail($request->term_id);
+
         // Fetch assessment templates for this context
         // IMPORTANT: Exclude TERM_TOTAL type - it's a calculated value, not an editable assessment
-        $termTotalType = \App\Models\AssessmentType::where('code', 'TERM_TOTAL')->first();
-        
-        $gradeComponents = \App\Models\AssessmentTemplate::where('academic_year_id', $academicYear->id)
+        $termTotalType = AssessmentType::where('code', 'TERM_TOTAL')->first();
+
+        $gradeComponents = AssessmentTemplate::where('academic_year_id', $academicYear->id)
             ->where('term_id', $term->id)
             ->where('is_active', true)
-            ->when($termTotalType, function($query) use ($termTotalType) {
+            ->when($termTotalType, function ($query) use ($termTotalType) {
                 $query->where('assessment_type_id', '!=', $termTotalType->id);
             })
-            ->whereHas('assignments', function($query) use ($section, $subject) {
+            ->whereHas('assignments', function ($query) use ($section, $subject) {
                 $query->where('grade_level_id', $section->grade_level_id)
-                      ->where('subject_id', $subject->id);
+                    ->where('subject_id', $subject->id);
             })
             ->orderBy('order')
             ->get();
@@ -79,12 +85,12 @@ class GradebookController extends Controller implements HasMiddleware
         // Fetch Term Total template separately (for display if exists)
         $termTotalTemplate = null;
         if ($termTotalType) {
-            $termTotalTemplate = \App\Models\AssessmentTemplate::where('academic_year_id', $academicYear->id)
+            $termTotalTemplate = AssessmentTemplate::where('academic_year_id', $academicYear->id)
                 ->where('term_id', $term->id)
                 ->where('assessment_type_id', $termTotalType->id)
-                ->whereHas('assignments', function($query) use ($section, $subject) {
+                ->whereHas('assignments', function ($query) use ($section, $subject) {
                     $query->where('grade_level_id', $section->grade_level_id)
-                          ->where('subject_id', $subject->id);
+                        ->where('subject_id', $subject->id);
                 })
                 ->first();
         }
@@ -93,7 +99,7 @@ class GradebookController extends Controller implements HasMiddleware
         if ($subject->is_elective && $term->type === 'quarter') {
         }
 
-        if (!$subject->is_elective && $term->type === 'semester') {
+        if (! $subject->is_elective && $term->type === 'semester') {
         }
 
         // Fetch students enrolled in this section
@@ -103,9 +109,9 @@ class GradebookController extends Controller implements HasMiddleware
                 ->wherePivot('academic_year_id', $academicYear->id)
                 ->wherePivotIn('status', ['active', 'completed'])
                 ->where('students.is_active', true)
-                ->whereHas('electives', function($q) use ($subject, $academicYear) {
+                ->whereHas('electives', function ($q) use ($subject, $academicYear) {
                     $q->where('subject_id', $subject->id)
-                      ->where('student_electives.academic_year_id', $academicYear->id);
+                        ->where('student_electives.academic_year_id', $academicYear->id);
                 })
                 ->orderBy('students.first_name')
                 ->get();
@@ -136,11 +142,11 @@ class GradebookController extends Controller implements HasMiddleware
                 // IMPORTANT: Only sum marks that belong to the components currently being viewed
                 // This prevents double counting if a 'TERM_TOTAL' mark exists from the master sheet
                 $totalScore = $studentMarks->whereIn('assessment_template_id', $componentIds)->sum('score');
-                
+
                 if ($totalScore > 0) {
                     $studentTotals->push([
                         'student' => $student,
-                        'total' => $totalScore
+                        'total' => $totalScore,
                     ]);
                 }
             }
@@ -148,7 +154,7 @@ class GradebookController extends Controller implements HasMiddleware
 
         // 1. Graded Average: (Sum of all scores) / (Number of Graded Students)
         $gradedAverage = $studentTotals->count() > 0 ? $studentTotals->avg('total') : 0;
-        
+
         // 2. Section Average: (Sum of all scores) / (Total Students in Section)
         $totalScoreSum = $studentTotals->sum('total');
         $totalStudentCount = $students->count();
@@ -158,7 +164,7 @@ class GradebookController extends Controller implements HasMiddleware
         $bottom3Students = $studentTotals->sortBy('total')->take(3);
 
         return view('admin.gradebook.entry', compact(
-            'section', 'subject', 'academicYear', 'term', 'students', 'gradeComponents', 
+            'section', 'subject', 'academicYear', 'term', 'students', 'gradeComponents',
             'existingMarks', 'gradedAverage', 'classAverage', 'top3Students', 'bottom3Students',
             'termTotalTemplate'
         ));
@@ -204,7 +210,7 @@ class GradebookController extends Controller implements HasMiddleware
             'academic_year_id' => 'required|exists:academic_years,id',
         ]);
 
-        $terms = \App\Models\Term::where('academic_year_id', $request->academic_year_id)
+        $terms = Term::where('academic_year_id', $request->academic_year_id)
             ->orderBy('start_date')
             ->get(['id', 'name', 'type'])
             ->toArray();
@@ -222,7 +228,7 @@ class GradebookController extends Controller implements HasMiddleware
             $terms[] = [
                 'id' => 'yearly',
                 'name' => 'Yearly Report',
-                'type' => 'yearly'
+                'type' => 'yearly',
             ];
         }
 
@@ -240,10 +246,10 @@ class GradebookController extends Controller implements HasMiddleware
         ]);
 
         try {
-            $result = \App\Actions\Grades\StoreBulkGrades::run($request->only([
-                'academic_year_id', 'term_id', 'subject_id', 'section_id', 'marks'
+            $result = StoreBulkGrades::run($request->only([
+                'academic_year_id', 'term_id', 'subject_id', 'section_id', 'marks',
             ]), auth()->id());
-            
+
             return back()->with('success', $result['message']);
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
@@ -262,7 +268,7 @@ class GradebookController extends Controller implements HasMiddleware
         $section = Section::findOrFail($request->section_id);
         $subject = Subject::findOrFail($request->subject_id);
         $term = Term::findOrFail($request->term_id);
-        
+
         // Fetch students
         $students = $section->students()
             ->wherePivot('academic_year_id', $request->academic_year_id)
@@ -270,15 +276,15 @@ class GradebookController extends Controller implements HasMiddleware
             ->where('students.is_active', true)
             ->orderBy('students.first_name')
             ->get();
-        
+
         // Fetch assessment templates (excluding TERM_TOTAL - it's a calculated value)
-        $termTotalType = \App\Models\AssessmentType::where('code', 'TERM_TOTAL')->first();
-        
-        $templates = \App\Models\AssessmentTemplate::forGradeSubject($section->grade_level_id, $subject->id)
+        $termTotalType = AssessmentType::where('code', 'TERM_TOTAL')->first();
+
+        $templates = AssessmentTemplate::forGradeSubject($section->grade_level_id, $subject->id)
             ->where('academic_year_id', $request->academic_year_id)
             ->where('term_id', $term->id)
             ->where('is_active', true)
-            ->when($termTotalType, function($query) use ($termTotalType) {
+            ->when($termTotalType, function ($query) use ($termTotalType) {
                 $query->where('assessment_type_id', '!=', $termTotalType->id);
             })
             ->orderBy('order')
@@ -286,26 +292,26 @@ class GradebookController extends Controller implements HasMiddleware
 
         $filename = "grades_{$section->name}_{$subject->name}.csv";
         $headers = [
-            "Content-type" => "text/csv",
-            "Content-Disposition" => "attachment; filename=$filename",
-            "Pragma" => "no-cache",
-            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
-            "Expires" => "0"
+            'Content-type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=$filename",
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0',
         ];
 
-        $callback = function() use ($students, $templates) {
+        $callback = function () use ($students, $templates) {
             $file = fopen('php://output', 'w');
-            
+
             // Add BOM for Excel compatibility
-            fputs($file, "\xEF\xBB\xBF");
-            
+            fwrite($file, "\xEF\xBB\xBF");
+
             // Add separator hint for Excel
-            fputs($file, "sep=,\n");
-            
+            fwrite($file, "sep=,\n");
+
             // Header row
             $headerRow = ['Student ID', 'Student Name'];
             foreach ($templates as $template) {
-                $headerRow[] = $template->name . " (Max: {$template->max_score})";
+                $headerRow[] = $template->name." (Max: {$template->max_score})";
             }
             fputcsv($file, $headerRow);
 
@@ -336,8 +342,8 @@ class GradebookController extends Controller implements HasMiddleware
         ]);
 
         $term = Term::findOrFail($request->term_id);
-        if (!$term->is_grading_open) {
-            if (!auth()->user()->hasRole(['Super Admin', 'Principal'])) {
+        if (! $term->is_grading_open) {
+            if (! auth()->user()->hasRole(['Super Admin', 'Principal'])) {
                 return back()->with('error', 'Grading for this term is currently closed.');
             }
         }
@@ -348,33 +354,33 @@ class GradebookController extends Controller implements HasMiddleware
         if ($subject->is_elective && $term->type === 'quarter') {
         }
 
-        if (!$subject->is_elective && $term->type === 'semester') {
+        if (! $subject->is_elective && $term->type === 'semester') {
         }
 
         $section = Section::findOrFail($request->section_id);
         $subject = Subject::findOrFail($request->subject_id);
-        
+
         // Fetch assessment templates (excluding TERM_TOTAL - it's a calculated value)
-        $termTotalType = \App\Models\AssessmentType::where('code', 'TERM_TOTAL')->first();
-        
-        $templates = \App\Models\AssessmentTemplate::forGradeSubject($section->grade_level_id, $subject->id)
+        $termTotalType = AssessmentType::where('code', 'TERM_TOTAL')->first();
+
+        $templates = AssessmentTemplate::forGradeSubject($section->grade_level_id, $subject->id)
             ->where('academic_year_id', $request->academic_year_id)
             ->where('term_id', $request->term_id)
             ->where('is_active', true)
-            ->when($termTotalType, function($query) use ($termTotalType) {
+            ->when($termTotalType, function ($query) use ($termTotalType) {
                 $query->where('assessment_type_id', '!=', $termTotalType->id);
             })
             ->get();
 
         $path = $request->file('file')->getRealPath();
         $file = fopen($path, 'r');
-        
+
         // Skip BOM if present
         $bom = fread($file, 3);
         if ($bom !== "\xEF\xBB\xBF") {
             rewind($file);
         }
-        
+
         // Read first line to check for sep=,
         $line = fgets($file);
         if (str_starts_with($line, 'sep=')) {
@@ -396,23 +402,25 @@ class GradebookController extends Controller implements HasMiddleware
                 $delimiter = $d;
             }
         }
-        
+
         // Parse header
         $header = str_getcsv($headerLine, $delimiter);
-        
+
         // Map CSV columns to template IDs
         $columnMap = [];
         foreach ($header as $index => $colName) {
-            if ($index < 2) continue; // Skip ID and Name
-            
+            if ($index < 2) {
+                continue;
+            } // Skip ID and Name
+
             // Extract name from "Name (Max: 10)" format or just use name
             $name = preg_replace('/\s*\(Max:.*\)/', '', $colName);
             $name = trim($name);
-            
-            $template = $templates->first(function($t) use ($name) {
+
+            $template = $templates->first(function ($t) use ($name) {
                 return strtolower($t->name) === strtolower($name);
             });
-            
+
             if ($template) {
                 $columnMap[$index] = $template;
             }
@@ -422,22 +430,25 @@ class GradebookController extends Controller implements HasMiddleware
         try {
             $successCount = 0;
             $errors = [];
-            
+
             $upsertData = [];
             $now = now();
 
             while (($line = fgets($file)) !== false) {
                 $row = str_getcsv($line, $delimiter);
-                
+
                 // Skip empty rows
-                if (empty($row) || (count($row) === 1 && empty($row[0]))) continue;
-                
+                if (empty($row) || (count($row) === 1 && empty($row[0]))) {
+                    continue;
+                }
+
                 $studentIdStr = trim($row[0]);
                 $csvName = isset($row[1]) ? trim($row[1]) : '';
-                $student = \App\Models\Student::where('student_id', $studentIdStr)->first();
-                
-                if (!$student) {
+                $student = Student::where('student_id', $studentIdStr)->first();
+
+                if (! $student) {
                     $errors[] = "Student ID $studentIdStr not found";
+
                     continue;
                 }
 
@@ -445,25 +456,32 @@ class GradebookController extends Controller implements HasMiddleware
                 $dbName = $student->full_name;
                 $similarity = 0;
                 similar_text(strtolower($csvName), strtolower($dbName), $similarity);
-                if ($similarity < 70 && !str_contains(strtolower($dbName), strtolower(explode(' ', $csvName)[0]))) {
+                if ($similarity < 70 && ! str_contains(strtolower($dbName), strtolower(explode(' ', $csvName)[0]))) {
                     $errors[] = "CRITICAL MISMATCH: ID $studentIdStr belongs to '$dbName', but CSV has '$csvName'. The spreadsheet may have been sorted incorrectly.";
+
                     continue;
                 }
 
                 foreach ($columnMap as $index => $template) {
                     $score = $row[$index] ?? null;
-                    if ($score === null) continue;
+                    if ($score === null) {
+                        continue;
+                    }
                     $score = trim($score);
-                    
-                    if ($score === '') continue;
-                    
-                    if (!is_numeric($score)) {
+
+                    if ($score === '') {
+                        continue;
+                    }
+
+                    if (! is_numeric($score)) {
                         $errors[] = "Invalid score for $studentIdStr in {$template->name}";
+
                         continue;
                     }
 
                     if ($score > $template->max_score) {
                         $errors[] = "Score $score exceeds max {$template->max_score} for $studentIdStr in {$template->name}";
+
                         continue;
                     }
 
@@ -483,7 +501,7 @@ class GradebookController extends Controller implements HasMiddleware
                 $successCount++;
             }
 
-            if (!empty($upsertData)) {
+            if (! empty($upsertData)) {
                 StudentMark::upsert(
                     $upsertData,
                     ['student_id', 'assessment_template_id'],
@@ -491,7 +509,7 @@ class GradebookController extends Controller implements HasMiddleware
                 );
 
                 // Manual Audit Injection
-                \App\Models\AuditLog::create([
+                AuditLog::create([
                     'user_id' => auth()->id(),
                     'event' => 'bulk_grade_import',
                     'auditable_type' => StudentMark::class,
@@ -503,40 +521,41 @@ class GradebookController extends Controller implements HasMiddleware
                     'user_agent' => request()->userAgent(),
                 ]);
             }
-            
+
             DB::commit();
             fclose($file);
 
             // Recalculate Section Statistics
             try {
                 $academicYear = AcademicYear::find($request->academic_year_id);
-                $gradingService = app(\App\Services\GradingService::class);
+                $gradingService = app(GradingService::class);
                 $gradingService->recalculateSectionStatistics($section, $term, $academicYear);
             } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error('Recalculation failed after Gradebook import: ' . $e->getMessage());
+                Log::error('Recalculation failed after Gradebook import: '.$e->getMessage());
             }
-            
+
             // Check if any grades were actually imported
             if (empty($upsertData)) {
                 $message = 'No grades were imported.';
                 if ($successCount == 0) {
-                    return back()->with('warning', $message . ' The file appears to be empty or contains no valid data.');
+                    return back()->with('warning', $message.' The file appears to be empty or contains no valid data.');
                 } else {
-                    return back()->with('warning', $message . ' All score fields were empty for ' . $successCount . ' students.');
+                    return back()->with('warning', $message.' All score fields were empty for '.$successCount.' students.');
                 }
             }
-            
-            $message = "Imported " . count($upsertData) . " grades for $successCount students.";
-            if (!empty($errors)) {
-                return back()->with('warning', $message . ' Errors: ' . implode('; ', array_slice($errors, 0, 5)) . (count($errors) > 5 ? '...' : ''));
+
+            $message = 'Imported '.count($upsertData)." grades for $successCount students.";
+            if (! empty($errors)) {
+                return back()->with('warning', $message.' Errors: '.implode('; ', array_slice($errors, 0, 5)).(count($errors) > 5 ? '...' : ''));
             }
-            
+
             return back()->with('success', $message);
-            
+
         } catch (\Exception $e) {
             DB::rollBack();
             fclose($file);
-            return back()->with('error', 'Import failed: ' . $e->getMessage());
+
+            return back()->with('error', 'Import failed: '.$e->getMessage());
         }
     }
 
@@ -552,21 +571,21 @@ class GradebookController extends Controller implements HasMiddleware
         $section = Section::with(['gradeLevel', 'students'])->findOrFail($request->section_id);
         $subject = Subject::findOrFail($request->subject_id);
         $academicYear = AcademicYear::findOrFail($request->academic_year_id);
-        $term = \App\Models\Term::findOrFail($request->term_id);
+        $term = Term::findOrFail($request->term_id);
         $settings = ReportCardSetting::firstOrNew();
-        
+
         // Fetch assessment templates
-        $termTotalType = \App\Models\AssessmentType::where('code', 'TERM_TOTAL')->first();
-        
-        $gradeComponents = \App\Models\AssessmentTemplate::where('academic_year_id', $academicYear->id)
+        $termTotalType = AssessmentType::where('code', 'TERM_TOTAL')->first();
+
+        $gradeComponents = AssessmentTemplate::where('academic_year_id', $academicYear->id)
             ->where('term_id', $term->id)
             ->where('is_active', true)
-            ->when($termTotalType, function($query) use ($termTotalType) {
+            ->when($termTotalType, function ($query) use ($termTotalType) {
                 $query->where('assessment_type_id', '!=', $termTotalType->id);
             })
-            ->whereHas('assignments', function($query) use ($section, $subject) {
+            ->whereHas('assignments', function ($query) use ($section, $subject) {
                 $query->where('grade_level_id', $section->grade_level_id)
-                      ->where('subject_id', $subject->id);
+                    ->where('subject_id', $subject->id);
             })
             ->with('assessmentType')
             ->orderBy('order')
@@ -575,12 +594,12 @@ class GradebookController extends Controller implements HasMiddleware
         // Fetch Term Total template separately (for display if exists)
         $termTotalTemplate = null;
         if ($termTotalType) {
-            $termTotalTemplate = \App\Models\AssessmentTemplate::where('academic_year_id', $academicYear->id)
+            $termTotalTemplate = AssessmentTemplate::where('academic_year_id', $academicYear->id)
                 ->where('term_id', $term->id)
                 ->where('assessment_type_id', $termTotalType->id)
-                ->whereHas('assignments', function($query) use ($section, $subject) {
+                ->whereHas('assignments', function ($query) use ($section, $subject) {
                     $query->where('grade_level_id', $section->grade_level_id)
-                          ->where('subject_id', $subject->id);
+                        ->where('subject_id', $subject->id);
                 })
                 ->first();
         }
@@ -591,9 +610,9 @@ class GradebookController extends Controller implements HasMiddleware
                 ->wherePivot('academic_year_id', $academicYear->id)
                 ->wherePivotIn('status', ['active', 'completed'])
                 ->where('students.is_active', true)
-                ->whereHas('electives', function($q) use ($subject, $academicYear) {
+                ->whereHas('electives', function ($q) use ($subject, $academicYear) {
                     $q->where('subject_id', $subject->id)
-                      ->where('student_electives.academic_year_id', $academicYear->id);
+                        ->where('student_electives.academic_year_id', $academicYear->id);
                 })
                 ->orderBy('students.first_name')
                 ->get();
@@ -615,7 +634,7 @@ class GradebookController extends Controller implements HasMiddleware
             ->groupBy('student_id');
 
         // Fetch the assigned teacher
-        $assignment = \App\Models\TeacherAssignment::where('academic_year_id', $academicYear->id)
+        $assignment = TeacherAssignment::where('academic_year_id', $academicYear->id)
             ->where('section_id', $section->id)
             ->where('subject_id', $subject->id)
             ->first();
@@ -640,8 +659,9 @@ class GradebookController extends Controller implements HasMiddleware
 
         $pdf = Pdf::loadView($viewName, $data);
         $pdf->setPaper('a4', $paperOrientation);
-        
+
         $filename = "{$filenamePrefix}_{$section->name}_{$subject->code}_{$term->name}.pdf";
+
         return $pdf->download($filename);
     }
 }

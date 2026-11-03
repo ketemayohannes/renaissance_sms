@@ -3,14 +3,15 @@
 namespace App\Http\Controllers\Teacher;
 
 use App\Http\Controllers\Controller;
-use App\Services\TeacherService;
+use App\Models\Department;
 use App\Services\DepartmentService;
-use Illuminate\Http\Request;
+use App\Services\TeacherService;
 use Illuminate\Support\Facades\Auth;
 
 class DepartmentController extends Controller
 {
     protected $teacherService;
+
     protected $departmentService;
 
     public function __construct(TeacherService $teacherService, DepartmentService $departmentService)
@@ -44,7 +45,7 @@ class DepartmentController extends Controller
     public function show($id)
     {
         $user = Auth::user();
-        $department = \App\Models\Department::findOrFail($id);
+        $department = Department::findOrFail($id);
 
         if ($department->head_id !== $user->id) {
             abort(403, 'Unauthorized access.');

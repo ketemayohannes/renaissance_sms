@@ -7,11 +7,12 @@ use App\Models\Conversation;
 use App\Models\ConversationParticipant;
 use App\Models\Message;
 use App\Models\MessageRead;
-use App\Notifications\NewMessageReceived;
 use App\Models\StudentGuardian;
+use App\Models\User;
+use App\Notifications\NewMessageReceived;
 use App\Services\TeacherService;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class MessagingController extends Controller
 {
@@ -20,7 +21,7 @@ class MessagingController extends Controller
         $user = auth()->user();
 
         $conversations = $user->conversations()
-            ->with(['participants', 'messages' => fn($q) => $q->latest()->limit(1)])
+            ->with(['participants', 'messages' => fn ($q) => $q->latest()->limit(1)])
             ->get();
 
         // Batch the unread counts into one query to avoid an N+1 across the inbox.
@@ -29,11 +30,12 @@ class MessagingController extends Controller
         $conversations = $conversations
             ->map(function ($conv) use ($user, $unreadCounts) {
                 $conv->unread_count = (int) ($unreadCounts[$conv->id] ?? 0);
-                $conv->other        = $conv->otherParticipant($user);
-                $conv->preview      = $conv->messages->first();
+                $conv->other = $conv->otherParticipant($user);
+                $conv->preview = $conv->messages->first();
+
                 return $conv;
             })
-            ->sortByDesc(fn($c) => $c->preview?->created_at ?? $c->created_at);
+            ->sortByDesc(fn ($c) => $c->preview?->created_at ?? $c->created_at);
 
         return view('teacher.messages.index', compact('conversations'));
     }
@@ -58,8 +60,8 @@ class MessagingController extends Controller
 
         Message::create([
             'conversation_id' => $conversation->id,
-            'sender_id'       => $user->id,
-            'body'            => $request->body,
+            'sender_id' => $user->id,
+            'body' => $request->body,
         ]);
 
         $conversation->touch();
@@ -79,7 +81,7 @@ class MessagingController extends Controller
         $user = auth()->user();
         $section = app(TeacherService::class)->getHomeroomSection($user);
 
-        if (!$section) {
+        if (! $section) {
             return redirect()->route('teacher.messages.index')
                 ->with('error', 'You must be a Homeroom Teacher to initiate conversations with parents.');
         }
@@ -98,9 +100,9 @@ class MessagingController extends Controller
                 if ($guardian->user) {
                     $recipients[] = [
                         'guardian_user_id' => $guardian->user->id,
-                        'guardian_name'    => $guardian->full_name,
-                        'student_name'     => $student->user->name,
-                        'relationship'     => $guardian->relationship ?? 'Guardian',
+                        'guardian_name' => $guardian->full_name,
+                        'student_name' => $student->user->name,
+                        'relationship' => $guardian->relationship ?? 'Guardian',
                     ];
                 }
             }
@@ -117,15 +119,15 @@ class MessagingController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'recipient_id' => 'required|exists:users,id|different:' . auth()->id(),
-            'subject'      => 'required|string|max:255',
-            'body'         => 'required|string|max:3000',
+            'recipient_id' => 'required|exists:users,id|different:'.auth()->id(),
+            'subject' => 'required|string|max:255',
+            'body' => 'required|string|max:3000',
         ]);
 
         $user = auth()->user();
         $section = app(TeacherService::class)->getHomeroomSection($user);
 
-        if (!$section) {
+        if (! $section) {
             return redirect()->route('teacher.messages.index')
                 ->with('error', 'You must be a Homeroom Teacher to initiate conversations.');
         }
@@ -146,12 +148,12 @@ class MessagingController extends Controller
         abort_unless($studentGuardian, 403, 'You can only message parents of active students in your homeroom class.');
 
         $studentName = $studentGuardian->student->user->name;
-        $recipient   = \App\Models\User::findOrFail($recipientId);
+        $recipient = User::findOrFail($recipientId);
 
         $conversation = DB::transaction(function () use ($user, $recipient, $validated, $studentName) {
             $conv = Conversation::create([
-                'type'       => 'private',
-                'name'       => $validated['subject'] . ' — ' . $studentName,
+                'type' => 'private',
+                'name' => $validated['subject'].' — '.$studentName,
                 'created_by' => $user->id,
             ]);
 
@@ -162,8 +164,8 @@ class MessagingController extends Controller
 
             Message::create([
                 'conversation_id' => $conv->id,
-                'sender_id'       => $user->id,
-                'body'            => $validated['body'],
+                'sender_id' => $user->id,
+                'body' => $validated['body'],
             ]);
 
             return $conv;
@@ -178,13 +180,13 @@ class MessagingController extends Controller
 
     public function unreadCount()
     {
-        $user  = auth()->user();
+        $user = auth()->user();
         $count = Message::whereIn('conversation_id',
-                    ConversationParticipant::where('user_id', $user->id)->pluck('conversation_id')
-                 )
-                 ->where('sender_id', '!=', $user->id)
-                 ->whereDoesntHave('reads', fn($q) => $q->where('user_id', $user->id))
-                 ->count();
+            ConversationParticipant::where('user_id', $user->id)->pluck('conversation_id')
+        )
+            ->where('sender_id', '!=', $user->id)
+            ->whereDoesntHave('reads', fn ($q) => $q->where('user_id', $user->id))
+            ->count();
 
         return response()->json(['count' => $count]);
     }
@@ -204,7 +206,7 @@ class MessagingController extends Controller
     {
         $unread = $conv->messages
             ->where('sender_id', '!=', $user->id)
-            ->filter(fn($m) => !$m->isReadBy($user));
+            ->filter(fn ($m) => ! $m->isReadBy($user));
 
         foreach ($unread as $message) {
             MessageRead::firstOrCreate(

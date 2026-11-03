@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Teacher;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Models\Timetable;
 use Illuminate\Support\Facades\Auth;
 
 class ScheduleController extends Controller
@@ -14,10 +14,10 @@ class ScheduleController extends Controller
     public function index()
     {
         $user = Auth::user();
-        
+
         // Get all timetable entries for the teacher's assignments
-        $timetableEntries = \App\Models\Timetable::with(['classPeriod', 'teacherAssignment.subject', 'teacherAssignment.section.gradeLevel'])
-            ->whereHas('teacherAssignment', function($query) use ($user) {
+        $timetableEntries = Timetable::with(['classPeriod', 'teacherAssignment.subject', 'teacherAssignment.section.gradeLevel'])
+            ->whereHas('teacherAssignment', function ($query) use ($user) {
                 $query->where('teacher_id', $user->id);
             })
             ->get();
@@ -29,30 +29,30 @@ class ScheduleController extends Controller
             4 => 'Thursday',
             5 => 'Friday',
             6 => 'Saturday',
-            7 => 'Sunday'
+            7 => 'Sunday',
         ];
 
         $schedule = [];
-        
+
         foreach ($timetableEntries as $entry) {
             $dayName = $daysMap[$entry->day_of_week] ?? 'Unknown';
-            
+
             // Format time safely in 12-hour format
             $startTime = optional($entry->classPeriod->start_time)->format('g:i') ?? '--:--';
             $endTime = optional($entry->classPeriod->end_time)->format('g:i') ?? '--:--';
-            
+
             $schedule[$dayName][] = [
                 'time' => "{$startTime} - {$endTime}",
                 'subject' => $entry->teacherAssignment->subject->name ?? 'N/A',
-                'section' => ($entry->teacherAssignment->section->gradeLevel->name ?? '') . ' - ' . ($entry->teacherAssignment->section->name ?? ''),
+                'section' => ($entry->teacherAssignment->section->gradeLevel->name ?? '').' - '.($entry->teacherAssignment->section->name ?? ''),
                 'room' => $entry->room_number ?? 'TBA',
-                'sort_order' => $entry->classPeriod->sort_order ?? 0
+                'sort_order' => $entry->classPeriod->sort_order ?? 0,
             ];
         }
 
         // Sort each day by period order
         foreach ($schedule as $day => &$sessions) {
-            usort($sessions, fn($a, $b) => $a['sort_order'] <=> $b['sort_order']);
+            usort($sessions, fn ($a, $b) => $a['sort_order'] <=> $b['sort_order']);
         }
 
         return view('teacher.schedule.index', compact('schedule'));

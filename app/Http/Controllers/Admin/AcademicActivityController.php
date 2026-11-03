@@ -4,11 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AcademicActivity;
-use App\Models\TeacherAssignment;
-use App\Models\AssessmentTemplate;
 use App\Models\AcademicYear;
+use App\Models\AssessmentTemplate;
 use App\Models\GradeLevel;
 use App\Models\Subject;
+use App\Models\TeacherAssignment;
 use App\Services\AcademicActivityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -38,9 +38,8 @@ class AcademicActivityController extends Controller
         $academicYears = AcademicYear::where('is_active', true)->get();
         $gradeLevels = GradeLevel::with(['sections', 'subjects'])->get();
         $subjects = Subject::where('is_active', true)->get();
-        
-        
-        $mappedAssignments = $teacherAssignments->map(fn($ta) => [
+
+        $mappedAssignments = $teacherAssignments->map(fn ($ta) => [
             'id' => $ta->id,
             'grade_id' => $ta->section->grade_level_id,
             'grade_name' => $ta->section->gradeLevel->name,
@@ -50,15 +49,14 @@ class AcademicActivityController extends Controller
             'subject_name' => $ta->subject->name,
         ])->values()->toArray();
 
-        $mappedGrades = $gradeLevels->map(fn($g) => [
-            'id' => $g->id, 
-            'name' => $g->name, 
-            'sections' => $g->sections ? $g->sections->map(fn($s) => ['id' => $s->id, 'name' => $s->name])->values()->toArray() : [],
-            'subjects' => $g->subjects ? $g->subjects->map(fn($s) => ['id' => $s->id, 'name' => $s->name])->values()->toArray() : []
+        $mappedGrades = $gradeLevels->map(fn ($g) => [
+            'id' => $g->id,
+            'name' => $g->name,
+            'sections' => $g->sections ? $g->sections->map(fn ($s) => ['id' => $s->id, 'name' => $s->name])->values()->toArray() : [],
+            'subjects' => $g->subjects ? $g->subjects->map(fn ($s) => ['id' => $s->id, 'name' => $s->name])->values()->toArray() : [],
         ])->values()->toArray();
-        
-        
-        $mappedSubjects = $subjects->map(fn($s) => ['id' => $s->id, 'name' => $s->name])->values()->toArray();
+
+        $mappedSubjects = $subjects->map(fn ($s) => ['id' => $s->id, 'name' => $s->name])->values()->toArray();
 
         return view('admin.activities.create', compact('mappedAssignments', 'academicYears', 'mappedGrades', 'mappedSubjects'));
     }
@@ -80,7 +78,7 @@ class AcademicActivityController extends Controller
         ]);
 
         $assignment = TeacherAssignment::findOrFail($data['teacher_assignment_id']);
-        
+
         $data['created_by'] = Auth::id();
         $data['division_id'] = $assignment->section->gradeLevel->division_id ?? 1; // Fallback
         $data['academic_year_id'] = $assignment->academic_year_id;
@@ -93,12 +91,14 @@ class AcademicActivityController extends Controller
     public function show(AcademicActivity $activity)
     {
         $activity->load(['submissions.student', 'attachments', 'questions']);
+
         return view('admin.activities.show', compact('activity'));
     }
 
     public function evaluate(AcademicActivity $activity)
     {
         $activity->load(['submissions.student', 'questions']);
+
         return view('admin.activities.evaluate', compact('activity'));
     }
 
@@ -107,7 +107,7 @@ class AcademicActivityController extends Controller
         $data = $request->validate([
             'submissions' => 'required|array',
             'submissions.*.student_id' => 'required|exists:students,id',
-            'submissions.*.score' => 'nullable|numeric|min:0|max:' . $activity->max_score,
+            'submissions.*.score' => 'nullable|numeric|min:0|max:'.$activity->max_score,
             'submissions.*.feedback' => 'nullable|string',
         ]);
 
@@ -117,7 +117,7 @@ class AcademicActivityController extends Controller
                     ['academic_activity_id' => $activity->id, 'student_id' => $submissionData['student_id']],
                     ['status' => 'graded'] // Placeholder to find/create
                 );
-                
+
                 $this->service->evaluateSubmission($submission, [
                     'score' => $submissionData['score'],
                     'feedback' => $submissionData['feedback'] ?? null,
@@ -142,13 +142,13 @@ class AcademicActivityController extends Controller
             }
         }
 
-        if (!$gradeId || !$subjectId) {
+        if (! $gradeId || ! $subjectId) {
             return response()->json([]);
         }
 
         $templates = AssessmentTemplate::forGradeSubject($gradeId, $subjectId)
             ->with('term')
-            ->whereHas('assessmentType', function($q) {
+            ->whereHas('assessmentType', function ($q) {
                 $q->whereNotIn('code', ['FINAL', 'TERM_TOTAL']);
             })
             ->where('is_active', true)

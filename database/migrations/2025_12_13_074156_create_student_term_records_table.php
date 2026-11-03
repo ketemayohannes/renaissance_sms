@@ -20,12 +20,12 @@ return new class extends Migration
             $table->integer('total_attendance_days')->nullable();
             $table->integer('days_absent')->default(0);
             $table->string('conduct_grade')->nullable(); // A, B, C...
-            
+
             $table->text('homeroom_teacher_comment')->nullable();
             $table->text('principal_comment')->nullable();
-            
+
             $table->json('behavior_traits')->nullable(); // JSON object for checked boxes
-            
+
             $table->timestamps();
 
             $table->unique(['student_id', 'term_id']);

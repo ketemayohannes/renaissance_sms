@@ -66,20 +66,20 @@ class InfractionDefinition extends Model
     public function getDisplayTierAttribute(): string
     {
         return match ($this->tier) {
-            'minor'    => 'Minor',
+            'minor' => 'Minor',
             'moderate' => 'Moderate',
             'critical' => 'Critical',
-            default    => ucfirst($this->tier),
+            default => ucfirst($this->tier),
         };
     }
 
     public function getTierColorAttribute(): string
     {
         return match ($this->tier) {
-            'minor'    => 'emerald',
+            'minor' => 'emerald',
             'moderate' => 'amber',
             'critical' => 'rose',
-            default    => 'slate',
+            default => 'slate',
         };
     }
 
@@ -88,7 +88,7 @@ class InfractionDefinition extends Model
     public static function tiers(): array
     {
         return [
-            'minor'    => 'Minor',
+            'minor' => 'Minor',
             'moderate' => 'Moderate',
             'critical' => 'Critical',
         ];

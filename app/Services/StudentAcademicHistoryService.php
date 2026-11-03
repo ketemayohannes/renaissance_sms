@@ -33,9 +33,7 @@ use Illuminate\Support\Collection;
  */
 class StudentAcademicHistoryService
 {
-    public function __construct(private GradingService $gradingService)
-    {
-    }
+    public function __construct(private GradingService $gradingService) {}
 
     /**
      * @return array{academicRecords: Collection, termRecords: Collection}
@@ -159,14 +157,14 @@ class StudentAcademicHistoryService
             if (! $subject) {
                 continue;
             }
-            $synthetic = new StudentMark();
+            $synthetic = new StudentMark;
             $synthetic->subject_id = $subjectId;
             $synthetic->score = $score;
             $synthetic->setRelation('subject', $subject);
             $marks->push($synthetic);
         }
 
-        $record = new StudentTermRecord();
+        $record = new StudentTermRecord;
         $record->term_id = $term->id;
         $record->academic_year_id = $ay->id;
         $record->average_score = $report['average'] ?? null;

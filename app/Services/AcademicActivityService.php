@@ -5,10 +5,7 @@ namespace App\Services;
 use App\Models\AcademicActivity;
 use App\Models\ActivitySubmission;
 use App\Models\StudentMark;
-use App\Models\ActivityAttachment;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class AcademicActivityService
 {
@@ -23,7 +20,7 @@ class AcademicActivityService
             // If there are attachments (e.g., homework files)
             if (isset($data['attachments'])) {
                 foreach ($data['attachments'] as $file) {
-                    $path = $file->store('activities/' . $activity->id, 'public');
+                    $path = $file->store('activities/'.$activity->id, 'public');
                     $activity->attachments()->create([
                         'file_path' => $path,
                         'file_name' => $file->getClientOriginalName(),
@@ -43,6 +40,7 @@ class AcademicActivityService
     {
         return DB::transaction(function () use ($activity, $questions) {
             $activity->questions()->delete(); // Simple replace for now
+
             return $activity->questions()->createMany($questions);
         });
     }
@@ -66,7 +64,7 @@ class AcademicActivityService
             // Handle Attachments (Digital Dossier Pattern)
             if (isset($data['attachments'])) {
                 foreach ($data['attachments'] as $file) {
-                    $path = $file->store('submissions/' . $submission->id, 'public');
+                    $path = $file->store('submissions/'.$submission->id, 'public');
                     $submission->attachments()->create([
                         'file_path' => $path,
                         'file_name' => $file->getClientOriginalName(),
@@ -130,7 +128,7 @@ class AcademicActivityService
                 'section_id' => $assignment->section_id,
                 'teacher_id' => $assignment->teacher_id,
                 'score' => $score,
-                'remarks' => 'Synced from Academic Activity: ' . $activity->title,
+                'remarks' => 'Synced from Academic Activity: '.$activity->title,
             ]
         );
     }

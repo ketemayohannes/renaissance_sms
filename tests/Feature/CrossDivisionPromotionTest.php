@@ -19,19 +19,27 @@ class CrossDivisionPromotionTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected AcademicYear $year;
+
     protected AcademicYear $nextYear;
 
     // Divisions
     protected Division $kg;
+
     protected Division $elementary;
+
     protected Division $highSchool;
 
     // Boundary grades
     protected GradeLevel $gradePrep;   // KG final
+
     protected GradeLevel $grade1;      // Elementary first
+
     protected GradeLevel $grade8;      // Elementary final
+
     protected GradeLevel $grade9;      // High School first
+
     protected GradeLevel $grade12;     // High School final
 
     protected function setUp(): void

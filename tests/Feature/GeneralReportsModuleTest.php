@@ -19,11 +19,17 @@ class GeneralReportsModuleTest extends TestCase
     use RefreshDatabase;
 
     protected User $adminUser;
+
     protected AcademicYear $academicYear;
+
     protected Term $term;
+
     protected Division $division;
+
     protected GradeLevel $gradeLevel;
+
     protected Section $section;
+
     protected Student $student;
 
     protected function setUp(): void
@@ -41,13 +47,13 @@ class GeneralReportsModuleTest extends TestCase
 
         $this->division = Division::firstOrCreate(['code' => 'ES'], [
             'name' => 'Elementary',
-            'sort_order' => 2
+            'sort_order' => 2,
         ]);
 
         $this->gradeLevel = GradeLevel::firstOrCreate(['code' => 'G1'], [
             'division_id' => $this->division->id,
             'name' => 'Grade 1',
-            'sort_order' => 1
+            'sort_order' => 1,
         ]);
 
         $this->section = Section::factory()->create([

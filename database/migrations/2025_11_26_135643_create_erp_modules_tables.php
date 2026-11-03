@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         // ============ FINANCE MODULE ============
-        
+
         // Fee Structures
         Schema::create('fee_structures', function (Blueprint $table) {
             $table->id();
@@ -58,7 +58,7 @@ return new class extends Migration
         });
 
         // ============ HR & PAYROLL MODULE ============
-        
+
         // Employees
         Schema::create('employees', function (Blueprint $table) {
             $table->id();
@@ -149,7 +149,7 @@ return new class extends Migration
         });
 
         // ============ COMMUNICATION MODULE ============
-        
+
         // Notifications
         Schema::create('notifications', function (Blueprint $table) {
             $table->id();

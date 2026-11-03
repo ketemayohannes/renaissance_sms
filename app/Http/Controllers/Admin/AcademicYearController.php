@@ -2,8 +2,14 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Helpers\CachedData;
 use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
+use App\Models\DisciplinaryRecord;
+use App\Models\StudentAttendance;
+use App\Models\StudentEnrollment;
+use App\Models\StudentMark;
+use App\Models\StudentTermRecord;
 use Illuminate\Http\Request;
 
 class AcademicYearController extends Controller
@@ -11,6 +17,7 @@ class AcademicYearController extends Controller
     public function index()
     {
         $academicYears = AcademicYear::orderBy('start_date', 'desc')->get();
+
         return view('admin.academic-years.index', compact('academicYears'));
     }
 
@@ -38,7 +45,7 @@ class AcademicYearController extends Controller
 
         AcademicYear::create($data);
 
-        \App\Helpers\CachedData::flush();
+        CachedData::flush();
 
         return redirect()->route('admin.academic-years.index')
             ->with('success', 'Academic Year created successfully.');
@@ -70,7 +77,7 @@ class AcademicYearController extends Controller
 
         $academicYear->update($data);
 
-        \App\Helpers\CachedData::flush();
+        CachedData::flush();
 
         return redirect()->route('admin.academic-years.index')
             ->with('success', 'Academic Year updated successfully.');
@@ -79,11 +86,11 @@ class AcademicYearController extends Controller
     public function destroy(AcademicYear $academicYear)
     {
         // Check for student data
-        $hasData = \App\Models\StudentEnrollment::where('academic_year_id', $academicYear->id)->exists()
-            || \App\Models\StudentMark::where('academic_year_id', $academicYear->id)->exists()
-            || \App\Models\StudentAttendance::where('academic_year_id', $academicYear->id)->exists()
-            || \App\Models\DisciplinaryRecord::where('academic_year_id', $academicYear->id)->exists()
-            || \App\Models\StudentTermRecord::where('academic_year_id', $academicYear->id)->exists();
+        $hasData = StudentEnrollment::where('academic_year_id', $academicYear->id)->exists()
+            || StudentMark::where('academic_year_id', $academicYear->id)->exists()
+            || StudentAttendance::where('academic_year_id', $academicYear->id)->exists()
+            || DisciplinaryRecord::where('academic_year_id', $academicYear->id)->exists()
+            || StudentTermRecord::where('academic_year_id', $academicYear->id)->exists();
 
         if ($hasData) {
             return back()->with('error', 'Cannot delete academic year with existing student data (enrollments, marks, etc.).');
@@ -95,7 +102,7 @@ class AcademicYearController extends Controller
 
         $academicYear->delete();
 
-        \App\Helpers\CachedData::flush();
+        CachedData::flush();
 
         return redirect()->route('admin.academic-years.index')
             ->with('success', 'Academic Year deleted successfully.');

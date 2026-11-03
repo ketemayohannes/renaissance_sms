@@ -14,7 +14,7 @@ class InventoryAssetFactory extends Factory
     {
         return [
             'inventory_item_id' => InventoryItem::factory(),
-            'asset_tag' => 'AST-' . $this->faker->unique()->numberBetween(1000, 999999),
+            'asset_tag' => 'AST-'.$this->faker->unique()->numberBetween(1000, 999999),
             'serial_number' => $this->faker->optional()->bothify('SN-########'),
             'condition' => 'good',
             'status' => 'available',

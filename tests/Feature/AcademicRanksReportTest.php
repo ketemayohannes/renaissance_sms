@@ -19,34 +19,40 @@ class AcademicRanksReportTest extends TestCase
     use RefreshDatabase;
 
     protected User $adminUser;
+
     protected AcademicYear $academicYear;
+
     protected Term $term;
+
     protected GradeLevel $gradeLevel;
+
     protected Section $section;
+
     protected Student $student1;
+
     protected Student $student2;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Setup user and role
         Role::firstOrCreate(['name' => 'Super Admin']);
         $this->adminUser = User::factory()->create();
         $this->adminUser->assignRole('Super Admin');
-        
+
         $this->academicYear = AcademicYear::factory()->active()->create();
         $this->term = Term::factory()->quarter(1)->create([
             'academic_year_id' => $this->academicYear->id,
         ]);
-        
+
         $division = Division::firstOrCreate(['code' => 'ES'], ['name' => 'Elementary', 'sort_order' => 2]);
         $this->gradeLevel = GradeLevel::firstOrCreate(['code' => 'G1'], [
             'division_id' => $division->id,
             'name' => 'Grade 1',
-            'sort_order' => 1
+            'sort_order' => 1,
         ]);
-        
+
         $this->section = Section::factory()->create([
             'grade_level_id' => $this->gradeLevel->id,
             'academic_year_id' => $this->academicYear->id,

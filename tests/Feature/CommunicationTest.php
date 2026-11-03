@@ -8,11 +8,13 @@ use App\Models\ConversationParticipant;
 use App\Models\Employee;
 use App\Models\GradeLevel;
 use App\Models\Message;
+use App\Models\MessageRead;
 use App\Models\Notice;
 use App\Models\Section;
 use App\Models\Student;
 use App\Models\StudentGuardian;
 use App\Models\User;
+use App\Notifications\NewNoticePublished;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -22,11 +24,17 @@ class CommunicationTest extends TestCase
     use RefreshDatabase;
 
     protected User $adminUser;
+
     protected User $teacherUser;
+
     protected User $parentUser;
+
     protected Student $student;
+
     protected Section $section;
+
     protected GradeLevel $gradeLevel;
+
     protected AcademicYear $academicYear;
 
     protected function setUp(): void
@@ -71,19 +79,19 @@ class CommunicationTest extends TestCase
         // Create Academic Structure
         $this->academicYear = AcademicYear::factory()->active()->create();
         $this->gradeLevel = GradeLevel::factory()->create(['name' => 'Grade 8']);
-        
+
         // Create Section and assign the teacher as Homeroom Teacher
         $this->section = Section::factory()->create([
-            'grade_level_id'      => $this->gradeLevel->id,
-            'academic_year_id'    => $this->academicYear->id,
+            'grade_level_id' => $this->gradeLevel->id,
+            'academic_year_id' => $this->academicYear->id,
             'homeroom_teacher_id' => $this->teacherUser->id,
-            'name'                => 'A',
+            'name' => 'A',
         ]);
 
         // Create Student and link to Parent & Section
         $this->student = Student::factory()->create([
             'first_name' => 'John',
-            'last_name'  => 'Doe',
+            'last_name' => 'Doe',
         ]);
 
         // Link student to section
@@ -95,17 +103,17 @@ class CommunicationTest extends TestCase
 
         // Link parent to student
         StudentGuardian::create([
-            'student_id'               => $this->student->id,
-            'user_id'                  => $this->parentUser->id,
-            'guardian_type'            => 'primary',
-            'relationship'             => 'Father',
-            'first_name'               => 'PARENT',
-            'father_name'              => 'ONE',
-            'grandfather_name'         => 'TEST',
-            'phone'                    => '0912345678',
-            'email'                    => $this->parentUser->email,
-            'is_emergency_contact'     => true,
-            'communication_preferences'=> ['email', 'sms'],
+            'student_id' => $this->student->id,
+            'user_id' => $this->parentUser->id,
+            'guardian_type' => 'primary',
+            'relationship' => 'Father',
+            'first_name' => 'PARENT',
+            'father_name' => 'ONE',
+            'grandfather_name' => 'TEST',
+            'phone' => '0912345678',
+            'email' => $this->parentUser->email,
+            'is_emergency_contact' => true,
+            'communication_preferences' => ['email', 'sms'],
         ]);
     }
 
@@ -122,7 +130,7 @@ class CommunicationTest extends TestCase
             ]);
 
         $response->assertRedirect(route('admin.notices.index'));
-        
+
         $this->assertDatabaseHas('notices', [
             'title' => 'Test General Announcement',
             'target_audience' => 'All',
@@ -172,14 +180,14 @@ class CommunicationTest extends TestCase
             ]);
 
         if ($response->status() !== 302) {
-            fwrite(STDERR, "Response Status: " . $response->status() . "\n");
-            fwrite(STDERR, "Response Content: " . $response->content() . "\n");
+            fwrite(STDERR, 'Response Status: '.$response->status()."\n");
+            fwrite(STDERR, 'Response Content: '.$response->content()."\n");
         }
 
-        $expectedConversationName = 'Help with homework — ' . $this->student->full_name;
+        $expectedConversationName = 'Help with homework — '.$this->student->full_name;
 
         $this->assertDatabaseHas('conversations', [
-            'name'       => $expectedConversationName,
+            'name' => $expectedConversationName,
             'created_by' => $this->parentUser->id,
         ]);
 
@@ -187,8 +195,8 @@ class CommunicationTest extends TestCase
 
         $this->assertDatabaseHas('messages', [
             'conversation_id' => $conversation->id,
-            'sender_id'       => $this->parentUser->id,
-            'body'            => 'My child needs some assistance with math.',
+            'sender_id' => $this->parentUser->id,
+            'body' => 'My child needs some assistance with math.',
         ]);
 
         // Verify both parent and teacher are participants
@@ -204,7 +212,7 @@ class CommunicationTest extends TestCase
         // Create another teacher who is not assigned to the child's section
         $otherTeacher = User::factory()->create();
         $otherTeacher->assignRole('Teacher');
-        
+
         $otherEmployee = Employee::create([
             'user_id' => $otherTeacher->id,
             'employee_id' => 'EMP002',
@@ -260,7 +268,7 @@ class CommunicationTest extends TestCase
 
         $notification = $this->teacherUser->notifications()->first();
         $this->assertNotNull($notification);
-        $this->assertEquals('New message from ' . $this->parentUser->name, $notification->data['title']);
+        $this->assertEquals('New message from '.$this->parentUser->name, $notification->data['title']);
     }
 
     /** @test */
@@ -271,19 +279,19 @@ class CommunicationTest extends TestCase
         ConversationParticipant::create(['conversation_id' => $conv->id, 'user_id' => $this->teacherUser->id]);
 
         // Teacher sends 3 messages; the parent sends 1 of their own.
-        $teacherMessages = collect(range(1, 3))->map(fn($i) => \App\Models\Message::create([
+        $teacherMessages = collect(range(1, 3))->map(fn ($i) => Message::create([
             'conversation_id' => $conv->id,
             'sender_id' => $this->teacherUser->id,
             'body' => "Message {$i}",
         ]));
-        \App\Models\Message::create([
+        Message::create([
             'conversation_id' => $conv->id,
             'sender_id' => $this->parentUser->id,
             'body' => 'My own reply',
         ]);
 
         // Parent has read one of the teacher's messages.
-        \App\Models\MessageRead::create([
+        MessageRead::create([
             'message_id' => $teacherMessages->first()->id,
             'user_id' => $this->parentUser->id,
             'read_at' => now(),
@@ -308,7 +316,7 @@ class CommunicationTest extends TestCase
     public function users_can_interact_with_notification_bell_endpoints()
     {
         // Seed an unread notification
-        $this->parentUser->notify(new \App\Notifications\NewNoticePublished(
+        $this->parentUser->notify(new NewNoticePublished(
             Notice::create([
                 'title' => 'Urgent Holiday Announcement',
                 'content' => 'School closed tomorrow.',
@@ -321,14 +329,14 @@ class CommunicationTest extends TestCase
         // Get notifications count
         $response = $this->actingAs($this->parentUser)
             ->get(route('notifications.count'));
-        
+
         $response->assertStatus(200);
         $response->assertJson(['count' => 1]);
 
         // Get latest notifications
         $response = $this->actingAs($this->parentUser)
             ->get(route('notifications.latest'));
-        
+
         $response->assertStatus(200);
         $this->assertCount(1, $response->json());
         $notificationId = $response->json()[0]['id'];
@@ -338,7 +346,7 @@ class CommunicationTest extends TestCase
             ->get(route('notifications.read', $notificationId));
 
         $response->assertRedirect();
-        
+
         // Count should now be 0
         $this->assertEquals(0, $this->parentUser->unreadNotifications()->count());
     }

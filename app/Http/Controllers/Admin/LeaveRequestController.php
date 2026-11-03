@@ -8,6 +8,7 @@ use App\Models\LeaveRequest;
 use App\Notifications\LeaveRequestDecided;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class LeaveRequestController extends Controller
 {
@@ -52,7 +53,7 @@ class LeaveRequestController extends Controller
     {
         $validated = $request->validate([
             'employee_id' => 'required|exists:employees,id',
-            'leave_type' => 'required|in:' . implode(',', LeaveRequest::TYPES),
+            'leave_type' => 'required|in:'.implode(',', LeaveRequest::TYPES),
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'reason' => 'required|string|max:1000',
@@ -119,7 +120,7 @@ class LeaveRequestController extends Controller
             try {
                 $user->notify(new LeaveRequestDecided($leaveRequest->fresh()));
             } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::error('Leave decision notification failed: ' . $e->getMessage());
+                Log::error('Leave decision notification failed: '.$e->getMessage());
             }
         }
 

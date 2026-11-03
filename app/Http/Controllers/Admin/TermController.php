@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Helpers\CachedData;
 use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
 use App\Models\Term;
@@ -12,18 +13,19 @@ class TermController extends Controller
     public function index()
     {
         // PERFORMANCE: Use cached data
-        $academicYears = \App\Helpers\CachedData::academicYears();
+        $academicYears = CachedData::academicYears();
         $terms = Term::with(['academicYear', 'quarters', 'semester'])
             ->orderBy('academic_year_id', 'desc')
             ->orderBy('start_date')
             ->get();
-        
+
         return view('admin.terms.index', compact('terms', 'academicYears'));
     }
 
     public function create()
     {
         $academicYears = AcademicYear::where('is_active', true)->get();
+
         return view('admin.terms.create', compact('academicYears'));
     }
 
@@ -64,7 +66,7 @@ class TermController extends Controller
 
             // Validate consecutive quarters (1,2 or 3,4)
             $quarterNumbers = $quarters->pluck('term_number')->toArray();
-            if (!in_array($quarterNumbers, [[1, 2], [3, 4]])) {
+            if (! in_array($quarterNumbers, [[1, 2], [3, 4]])) {
                 return back()->withErrors(['quarter_ids' => 'Please select consecutive quarters (Q1+Q2 or Q3+Q4).'])->withInput();
             }
 
@@ -95,7 +97,7 @@ class TermController extends Controller
         $data = $request->all();
         $data['is_grading_open'] = $request->has('is_grading_open');
         $data['is_master_grading_open'] = $request->has('is_master_grading_open');
-        
+
         Term::create($data);
 
         return redirect()->route('admin.terms.index')
@@ -105,8 +107,9 @@ class TermController extends Controller
     public function edit(Term $term)
     {
         // PERFORMANCE: Use cached data
-        $academicYears = \App\Helpers\CachedData::academicYears();
+        $academicYears = CachedData::academicYears();
         $term->load('quarters');
+
         return view('admin.terms.edit', compact('term', 'academicYears'));
     }
 
@@ -152,7 +155,7 @@ class TermController extends Controller
 
             // Validate consecutive quarters
             $quarterNumbers = $quarters->pluck('term_number')->toArray();
-            if (!in_array($quarterNumbers, [[1, 2], [3, 4]])) {
+            if (! in_array($quarterNumbers, [[1, 2], [3, 4]])) {
                 return back()->withErrors(['quarter_ids' => 'Please select consecutive quarters (Q1+Q2 or Q3+Q4).'])->withInput();
             }
 
@@ -183,7 +186,7 @@ class TermController extends Controller
         // Update quarter normally
         $data['is_grading_open'] = $gradingOpen;
         $data['is_master_grading_open'] = $masterGradingOpen;
-        
+
         $term->update($data);
 
         return redirect()->route('admin.terms.index')
@@ -210,7 +213,7 @@ class TermController extends Controller
 
         $quarters = Term::where('academic_year_id', $academicYearId)
             ->where('type', 'quarter')
-            ->where(function($q) use ($includeAssignedTo) {
+            ->where(function ($q) use ($includeAssignedTo) {
                 $q->whereNull('parent_term_id');
                 if ($includeAssignedTo) {
                     $q->orWhere('parent_term_id', $includeAssignedTo);

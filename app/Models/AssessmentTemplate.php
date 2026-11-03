@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class AssessmentTemplate extends Model
 {
     use HasFactory;
+
     protected $fillable = [
         'academic_year_id',
         'term_id',
@@ -66,7 +67,7 @@ class AssessmentTemplate extends Model
     {
         return $query->whereHas('assignments', function ($q) use ($gradeLevelId, $subjectId) {
             $q->where('grade_level_id', $gradeLevelId)
-              ->where('subject_id', $subjectId);
+                ->where('subject_id', $subjectId);
         })->when($termId, function ($q) use ($termId) {
             $q->where('term_id', $termId);
         });

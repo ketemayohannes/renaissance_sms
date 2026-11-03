@@ -9,10 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('communication_settings', function (Blueprint $table) {
-            if (!Schema::hasColumn('communication_settings', 'in_app_enabled')) {
+            if (! Schema::hasColumn('communication_settings', 'in_app_enabled')) {
                 $table->boolean('in_app_enabled')->default(true)->after('email_enabled');
             }
-            if (!Schema::hasColumn('communication_settings', 'resend_api_key')) {
+            if (! Schema::hasColumn('communication_settings', 'resend_api_key')) {
                 $table->string('resend_api_key')->nullable()->after('smsethiopia_api_key');
             }
         });

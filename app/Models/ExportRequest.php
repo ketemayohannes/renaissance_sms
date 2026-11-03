@@ -13,12 +13,12 @@ class ExportRequest extends Model
         'params',
         'file_path',
         'error_message',
-        'completed_at'
+        'completed_at',
     ];
 
     protected $casts = [
         'params' => 'array',
-        'completed_at' => 'datetime'
+        'completed_at' => 'datetime',
     ];
 
     public function user()

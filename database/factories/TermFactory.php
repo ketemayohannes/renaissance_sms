@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Models\Term;
 use App\Models\AcademicYear;
+use App\Models\Term;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class TermFactory extends Factory
@@ -28,7 +28,7 @@ class TermFactory extends Factory
     public function quarter(int $number = 1): static
     {
         $names = [1 => 'Quarter 1', 2 => 'Quarter 2', 3 => 'Quarter 3', 4 => 'Quarter 4'];
-        
+
         return $this->state(fn (array $attributes) => [
             'name' => $names[$number] ?? 'Quarter 1',
             'type' => 'quarter',
@@ -39,7 +39,7 @@ class TermFactory extends Factory
     public function semester(int $number = 1): static
     {
         $names = [1 => 'Semester 1', 2 => 'Semester 2'];
-        
+
         return $this->state(fn (array $attributes) => [
             'name' => $names[$number] ?? 'Semester 1',
             'type' => 'semester',
@@ -61,6 +61,7 @@ class TermFactory extends Factory
             'is_grading_open' => false,
         ]);
     }
+
     public function masterGradingOpen(): static
     {
         return $this->state(fn (array $attributes) => [

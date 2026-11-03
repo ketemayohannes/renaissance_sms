@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ExamPaper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class ExamReviewController extends Controller
 {
@@ -24,8 +25,9 @@ class ExamReviewController extends Controller
         if ($exam->status === 'submitted') {
             $exam->update(['status' => 'under_review']);
         }
-        
+
         $exam->load(['teacher', 'subject', 'gradeLevel', 'term', 'reviewer']);
+
         return view('admin.exams.show', compact('exam'));
     }
 
@@ -44,6 +46,7 @@ class ExamReviewController extends Controller
         ]);
 
         $message = $request->status === 'approved' ? 'Exam paper approved.' : 'Exam paper sent back for revisions.';
+
         return redirect()->route('admin.exams.index')->with('success', $message);
     }
 
@@ -51,7 +54,7 @@ class ExamReviewController extends Controller
     {
         // Delete file from storage if exists
         if ($exam->file_path) {
-            \Illuminate\Support\Facades\Storage::disk('local')->delete($exam->file_path);
+            Storage::disk('local')->delete($exam->file_path);
         }
 
         $exam->delete();

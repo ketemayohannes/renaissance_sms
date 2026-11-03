@@ -2,9 +2,9 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -30,8 +30,9 @@ return new class extends Migration
                 foreach ($users as $user) {
                     try {
                         Crypt::decryptString($user->temp_password);
+
                         continue; // already encrypted
-                    } catch (\Throwable $e) {
+                    } catch (Throwable $e) {
                         // plaintext — encrypt below
                     }
 
@@ -55,7 +56,7 @@ return new class extends Migration
                 foreach ($users as $user) {
                     try {
                         $plain = Crypt::decryptString($user->temp_password);
-                    } catch (\Throwable $e) {
+                    } catch (Throwable $e) {
                         continue; // already plaintext
                     }
 

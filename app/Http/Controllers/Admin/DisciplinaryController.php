@@ -41,7 +41,7 @@ class DisciplinaryController extends Controller
         return view('admin.disciplinary.index', compact('records', 'academicYear', 'infractionDefinitions'));
     }
 
-    public function create(Student $student = null)
+    public function create(?Student $student = null)
     {
         $students = Student::whereHas('currentEnrollment')->orderBy('first_name')->get();
         $infractionDefinitions = InfractionDefinition::active()->ordered()->get();
@@ -52,35 +52,35 @@ class DisciplinaryController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'student_id'              => 'required|exists:students,id',
+            'student_id' => 'required|exists:students,id',
             'infraction_definition_id' => 'required|exists:infraction_definitions,id',
-            'incident_date'           => 'required|date',
-            'description'             => 'required|string',
-            'action_taken'            => 'nullable|string',
-            'notify_parent'           => 'boolean',
+            'incident_date' => 'required|date',
+            'description' => 'required|string',
+            'action_taken' => 'nullable|string',
+            'notify_parent' => 'boolean',
         ]);
 
         $academicYear = AcademicYear::where('is_active', true)->first();
         $infraction = InfractionDefinition::findOrFail($request->infraction_definition_id);
 
         $record = DisciplinaryRecord::create([
-            'student_id'              => $request->student_id,
-            'academic_year_id'        => $academicYear->id,
+            'student_id' => $request->student_id,
+            'academic_year_id' => $academicYear->id,
             'infraction_definition_id' => $infraction->id,
-            'incident_date'           => $request->incident_date,
-            'description'             => $request->description,
-            'action_taken'            => $request->action_taken,
-            'reported_by'             => auth()->id(),
-            'notify_parent'           => $request->boolean('notify_parent') || $infraction->requires_parent_notification,
+            'incident_date' => $request->incident_date,
+            'description' => $request->description,
+            'action_taken' => $request->action_taken,
+            'reported_by' => auth()->id(),
+            'notify_parent' => $request->boolean('notify_parent') || $infraction->requires_parent_notification,
         ]);
 
         // Evaluate escalation rules
-        $escalationService = new DisciplineEscalationService();
+        $escalationService = new DisciplineEscalationService;
         $matchedRule = $escalationService->evaluateEscalation($record);
 
         $message = 'Disciplinary record created successfully.';
         if ($matchedRule) {
-            $message .= ' Escalation triggered: ' . $matchedRule->action_label . '.';
+            $message .= ' Escalation triggered: '.$matchedRule->action_label.'.';
         }
 
         return redirect()->route('admin.disciplinary.index')
@@ -90,20 +90,21 @@ class DisciplinaryController extends Controller
     public function show(DisciplinaryRecord $disciplinary)
     {
         $disciplinary->load(['student', 'reporter', 'handler', 'academicYear', 'infractionDefinition', 'escalationRule']);
+
         return view('admin.disciplinary.show', compact('disciplinary'));
     }
 
     public function update(Request $request, DisciplinaryRecord $disciplinary)
     {
         $request->validate([
-            'status'           => 'required|in:reported,under_review,resolved,escalated',
+            'status' => 'required|in:reported,under_review,resolved,escalated',
             'resolution_notes' => 'nullable|string',
         ]);
 
         $data = [
-            'status'           => $request->status,
+            'status' => $request->status,
             'resolution_notes' => $request->resolution_notes,
-            'handled_by'       => auth()->id(),
+            'handled_by' => auth()->id(),
         ];
 
         if ($request->status === 'resolved') {

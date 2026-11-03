@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class StoreEmployeeRequest extends FormRequest
 {
@@ -45,7 +44,7 @@ class StoreEmployeeRequest extends FormRequest
             'qualification_level' => 'nullable|string|max:255',
             'specialization' => 'nullable|string|max:255',
             'institution' => 'nullable|string|max:255',
-            'graduation_year' => 'nullable|integer|min:1900|max:' . (date('Y') + 1),
+            'graduation_year' => 'nullable|integer|min:1900|max:'.(date('Y') + 1),
             'last_degree' => 'nullable|string|max:255',
             'secondary_responsibilities' => 'nullable|string',
             'system_access_roles' => 'nullable|string',
@@ -58,5 +57,5 @@ class StoreEmployeeRequest extends FormRequest
     }
 }
 
-// UpdateEmployeeRequest can be defined in the same file or a separate one. 
+// UpdateEmployeeRequest can be defined in the same file or a separate one.
 // For brevity in this tool call, I'll combine the logic or assume a separate creation if needed.

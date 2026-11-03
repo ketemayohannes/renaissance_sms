@@ -36,7 +36,7 @@ return new class extends Migration
             $table->string('email')->nullable();
             $table->string('relationship')->nullable(); // Father, Mother, Uncle, etc.
             $table->timestamps();
-            
+
             // A student can have only one primary and one secondary guardian
             $table->unique(['student_id', 'guardian_type']);
         });
@@ -77,7 +77,7 @@ return new class extends Migration
         Schema::dropIfExists('student_transportation');
         Schema::dropIfExists('student_medical_info');
         Schema::dropIfExists('student_guardians');
-        
+
         Schema::table('students', function (Blueprint $table) {
             $table->dropColumn([
                 'father_name',
@@ -87,7 +87,7 @@ return new class extends Migration
                 'language_spoken',
                 'subcity',
                 'woreda',
-                'house_number'
+                'house_number',
             ]);
         });
     }

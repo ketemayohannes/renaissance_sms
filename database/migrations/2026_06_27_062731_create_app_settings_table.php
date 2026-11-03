@@ -19,7 +19,7 @@ return new class extends Migration
         DB::table('app_settings')->insert([
             ['key' => 'school.name',     'value' => 'Renaissance School',    'created_at' => now(), 'updated_at' => now()],
             ['key' => 'school.timezone', 'value' => 'Africa/Addis_Ababa',    'created_at' => now(), 'updated_at' => now()],
-            ['key' => 'school.logo_path','value' => null,                    'created_at' => now(), 'updated_at' => now()],
+            ['key' => 'school.logo_path', 'value' => null,                    'created_at' => now(), 'updated_at' => now()],
         ]);
     }
 

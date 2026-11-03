@@ -10,10 +10,11 @@ class Department extends Model
 
     public function head()
     {
-        return $this->belongsTo(\App\Models\User::class, 'head_id');
+        return $this->belongsTo(User::class, 'head_id');
     }
 
     public function subjects()
     {
-        return $this->hasMany(\App\Models\Subject::class);
-    }}
+        return $this->hasMany(Subject::class);
+    }
+}

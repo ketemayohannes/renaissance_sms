@@ -33,7 +33,7 @@ class AppSetting extends Model
     /**
      * Set multiple keys at once.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public static function setMany(array $data): void
     {

@@ -41,7 +41,7 @@ class LeaveRequestController extends Controller
         }
 
         $validated = $request->validate([
-            'leave_type' => 'required|in:' . implode(',', LeaveRequest::TYPES),
+            'leave_type' => 'required|in:'.implode(',', LeaveRequest::TYPES),
             'start_date' => 'required|date|after_or_equal:today',
             'end_date' => 'required|date|after_or_equal:start_date',
             'reason' => 'required|string|max:1000',

@@ -11,15 +11,14 @@ class ProcessStudentWithdrawal
     /**
      * Process a student withdrawal action.
      *
-     * @param Student $student
-     * @param array $data Expected keys: new_status, reason, notes, effective_date
+     * @param  array  $data  Expected keys: new_status, reason, notes, effective_date
      * @return void
      */
     public static function run(Student $student, array $data)
     {
-        DB::transaction(function() use ($student, $data) {
+        DB::transaction(function () use ($student, $data) {
             $oldStatus = $student->is_active ? 'active' : 'inactive';
-            
+
             // Create status history record
             StudentStatusHistory::create([
                 'student_id' => $student->id,

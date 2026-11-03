@@ -2,42 +2,47 @@
 
 namespace App\Http\Controllers\Parent;
 
+use App\Helpers\CachedData;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Student;
+use App\Models\StudentTermRecord;
+use App\Models\Term;
+use App\Services\GradingService;
+use App\Services\StudentAcademicHistoryService;
+use Illuminate\Http\Request;
 
 class ChildPortalController extends Controller
 {
     public function dashboard(Student $student)
     {
         $student->load(['marks.subject', 'marks.assessmentTemplate', 'marks.term', 'attendance', 'disciplinaryRecords', 'medicalInfo', 'transportation', 'currentEnrollment.section.gradeLevel']);
-        
+
         // Calculate attendance summary
         $attendanceCount = $student->attendance->count();
         $presentCount = $student->attendance->whereIn('status', ['present', 'late', 'Present', 'Late'])->count();
         $attendanceRate = $attendanceCount > 0 ? round(($presentCount / $attendanceCount) * 100, 1) : 100;
-        
+
         // Determine nearly closed term average
-        $academicYear = \App\Helpers\CachedData::activeAcademicYear();
+        $academicYear = CachedData::activeAcademicYear();
         $averageScore = null;
         $nearlyClosedTermName = '';
-        
+
         if ($academicYear) {
-            $quarters = \App\Models\Term::where('academic_year_id', $academicYear->id)
+            $quarters = Term::where('academic_year_id', $academicYear->id)
                 ->where('type', 'quarter')
                 ->orderBy('term_number', 'asc')
                 ->get();
-            
+
             if ($quarters->isNotEmpty()) {
                 $today = now();
                 // Find the last quarter that has started
-                $currentQuarter = $quarters->filter(fn($q) => $q->start_date <= $today)->last();
-                
-                if (!$currentQuarter) {
+                $currentQuarter = $quarters->filter(fn ($q) => $q->start_date <= $today)->last();
+
+                if (! $currentQuarter) {
                     $currentQuarter = $quarters->first();
                 }
-                
-                $currentIndex = $quarters->search(fn($q) => $q->id === $currentQuarter->id);
+
+                $currentIndex = $quarters->search(fn ($q) => $q->id === $currentQuarter->id);
                 if ($currentIndex > 0) {
                     // Previous term is the nearly closed term
                     $nearlyClosedTerm = $quarters->get($currentIndex - 1);
@@ -45,11 +50,11 @@ class ChildPortalController extends Controller
                     // If we are in Quarter 1, fallback to Quarter 1
                     $nearlyClosedTerm = $currentQuarter;
                 }
-                
+
                 if ($nearlyClosedTerm) {
                     $nearlyClosedTermName = $nearlyClosedTerm->name;
                     // Try to get the calculated average and rank from StudentTermRecord first
-                    $termRecord = \App\Models\StudentTermRecord::where('student_id', $student->id)
+                    $termRecord = StudentTermRecord::where('student_id', $student->id)
                         ->where('term_id', $nearlyClosedTerm->id)
                         ->first();
 
@@ -63,33 +68,33 @@ class ChildPortalController extends Controller
                         }
                     } else {
                         // Calculate dynamically via GradingService
-                        $gradingService = app(\App\Services\GradingService::class);
+                        $gradingService = app(GradingService::class);
                         $stats = $gradingService->calculateStudentTotals($student, $nearlyClosedTerm, $academicYear);
                         $averageScore = $stats['average'] ?? null;
                     }
                 }
             }
         }
-        
+
         $averageScore = $averageScore !== null ? round($averageScore, 1) : null;
-        
+
         // Recent grades
         $recentMarks = $student->marks()->with(['subject', 'assessmentTemplate', 'term'])->orderBy('created_at', 'desc')->take(5)->get();
-        
+
         // Recent attendance
         $recentAttendance = $student->attendance()->orderBy('attendance_date', 'desc')->take(5)->get();
-        
+
         // Recent conduct
         $recentConduct = $student->disciplinaryRecords()->orderBy('incident_date', 'desc')->take(5)->get();
-        
+
         return view('parent.student.dashboard', compact(
-            'student', 
-            'attendanceRate', 
-            'averageScore', 
+            'student',
+            'attendanceRate',
+            'averageScore',
             'nearlyClosedTermName',
             'nearlyClosedTermRank',
-            'recentMarks', 
-            'recentAttendance', 
+            'recentMarks',
+            'recentAttendance',
             'recentConduct'
         ));
     }
@@ -99,17 +104,17 @@ class ChildPortalController extends Controller
         $student->load('currentEnrollment');
 
         $enrollment = $student->currentEnrollment;
-        $academicYearId = $enrollment->academic_year_id ?? \App\Helpers\CachedData::activeAcademicYear()?->id;
+        $academicYearId = $enrollment->academic_year_id ?? CachedData::activeAcademicYear()?->id;
 
         // Get all terms for filter dropdown
-        $allTerms = \App\Models\Term::where('academic_year_id', $academicYearId)->get();
+        $allTerms = Term::where('academic_year_id', $academicYearId)->get();
         $quarters = $allTerms->where('type', 'quarter');
         $semesters = $allTerms->where('type', 'semester');
 
         // Single source of truth (shared with the student portal): quarters resolved
         // components-first, semesters + yearly computed live via GradingService — so the
         // numbers match the report card and the admin profile, and Semester 2 / Yearly show.
-        $history = app(\App\Services\StudentAcademicHistoryService::class)->build($student, (int) $academicYearId);
+        $history = app(StudentAcademicHistoryService::class)->build($student, (int) $academicYearId);
         $groupedMarks = collect($history['academicRecords']->first() ?? collect());
         $termRecords = collect($history['termRecords']->first() ?? collect());
 
@@ -141,7 +146,7 @@ class ChildPortalController extends Controller
     public function downloadReport(Request $request, Student $student)
     {
         $period = $request->input('period');
-        $academicYearId = $student->currentEnrollment->academic_year_id ?? \App\Helpers\CachedData::activeAcademicYear()?->id;
+        $academicYearId = $student->currentEnrollment->academic_year_id ?? CachedData::activeAcademicYear()?->id;
 
         $termId = null;
         if ($period) {
@@ -154,13 +159,13 @@ class ChildPortalController extends Controller
             }
         }
 
-        if (!$termId) {
-            $termId = \App\Models\Term::where('academic_year_id', $academicYearId)->where('is_active', true)->value('id')
-                ?? \App\Models\Term::where('academic_year_id', $academicYearId)->value('id');
+        if (! $termId) {
+            $termId = Term::where('academic_year_id', $academicYearId)->where('is_active', true)->value('id')
+                ?? Term::where('academic_year_id', $academicYearId)->value('id');
         }
 
         // Create a new Request object for the admin controller
-        $newRequest = new Request();
+        $newRequest = new Request;
         $newRequest->replace([
             'term_id' => $termId,
             'academic_year_id' => $academicYearId,
@@ -174,10 +179,10 @@ class ChildPortalController extends Controller
         $student->load('attendance');
 
         // Load quarters for filter
-        $academicYear = \App\Helpers\CachedData::activeAcademicYear();
+        $academicYear = CachedData::activeAcademicYear();
         $quarters = collect();
         if ($academicYear) {
-            $quarters = \App\Models\Term::where('academic_year_id', $academicYear->id)
+            $quarters = Term::where('academic_year_id', $academicYear->id)
                 ->where('type', 'quarter')
                 ->orderBy('term_number', 'asc')
                 ->get();
@@ -195,7 +200,7 @@ class ChildPortalController extends Controller
             $quarter = $quarters->find((int) $selectedQuarter);
             if ($quarter && $quarter->start_date && $quarter->end_date) {
                 $filteredAttendance = $filteredAttendance->filter(function ($record) use ($quarter) {
-                    return $record->attendance_date >= $quarter->start_date 
+                    return $record->attendance_date >= $quarter->start_date
                         && $record->attendance_date <= $quarter->end_date;
                 });
             }
@@ -217,7 +222,7 @@ class ChildPortalController extends Controller
             // Fallback: show months that actually have logs across all quarters
             $availableMonths = $student->attendance->pluck('attendance_date')
                 ->filter()
-                ->map(fn($d) => $d->format('Y-m'))
+                ->map(fn ($d) => $d->format('Y-m'))
                 ->unique()
                 ->sort()
                 ->values();
@@ -236,13 +241,13 @@ class ChildPortalController extends Controller
         $lateCount = $filteredAttendance->whereIn('status', ['late', 'Late'])->count();
         $absentCount = $filteredAttendance->whereIn('status', ['absent', 'Absent'])->count();
         $excusedCount = $filteredAttendance->whereIn('status', ['excused', 'Excused'])->count();
-        
+
         return view('parent.student.attendance', compact(
-            'student', 
-            'attendanceCount', 
-            'presentCount', 
-            'lateCount', 
-            'absentCount', 
+            'student',
+            'attendanceCount',
+            'presentCount',
+            'lateCount',
+            'absentCount',
             'excusedCount',
             'quarters',
             'selectedQuarter',
@@ -254,22 +259,24 @@ class ChildPortalController extends Controller
 
     public function conduct(Student $student)
     {
-        $student->load(['disciplinaryRecords' => function($query) {
+        $student->load(['disciplinaryRecords' => function ($query) {
             $query->orderBy('incident_date', 'desc');
         }]);
+
         return view('parent.student.conduct', compact('student'));
     }
 
     public function info(Student $student)
     {
         $student->load([
-            'medicalInfo', 
-            'transportation', 
-            'guardians.user', 
-            'enrollments.academicYear', 
+            'medicalInfo',
+            'transportation',
+            'guardians.user',
+            'enrollments.academicYear',
             'enrollments.section.gradeLevel.division',
-            'currentEnrollment.section.gradeLevel.division'
+            'currentEnrollment.section.gradeLevel.division',
         ]);
+
         return view('parent.student.info', compact('student'));
     }
 }

@@ -28,10 +28,10 @@ class SubjectFactory extends Factory
     {
         $subject = self::$subjects[self::$subjectIndex % count(self::$subjects)];
         self::$subjectIndex++;
-        
+
         return [
             'name' => $subject['name'],
-            'code' => $subject['code'] . '_' . self::$subjectIndex,
+            'code' => $subject['code'].'_'.self::$subjectIndex,
             'description' => $this->faker->sentence(),
             'is_active' => true,
             'is_elective' => false,

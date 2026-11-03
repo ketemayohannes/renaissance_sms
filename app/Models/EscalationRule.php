@@ -24,9 +24,9 @@ class EscalationRule extends Model
 
     protected $casts = [
         'occurrence_threshold' => 'integer',
-        'time_window_days'     => 'integer',
-        'auto_notify_parent'   => 'boolean',
-        'is_active'            => 'boolean',
+        'time_window_days' => 'integer',
+        'auto_notify_parent' => 'boolean',
+        'is_active' => 'boolean',
     ];
 
     /* ── Relationships ── */
@@ -70,13 +70,13 @@ class EscalationRule extends Model
     public static function escalationActions(): array
     {
         return [
-            'verbal_warning'      => 'Verbal Warning',
-            'written_warning'     => 'Written Warning',
-            'parent_conference'   => 'Parent Conference',
-            'detention'           => 'Detention',
-            'community_service'   => 'Community Service',
-            'suspension'          => 'Suspension',
-            'expulsion_referral'  => 'Expulsion Referral',
+            'verbal_warning' => 'Verbal Warning',
+            'written_warning' => 'Written Warning',
+            'parent_conference' => 'Parent Conference',
+            'detention' => 'Detention',
+            'community_service' => 'Community Service',
+            'suspension' => 'Suspension',
+            'expulsion_referral' => 'Expulsion Referral',
         ];
     }
 }

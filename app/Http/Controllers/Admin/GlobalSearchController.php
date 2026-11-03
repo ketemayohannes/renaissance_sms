@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Student;
 use App\Models\Section;
+use App\Models\Student;
 use App\Models\Subject;
 use Illuminate\Http\Request;
 
@@ -13,8 +13,8 @@ class GlobalSearchController extends Controller
     public function search(Request $request)
     {
         $query = $request->get('q');
-        
-        if (!$query || strlen($query) < 2) {
+
+        if (! $query || strlen($query) < 2) {
             return response()->json([]);
         }
 
@@ -31,7 +31,7 @@ class GlobalSearchController extends Controller
                     'subtitle' => "ID: {$student->student_id}",
                     'url' => route('admin.students.show', $student),
                     'type' => 'Student',
-                    'icon' => 'user'
+                    'icon' => 'user',
                 ];
             });
         $results = $results->merge($students);
@@ -46,7 +46,7 @@ class GlobalSearchController extends Controller
                     'subtitle' => $section->gradeLevel->name ?? 'N/A',
                     'url' => route('admin.sections.edit', $section),
                     'type' => 'Section',
-                    'icon' => 'collection'
+                    'icon' => 'collection',
                 ];
             });
         $results = $results->merge($sections);
@@ -62,7 +62,7 @@ class GlobalSearchController extends Controller
                     'subtitle' => $subject->code,
                     'url' => route('admin.subjects.edit', $subject),
                     'type' => 'Subject',
-                    'icon' => 'book-open'
+                    'icon' => 'book-open',
                 ];
             });
         $results = $results->merge($subjects);

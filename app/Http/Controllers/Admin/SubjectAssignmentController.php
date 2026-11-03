@@ -14,6 +14,7 @@ class SubjectAssignmentController extends Controller
     public function index()
     {
         $gradeLevels = GradeLevel::with('division')->orderBy('sort_order')->get();
+
         return view('admin.subject-assignments.index', compact('gradeLevels'));
     }
 
@@ -21,7 +22,7 @@ class SubjectAssignmentController extends Controller
     {
         $activeYear = AcademicYear::where('is_active', true)->firstOrFail();
         $subjects = Subject::where('is_active', true)->orderBy('name')->get();
-        
+
         // Get currently assigned subjects for this grade and year
         $assignedSubjectIds = DB::table('grade_level_subjects')
             ->where('grade_level_id', $gradeLevel->id)
@@ -63,18 +64,20 @@ class SubjectAssignmentController extends Controller
                 ];
             }
 
-            if (!empty($data)) {
+            if (! empty($data)) {
                 DB::table('grade_level_subjects')->insert($data);
             }
         });
 
         return redirect()->route('admin.subject-assignments.index')
-            ->with('success', 'Subjects assigned successfully to ' . $gradeLevel->name);
+            ->with('success', 'Subjects assigned successfully to '.$gradeLevel->name);
     }
+
     public function bulkAssignForm()
     {
         $gradeLevels = GradeLevel::with('division')->orderBy('sort_order')->get();
         $subjects = Subject::where('is_active', true)->orderBy('name')->get();
+
         return view('admin.subject-assignments.bulk-assign', compact('gradeLevels', 'subjects'));
     }
 
@@ -112,13 +115,13 @@ class SubjectAssignmentController extends Controller
                     ];
                 }
 
-                if (!empty($data)) {
+                if (! empty($data)) {
                     DB::table('grade_level_subjects')->insert($data);
                 }
             }
         });
 
         return redirect()->route('admin.subject-assignments.index')
-            ->with('success', 'Subjects assigned successfully to ' . count($gradeLevelIds) . ' grade levels.');
+            ->with('success', 'Subjects assigned successfully to '.count($gradeLevelIds).' grade levels.');
     }
 }

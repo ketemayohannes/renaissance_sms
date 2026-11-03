@@ -17,6 +17,7 @@ class InventoryModuleTest extends TestCase
     use RefreshDatabase;
 
     protected User $manager;
+
     protected User $viewer;
 
     protected function setUp(): void

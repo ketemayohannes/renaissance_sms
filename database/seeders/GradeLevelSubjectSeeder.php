@@ -2,10 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
+use App\Models\AcademicYear;
 use App\Models\Division;
 use App\Models\GradeLevel;
 use App\Models\Subject;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
 class GradeLevelSubjectSeeder extends Seeder
@@ -22,27 +23,27 @@ class GradeLevelSubjectSeeder extends Seeder
             GradeLevel::firstOrCreate(['code' => 'KG1'], [
                 'division_id' => $kg->id,
                 'name' => 'KG 1',
-                'sort_order' => 1
+                'sort_order' => 1,
             ]);
             GradeLevel::firstOrCreate(['code' => 'KG2'], [
                 'division_id' => $kg->id,
                 'name' => 'KG 2',
-                'sort_order' => 2
+                'sort_order' => 2,
             ]);
             GradeLevel::firstOrCreate(['code' => 'KG3'], [
                 'division_id' => $kg->id,
                 'name' => 'KG 3',
-                'sort_order' => 3
+                'sort_order' => 3,
             ]);
         }
 
         // Create Grade Levels for Elementary
         if ($es) {
             for ($i = 1; $i <= 8; $i++) {
-                GradeLevel::firstOrCreate(['code' => 'G' . $i], [
+                GradeLevel::firstOrCreate(['code' => 'G'.$i], [
                     'division_id' => $es->id,
-                    'name' => 'Grade ' . $i,
-                    'sort_order' => $i
+                    'name' => 'Grade '.$i,
+                    'sort_order' => $i,
                 ]);
             }
         }
@@ -50,10 +51,10 @@ class GradeLevelSubjectSeeder extends Seeder
         // Create Grade Levels for High School
         if ($hs) {
             for ($i = 9; $i <= 12; $i++) {
-                GradeLevel::firstOrCreate(['code' => 'G' . $i], [
+                GradeLevel::firstOrCreate(['code' => 'G'.$i], [
                     'division_id' => $hs->id,
-                    'name' => 'Grade ' . $i,
-                    'sort_order' => $i
+                    'name' => 'Grade '.$i,
+                    'sort_order' => $i,
                 ]);
             }
         }
@@ -82,8 +83,8 @@ class GradeLevelSubjectSeeder extends Seeder
         }
 
         // Link Subjects to Grade Levels (Pivot Table)
-        $activeYear = \App\Models\AcademicYear::where('is_active', true)->first();
-        
+        $activeYear = AcademicYear::where('is_active', true)->first();
+
         if ($activeYear) {
             $allSubjects = Subject::all();
             $allGrades = GradeLevel::all();

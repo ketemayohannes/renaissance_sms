@@ -5,22 +5,24 @@ namespace App\Models;
 use App\Traits\Auditable;
 use App\Traits\HasDivisionRestriction;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class StudentAttendance extends Model
 {
-    use HasDivisionRestriction, Auditable;
+    use Auditable, HasDivisionRestriction;
+
     protected $table = 'student_attendance';
 
     protected static function booted()
     {
         static::saved(function ($attendance) {
-            \Illuminate\Support\Facades\Cache::forget('admin_dashboard_attendance_rate');
-            \Illuminate\Support\Facades\Cache::forget('admin_dashboard_missing_attendance');
+            Cache::forget('admin_dashboard_attendance_rate');
+            Cache::forget('admin_dashboard_missing_attendance');
         });
 
         static::deleted(function ($attendance) {
-            \Illuminate\Support\Facades\Cache::forget('admin_dashboard_attendance_rate');
-            \Illuminate\Support\Facades\Cache::forget('admin_dashboard_missing_attendance');
+            Cache::forget('admin_dashboard_attendance_rate');
+            Cache::forget('admin_dashboard_missing_attendance');
         });
     }
 

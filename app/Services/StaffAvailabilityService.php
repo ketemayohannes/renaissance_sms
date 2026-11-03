@@ -120,7 +120,7 @@ class StaffAvailabilityService
                 'source' => 'leave_request',
                 'check_in' => null,
                 'check_out' => null,
-                'detail' => ucfirst($leave->leave_type) . ' leave until ' . $leave->end_date->format('M j'),
+                'detail' => ucfirst($leave->leave_type).' leave until '.$leave->end_date->format('M j'),
             ];
         }
 
@@ -167,7 +167,7 @@ class StaffAvailabilityService
             ->keyBy('class_period_id')
             ->map(fn (Timetable $row) => [
                 'subject' => $row->teacherAssignment->subject->name ?? 'N/A',
-                'section' => trim(($row->teacherAssignment->section->gradeLevel->name ?? '') . ' ' . ($row->teacherAssignment->section->name ?? '')),
+                'section' => trim(($row->teacherAssignment->section->gradeLevel->name ?? '').' '.($row->teacherAssignment->section->name ?? '')),
                 'room' => $row->room_number,
             ]);
 

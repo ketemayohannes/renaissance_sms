@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Conversation;
+use App\Models\Message;
+use App\Models\MessageRead;
+use App\Notifications\NewMessageReceived;
 use Illuminate\Http\Request;
 
 class NotificationController extends Controller
@@ -31,6 +35,7 @@ class NotificationController extends Controller
 
         // Redirect to the notification's action URL if provided
         $url = $notification->data['url'] ?? route('dashboard');
+
         return redirect($url);
     }
 
@@ -61,14 +66,14 @@ class NotificationController extends Controller
             ->notifications()
             ->take(6)
             ->get()
-            ->map(fn($n) => [
-                'id'         => $n->id,
-                'type'       => $n->data['type']    ?? 'info',
-                'title'      => $n->data['title']   ?? 'Notification',
-                'body'       => $n->data['body']    ?? '',
-                'url'        => $n->data['url']     ?? '#',
-                'read'       => !is_null($n->read_at),
-                'time'       => $n->created_at->diffForHumans(),
+            ->map(fn ($n) => [
+                'id' => $n->id,
+                'type' => $n->data['type'] ?? 'info',
+                'title' => $n->data['title'] ?? 'Notification',
+                'body' => $n->data['body'] ?? '',
+                'url' => $n->data['url'] ?? '#',
+                'read' => ! is_null($n->read_at),
+                'time' => $n->created_at->diffForHumans(),
             ]);
 
         return response()->json($items);
@@ -87,7 +92,7 @@ class NotificationController extends Controller
     }
 
     /** Fetch all messages for the given conversation (JSON). */
-    public function fetchMessages(\App\Models\Conversation $conversation)
+    public function fetchMessages(Conversation $conversation)
     {
         $user = auth()->user();
         $conversation->loadMissing('participants');
@@ -96,21 +101,21 @@ class NotificationController extends Controller
         $messages = $conversation->messages()
             ->with('sender')
             ->get()
-            ->map(fn($m) => [
-                'id'             => $m->id,
-                'body'           => $m->body,
-                'sender_id'      => $m->sender_id,
+            ->map(fn ($m) => [
+                'id' => $m->id,
+                'body' => $m->body,
+                'sender_id' => $m->sender_id,
                 'sender_initial' => substr($m->sender->name ?? '?', 0, 1),
-                'time'           => $m->created_at->format('M d, g:i A'),
+                'time' => $m->created_at->format('M d, g:i A'),
             ]);
 
         // Mark unread messages as read
         $unread = $conversation->messages
             ->where('sender_id', '!=', $user->id)
-            ->filter(fn($m) => !$m->isReadBy($user));
+            ->filter(fn ($m) => ! $m->isReadBy($user));
 
         foreach ($unread as $message) {
-            \App\Models\MessageRead::firstOrCreate(
+            MessageRead::firstOrCreate(
                 ['message_id' => $message->id, 'user_id' => $user->id],
                 ['read_at' => now()]
             );
@@ -121,16 +126,16 @@ class NotificationController extends Controller
         // notifications for this conversation should be silently marked read
         // so the badge doesn't appear while the chat is already open.
         $user->unreadNotifications()
-            ->where('type', \App\Notifications\NewMessageReceived::class)
+            ->where('type', NewMessageReceived::class)
             ->get()
-            ->filter(fn($n) => ($n->data['conversation_id'] ?? null) == $conversation->id)
+            ->filter(fn ($n) => ($n->data['conversation_id'] ?? null) == $conversation->id)
             ->each->markAsRead();
 
         return response()->json($messages);
     }
 
     /** AJAX endpoint to send a reply. */
-    public function ajaxReply(Request $request, \App\Models\Conversation $conversation)
+    public function ajaxReply(Request $request, Conversation $conversation)
     {
         $user = auth()->user();
         $conversation->loadMissing('participants');
@@ -140,31 +145,31 @@ class NotificationController extends Controller
             'body' => 'required|string|max:3000',
         ]);
 
-        $message = \App\Models\Message::create([
+        $message = Message::create([
             'conversation_id' => $conversation->id,
-            'sender_id'       => $user->id,
-            'body'            => $validated['body'],
+            'sender_id' => $user->id,
+            'body' => $validated['body'],
         ]);
 
         $conversation->touch();
 
         // Notify other participants after the response is sent — keeps AJAX reply fast
-        $participantsToNotify = $conversation->participants->filter(fn($p) => $p->id !== $user->id);
+        $participantsToNotify = $conversation->participants->filter(fn ($p) => $p->id !== $user->id);
         app()->terminating(function () use ($participantsToNotify, $conversation, $user) {
             foreach ($participantsToNotify as $participant) {
-                $participant->notify(new \App\Notifications\NewMessageReceived($conversation, $user));
+                $participant->notify(new NewMessageReceived($conversation, $user));
             }
         });
 
         return response()->json([
-            'status'  => 'ok',
+            'status' => 'ok',
             'message' => [
-                'id'             => $message->id,
-                'body'           => $message->body,
-                'sender_id'      => $message->sender_id,
+                'id' => $message->id,
+                'body' => $message->body,
+                'sender_id' => $message->sender_id,
                 'sender_initial' => substr($user->name, 0, 1),
-                'time'           => $message->created_at->format('M d, g:i A'),
-            ]
+                'time' => $message->created_at->format('M d, g:i A'),
+            ],
         ]);
     }
 }

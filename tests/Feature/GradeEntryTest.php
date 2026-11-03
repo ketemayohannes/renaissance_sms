@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\AcademicYear;
 use App\Models\AssessmentTemplate;
+use App\Models\AssessmentType;
 use App\Models\Division;
 use App\Models\GradeLevel;
 use App\Models\Section;
@@ -12,7 +13,6 @@ use App\Models\StudentMark;
 use App\Models\Subject;
 use App\Models\Term;
 use App\Models\User;
-use App\Models\AssessmentType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -22,22 +22,28 @@ class GradeEntryTest extends TestCase
     use RefreshDatabase;
 
     protected User $adminUser;
+
     protected AcademicYear $academicYear;
+
     protected Term $term;
+
     protected Section $section;
+
     protected GradeLevel $gradeLevel;
+
     protected Division $division;
+
     protected Subject $subject;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Create admin user with role
         Role::create(['name' => 'Super Admin']);
         $this->adminUser = User::factory()->create();
         $this->adminUser->assignRole('Super Admin');
-        
+
         // Create base data structure
         $this->division = Division::factory()->create(['name' => 'Primary']);
         $this->academicYear = AcademicYear::factory()->active()->create();

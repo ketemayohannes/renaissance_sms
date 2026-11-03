@@ -10,6 +10,7 @@ class InventoryAsset extends Model
     use HasFactory;
 
     public const CONDITIONS = ['good', 'needs_repair', 'damaged', 'retired'];
+
     public const STATUSES = ['available', 'assigned', 'in_maintenance', 'retired'];
 
     protected $fillable = [

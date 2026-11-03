@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Models\GradeLevel;
 use App\Models\Division;
+use App\Models\GradeLevel;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class GradeLevelFactory extends Factory
@@ -14,7 +14,7 @@ class GradeLevelFactory extends Factory
     {
         static $gradeNumber = 0;
         $gradeNumber++;
-        
+
         return [
             'division_id' => Division::factory(),
             'name' => "Grade {$gradeNumber}",

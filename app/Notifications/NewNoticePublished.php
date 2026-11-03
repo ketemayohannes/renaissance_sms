@@ -3,9 +3,9 @@
 namespace App\Notifications;
 
 use App\Models\Notice;
-use Illuminate\Notifications\Notification;
-use Illuminate\Notifications\Messages\MailMessage;
 use App\Traits\DeterminesChannels;
+use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
 
 class NewNoticePublished extends Notification
 {
@@ -22,27 +22,27 @@ class NewNoticePublished extends Notification
     {
         $role = $notifiable->getRoleNames()->first() ?? '';
 
-        $url = match(true) {
-            str_contains($role, 'Parent')  => route('parent.notices.show',  $this->notice),
+        $url = match (true) {
+            str_contains($role, 'Parent') => route('parent.notices.show', $this->notice),
             str_contains($role, 'Teacher') => route('teacher.notices.show', $this->notice),
             str_contains($role, 'Student') => route('student.dashboard'),   // students have no dedicated notice page
-            default                        => route('admin.notices.show',   $this->notice),
+            default => route('admin.notices.show', $this->notice),
         };
 
         return [
             'notice_id' => $this->notice->id,
-            'type'      => 'notice',
-            'title'     => 'New notice: ' . $this->notice->title,
-            'body'      => \Str::limit(strip_tags($this->notice->content), 100),
-            'url'       => $url,
+            'type' => 'notice',
+            'title' => 'New notice: '.$this->notice->title,
+            'body' => \Str::limit(strip_tags($this->notice->content), 100),
+            'url' => $url,
         ];
     }
 
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('School Announcement: ' . $this->notice->title)
-            ->greeting('Hello ' . $notifiable->name . ',')
+            ->subject('School Announcement: '.$this->notice->title)
+            ->greeting('Hello '.$notifiable->name.',')
             ->line('A new announcement has been published to the notice board:')
             ->line($this->notice->title)
             ->line(\Str::limit(strip_tags($this->notice->content), 200))

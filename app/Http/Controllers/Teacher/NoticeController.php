@@ -21,10 +21,11 @@ class NoticeController extends Controller
     public function show($id)
     {
         $notice = Notice::find($id);
-        if (!$notice || !$notice->is_active || !in_array($notice->target_audience, ['Teacher', 'All'])) {
+        if (! $notice || ! $notice->is_active || ! in_array($notice->target_audience, ['Teacher', 'All'])) {
             return redirect()->route('teacher.notices.index')
                 ->with('error', 'This announcement is no longer available.');
         }
+
         return view('teacher.notices.show', compact('notice'));
     }
 }

@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -127,7 +128,7 @@ return new class extends Migration
             $table->foreignId('section_id')->constrained()->onDelete('cascade');
             $table->foreignId('academic_year_id')->constrained()->onDelete('cascade');
             $table->date('enrollment_date');
-            if (\Illuminate\Support\Facades\DB::getDriverName() === 'sqlite') {
+            if (DB::getDriverName() === 'sqlite') {
                 $table->string('status')->default('active');
             } else {
                 $table->enum('status', ['active', 'transferred', 'graduated', 'withdrawn'])->default('active');

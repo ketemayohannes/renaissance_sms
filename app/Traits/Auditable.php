@@ -2,7 +2,10 @@
 
 namespace App\Traits;
 
+use App\Models\AcademicActivity;
+use App\Models\ActivitySubmission;
 use App\Models\AuditLog;
+use App\Models\Student;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Request;
 
@@ -39,7 +42,7 @@ trait Auditable
 
         $userAgent = Request::userAgent();
         $ip = Request::ip();
-        
+
         // Defensive check for real IP behind Docker/Nginx proxies
         if (str_starts_with($ip, '172.') || $ip === '127.0.0.1') {
             $forwarded = Request::header('X-Forwarded-For') ?? Request::server('HTTP_X_FORWARDED_FOR');
@@ -73,17 +76,17 @@ trait Auditable
         }
 
         // 2. AcademicActivity
-        if ($this instanceof \App\Models\AcademicActivity) {
+        if ($this instanceof AcademicActivity) {
             return $this->teacherAssignment?->section_id;
         }
 
         // 3. ActivitySubmission
-        if ($this instanceof \App\Models\ActivitySubmission) {
+        if ($this instanceof ActivitySubmission) {
             return $this->academicActivity?->teacherAssignment?->section_id;
         }
 
         // 4. Student
-        if ($this instanceof \App\Models\Student) {
+        if ($this instanceof Student) {
             return $this->currentEnrollment?->section_id;
         }
 

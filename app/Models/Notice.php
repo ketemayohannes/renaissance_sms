@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\DB;
 
 class Notice extends Model
 {
@@ -41,12 +40,13 @@ class Notice extends Model
     public function scopeActive($query)
     {
         $now = now();
+
         return $query->where('is_active', true)
-                     ->whereDate('publish_date', '<=', $now)
-                     ->where(function ($q) use ($now) {
-                         $q->whereNull('expiry_date')
-                           ->orWhereDate('expiry_date', '>=', $now);
-                     });
+            ->whereDate('publish_date', '<=', $now)
+            ->where(function ($q) use ($now) {
+                $q->whereNull('expiry_date')
+                    ->orWhereDate('expiry_date', '>=', $now);
+            });
     }
 
     /**
@@ -71,13 +71,12 @@ class Notice extends Model
      */
     public static function audienceColor(string $audience): string
     {
-        return match($audience) {
-            'All'     => 'bg-violet-100 text-violet-700',
-            'Parent'  => 'bg-sky-100 text-sky-700',
+        return match ($audience) {
+            'All' => 'bg-violet-100 text-violet-700',
+            'Parent' => 'bg-sky-100 text-sky-700',
             'Teacher' => 'bg-emerald-100 text-emerald-700',
             'Student' => 'bg-amber-100 text-amber-700',
-            default   => 'bg-slate-100 text-slate-600',
+            default => 'bg-slate-100 text-slate-600',
         };
     }
 }
-

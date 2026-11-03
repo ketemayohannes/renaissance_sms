@@ -2,22 +2,21 @@
 
 namespace Tests\Feature;
 
+use App\Channels\AfricasTalkingChannel;
 use App\Models\AcademicYear;
 use App\Models\CommunicationSetting;
 use App\Models\Employee;
 use App\Models\GradeLevel;
+use App\Models\Notice;
 use App\Models\Section;
 use App\Models\Student;
 use App\Models\StudentGuardian;
 use App\Models\User;
-use App\Services\SmsService;
-use App\Notifications\StudentAbsent;
 use App\Notifications\NewNoticePublished;
-use App\Notifications\NewMessageReceived;
-use App\Notifications\ReportCardExportReady;
+use App\Notifications\StudentAbsent;
+use App\Services\SmsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -27,11 +26,17 @@ class CommunicationChannelTest extends TestCase
     use RefreshDatabase;
 
     protected User $adminUser;
+
     protected User $teacherUser;
+
     protected User $parentUser;
+
     protected Student $student;
+
     protected Section $section;
+
     protected GradeLevel $gradeLevel;
+
     protected AcademicYear $academicYear;
 
     protected function setUp(): void
@@ -73,7 +78,7 @@ class CommunicationChannelTest extends TestCase
         // Academic structure
         $this->academicYear = AcademicYear::factory()->active()->create();
         $this->gradeLevel = GradeLevel::factory()->create(['name' => 'Grade 8']);
-        
+
         $this->section = Section::factory()->create([
             'grade_level_id' => $this->gradeLevel->id,
             'academic_year_id' => $this->academicYear->id,
@@ -94,34 +99,34 @@ class CommunicationChannelTest extends TestCase
 
         // Link parent as primary guardian
         StudentGuardian::create([
-            'student_id'               => $this->student->id,
-            'user_id'                  => $this->parentUser->id,
-            'guardian_type'            => 'primary',   // must match primaryGuardian() scope
-            'relationship'             => 'Father',
-            'first_name'               => 'PARENT',
-            'father_name'              => 'ONE',
-            'grandfather_name'         => 'TEST',
-            'is_emergency_contact'     => true,
-            'phone'                    => '0912345678',
-            'email'                    => $this->parentUser->email,
-            'communication_preferences'=> ['email', 'sms'],
+            'student_id' => $this->student->id,
+            'user_id' => $this->parentUser->id,
+            'guardian_type' => 'primary',   // must match primaryGuardian() scope
+            'relationship' => 'Father',
+            'first_name' => 'PARENT',
+            'father_name' => 'ONE',
+            'grandfather_name' => 'TEST',
+            'is_emergency_contact' => true,
+            'phone' => '0912345678',
+            'email' => $this->parentUser->email,
+            'communication_preferences' => ['email', 'sms'],
         ]);
 
         // Define communication settings in DB
         CommunicationSetting::create([
-            'sms_enabled'              => true,
-            'email_enabled'            => true,
-            'africastalking_username'  => 'sandbox',
-            'africastalking_api_key'   => 'test_api_key',
-            'africastalking_sandbox'   => true,
-            'mail_mailer'              => 'smtp',
-            'mail_host'                => '127.0.0.1',
-            'mail_port'                => 2525,
-            'event_settings'           => [
-                'notice'  => ['sms' => true, 'email' => true],
+            'sms_enabled' => true,
+            'email_enabled' => true,
+            'africastalking_username' => 'sandbox',
+            'africastalking_api_key' => 'test_api_key',
+            'africastalking_sandbox' => true,
+            'mail_mailer' => 'smtp',
+            'mail_host' => '127.0.0.1',
+            'mail_port' => 2525,
+            'event_settings' => [
+                'notice' => ['sms' => true, 'email' => true],
                 'absence' => ['sms' => true, 'email' => true],
                 'message' => ['sms' => false, 'email' => true],
-                'export'  => ['sms' => false, 'email' => true],
+                'export' => ['sms' => false, 'email' => true],
             ],
         ]);
 
@@ -132,16 +137,16 @@ class CommunicationChannelTest extends TestCase
         // affected by AppServiceProvider boot-time ordering (service providers
         // boot once before any test DB record exists, so we force them here).
         config([
-            'communication.sms.enabled'                 => true,
-            'communication.email.enabled'               => true,
+            'communication.sms.enabled' => true,
+            'communication.email.enabled' => true,
             'communication.sms.africastalking.username' => 'sandbox',
-            'communication.sms.africastalking.api_key'  => 'test_api_key',
-            'communication.sms.africastalking.sandbox'  => true,
+            'communication.sms.africastalking.api_key' => 'test_api_key',
+            'communication.sms.africastalking.sandbox' => true,
             'communication.events' => [
-                'notice'  => ['sms' => true, 'email' => true],
+                'notice' => ['sms' => true, 'email' => true],
                 'absence' => ['sms' => true, 'email' => true],
                 'message' => ['sms' => false, 'email' => true],
-                'export'  => ['sms' => false, 'email' => true],
+                'export' => ['sms' => false, 'email' => true],
             ],
         ]);
     }
@@ -149,7 +154,7 @@ class CommunicationChannelTest extends TestCase
     /** @test */
     public function sms_service_formats_phone_numbers_correctly()
     {
-        $smsService = new SmsService();
+        $smsService = new SmsService;
 
         // Standard Ethiopian formats
         $this->assertEquals('+251912345678', $smsService->formatPhoneNumber('0912345678'));
@@ -170,13 +175,13 @@ class CommunicationChannelTest extends TestCase
             '*' => Http::response([
                 'SMSMessageData' => [
                     'Recipients' => [
-                        ['number' => '+251912345678', 'status' => 'Success']
-                    ]
-                ]
-            ], 201)
+                        ['number' => '+251912345678', 'status' => 'Success'],
+                    ],
+                ],
+            ], 201),
         ]);
 
-        $smsService = new SmsService();
+        $smsService = new SmsService;
         $sent = $smsService->send('0912345678', 'Hello World');
 
         $this->assertTrue($sent);
@@ -217,11 +222,11 @@ class CommunicationChannelTest extends TestCase
                 'section_id' => $this->section->id,
                 'attendance_date' => now()->format('Y-m-d'),
                 'attendance' => [
-                    $this->student->id => 'absent'
+                    $this->student->id => 'absent',
                 ],
                 'remarks' => [
-                    $this->student->id => 'Not in class'
-                ]
+                    $this->student->id => 'Not in class',
+                ],
             ]);
 
         Notification::assertSentTo(
@@ -239,18 +244,18 @@ class CommunicationChannelTest extends TestCase
         // Re-seed config explicitly — AppServiceProvider ran at boot with empty DB,
         // so we must ensure the communication namespace is populated here.
         config([
-            'communication.sms.enabled'   => true,
+            'communication.sms.enabled' => true,
             'communication.email.enabled' => true,
             'communication.events' => [
-                'notice'  => ['sms' => true, 'email' => true],
+                'notice' => ['sms' => true, 'email' => true],
                 'absence' => ['sms' => true, 'email' => true],
                 'message' => ['sms' => false, 'email' => true],
-                'export'  => ['sms' => false, 'email' => true],
+                'export' => ['sms' => false, 'email' => true],
             ],
         ]);
 
         // 1. Both Email and SMS enabled globally + user prefers both
-        $notice = \App\Models\Notice::create([
+        $notice = Notice::create([
             'title' => 'Important Notice',
             'content' => 'Please read.',
             'posted_by' => $this->adminUser->id,
@@ -263,20 +268,20 @@ class CommunicationChannelTest extends TestCase
 
         $this->assertContains('database', $channels);
         $this->assertContains('mail', $channels);
-        $this->assertContains(\App\Channels\AfricasTalkingChannel::class, $channels);
+        $this->assertContains(AfricasTalkingChannel::class, $channels);
 
         // 2. Global SMS disabled -> SMS channel shouldn't be loaded
         config(['communication.sms.enabled' => false]);
         $channels = $notification->via($this->parentUser);
-        $this->assertNotContains(\App\Channels\AfricasTalkingChannel::class, $channels);
-        
+        $this->assertNotContains(AfricasTalkingChannel::class, $channels);
+
         // 3. Re-enable SMS, but parent updates preferences to only email
         config(['communication.sms.enabled' => true]);
         $guardian = $this->parentUser->guardianProfiles->first();
         $guardian->update(['communication_preferences' => ['email']]);
-        
+
         $channels = $notification->via($this->parentUser);
-        $this->assertNotContains(\App\Channels\AfricasTalkingChannel::class, $channels);
+        $this->assertNotContains(AfricasTalkingChannel::class, $channels);
         $this->assertContains('mail', $channels);
     }
 
@@ -284,7 +289,7 @@ class CommunicationChannelTest extends TestCase
     public function sms_service_formats_phone_numbers_correctly_for_sms_ethiopia()
     {
         config(['communication.sms.provider' => 'smsethiopia']);
-        $smsService = new SmsService();
+        $smsService = new SmsService;
 
         // Standard Ethiopian formats
         $this->assertEquals('251912345678', $smsService->formatPhoneNumberForSmsEthiopia('0912345678'));
@@ -304,8 +309,8 @@ class CommunicationChannelTest extends TestCase
             'https://smsethiopia.com/*' => Http::response([
                 'sent' => true,
                 'id' => 0,
-                'description' => 'Accepted for delivery'
-            ], 200)
+                'description' => 'Accepted for delivery',
+            ], 200),
         ]);
 
         config([
@@ -313,7 +318,7 @@ class CommunicationChannelTest extends TestCase
             'communication.sms.smsethiopia.api_key' => 'ethiopia_api_key_test',
         ]);
 
-        $smsService = new SmsService();
+        $smsService = new SmsService;
         $sent = $smsService->send('0912345678', 'Test SMS Ethiopia');
 
         $this->assertTrue($sent);
@@ -338,9 +343,9 @@ class CommunicationChannelTest extends TestCase
                 'smsethiopia_api_key' => 'new_key',
                 'mail_mailer' => 'smtp',
                 'event_settings' => [
-                    'notice'  => ['email' => '1'],
+                    'notice' => ['email' => '1'],
                     'absence' => ['sms' => '1', 'email' => '1'],
-                ]
+                ],
             ]);
 
         $settings = CommunicationSetting::first();

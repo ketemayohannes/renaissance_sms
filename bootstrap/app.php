@@ -1,10 +1,17 @@
 <?php
 
+use App\Http\Middleware\ForcePasswordChange;
+use App\Http\Middleware\NoCache;
+use App\Http\Middleware\SessionTimeout;
+use App\Http\Middleware\VerifyParentAccessToStudent;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 use Illuminate\Http\Request;
+use Spatie\Permission\Middleware\PermissionMiddleware;
+use Spatie\Permission\Middleware\RoleMiddleware;
+use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -15,15 +22,15 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
         $middleware->web(append: [
-            \App\Http\Middleware\SessionTimeout::class,
-            \App\Http\Middleware\ForcePasswordChange::class,
-            \App\Http\Middleware\NoCache::class,
+            SessionTimeout::class,
+            ForcePasswordChange::class,
+            NoCache::class,
         ]);
         $middleware->alias([
-            'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
-            'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
-            'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
-            'parent_access' => \App\Http\Middleware\VerifyParentAccessToStudent::class,
+            'role' => RoleMiddleware::class,
+            'permission' => PermissionMiddleware::class,
+            'role_or_permission' => RoleOrPermissionMiddleware::class,
+            'parent_access' => VerifyParentAccessToStudent::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
@@ -32,7 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 if ($request->expectsJson() || $request->ajax()) {
                     return response()->json([
                         'message' => 'Your session has expired. Please log in again.',
-                        'redirect' => route('login')
+                        'redirect' => route('login'),
                     ], 419);
                 }
 
@@ -43,7 +50,7 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($e->getStatusCode() === 403) {
                 if ($request->expectsJson() || $request->ajax()) {
                     return response()->json([
-                        'message' => 'You do not have permission to access this page.'
+                        'message' => 'You do not have permission to access this page.',
                     ], 403);
                 }
 

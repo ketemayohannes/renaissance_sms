@@ -50,7 +50,7 @@ class StaffAttendanceController extends Controller
         $request->validate([
             'attendance_date' => 'required|date|before_or_equal:today',
             'entries' => 'required|array',
-            'entries.*.status' => 'nullable|in:' . implode(',', EmployeeAttendance::STATUSES),
+            'entries.*.status' => 'nullable|in:'.implode(',', EmployeeAttendance::STATUSES),
             'entries.*.check_in' => 'nullable|date_format:H:i',
             'entries.*.check_out' => 'nullable|date_format:H:i|after:entries.*.check_in',
             'entries.*.remarks' => 'nullable|string|max:500',

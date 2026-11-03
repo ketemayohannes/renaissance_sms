@@ -7,6 +7,7 @@ use App\Models\InventoryAsset;
 use App\Models\InventoryAssignment;
 use App\Models\InventoryCategory;
 use App\Models\InventoryItem;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class InventoryReportController extends Controller
 {
@@ -25,13 +26,13 @@ class InventoryReportController extends Controller
 
         $data = $this->buildAll();
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.inventory.reports.pdf', [
+        $pdf = Pdf::loadView('admin.inventory.reports.pdf', [
             'report' => $report,
             'data' => $data,
             'generatedAt' => now(),
         ])->setPaper('a4', $report === 'asset-register' ? 'landscape' : 'portrait');
 
-        return $pdf->download("inventory-{$report}-" . now()->format('Y-m-d') . '.pdf');
+        return $pdf->download("inventory-{$report}-".now()->format('Y-m-d').'.pdf');
     }
 
     private function buildAll(): array

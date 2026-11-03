@@ -14,14 +14,14 @@ return new class extends Migration
         Schema::table('students', function (Blueprint $table) {
             // Index for name-based searches
             $table->index(['first_name', 'father_name', 'grandfather_name'], 'students_name_compound_index');
-            
+
             // Indexes for filtering
             $table->index('gender');
             $table->index('is_active');
-            
+
             // Index for admission number (already unique, but good to be explicit for searching if unique didn't add it consistently in all DBs, though unique usually does. Let's skip redudant one).
             // Admission number is unique so it has an index.
-            
+
             // Consider checking if user_id index exists (foreignId constrained usually adds it).
         });
     }

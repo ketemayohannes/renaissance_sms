@@ -13,7 +13,7 @@ class DivisionFactory extends Factory
     {
         static $order = 0;
         $order++;
-        
+
         return [
             'name' => $this->faker->randomElement(['Primary', 'Middle School', 'High School', 'Preparatory']),
             'code' => strtoupper($this->faker->unique()->lexify('DIV??')),

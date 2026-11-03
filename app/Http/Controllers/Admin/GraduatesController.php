@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Student;
 use App\Models\AcademicYear;
 use App\Models\Division;
+use App\Models\Student;
 use Illuminate\Http\Request;
 
 class GraduatesController extends Controller
@@ -16,7 +16,7 @@ class GraduatesController extends Controller
             'latestPromotion.fromGradeLevel',
             'latestPromotion.fromAcademicYear',
             'latestPromotion.toAcademicYear',
-            'statusHistory' => fn($q) => $q->where('new_status', 'graduated')->latest()->limit(1),
+            'statusHistory' => fn ($q) => $q->where('new_status', 'graduated')->latest()->limit(1),
         ])->graduated();
 
         // Search
@@ -33,7 +33,7 @@ class GraduatesController extends Controller
         if ($request->filled('graduation_year_id')) {
             $query->whereHas('latestPromotion', function ($q) use ($request) {
                 $q->where('from_academic_year_id', $request->graduation_year_id)
-                  ->where('status', 'graduated');
+                    ->where('status', 'graduated');
             });
         }
 
@@ -45,26 +45,26 @@ class GraduatesController extends Controller
         }
 
         // Sorting
-        $sort      = $request->get('sort', 'name');
+        $sort = $request->get('sort', 'name');
         $direction = $request->get('direction', 'asc');
 
         if ($sort === 'name') {
             $query->orderBy('first_name', $direction)
-                  ->orderBy('father_name', $direction)
-                  ->orderBy('grandfather_name', $direction);
+                ->orderBy('father_name', $direction)
+                ->orderBy('grandfather_name', $direction);
         } elseif (in_array($sort, ['student_id', 'gender'])) {
             $query->orderBy($sort, $direction);
         } else {
             $query->orderBy('updated_at', 'desc');
         }
 
-        $perPage    = min($request->input('per_page', 50), 100);
-        $graduates  = $query->paginate($perPage)->withQueryString();
+        $perPage = min($request->input('per_page', 50), 100);
+        $graduates = $query->paginate($perPage)->withQueryString();
 
-        $academicYears   = AcademicYear::orderBy('start_date', 'desc')->get();
-        $divisions       = Division::where('is_active', true)->orderBy('sort_order')->get();
-        $totalGraduates  = Student::graduated()->count();
-        $maleGraduates   = Student::graduated()->where('gender', 'M')->count();
+        $academicYears = AcademicYear::orderBy('start_date', 'desc')->get();
+        $divisions = Division::where('is_active', true)->orderBy('sort_order')->get();
+        $totalGraduates = Student::graduated()->count();
+        $maleGraduates = Student::graduated()->where('gender', 'M')->count();
         $femaleGraduates = Student::graduated()->where('gender', 'F')->count();
 
         return view('admin.graduates.index', compact(

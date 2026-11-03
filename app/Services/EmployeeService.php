@@ -2,19 +2,20 @@
 
 namespace App\Services;
 
-use App\Models\Employee;
-use App\Models\User;
-use App\Models\SystemCounter;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Log;
 use App\Models\AcademicStaffDetail;
 use App\Models\AdministrativeStaffDetail;
+use App\Models\Employee;
+use App\Models\SystemCounter;
+use App\Models\User;
 use Carbon\Carbon;
-use Spatie\Permission\Models\Role;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role;
 
 class EmployeeService
 {
@@ -25,7 +26,7 @@ class EmployeeService
     {
         return DB::transaction(function () use ($data) {
             // 1. Auto-generate email if missing
-            $email = (!empty($data['email'])) ? $data['email'] : $this->generateEmail($data['first_name'], $data['last_name']);
+            $email = (! empty($data['email'])) ? $data['email'] : $this->generateEmail($data['first_name'], $data['last_name']);
 
             // 2. Create User
             $firstName = $data['first_name'];
@@ -36,8 +37,8 @@ class EmployeeService
             $user = User::create([
                 'name' => $fullName,
                 'email' => $email,
-                'password' => Hash::make(!empty($data['password']) ? $data['password'] : 'staff1234'),
-                'temp_password' => !empty($data['password']) ? $data['password'] : 'staff1234',
+                'password' => Hash::make(! empty($data['password']) ? $data['password'] : 'staff1234'),
+                'temp_password' => ! empty($data['password']) ? $data['password'] : 'staff1234',
             ]);
 
             // 3. Assign Role
@@ -52,13 +53,13 @@ class EmployeeService
                 'user_id' => $user->id,
                 'employee_id' => $employeeId,
                 'email' => $email,
-                'gender' => !empty($data['gender']) ? $data['gender'] : 'M',
-                'designation' => !empty($data['designation']) ? $data['designation'] : $roleName, // Use roleName for backward compatibility
-                'basic_salary' => !empty($data['basic_salary']) ? $data['basic_salary'] : 0,
+                'gender' => ! empty($data['gender']) ? $data['gender'] : 'M',
+                'designation' => ! empty($data['designation']) ? $data['designation'] : $roleName, // Use roleName for backward compatibility
+                'basic_salary' => ! empty($data['basic_salary']) ? $data['basic_salary'] : 0,
                 'joining_date' => $this->parseDate($data['joining_date'] ?? null) ?? now(),
                 'date_of_birth' => $this->parseDate($data['date_of_birth'] ?? null),
-                'status' => !empty($data['status']) ? $data['status'] : 'active',
-                'employment_type' => !empty($data['employment_type']) ? $data['employment_type'] : 'full_time',
+                'status' => ! empty($data['status']) ? $data['status'] : 'active',
+                'employment_type' => ! empty($data['employment_type']) ? $data['employment_type'] : 'full_time',
             ]));
 
             // 6. Handle Category-Specific Details
@@ -106,7 +107,7 @@ class EmployeeService
             if (isset($data['first_name']) || isset($data['last_name']) || isset($data['email'])) {
                 $userUpdate = [];
                 if (isset($data['first_name']) || isset($data['last_name'])) {
-                    $userUpdate['name'] = trim(($data['first_name'] ?? $employee->first_name) . " " . ($data['middle_name'] ?? $employee->middle_name) . " " . ($data['last_name'] ?? $employee->last_name));
+                    $userUpdate['name'] = trim(($data['first_name'] ?? $employee->first_name).' '.($data['middle_name'] ?? $employee->middle_name).' '.($data['last_name'] ?? $employee->last_name));
                 }
                 if (isset($data['email'])) {
                     $userUpdate['email'] = $data['email'];
@@ -123,8 +124,8 @@ class EmployeeService
             $role = $employee->user->roles->first();
             if ($role && $role->category === 'academic') {
                 $academicFields = [
-                    'qualification_level', 'specialization', 
-                    'secondary_responsibilities', 'institution', 'graduation_year', 'last_degree'
+                    'qualification_level', 'specialization',
+                    'secondary_responsibilities', 'institution', 'graduation_year', 'last_degree',
                 ];
                 $academicData = [];
                 foreach ($academicFields as $field) {
@@ -132,13 +133,13 @@ class EmployeeService
                         $academicData[$field] = $data[$field];
                     }
                 }
-                if (!empty($academicData)) {
+                if (! empty($academicData)) {
                     $employee->academicDetails()->updateOrCreate(['employee_id' => $employee->id], $academicData);
                 }
             } elseif ($role && $role->category === 'administrative') {
                 $adminFields = [
-                    'system_access_roles', 'qualification_level', 'specialization', 
-                    'institution', 'graduation_year', 'last_degree'
+                    'system_access_roles', 'qualification_level', 'specialization',
+                    'institution', 'graduation_year', 'last_degree',
                 ];
                 $adminData = [];
                 foreach ($adminFields as $field) {
@@ -146,7 +147,7 @@ class EmployeeService
                         $adminData[$field] = $data[$field];
                     }
                 }
-                if (!empty($adminData)) {
+                if (! empty($adminData)) {
                     $employee->administrativeDetails()->updateOrCreate(['employee_id' => $employee->id], $adminData);
                 }
             }
@@ -157,9 +158,15 @@ class EmployeeService
             }
 
             // Parse dates
-            if (isset($data['joining_date'])) $data['joining_date'] = $this->parseDate($data['joining_date']);
-            if (isset($data['date_of_birth'])) $data['date_of_birth'] = $this->parseDate($data['date_of_birth']);
-            if (isset($data['leaving_date'])) $data['leaving_date'] = $this->parseDate($data['leaving_date']);
+            if (isset($data['joining_date'])) {
+                $data['joining_date'] = $this->parseDate($data['joining_date']);
+            }
+            if (isset($data['date_of_birth'])) {
+                $data['date_of_birth'] = $this->parseDate($data['date_of_birth']);
+            }
+            if (isset($data['leaving_date'])) {
+                $data['leaving_date'] = $this->parseDate($data['leaving_date']);
+            }
 
             return $employee->update($data);
         });
@@ -190,7 +197,7 @@ class EmployeeService
                 }
 
                 // Check for Employee ID uniqueness if provided
-                if (!empty($row['employee_id']) && Employee::where('employee_id', $row['employee_id'])->exists()) {
+                if (! empty($row['employee_id']) && Employee::where('employee_id', $row['employee_id'])->exists()) {
                     throw new \Exception("Employee ID '{$row['employee_id']}' already exists.");
                 }
 
@@ -199,15 +206,15 @@ class EmployeeService
 
             } catch (\Exception $e) {
                 $skippedCount++;
-                $errors[] = "Row $rowNum: " . $e->getMessage();
-                Log::error("Import error at row $rowNum: " . $e->getMessage());
+                $errors[] = "Row $rowNum: ".$e->getMessage();
+                Log::error("Import error at row $rowNum: ".$e->getMessage());
             }
         }
 
         return [
             'success' => $successCount,
             'skipped' => $skippedCount,
-            'errors' => $errors
+            'errors' => $errors,
         ];
     }
 
@@ -216,7 +223,7 @@ class EmployeeService
      */
     private function determineRole(array $data): string
     {
-        if (!empty($data['designation'])) {
+        if (! empty($data['designation'])) {
             return $data['designation']; // Use directly if provided as specific role name
         }
 
@@ -238,12 +245,15 @@ class EmployeeService
     {
         $year = date('Y');
         $nextValue = SystemCounter::next('employee_id_sequence', Employee::count());
-        return 'EMP-' . $year . '-' . str_pad($nextValue, 4, '0', STR_PAD_LEFT);
+
+        return 'EMP-'.$year.'-'.str_pad($nextValue, 4, '0', STR_PAD_LEFT);
     }
 
     private function parseDate(?string $date): ?string
     {
-        if (empty($date)) return null;
+        if (empty($date)) {
+            return null;
+        }
         try {
             return Carbon::parse($date)->format('Y-m-d');
         } catch (\Exception $e) {
@@ -254,7 +264,9 @@ class EmployeeService
     public function uploadDocuments(Employee $employee, array $files): void
     {
         foreach ($files as $type => $file) {
-            if (!$file instanceof \Illuminate\Http\UploadedFile) continue;
+            if (! $file instanceof UploadedFile) {
+                continue;
+            }
 
             // Delete old document of same type if exists
             $existing = $employee->documents()->where('type', $type)->first();
@@ -269,7 +281,7 @@ class EmployeeService
 
             // Private disk: employee documents (contracts, IDs) are not public.
             $path = $file->store("employees/documents/{$employee->employee_id}", 'local');
-            
+
             $employee->documents()->create([
                 'type' => $type,
                 'name' => $file->getClientOriginalName(),
@@ -282,16 +294,16 @@ class EmployeeService
 
     private function generateEmail(string $firstName, string $lastName): string
     {
-        $base = strtolower(Str::slug($firstName) . '.' . Str::slug($lastName));
+        $base = strtolower(Str::slug($firstName).'.'.Str::slug($lastName));
         $domain = '@renaissance.edu.et';
-        $email = $base . $domain;
-        
+        $email = $base.$domain;
+
         $counter = 1;
         while (User::where('email', $email)->exists() || Employee::where('email', $email)->exists()) {
             $counter++;
-            $email = $base . $counter . $domain;
+            $email = $base.$counter.$domain;
         }
-        
+
         return $email;
     }
 }

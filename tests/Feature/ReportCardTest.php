@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\AcademicYear;
 use App\Models\AssessmentTemplate;
 use App\Models\Division;
+use App\Models\ExportRequest;
 use App\Models\GradeLevel;
 use App\Models\ReportCardSetting;
 use App\Models\Section;
@@ -14,7 +15,9 @@ use App\Models\Subject;
 use App\Models\Term;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 class ReportCardTest extends TestCase
@@ -22,26 +25,33 @@ class ReportCardTest extends TestCase
     use RefreshDatabase;
 
     protected User $adminUser;
+
     protected AcademicYear $academicYear;
+
     protected Term $term;
+
     protected Section $section;
+
     protected GradeLevel $gradeLevel;
+
     protected Division $division;
+
     protected Subject $subject;
+
     protected Student $student;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Reset cached roles and permissions
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
-        
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+
         // Create admin user with role
         Role::firstOrCreate(['name' => 'Super Admin']);
         $this->adminUser = User::factory()->create();
         $this->adminUser->assignRole('Super Admin');
-        
+
         // Create base data structure
         $this->division = Division::factory()->create(['name' => 'Primary']);
         $this->academicYear = AcademicYear::factory()->active()->create();
@@ -58,7 +68,7 @@ class ReportCardTest extends TestCase
             'academic_year_id' => $this->academicYear->id,
         ]);
         $this->subject = Subject::factory()->create();
-        
+
         // Create and enroll student
         $this->student = Student::factory()->create();
         $this->student->sections()->attach($this->section->id, [
@@ -90,7 +100,7 @@ class ReportCardTest extends TestCase
             'academic_year_id' => $this->academicYear->id,
             'term_id' => $this->term->id,
         ]);
-        
+
         StudentMark::factory()->create([
             'student_id' => $this->student->id,
             'academic_year_id' => $this->academicYear->id,
@@ -119,7 +129,7 @@ class ReportCardTest extends TestCase
             'academic_year_id' => $this->academicYear->id,
             'term_id' => $this->term->id,
         ]);
-        
+
         StudentMark::factory()->create([
             'student_id' => $this->student->id,
             'academic_year_id' => $this->academicYear->id,
@@ -150,7 +160,7 @@ class ReportCardTest extends TestCase
             'academic_year_id' => $this->academicYear->id,
             'term_id' => $this->term->id,
         ]);
-        
+
         StudentMark::factory()->create([
             'student_id' => $this->student->id,
             'academic_year_id' => $this->academicYear->id,
@@ -200,7 +210,7 @@ class ReportCardTest extends TestCase
         // Create semesters and quarters
         $semester1 = Term::factory()->semester(1)->create(['academic_year_id' => $this->academicYear->id]);
         $semester2 = Term::factory()->semester(2)->create(['academic_year_id' => $this->academicYear->id]);
-        
+
         $q1 = Term::factory()->quarter(1)->create(['academic_year_id' => $this->academicYear->id, 'parent_term_id' => $semester1->id]);
         $q2 = Term::factory()->quarter(2)->create(['academic_year_id' => $this->academicYear->id, 'parent_term_id' => $semester1->id]);
         $q3 = Term::factory()->quarter(3)->create(['academic_year_id' => $this->academicYear->id, 'parent_term_id' => $semester2->id]);
@@ -242,7 +252,7 @@ class ReportCardTest extends TestCase
         $response->assertDontSee('Art Elective');
 
         // Now, assign the elective to the student
-        \Illuminate\Support\Facades\DB::table('student_electives')->insert([
+        DB::table('student_electives')->insert([
             'student_id' => $this->student->id,
             'subject_id' => $electiveSubject->id,
             'academic_year_id' => $this->academicYear->id,
@@ -264,7 +274,7 @@ class ReportCardTest extends TestCase
     /** @test */
     public function admin_can_delete_their_own_export_request(): void
     {
-        $exportRequest = \App\Models\ExportRequest::create([
+        $exportRequest = ExportRequest::create([
             'user_id' => $this->adminUser->id,
             'type' => 'section_report_cards_zip',
             'status' => 'failed',
@@ -283,7 +293,7 @@ class ReportCardTest extends TestCase
     public function admin_cannot_delete_someone_elses_export_request(): void
     {
         $otherUser = User::factory()->create();
-        $exportRequest = \App\Models\ExportRequest::create([
+        $exportRequest = ExportRequest::create([
             'user_id' => $otherUser->id,
             'type' => 'section_report_cards_zip',
             'status' => 'failed',

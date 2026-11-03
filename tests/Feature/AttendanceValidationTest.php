@@ -8,7 +8,9 @@ use App\Models\GradeLevel;
 use App\Models\Section;
 use App\Models\Student;
 use App\Models\User;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 class AttendanceValidationTest extends TestCase
@@ -16,15 +18,17 @@ class AttendanceValidationTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected Section $section;
+
     protected Student $student;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
-        $this->seed(\Database\Seeders\RolePermissionSeeder::class);
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        $this->seed(RolePermissionSeeder::class);
 
         $this->admin = User::factory()->create();
         $this->admin->assignRole('Super Admin');
@@ -48,7 +52,7 @@ class AttendanceValidationTest extends TestCase
                 'date' => now()->format('Y-m-d'),
                 'attendance' => [$this->student->id => 'skipped'], // not in the allowed enum
             ])
-            ->assertSessionHasErrors('attendance.' . $this->student->id);
+            ->assertSessionHasErrors('attendance.'.$this->student->id);
 
         $this->assertDatabaseCount('student_attendance', 0);
     }

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->text('problems_encountered')->nullable();
             $table->text('solutions_implemented')->nullable();
             $table->text('additional_comment')->nullable();
-            
+
             // Note: comparison_comment will be used for field A
         });
     }

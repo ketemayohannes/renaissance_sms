@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::table('subject_analysis_reports', function (Blueprint $table) {
             $table->text('section_remark')->nullable()->after('comparison_comment');
-            
-            // We can keep the old ones for now to avoid errors if they are referenced, 
+
+            // We can keep the old ones for now to avoid errors if they are referenced,
             // but we'll stop using them in the UI.
         });
     }

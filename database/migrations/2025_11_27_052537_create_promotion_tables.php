@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -32,7 +33,7 @@ return new class extends Migration
             $table->foreignId('to_academic_year_id')->constrained('academic_years')->onDelete('cascade');
             $table->foreignId('from_grade_level_id')->constrained('grade_levels')->onDelete('cascade');
             $table->foreignId('to_grade_level_id')->nullable()->constrained('grade_levels')->onDelete('cascade');
-            if (\Illuminate\Support\Facades\DB::getDriverName() === 'sqlite') {
+            if (DB::getDriverName() === 'sqlite') {
                 $table->string('status')->default('promoted');
             } else {
                 $table->enum('status', ['promoted', 'retained', 'conditionally_promoted'])->default('promoted');

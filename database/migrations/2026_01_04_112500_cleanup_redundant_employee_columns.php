@@ -16,7 +16,7 @@ return new class extends Migration
                 'teacher_rank',
                 'qualification_level',
                 'specialization',
-                'periods_per_week'
+                'periods_per_week',
             ]);
         });
     }

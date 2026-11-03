@@ -3,9 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 class Conversation extends Model
 {
@@ -16,8 +17,8 @@ class Conversation extends Model
     public function participants(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'conversation_participants')
-                    ->withPivot(['is_admin', 'joined_at'])
-                    ->withTimestamps();
+            ->withPivot(['is_admin', 'joined_at'])
+            ->withTimestamps();
     }
 
     public function messages(): HasMany
@@ -65,7 +66,7 @@ class Conversation extends Model
      *
      * @param  iterable  $conversationIds
      */
-    public static function unreadCountsFor(User $user, $conversationIds): \Illuminate\Support\Collection
+    public static function unreadCountsFor(User $user, $conversationIds): Collection
     {
         $ids = collect($conversationIds);
 

@@ -2,21 +2,28 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Helpers\CachedData;
 use App\Http\Controllers\Controller;
+use App\Models\AcademicReportSetting;
 use App\Models\AcademicYear;
+use App\Models\Division;
 use App\Models\GradeLevel;
 use App\Models\Section;
-use App\Models\Term;
+use App\Models\StudentTermRecord;
 use App\Models\Subject;
+use App\Models\Term;
 use App\Services\AcademicReportService;
 use App\Services\GradingService;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class AcademicReportController extends Controller
 {
     protected $reportService;
+
     protected $gradingService;
 
     public function __construct(AcademicReportService $reportService, GradingService $gradingService)
@@ -24,21 +31,24 @@ class AcademicReportController extends Controller
         $this->reportService = $reportService;
         $this->gradingService = $gradingService;
     }
+
     public function index()
     {
         // PERFORMANCE: Use cached data
-        $academicYears = \App\Models\AcademicYear::latest()->get(); // Usually few years, but could cache if needed
-        $gradeLevels = \App\Helpers\CachedData::gradeLevels();
-        $divisions = \App\Helpers\CachedData::divisions();
+        $academicYears = AcademicYear::latest()->get(); // Usually few years, but could cache if needed
+        $gradeLevels = CachedData::gradeLevels();
+        $divisions = CachedData::divisions();
+
         return view('admin.academic-reports.index', compact('academicYears', 'gradeLevels', 'divisions'));
     }
 
     public function settings()
     {
-        $settings = \App\Models\AcademicReportSetting::firstOrNew();
+        $settings = AcademicReportSetting::firstOrNew();
         // PERFORMANCE: Use cached data
-        $subjects = \App\Helpers\CachedData::subjects();
-        $gradeLevels = \App\Helpers\CachedData::gradeLevels();
+        $subjects = CachedData::subjects();
+        $gradeLevels = CachedData::gradeLevels();
+
         return view('admin.academic-reports.settings', compact('settings', 'subjects', 'gradeLevels'));
     }
 
@@ -70,8 +80,8 @@ class AcademicReportController extends Controller
         try {
             $academicYear = AcademicYear::findOrFail($request->academic_year_id);
             $termId = $request->term_id;
-            
-            \Illuminate\Support\Facades\Log::info("Starting academic report generation: term {$termId}, section {$request->section_id}");
+
+            Log::info("Starting academic report generation: term {$termId}, section {$request->section_id}");
 
             if ($termId === 'yearly') {
                 $term = new Term(['type' => 'yearly', 'name' => 'Yearly', 'academic_year_id' => $academicYear->id]);
@@ -82,38 +92,39 @@ class AcademicReportController extends Controller
             }
 
             $section = Section::findOrFail($request->section_id);
-            
+
             $reportType = $request->get('report_type', 'roster');
 
             if ($reportType === 'report_card') {
                 if (auth()->user()->hasRole('Principal')) {
                     abort(403, 'Unauthorized action.');
                 }
+
                 // Show action selection page — user must manually choose to view/print or export
                 return view('admin.academic-reports.report-card-actions', [
-                    'section'      => $section,
+                    'section' => $section,
                     'academicYear' => $academicYear,
-                    'termId'       => $termId,
-                    'termLabel'    => $termId === 'yearly' ? 'Yearly' : ($term->name ?? $termId),
+                    'termId' => $termId,
+                    'termLabel' => $termId === 'yearly' ? 'Yearly' : ($term->name ?? $termId),
                 ]);
             }
 
             if ($reportType === 'section_top_10') {
                 $params = $this->reportService->prepareRosterData($section, $term, $academicYear);
                 $reports = collect($params['reports']);
-                
+
                 // Sort by average descending (yearly or term average)
-                $top10 = $reports->sortByDesc(function($r) use ($term) {
+                $top10 = $reports->sortByDesc(function ($r) use ($term) {
                     return $term->id === 'yearly' ? ($r['rows']['avg']['average'] ?? 0) : ($r['average'] ?? 0);
                 })->take(10)->values();
-                
+
                 return view('admin.academic-reports.section-top10', array_merge($params, compact('top10')));
             }
 
             $params = $this->reportService->prepareRosterData($section, $term, $academicYear);
 
             if ($reportType === 'result_analysis') {
-                // Internal analysis calculation - still simplified but kept in controller for now 
+                // Internal analysis calculation - still simplified but kept in controller for now
                 // as it builds on the same data
                 $subjects = $params['subjects'];
                 $reports = $params['reports'];
@@ -124,12 +135,14 @@ class AcademicReportController extends Controller
                     $scores = [];
                     foreach ($reports as $report) {
                         $score = $termId === 'yearly' ? ($report['rows']['avg']['marks'][$subject->id] ?? null) : ($report['marks'][$subject->id] ?? null);
-                        if ($score !== null && $score !== '') $scores[] = (float)$score;
+                        if ($score !== null && $score !== '') {
+                            $scores[] = (float) $score;
+                        }
                     }
-                    if (!empty($scores)) {
+                    if (! empty($scores)) {
                         $count = count($scores);
-                        $passed = collect($scores)->filter(fn($s) => $s >= $passMark)->count();
-                        $subjectStats[$subject->id] = (object)[
+                        $passed = collect($scores)->filter(fn ($s) => $s >= $passMark)->count();
+                        $subjectStats[$subject->id] = (object) [
                             'appeared' => $count,
                             'passed' => $passed,
                             'failed' => $count - $passed,
@@ -142,28 +155,29 @@ class AcademicReportController extends Controller
                 }
 
                 $subjectAvgs = collect($subjectStats)->pluck('average');
-                $classAvgs = collect($reports)->map(fn($r) => $termId === 'yearly' ? ($r['rows']['avg']['average'] ?? 0) : ($r['average'] ?? 0));
+                $classAvgs = collect($reports)->map(fn ($r) => $termId === 'yearly' ? ($r['rows']['avg']['average'] ?? 0) : ($r['average'] ?? 0));
                 $classCount = $classAvgs->count();
-                $classStats = (object)[
+                $classStats = (object) [
                     'total_students' => $classCount,
                     'class_average' => $subjectAvgs->isNotEmpty() ? $subjectAvgs->average() : ($classCount > 0 ? $classAvgs->average() : 0),
-                    'total_passed' => $classAvgs->filter(fn($avg) => $avg >= $passMark)->count(),
+                    'total_passed' => $classAvgs->filter(fn ($avg) => $avg >= $passMark)->count(),
                     'highest_avg' => $classAvgs->max(),
                 ];
 
-                $topPerformers = collect($reports)->sortByDesc(fn($r) => $termId === 'yearly' ? ($r['rows']['avg']['average'] ?? 0) : ($r['average'] ?? 0))->take(5);
+                $topPerformers = collect($reports)->sortByDesc(fn ($r) => $termId === 'yearly' ? ($r['rows']['avg']['average'] ?? 0) : ($r['average'] ?? 0))->take(5);
 
                 return view('admin.academic-reports.analysis', array_merge($params, compact('subjectStats', 'classStats', 'topPerformers')));
             }
 
             return view('admin.academic-reports.show', $params);
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('Academic Report Error: ' . $e->getMessage(), [
+            Log::error('Academic Report Error: '.$e->getMessage(), [
                 'exception' => $e,
                 'request' => $request->all(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return back()->with('error', 'Error generating report: ' . $e->getMessage());
+
+            return back()->with('error', 'Error generating report: '.$e->getMessage());
         }
     }
 
@@ -228,26 +242,26 @@ class AcademicReportController extends Controller
         $academicYear = AcademicYear::findOrFail($request->get('academic_year_id', AcademicYear::where('is_active', true)->value('id')));
         $term = Term::findOrFail($request->get('term_id'));
         $divisionId = $request->get('division_id');
-        
+
         $query = GradeLevel::query();
         if ($divisionId) {
             $query->where('division_id', $divisionId);
         }
         $gradeLevels = $query->orderBy('sort_order')->get();
-        
+
         $data = $this->reportService->prepareGradeMatrixData($academicYear, $term, $gradeLevels);
-        $settings = \App\Models\AcademicReportSetting::first();
+        $settings = AcademicReportSetting::first();
         $data['settings'] = $settings;
         $data['academicYear'] = $academicYear;
 
         // Prepare Base64 Logo for DomPDF
         $logoBase64 = null;
         if ($settings && $settings->roster_logo_path) {
-            $path = storage_path('app/public/' . $settings->roster_logo_path);
+            $path = storage_path('app/public/'.$settings->roster_logo_path);
             if (file_exists($path)) {
                 $type = pathinfo($path, PATHINFO_EXTENSION);
                 $imageData = file_get_contents($path);
-                $logoBase64 = 'data:image/' . $type . ';base64,' . base64_encode($imageData);
+                $logoBase64 = 'data:image/'.$type.';base64,'.base64_encode($imageData);
             }
         }
         $data['logoBase64'] = $logoBase64;
@@ -256,6 +270,7 @@ class AcademicReportController extends Controller
             ->setPaper('a3', 'landscape');
 
         $filename = str_replace(['/', '\\'], '-', "School_Matrix_{$term->name}_{$academicYear->name}.pdf");
+
         return $pdf->download($filename);
     }
 
@@ -281,25 +296,27 @@ class AcademicReportController extends Controller
             }
 
             $this->gradingService->recalculateSectionStatistics($section, $term, $academicYear);
-            
+
             // Clear roster cache since data changed
-            \Illuminate\Support\Facades\Cache::forget("roster_data_{$section->id}_{$termId}_{$academicYear->id}");
+            Cache::forget("roster_data_{$section->id}_{$termId}_{$academicYear->id}");
 
             return back()->withFallback(route('admin.academic-reports.index'))->with('success', 'Statistics recalculated successfully.');
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('Recalculate Error: ' . $e->getMessage(), [
+            Log::error('Recalculate Error: '.$e->getMessage(), [
                 'exception' => $e,
                 'request' => $request->all(),
             ]);
-            return back()->withFallback(route('admin.academic-reports.index'))->with('error', 'Error recalculating statistics: ' . $e->getMessage());
+
+            return back()->withFallback(route('admin.academic-reports.index'))->with('error', 'Error recalculating statistics: '.$e->getMessage());
         }
     }
 
     public function matrixReorder()
     {
-        $settings = \App\Models\AcademicReportSetting::firstOrNew();
-        $subjects = \App\Helpers\CachedData::subjects();
-        $gradeLevels = \App\Helpers\CachedData::gradeLevels();
+        $settings = AcademicReportSetting::firstOrNew();
+        $subjects = CachedData::subjects();
+        $gradeLevels = CachedData::gradeLevels();
+
         return view('admin.academic-reports.matrix-reorder', compact('settings', 'subjects', 'gradeLevels'));
     }
 
@@ -309,14 +326,14 @@ class AcademicReportController extends Controller
             'subject_order' => 'nullable|array',
         ]);
 
-        $settings = \App\Models\AcademicReportSetting::firstOrNew();
+        $settings = AcademicReportSetting::firstOrNew();
         $displayOptions = $settings->display_options ?? [];
-        
+
         $displayOptions['matrix_subject_order'] = collect($request->subject_order)
-            ->filter(fn($val) => $val !== null && $val !== '')
-            ->map(fn($val) => (int)$val)
+            ->filter(fn ($val) => $val !== null && $val !== '')
+            ->map(fn ($val) => (int) $val)
             ->toArray();
-            
+
         $settings->display_options = $displayOptions;
         $settings->save();
 
@@ -330,18 +347,18 @@ class AcademicReportController extends Controller
             'term_id' => 'required',
             'division_id' => 'nullable|exists:divisions,id',
         ]);
-        
+
         $academicYear = AcademicYear::findOrFail($request->academic_year_id);
         $termId = $request->term_id;
         $divisionId = $request->division_id;
-        
+
         // Resolve division to filter categories
         $divisionCode = null;
         if ($divisionId) {
-            $division = \App\Models\Division::find($divisionId);
+            $division = Division::find($divisionId);
             $divisionCode = $division?->code;
         }
-        
+
         // All category definitions
         $allCategories = [
             'grade_1_6' => [
@@ -360,15 +377,18 @@ class AcademicReportController extends Controller
                 'divisions' => ['HS'], // High School only
             ],
         ];
-        
+
         // Filter categories based on selected division
         $categories = collect($allCategories)->filter(function ($cat) use ($divisionCode) {
-            if (!$divisionCode) return true; // no filter — show all
+            if (! $divisionCode) {
+                return true;
+            } // no filter — show all
+
             return in_array($divisionCode, $cat['divisions']);
         })->all();
-        
+
         $results = [];
-        
+
         foreach ($categories as $key => $cat) {
             if ($termId === 'yearly') {
                 // For virtual yearly term, average Semester 1 and Semester 2 records
@@ -376,13 +396,13 @@ class AcademicReportController extends Controller
                     ->where('type', 'semester')
                     ->pluck('id')
                     ->toArray();
-                    
-                $records = \App\Models\StudentTermRecord::where('student_term_records.academic_year_id', $academicYear->id)
+
+                $records = StudentTermRecord::where('student_term_records.academic_year_id', $academicYear->id)
                     ->whereIn('student_term_records.term_id', $semesters)
-                    ->join('student_enrollments', function($join) use ($academicYear) {
+                    ->join('student_enrollments', function ($join) use ($academicYear) {
                         $join->on('student_term_records.student_id', '=', 'student_enrollments.student_id')
-                             ->where('student_enrollments.academic_year_id', '=', $academicYear->id)
-                             ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated']);
+                            ->where('student_enrollments.academic_year_id', '=', $academicYear->id)
+                            ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated']);
                     })
                     ->join('sections', 'student_enrollments.section_id', '=', 'sections.id')
                     ->join('grade_levels', 'sections.grade_level_id', '=', 'grade_levels.id')
@@ -395,7 +415,7 @@ class AcademicReportController extends Controller
                         'students.grandfather_name',
                         'sections.name as section_name',
                         'grade_levels.name as grade_level_name',
-                        \Illuminate\Support\Facades\DB::raw('AVG(student_term_records.average_score) as average_score')
+                        DB::raw('AVG(student_term_records.average_score) as average_score')
                     )
                     ->groupBy(
                         'student_term_records.student_id',
@@ -410,12 +430,12 @@ class AcademicReportController extends Controller
                     ->get();
             } else {
                 // For standard terms, query directly
-                $records = \App\Models\StudentTermRecord::where('student_term_records.academic_year_id', $academicYear->id)
+                $records = StudentTermRecord::where('student_term_records.academic_year_id', $academicYear->id)
                     ->where('student_term_records.term_id', $termId)
-                    ->join('student_enrollments', function($join) use ($academicYear) {
+                    ->join('student_enrollments', function ($join) use ($academicYear) {
                         $join->on('student_term_records.student_id', '=', 'student_enrollments.student_id')
-                             ->where('student_enrollments.academic_year_id', '=', $academicYear->id)
-                             ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated']);
+                            ->where('student_enrollments.academic_year_id', '=', $academicYear->id)
+                            ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated']);
                     })
                     ->join('sections', 'student_enrollments.section_id', '=', 'sections.id')
                     ->join('grade_levels', 'sections.grade_level_id', '=', 'grade_levels.id')
@@ -434,13 +454,13 @@ class AcademicReportController extends Controller
                     ->take(10)
                     ->get();
             }
-            
+
             $results[$key] = [
                 'name' => $cat['name'],
                 'records' => $records,
             ];
         }
-        
+
         // Fetch term object or mock one if yearly
         if ($termId === 'yearly') {
             $term = new Term(['type' => 'yearly', 'name' => 'Yearly', 'academic_year_id' => $academicYear->id]);
@@ -448,7 +468,7 @@ class AcademicReportController extends Controller
         } else {
             $term = Term::findOrFail($termId);
         }
-        
+
         return view('admin.academic-reports.category-ranks', compact('academicYear', 'term', 'results', 'divisionCode'));
     }
 
@@ -460,32 +480,32 @@ class AcademicReportController extends Controller
             'grade_level_id' => 'nullable|exists:grade_levels,id',
             'section_id' => 'nullable|exists:sections,id',
         ]);
-        
+
         $academicYear = AcademicYear::findOrFail($request->academic_year_id);
         $termId = $request->term_id;
-        
-        $query = \App\Models\StudentTermRecord::where('student_term_records.academic_year_id', $academicYear->id)
-            ->join('student_enrollments', function($join) use ($academicYear) {
+
+        $query = StudentTermRecord::where('student_term_records.academic_year_id', $academicYear->id)
+            ->join('student_enrollments', function ($join) use ($academicYear) {
                 $join->on('student_term_records.student_id', '=', 'student_enrollments.student_id')
-                     ->where('student_enrollments.academic_year_id', '=', $academicYear->id)
-                     ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated']);
+                    ->where('student_enrollments.academic_year_id', '=', $academicYear->id)
+                    ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated']);
             })
             ->join('sections', 'student_enrollments.section_id', '=', 'sections.id')
             ->join('grade_levels', 'sections.grade_level_id', '=', 'grade_levels.id')
             ->join('students', 'student_term_records.student_id', '=', 'students.id');
-            
+
         if ($request->section_id) {
             $query->where('student_enrollments.section_id', $request->section_id);
         } elseif ($request->grade_level_id) {
             $query->where('sections.grade_level_id', $request->grade_level_id);
         }
-        
+
         if ($termId === 'yearly') {
             $semesters = Term::where('academic_year_id', $academicYear->id)
                 ->where('type', 'semester')
                 ->pluck('id')
                 ->toArray();
-                
+
             $query->whereIn('student_term_records.term_id', $semesters)
                 ->select(
                     'student_term_records.student_id',
@@ -494,7 +514,7 @@ class AcademicReportController extends Controller
                     'students.grandfather_name',
                     'sections.name as section_name',
                     'grade_levels.name as grade_level_name',
-                    \Illuminate\Support\Facades\DB::raw('AVG(student_term_records.average_score) as average_score')
+                    DB::raw('AVG(student_term_records.average_score) as average_score')
                 )
                 ->groupBy(
                     'student_term_records.student_id',
@@ -504,7 +524,7 @@ class AcademicReportController extends Controller
                     'sections.name',
                     'grade_levels.name'
                 )
-                ->having(\Illuminate\Support\Facades\DB::raw('AVG(student_term_records.average_score)'), '>=', 90);
+                ->having(DB::raw('AVG(student_term_records.average_score)'), '>=', 90);
         } else {
             $query->where('student_term_records.term_id', $termId)
                 ->where('student_term_records.average_score', '>=', 90)
@@ -518,21 +538,19 @@ class AcademicReportController extends Controller
                     'grade_levels.name as grade_level_name'
                 );
         }
-        
+
         $records = $query->orderByDesc('average_score')->get();
-        
+
         if ($termId === 'yearly') {
             $term = new Term(['type' => 'yearly', 'name' => 'Yearly', 'academic_year_id' => $academicYear->id]);
             $term->id = 'yearly';
         } else {
             $term = Term::findOrFail($termId);
         }
-        
+
         $selectedSection = $request->section_id ? Section::find($request->section_id) : null;
         $selectedGrade = $request->grade_level_id ? GradeLevel::find($request->grade_level_id) : null;
-        
+
         return view('admin.academic-reports.academic-excellence', compact('academicYear', 'term', 'records', 'selectedSection', 'selectedGrade'));
     }
-
 }
-

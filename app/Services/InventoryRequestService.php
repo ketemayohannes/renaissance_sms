@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Employee;
-use App\Models\InventoryItem;
 use App\Models\InventoryItemRequest;
 use App\Models\InventoryPurchaseRequest;
 use App\Models\User;
@@ -11,6 +10,7 @@ use App\Notifications\InventoryItemRequestUpdate;
 use App\Notifications\InventoryPurchaseRequestUpdate;
 use Illuminate\Support\Facades\Notification;
 use RuntimeException;
+use Spatie\Permission\Models\Role;
 
 /**
  * The two inventory request workflows (item fulfilment and purchase procurement),
@@ -94,7 +94,7 @@ class InventoryRequestService
                 'quantity' => $request->quantity,
                 'issued_to_employee_id' => $request->requester_employee_id,
                 'movement_date' => now()->toDateString(),
-                'remarks' => 'Fulfilment of request #' . $request->id,
+                'remarks' => 'Fulfilment of request #'.$request->id,
             ], $manager->id);
             $updates['stock_movement_id'] = $movement->id;
         } else {
@@ -104,7 +104,7 @@ class InventoryRequestService
             }
             $assignment = $this->inventory->assignAsset($unit, [
                 'employee_id' => $request->requester_employee_id,
-                'notes' => 'Fulfilment of request #' . $request->id,
+                'notes' => 'Fulfilment of request #'.$request->id,
             ], $manager->id);
             $updates['assignment_id'] = $assignment->id;
         }
@@ -210,7 +210,7 @@ class InventoryRequestService
     private function roleUsers(array $roles)
     {
         // Guard against a role name that isn't seeded (Spatie throws otherwise).
-        $existing = \Spatie\Permission\Models\Role::whereIn('name', $roles)->pluck('name')->all();
+        $existing = Role::whereIn('name', $roles)->pluck('name')->all();
 
         return empty($existing) ? collect() : User::role($existing)->get();
     }

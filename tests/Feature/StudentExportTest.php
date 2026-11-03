@@ -10,6 +10,7 @@ use App\Models\Student;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 class StudentExportTest extends TestCase
@@ -17,12 +18,19 @@ class StudentExportTest extends TestCase
     use RefreshDatabase;
 
     protected User $adminUser;
+
     protected AcademicYear $academicYear;
+
     protected Division $divisionPrimary;
+
     protected Division $divisionSecondary;
+
     protected GradeLevel $gradeLevel5;
+
     protected GradeLevel $gradeLevel10;
+
     protected Section $section5A;
+
     protected Section $section10A;
 
     protected function setUp(): void
@@ -30,7 +38,7 @@ class StudentExportTest extends TestCase
         parent::setUp();
 
         // Reset cached roles and permissions
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         // Create admin user with role
         Role::firstOrCreate(['name' => 'Super Admin']);

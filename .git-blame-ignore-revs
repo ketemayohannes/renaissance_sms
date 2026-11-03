@@ -1,0 +1,5 @@
+# Mass reformatting commits; skip them in git blame.
+# Use: git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# style: apply Laravel Pint across the codebase
+47be3ab6421cfc09488826ceef9041d4f6f63a56

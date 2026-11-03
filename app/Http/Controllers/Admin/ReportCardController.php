@@ -3,16 +3,16 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-
-
+use App\Models\AcademicYear;
+use App\Models\ExportRequest;
 use App\Models\ReportCardSetting;
 use App\Models\Section;
-use App\Models\Term;
-use App\Models\AcademicYear;
+use App\Models\Student;
 use App\Models\StudentTermRecord;
-use App\Models\ExportRequest;
+use App\Models\Term;
 use App\Services\ReportCardService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class ReportCardController extends Controller
@@ -23,10 +23,12 @@ class ReportCardController extends Controller
     {
         $this->reportCardService = $reportCardService;
     }
+
     // Settings
     public function settings()
     {
         $settings = ReportCardSetting::firstOrNew();
+
         return view('admin.report-cards.settings', compact('settings'));
     }
 
@@ -49,6 +51,7 @@ class ReportCardController extends Controller
     public function yearlySettings()
     {
         $settings = ReportCardSetting::firstOrNew();
+
         return view('admin.report-cards.yearly-settings', compact('settings'));
     }
 
@@ -76,6 +79,7 @@ class ReportCardController extends Controller
             ['min' => 60, 'grade' => 'D', 'label' => 'Fair'],
             ['min' => 0,  'grade' => 'F', 'label' => 'Poor'],
         ];
+
         return view('admin.report-cards.grade-scales', compact('settings', 'gradeScales'));
     }
 
@@ -89,12 +93,12 @@ class ReportCardController extends Controller
         ]);
 
         $settings = ReportCardSetting::firstOrNew();
-        
+
         // Sort scales descending by min score
         $scales = collect($request->scales)
-            ->map(function($scale) {
+            ->map(function ($scale) {
                 return [
-                    'min' => (float)$scale['min'],
+                    'min' => (float) $scale['min'],
                     'grade' => trim($scale['grade']),
                     'label' => trim($scale['label'] ?? ''),
                 ];
@@ -114,7 +118,7 @@ class ReportCardController extends Controller
     {
         $academicYear = AcademicYear::findOrFail($request->get('academic_year_id', AcademicYear::where('is_active', true)->value('id')));
         $term = Term::findOrFail($request->get('term_id')); // Require Term ID
-        
+
         // Ensure section belongs to correct year? (Optional check)
 
         $students = $section->students()
@@ -123,7 +127,7 @@ class ReportCardController extends Controller
             ->where('students.is_active', true)
             ->orderBy('students.first_name')
             ->get();
-        
+
         // Fetch existing records
         $records = StudentTermRecord::whereIn('student_id', $students->pluck('id'))
             ->where('term_id', $term->id)
@@ -143,30 +147,31 @@ class ReportCardController extends Controller
             'records.*.absent' => 'nullable|integer|min:0',
             'records.*.comment' => 'nullable|string',
         ]);
-        
+
         try {
             $this->reportCardService->storeDataEntry(
-                (int)$request->term_id, 
-                (int)$request->academic_year_id, 
+                (int) $request->term_id,
+                (int) $request->academic_year_id,
                 $request->records ?? [],
                 $section
             );
+
             return back()->with('success', 'Report Card details saved.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Error saving details: ' . $e->getMessage());
+            return back()->with('error', 'Error saving details: '.$e->getMessage());
         }
     }
 
     // Generate PDF
-    public function generatePdf(Request $request, \App\Models\Student $student)
+    public function generatePdf(Request $request, Student $student)
     {
         $termId = $request->term_id;
         if ($termId === 'yearly') {
             $academicYear = AcademicYear::findOrFail($request->academic_year_id);
             $term = new Term([
-                'type' => 'yearly', 
-                'name' => 'Yearly Report', 
-                'academic_year_id' => $academicYear->id
+                'type' => 'yearly',
+                'name' => 'Yearly Report',
+                'academic_year_id' => $academicYear->id,
             ]);
             $term->incrementing = false;
             $term->id = 'yearly';
@@ -176,10 +181,12 @@ class ReportCardController extends Controller
         }
 
         $params = $this->reportCardService->getStudentReportParams($student, $term, $academicYear);
-        
+
         $viewName = $params['isYearly'] ? 'admin.report-cards.yearly-pdf' : 'admin.report-cards.pdf';
+
         return view($viewName, $params);
     }
+
     // Bulk Print
     public function bulkPrint(Request $request, Section $section)
     {
@@ -190,14 +197,14 @@ class ReportCardController extends Controller
         try {
             $academicYear = AcademicYear::findOrFail($request->get('academic_year_id'));
             $termId = $request->get('term_id');
-            
-            \Illuminate\Support\Facades\Log::info("Starting bulk report card generation for section: {$section->id}, term: {$termId}");
+
+            Log::info("Starting bulk report card generation for section: {$section->id}, term: {$termId}");
 
             if ($termId === 'yearly') {
                 $term = new Term([
-                    'type' => 'yearly', 
-                    'name' => 'Yearly Report', 
-                    'academic_year_id' => $academicYear->id
+                    'type' => 'yearly',
+                    'name' => 'Yearly Report',
+                    'academic_year_id' => $academicYear->id,
                 ]);
                 $term->incrementing = false;
                 $term->id = 'yearly';
@@ -206,19 +213,21 @@ class ReportCardController extends Controller
             }
 
             $params = $this->reportCardService->getSectionReportParams($section, $term, $academicYear);
-            
+
             $viewName = $params['isYearly'] ? 'admin.report-cards.bulk-yearly-pdf' : 'admin.report-cards.bulk-pdf';
-            
-            \Illuminate\Support\Facades\Log::info("Rendering report card view: {$viewName}");
+
+            Log::info("Rendering report card view: {$viewName}");
+
             return view($viewName, $params);
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('Report Card Generation Error: ' . $e->getMessage(), [
+            Log::error('Report Card Generation Error: '.$e->getMessage(), [
                 'exception' => $e,
                 'request' => $request->all(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return redirect()->route('admin.academic-reports.index')
-                ->with('error', 'Error generating report cards: ' . $e->getMessage());
+                ->with('error', 'Error generating report cards: '.$e->getMessage());
         }
     }
 
@@ -228,17 +237,17 @@ class ReportCardController extends Controller
         $exports = ExportRequest::where('user_id', auth()->id())
             ->orderBy('created_at', 'desc')
             ->paginate(15);
-            
+
         return view('admin.report-cards.exports', compact('exports'));
     }
 
     public function bulkExport(Request $request, Section $section)
     {
         $this->reportCardService->initiateBulkExport(
-            (int)$section->id, 
-            $request->get('term_id'), 
-            (int)$request->get('academic_year_id'), 
-            (int)auth()->id()
+            (int) $section->id,
+            $request->get('term_id'),
+            (int) $request->get('academic_year_id'),
+            (int) auth()->id()
         );
 
         return redirect()->route('admin.report-cards.exports')
@@ -251,7 +260,7 @@ class ReportCardController extends Controller
             abort(403);
         }
 
-        if ($exportRequest->status !== 'completed' || !$exportRequest->file_path) {
+        if ($exportRequest->status !== 'completed' || ! $exportRequest->file_path) {
             return back()->with('error', 'Export is not ready for download.');
         }
 
@@ -275,45 +284,46 @@ class ReportCardController extends Controller
         $section = Section::findOrFail($request->section_id);
         $term = Term::findOrFail($request->term_id);
         $academicYear = AcademicYear::findOrFail($request->academic_year_id);
-        
+
         $students = $section->students()
             ->wherePivot('academic_year_id', $academicYear->id)
             ->wherePivotIn('status', ['active', 'completed'])
             ->where('students.is_active', true)
             ->orderBy('students.first_name')
             ->get();
-        
+
         $records = StudentTermRecord::whereIn('student_id', $students->pluck('id'))
             ->where('term_id', $term->id)
             ->get()
             ->keyBy('student_id');
 
-        $lowPerformers = $students->filter(function($student) use ($records) {
+        $lowPerformers = $students->filter(function ($student) use ($records) {
             $record = $records[$student->id] ?? null;
+
             return $record && $record->average_score !== null && $record->average_score < 75;
         });
 
         $filename = "low_performance_report_cards_{$section->name}_{$term->name}.csv";
-        
+
         $headers = [
-            "Content-type" => "text/csv",
-            "Content-Disposition" => "attachment; filename=$filename",
-            "Pragma" => "no-cache",
-            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
-            "Expires" => "0"
+            'Content-type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=$filename",
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0',
         ];
 
-        $callback = function() use ($lowPerformers, $records) {
+        $callback = function () use ($lowPerformers, $records) {
             $file = fopen('php://output', 'w');
-            fputs($file, "\xEF\xBB\xBF"); // BOM
-            fputs($file, "sep=,\n"); // Excel separator hint
+            fwrite($file, "\xEF\xBB\xBF"); // BOM
+            fwrite($file, "sep=,\n"); // Excel separator hint
             fputcsv($file, ['Student ID', 'Student Name', 'Average Score (%)']);
 
             foreach ($lowPerformers as $student) {
                 fputcsv($file, [
                     $student->student_id,
                     $student->full_name,
-                    number_format($records[$student->id]->average_score, 1) . '%'
+                    number_format($records[$student->id]->average_score, 1).'%',
                 ]);
             }
             fclose($file);

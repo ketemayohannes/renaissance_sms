@@ -2,33 +2,29 @@
 
 namespace App\Models;
 
+use App\Helpers\CachedData;
+use App\Traits\Auditable;
+use App\Traits\HasDivisionRestriction;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\User;
-use App\Models\Section;
-use App\Models\StudentEnrollment;
-use App\Models\StudentGuardian;
-use App\Models\StudentMedicalInfo;
-use App\Models\StudentTransportation;
-use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\SoftDeletes;
-
-use App\Traits\HasDivisionRestriction;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class Student extends Model
 {
-    use HasFactory, Auditable, SoftDeletes, HasDivisionRestriction;
-    
+    use Auditable, HasDivisionRestriction, HasFactory, SoftDeletes;
+
     protected static function booted()
     {
         static::saved(function ($student) {
-            \Illuminate\Support\Facades\Cache::forget('admin_dashboard_stats');
-            \Illuminate\Support\Facades\Cache::forget('admin_dashboard_gender_breakdown');
+            Cache::forget('admin_dashboard_stats');
+            Cache::forget('admin_dashboard_gender_breakdown');
         });
 
         static::deleted(function ($student) {
-            \Illuminate\Support\Facades\Cache::forget('admin_dashboard_stats');
-            \Illuminate\Support\Facades\Cache::forget('admin_dashboard_gender_breakdown');
+            Cache::forget('admin_dashboard_stats');
+            Cache::forget('admin_dashboard_gender_breakdown');
         });
     }
 
@@ -37,9 +33,9 @@ class Student extends Model
         'middle_name', 'last_name', 'gender',        'date_of_birth',
         'birth_country',
         'birth_city',
-        'nationality', 'language_spoken', 'admission_number', 'admission_date', 
+        'nationality', 'language_spoken', 'admission_number', 'admission_date',
         'photo', 'address', 'subcity', 'woreda', 'house_number',
-        'phone', 'email', 'is_active'
+        'phone', 'email', 'is_active',
     ];
 
     protected $casts = [
@@ -61,8 +57,8 @@ class Student extends Model
     public function electives()
     {
         return $this->belongsToMany(Subject::class, 'student_electives')
-                    ->withPivot('academic_year_id')
-                    ->withTimestamps();
+            ->withPivot('academic_year_id')
+            ->withTimestamps();
     }
 
     public function currentEnrollment()
@@ -171,11 +167,12 @@ class Student extends Model
             $this->house_number,
             $this->woreda,
             $this->subcity,
-            $this->address
+            $this->address,
         ]);
-        
+
         return implode(', ', $parts);
     }
+
     /**
      * Get the student's siblings.
      */
@@ -193,12 +190,12 @@ class Student extends Model
             return;
         }
 
-        \Illuminate\Support\Facades\DB::transaction(function() use ($sibling) {
+        DB::transaction(function () use ($sibling) {
             // Collect all unique IDs involved in the combined family group
             // Qualify 'id' to avoid ambiguity with student_siblings.id
             $mySiblings = $this->siblings()->pluck('students.id')->toArray();
             $theirSiblings = $sibling->siblings()->pluck('students.id')->toArray();
-            
+
             $allIds = array_unique(array_merge(
                 [$this->id, $sibling->id],
                 $mySiblings,
@@ -209,7 +206,7 @@ class Student extends Model
             foreach ($allIds as $id) {
                 $studentInGroup = Student::find($id);
                 if ($studentInGroup) {
-                    $others = array_filter($allIds, fn($otherId) => $otherId != $id);
+                    $others = array_filter($allIds, fn ($otherId) => $otherId != $id);
                     $studentInGroup->siblings()->syncWithoutDetaching($others);
                 }
             }
@@ -224,6 +221,7 @@ class Student extends Model
         $this->siblings()->detach($sibling->id);
         $sibling->siblings()->detach($this->id);
     }
+
     public function promotions()
     {
         return $this->hasMany(StudentPromotion::class);
@@ -290,9 +288,9 @@ class Student extends Model
     public function scopeInactiveOnly($query)
     {
         return $query->where('is_active', false)
-                     ->whereDoesntHave('statusHistory', function ($q) {
-                         $q->where('new_status', 'graduated');
-                     });
+            ->whereDoesntHave('statusHistory', function ($q) {
+                $q->where('new_status', 'graduated');
+            });
     }
 
     /**
@@ -341,9 +339,9 @@ class Student extends Model
     public function scopeBlockedStatus($query)
     {
         return $query->where('is_active', false)
-                     ->whereDoesntHave('statusHistory', function ($q) {
-                         $q->whereIn('new_status', ['graduated', 'withdrawn', 'transferred', 'dropped_out']);
-                     });
+            ->whereDoesntHave('statusHistory', function ($q) {
+                $q->whereIn('new_status', ['graduated', 'withdrawn', 'transferred', 'dropped_out']);
+            });
     }
 
     /**
@@ -354,7 +352,7 @@ class Student extends Model
      */
     private static function activeAcademicYearId()
     {
-        return \App\Helpers\CachedData::activeAcademicYear()?->id;
+        return CachedData::activeAcademicYear()?->id;
     }
 
     /**
@@ -364,8 +362,8 @@ class Student extends Model
     {
         return $query->whereHas('enrollments', function ($q) use ($gradeLevelId) {
             $q->whereNull('end_date')
-              ->when(self::activeAcademicYearId(), fn ($sq, $yearId) => $sq->where('academic_year_id', $yearId))
-              ->whereHas('section', fn($sq) => $sq->where('grade_level_id', $gradeLevelId));
+                ->when(self::activeAcademicYearId(), fn ($sq, $yearId) => $sq->where('academic_year_id', $yearId))
+                ->whereHas('section', fn ($sq) => $sq->where('grade_level_id', $gradeLevelId));
         });
     }
 
@@ -376,8 +374,8 @@ class Student extends Model
     {
         return $query->whereHas('enrollments', function ($q) use ($sectionId) {
             $q->whereNull('end_date')
-              ->when(self::activeAcademicYearId(), fn ($sq, $yearId) => $sq->where('academic_year_id', $yearId))
-              ->where('section_id', $sectionId);
+                ->when(self::activeAcademicYearId(), fn ($sq, $yearId) => $sq->where('academic_year_id', $yearId))
+                ->where('section_id', $sectionId);
         });
     }
 
@@ -388,8 +386,8 @@ class Student extends Model
     {
         return $query->whereHas('enrollments', function ($q) use ($academicYearId) {
             $q->whereNull('end_date')
-              ->where('status', 'active');
-            
+                ->where('status', 'active');
+
             if ($academicYearId) {
                 $q->where('academic_year_id', $academicYearId);
             }
@@ -401,17 +399,17 @@ class Student extends Model
      */
     public function scopeSearch($query, $search)
     {
-        if (!$search) {
+        if (! $search) {
             return $query;
         }
 
         return $query->where(function ($q) use ($search) {
             $q->where('student_id', $search)
-              ->orWhere('admission_number', $search)
-              ->orWhere('first_name', 'like', "{$search}%")
-              ->orWhere('father_name', 'like', "{$search}%")
-              ->orWhere('grandfather_name', 'like', "{$search}%")
-              ->orWhere('last_name', 'like', "{$search}%");
+                ->orWhere('admission_number', $search)
+                ->orWhere('first_name', 'like', "{$search}%")
+                ->orWhere('father_name', 'like', "{$search}%")
+                ->orWhere('grandfather_name', 'like', "{$search}%")
+                ->orWhere('last_name', 'like', "{$search}%");
         });
     }
 
@@ -420,10 +418,10 @@ class Student extends Model
      */
     public function scopeByGender($query, $gender)
     {
-        if (!$gender) {
+        if (! $gender) {
             return $query;
         }
-        
+
         return $query->where('gender', $gender);
     }
 
@@ -432,14 +430,14 @@ class Student extends Model
      */
     public function scopeByDivision($query, $divisionId)
     {
-        if (!$divisionId) {
+        if (! $divisionId) {
             return $query;
         }
 
         return $query->whereHas('enrollments', function ($q) use ($divisionId) {
             $q->whereNull('end_date')
-              ->when(self::activeAcademicYearId(), fn ($sq, $yearId) => $sq->where('academic_year_id', $yearId))
-              ->whereHas('section.gradeLevel', fn($sq) => $sq->where('division_id', $divisionId));
+                ->when(self::activeAcademicYearId(), fn ($sq, $yearId) => $sq->where('academic_year_id', $yearId))
+                ->whereHas('section.gradeLevel', fn ($sq) => $sq->where('division_id', $divisionId));
         });
     }
 
@@ -449,8 +447,8 @@ class Student extends Model
     public function scopeUnassigned($query)
     {
         return $query->active()
-                     ->whereDoesntHave('enrollments', function ($q) {
-                         $q->whereNull('end_date');
-                     });
+            ->whereDoesntHave('enrollments', function ($q) {
+                $q->whereNull('end_date');
+            });
     }
 }

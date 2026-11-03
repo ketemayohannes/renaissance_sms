@@ -11,6 +11,7 @@ class ConversationPolicy
     public function view(User $user, Conversation $conversation): bool
     {
         $conversation->loadMissing('participants');
+
         return $conversation->participants->contains('id', $user->id);
     }
 
@@ -18,6 +19,7 @@ class ConversationPolicy
     public function reply(User $user, Conversation $conversation): bool
     {
         $conversation->loadMissing('participants');
+
         return $conversation->participants->contains('id', $user->id);
     }
 }

@@ -38,7 +38,7 @@ return new class extends Migration
 
             // Ensure unique combinations
             $table->unique(['assessment_template_id', 'grade_level_id', 'subject_id'], 'template_grade_subject_unique');
-            
+
             // Indexes for faster queries
             $table->index(['grade_level_id', 'subject_id']);
         });

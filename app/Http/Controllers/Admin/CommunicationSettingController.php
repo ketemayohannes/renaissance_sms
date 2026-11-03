@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\CommunicationSetting;
-use Illuminate\Http\Request;
 use App\Services\SmsService;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Mail;
 
 class CommunicationSettingController extends Controller
 {
@@ -25,18 +25,19 @@ class CommunicationSettingController extends Controller
                 'export' => ['sms' => false, 'email' => true],
             ],
         ]);
+
         return view('admin.communication-settings.index', compact('settings'));
     }
 
     public function update(Request $request)
     {
-        $settings = CommunicationSetting::first() ?? new CommunicationSetting();
+        $settings = CommunicationSetting::first() ?? new CommunicationSetting;
 
         $validated = $request->validate([
             'sms_enabled' => 'boolean',
             'sms_provider' => 'required|string|in:africastalking,smsethiopia,geezsms',
             'email_enabled' => 'boolean',
-            
+
             'africastalking_username' => 'nullable|string',
             'africastalking_api_key' => 'nullable|string',
             'africastalking_from' => 'nullable|string',
@@ -44,7 +45,7 @@ class CommunicationSettingController extends Controller
 
             'smsethiopia_api_key' => 'nullable|string',
 
-            'geezsms_token'     => 'nullable|string|max:512',
+            'geezsms_token' => 'nullable|string|max:512',
             'geezsms_sender_id' => 'nullable|string|max:20',
 
             'mail_mailer' => 'required|string|in:smtp,log',
@@ -85,15 +86,15 @@ class CommunicationSettingController extends Controller
     public function testSms(Request $request, SmsService $smsService)
     {
         $request->validate(['phone' => 'required|string']);
-        
+
         $settings = CommunicationSetting::first();
         if ($settings) {
             $settings->applyConfigurations();
         }
 
-        $success = $smsService->send($request->phone, "Renaissance SMS System Check: Connection test successful!");
+        $success = $smsService->send($request->phone, 'Renaissance SMS System Check: Connection test successful!');
 
-        return $success 
+        return $success
             ? redirect()->back()->with('success', 'Test SMS successfully sent.')
             : redirect()->back()->with('error', 'Failed to send test SMS. Check credentials and logs.');
     }
@@ -108,12 +109,13 @@ class CommunicationSettingController extends Controller
         }
 
         try {
-            Mail::raw("Renaissance SMS Email System Check: Connection test successful!", function ($message) use ($request) {
-                $message->to($request->email)->subject("Connection Test");
+            Mail::raw('Renaissance SMS Email System Check: Connection test successful!', function ($message) use ($request) {
+                $message->to($request->email)->subject('Connection Test');
             });
+
             return redirect()->back()->with('success', 'Test email successfully sent.');
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Failed to send test email: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to send test email: '.$e->getMessage());
         }
     }
 }

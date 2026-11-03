@@ -147,7 +147,7 @@ class StudentPolicy
             ->where('status', 'active')
             ->first();
 
-        if (!$enrollment) {
+        if (! $enrollment) {
             return false;
         }
 

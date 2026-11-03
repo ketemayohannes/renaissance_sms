@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 
@@ -36,7 +37,7 @@ class SaveAttendanceRequest extends FormRequest
     }
 
     /**
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {

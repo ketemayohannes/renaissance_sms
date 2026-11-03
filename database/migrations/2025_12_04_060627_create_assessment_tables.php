@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         // Assessment Types Table
-        if (!Schema::hasTable('assessment_types')) {
+        if (! Schema::hasTable('assessment_types')) {
             Schema::create('assessment_types', function (Blueprint $table) {
                 $table->id();
                 $table->string('name', 100); // Quiz, Test, Assignment, Project, etc.
@@ -27,32 +27,32 @@ return new class extends Migration
         if (Schema::hasTable('grade_components')) {
             Schema::table('grade_components', function (Blueprint $table) {
                 // Add new columns if they don't exist
-                if (!Schema::hasColumn('grade_components', 'assessment_type_id')) {
+                if (! Schema::hasColumn('grade_components', 'assessment_type_id')) {
                     $table->foreignId('assessment_type_id')->nullable()->after('term_id')->constrained()->onDelete('cascade');
                 }
-                if (!Schema::hasColumn('grade_components', 'academic_year_id')) {
+                if (! Schema::hasColumn('grade_components', 'academic_year_id')) {
                     $table->foreignId('academic_year_id')->nullable()->after('id')->constrained()->onDelete('cascade');
                 }
-                if (!Schema::hasColumn('grade_components', 'grade_level_id')) {
+                if (! Schema::hasColumn('grade_components', 'grade_level_id')) {
                     $table->foreignId('grade_level_id')->nullable()->after('academic_year_id')->constrained()->onDelete('cascade');
                 }
-                if (!Schema::hasColumn('grade_components', 'subject_id')) {
+                if (! Schema::hasColumn('grade_components', 'subject_id')) {
                     $table->foreignId('subject_id')->nullable()->after('grade_level_id')->constrained()->onDelete('cascade');
                 }
-                if (!Schema::hasColumn('grade_components', 'order')) {
+                if (! Schema::hasColumn('grade_components', 'order')) {
                     $table->integer('order')->default(0)->after('sort_order');
                 }
-                if (!Schema::hasColumn('grade_components', 'is_active')) {
+                if (! Schema::hasColumn('grade_components', 'is_active')) {
                     $table->boolean('is_active')->default(true)->after('order');
                 }
-                
+
                 // Note: We'll keep grade_level_subject_id for backward compatibility
                 // In the future, we can migrate data and remove it
             });
         }
 
         // Add grade_component_id to student_marks table if it doesn't exist
-        if (!Schema::hasColumn('student_marks', 'grade_component_id')) {
+        if (! Schema::hasColumn('student_marks', 'grade_component_id')) {
             Schema::table('student_marks', function (Blueprint $table) {
                 $table->foreignId('grade_component_id')->nullable()->after('subject_id')->constrained()->onDelete('cascade');
                 $table->text('remarks')->nullable()->after('score');

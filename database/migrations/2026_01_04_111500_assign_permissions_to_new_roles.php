@@ -1,10 +1,9 @@
 <?php
 
+use App\Models\User;
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 return new class extends Migration
 {
@@ -20,9 +19,9 @@ return new class extends Migration
                 'view students', 'create students', 'edit students',
                 'view grade levels', 'view sections', 'view subjects',
                 'manage grade levels', 'manage sections', 'manage subjects',
-                'access chat'
+                'access chat',
             ];
-            
+
             foreach ($perms as $perm) {
                 Permission::firstOrCreate(['name' => $perm, 'guard_name' => 'web']);
             }
@@ -40,7 +39,7 @@ return new class extends Migration
 
         // 3. Assign IT / System Admin role to the admin user if it exists
         $adminEmail = 'admin@renaissance.edu.et';
-        $adminUser = \App\Models\User::where('email', $adminEmail)->first();
+        $adminUser = User::where('email', $adminEmail)->first();
         if ($adminUser && $itAdmin) {
             $adminUser->assignRole($itAdmin);
         }

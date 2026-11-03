@@ -3,8 +3,9 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class RolePermissionSeeder extends Seeder
 {
@@ -14,7 +15,7 @@ class RolePermissionSeeder extends Seeder
     public function run(): void
     {
         // Reset cached roles and permissions
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         // 1. Define Permissions
         $permissions = [
@@ -132,13 +133,13 @@ class RolePermissionSeeder extends Seeder
         // Homeroom Teacher
         $homeroomTeacher = Role::firstOrCreate(['name' => 'Homeroom Teacher']);
         $homeroomTeacher->syncPermissions([
-            'view students', 'manage attendance', 'access chat'
+            'view students', 'manage attendance', 'access chat',
         ]);
 
         // Department Head
         $departmentHead = Role::firstOrCreate(['name' => 'Department Head']);
         $departmentHead->syncPermissions([
-            'view employees', 'view students', 'view subjects', 'view marks', 'manage subjects', 'access chat'
+            'view employees', 'view students', 'view subjects', 'view marks', 'manage subjects', 'access chat',
         ]);
 
         // Assistant Teacher
@@ -152,25 +153,25 @@ class RolePermissionSeeder extends Seeder
         $srFinance = Role::firstOrCreate(['name' => 'Senior Finance Officer']);
         $srFinance->syncPermissions([
             'view students', 'view fees', 'manage fees', 'collect payments', 'view financial reports',
-            'view payroll', 'process payroll', 'access chat'
+            'view payroll', 'process payroll', 'access chat',
         ]);
 
         // Junior Finance Officer
         $jrFinance = Role::firstOrCreate(['name' => 'Junior Finance Officer']);
         $jrFinance->syncPermissions([
-            'view students', 'view fees', 'collect payments', 'access chat'
+            'view students', 'view fees', 'collect payments', 'access chat',
         ]);
 
         // Secretary
         $secretary = Role::firstOrCreate(['name' => 'Secretary']);
         $secretary->syncPermissions([
-            'view students', 'view employees', 'send notifications', 'manage notice board', 'access chat'
+            'view students', 'view employees', 'send notifications', 'manage notice board', 'access chat',
         ]);
 
         // School Nurse
         $nurse = Role::firstOrCreate(['name' => 'School Nurse']);
         $nurse->syncPermissions([
-            'view students', 'view health', 'manage health', 'access chat'
+            'view students', 'view health', 'manage health', 'access chat',
         ]);
 
         // Inventory Manager
@@ -198,7 +199,7 @@ class RolePermissionSeeder extends Seeder
         // Librarian
         $librarian = Role::firstOrCreate(['name' => 'Librarian']);
         $librarian->syncPermissions([
-            'view students', 'view employees', 'view library', 'manage books', 'issue books', 'return books', 'access chat', 'manage notice board'
+            'view students', 'view employees', 'view library', 'manage books', 'issue books', 'return books', 'access chat', 'manage notice board',
         ]);
 
         // Support Staff (No permissions assigned here, but roles created)

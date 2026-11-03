@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Traits\Auditable;
 
 class ActivitySubmission extends Model
 {
-    use HasFactory, Auditable;
+    use Auditable, HasFactory;
 
     protected $fillable = [
         'academic_activity_id',

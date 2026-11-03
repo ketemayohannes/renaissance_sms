@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\Section;
 use App\Models\StudentAttendance;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 class AttendanceAlertService
 {
@@ -35,8 +34,9 @@ class AttendanceAlertService
             ->groupBy('student_id')
             ->filter(function ($records) {
                 $lastThree = $records->take(3);
+
                 return $lastThree->count() === 3
-                    && $lastThree->every(fn($record) => $record->status === 'absent');
+                    && $lastThree->every(fn ($record) => $record->status === 'absent');
             })
             ->keys();
 

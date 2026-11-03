@@ -2,9 +2,9 @@
 
 namespace Database\Factories;
 
-use App\Models\Section;
-use App\Models\GradeLevel;
 use App\Models\AcademicYear;
+use App\Models\GradeLevel;
+use App\Models\Section;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class SectionFactory extends Factory

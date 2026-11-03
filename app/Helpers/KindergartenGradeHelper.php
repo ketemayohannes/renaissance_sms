@@ -2,7 +2,9 @@
 
 namespace App\Helpers;
 
+use App\Models\GradeLevel;
 use App\Models\ReportCardSetting;
+use App\Models\Section;
 
 class KindergartenGradeHelper
 {
@@ -12,10 +14,10 @@ class KindergartenGradeHelper
     public static function getGradeScales(): array
     {
         $settings = ReportCardSetting::first();
-        if ($settings && !empty($settings->grade_scales)) {
+        if ($settings && ! empty($settings->grade_scales)) {
             // Ensure they are sorted by min descending
             return collect($settings->grade_scales)
-                ->sortByDesc(fn($scale) => (float)$scale['min'])
+                ->sortByDesc(fn ($scale) => (float) $scale['min'])
                 ->values()
                 ->toArray();
         }
@@ -34,13 +36,13 @@ class KindergartenGradeHelper
      */
     public static function isKindergarten($context): bool
     {
-        if (!$context) {
+        if (! $context) {
             return false;
         }
 
-        if ($context instanceof \App\Models\Section) {
+        if ($context instanceof Section) {
             $gradeLevel = $context->gradeLevel;
-        } elseif ($context instanceof \App\Models\GradeLevel) {
+        } elseif ($context instanceof GradeLevel) {
             $gradeLevel = $context;
         } else {
             return false;
@@ -62,7 +64,7 @@ class KindergartenGradeHelper
         $scales = self::getGradeScales();
 
         foreach ($scales as $scale) {
-            if ($numericScore >= (float)$scale['min']) {
+            if ($numericScore >= (float) $scale['min']) {
                 return $scale['grade'];
             }
         }

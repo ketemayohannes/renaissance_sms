@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pint:
+    name: Code style (Pint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+
+      - run: composer install --no-interaction --prefer-dist
+
+      - run: vendor/bin/pint --test
+
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: gd, zip, bcmath, intl, calendar, exif, pdo_sqlite
+          coverage: none
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: composer install --no-interaction --prefer-dist
+
+      # Views use @vite, so the build manifest must exist for feature tests.
+      - run: npm ci && npm run build
+
+      # phpunit.xml forces SQLite :memory:, array cache/session and sync queue.
+      - run: cp .env.example .env && php artisan key:generate
+
+      - run: php -d memory_limit=1G artisan test

@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Section;
-use App\Models\GradeLevel;
 use App\Models\AcademicYear;
+use App\Models\GradeLevel;
+use App\Models\Section;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,13 +20,14 @@ class SectionController extends Controller
         if ($request->filled('search')) {
             $search = $request->get('search');
             $query->where('name', 'like', "%{$search}%")
-                  ->orWhereHas('gradeLevel', function($q) use ($search) {
-                      $q->where('name', 'like', "%{$search}%");
-                  });
+                ->orWhereHas('gradeLevel', function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%");
+                });
         }
 
         // PERFORMANCE: Use pagination instead of loading all sections
         $sections = $query->paginate(50)->withQueryString();
+
         return view('admin.sections.index', compact('sections'));
     }
 
@@ -35,7 +36,7 @@ class SectionController extends Controller
         $gradeLevels = GradeLevel::with('division')->where('is_active', true)->orderBy('sort_order')->get();
         $academicYears = AcademicYear::orderBy('start_date', 'desc')->get();
         $teachers = User::role('Teacher')->get();
-        
+
         return view('admin.sections.create', compact('gradeLevels', 'academicYears', 'teachers'));
     }
 
@@ -43,7 +44,7 @@ class SectionController extends Controller
     {
         $gradeLevels = GradeLevel::with('division')->where('is_active', true)->orderBy('sort_order')->get();
         $academicYears = AcademicYear::orderBy('start_date', 'desc')->get();
-        
+
         return view('admin.sections.bulk_create', compact('gradeLevels', 'academicYears'));
     }
 
@@ -69,7 +70,9 @@ class SectionController extends Controller
         try {
             foreach ($gradeLevelIds as $gradeLevelId) {
                 foreach ($sectionNames as $name) {
-                    if (empty($name)) continue;
+                    if (empty($name)) {
+                        continue;
+                    }
 
                     // Check for duplicate
                     $exists = Section::where('grade_level_id', $gradeLevelId)
@@ -79,6 +82,7 @@ class SectionController extends Controller
 
                     if ($exists) {
                         $skipped++;
+
                         continue;
                     }
 
@@ -99,7 +103,8 @@ class SectionController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Failed to create sections: ' . $e->getMessage())->withInput();
+
+            return back()->with('error', 'Failed to create sections: '.$e->getMessage())->withInput();
         }
     }
 
@@ -124,7 +129,7 @@ class SectionController extends Controller
         $gradeLevels = GradeLevel::with('division')->where('is_active', true)->orderBy('sort_order')->get();
         $academicYears = AcademicYear::orderBy('start_date', 'desc')->get();
         $teachers = User::role('Teacher')->get();
-        
+
         return view('admin.sections.edit', compact('section', 'gradeLevels', 'academicYears', 'teachers'));
     }
 
@@ -156,6 +161,7 @@ class SectionController extends Controller
         return redirect()->route('admin.sections.index')
             ->with('success', 'Section deleted successfully.');
     }
+
     public function import()
     {
         return view('admin.sections.import');
@@ -170,21 +176,21 @@ class SectionController extends Controller
 
         $columns = ['name', 'grade_level', 'division', 'capacity'];
 
-        $callback = function() use ($columns) {
+        $callback = function () use ($columns) {
             $file = fopen('php://output', 'w');
-            
+
             // Add BOM for Excel compatibility
             fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
-            
+
             // Force Excel to use comma as separator
             fwrite($file, "sep=,\n");
-            
+
             fputcsv($file, $columns);
-            
+
             // Add sample row
             fputcsv($file, ['A', 'Grade 1', 'Elementary', '30']);
             fputcsv($file, ['B', 'Grade 1', 'Elementary', '30']);
-            
+
             fclose($file);
         };
 
@@ -199,15 +205,15 @@ class SectionController extends Controller
 
         $file = $request->file('file');
         $path = $file->getRealPath();
-        
+
         // Read file content
         $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        
+
         // Check for sep= line
         if (isset($lines[0]) && strpos($lines[0], 'sep=') === 0) {
             array_shift($lines);
         }
-        
+
         if (empty($lines)) {
             return back()->with('error', 'The file is empty.');
         }
@@ -226,27 +232,27 @@ class SectionController extends Controller
         }
 
         // Parse CSV
-        $data = array_map(function($line) use ($delimiter) {
+        $data = array_map(function ($line) use ($delimiter) {
             return str_getcsv($line, $delimiter);
         }, $lines);
 
         $header = array_shift($data);
-        
+
         // Map header to index
         $header = array_map('trim', $header); // Trim all headers
         $headerMap = array_flip($header);
-        
+
         // Required columns check
         $required = ['name', 'grade_level', 'division'];
         foreach ($required as $col) {
-            if (!isset($headerMap[$col])) {
-                return back()->with('error', "Missing required column: $col. Found columns: " . implode(', ', $header));
+            if (! isset($headerMap[$col])) {
+                return back()->with('error', "Missing required column: $col. Found columns: ".implode(', ', $header));
             }
         }
 
         // Get active academic year
         $activeYear = AcademicYear::where('is_active', true)->first();
-        if (!$activeYear) {
+        if (! $activeYear) {
             return back()->with('error', 'No active academic year found. Please activate one first.');
         }
 
@@ -254,9 +260,11 @@ class SectionController extends Controller
         try {
             $count = 0;
             foreach ($data as $row) {
-                if (empty($row) || empty($row[0])) continue;
+                if (empty($row) || empty($row[0])) {
+                    continue;
+                }
 
-                $val = function($col) use ($row, $headerMap) {
+                $val = function ($col) use ($row, $headerMap) {
                     return isset($headerMap[$col]) ? trim($row[$headerMap[$col]]) : null;
                 };
 
@@ -267,11 +275,11 @@ class SectionController extends Controller
 
                 // Find Grade Level
                 $gradeLevel = GradeLevel::where('name', $gradeLevelName)
-                    ->whereHas('division', function($q) use ($divisionName) {
+                    ->whereHas('division', function ($q) use ($divisionName) {
                         $q->where('name', $divisionName);
                     })->first();
 
-                if (!$gradeLevel) {
+                if (! $gradeLevel) {
                     throw new \Exception("Grade Level '$gradeLevelName' in Division '$divisionName' not found.");
                 }
 
@@ -295,13 +303,15 @@ class SectionController extends Controller
 
                 $count++;
             }
-            
+
             DB::commit();
+
             return redirect()->route('admin.sections.index')->with('success', "$count sections imported successfully.");
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Import failed: ' . $e->getMessage());
+
+            return back()->with('error', 'Import failed: '.$e->getMessage());
         }
     }
 }

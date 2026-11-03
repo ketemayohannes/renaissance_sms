@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
+use App\Models\InventoryCategory;
 use App\Models\InventoryItem;
 use App\Models\InventoryItemRequest;
 use App\Models\InventoryPurchaseRequest;
@@ -33,7 +34,7 @@ class InventoryRequestController extends Controller
             'itemRequests' => $itemRequests,
             'purchaseRequests' => $purchaseRequests,
             'items' => InventoryItem::where('is_active', true)->orderBy('name')->get(),
-            'categories' => \App\Models\InventoryCategory::orderBy('name')->get(),
+            'categories' => InventoryCategory::orderBy('name')->get(),
             'hasEmployee' => (bool) $employee,
         ]);
     }

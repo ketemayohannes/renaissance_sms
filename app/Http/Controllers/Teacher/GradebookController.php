@@ -2,18 +2,23 @@
 
 namespace App\Http\Controllers\Teacher;
 
+use App\Actions\Grades\StoreBulkGrades;
 use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
+use App\Models\AssessmentTemplate;
+use App\Models\AssessmentType;
+use App\Models\AuditLog;
+use App\Models\ReportCardSetting;
 use App\Models\Section;
-use App\Models\Subject;
 use App\Models\StudentMark;
-use App\Models\Term;
 use App\Models\TeacherAssignment;
+use App\Models\Term;
+use App\Services\AcademicReportService;
+use App\Services\GradingService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use App\Models\ReportCardSetting;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 class GradebookController extends Controller
 {
@@ -23,7 +28,7 @@ class GradebookController extends Controller
     public function entry(Request $request, TeacherAssignment $assignment)
     {
         // Security check: ensure this assignment belongs to the authenticated teacher.
-        if ($assignment->teacher_id !== Auth::id() && !Auth::user()->hasRole('Super Admin')) {
+        if ($assignment->teacher_id !== Auth::id() && ! Auth::user()->hasRole('Super Admin')) {
             abort(403, 'Unauthorized access to this class.');
         }
 
@@ -37,25 +42,25 @@ class GradebookController extends Controller
             ->where('type', 'quarter')
             ->where('is_grading_open', true)
             ->first();
-            
+
         // 2. Fallback to calendar date if no grading quarter is explicitly open
-        if (!$activeTerm) {
+        if (! $activeTerm) {
             $activeTerm = Term::where('academic_year_id', $academicYearId)
                 ->where('type', 'quarter')
                 ->where('start_date', '<=', now())
                 ->where('end_date', '>=', now())
                 ->first();
         }
-            
+
         $termId = $request->input('term_id', $activeTerm ? $activeTerm->id : null);
-        
+
         // If no term is selected/active, get the closest one
-        if (!$termId) {
+        if (! $termId) {
             $firstTerm = Term::where('academic_year_id', $academicYearId)
                 ->where('type', 'quarter')
                 ->orderBy('start_date')
                 ->first();
-            if (!$firstTerm) {
+            if (! $firstTerm) {
                 return back()->with('error', 'No quarter terms defined for this year.');
             }
             $termId = $firstTerm->id;
@@ -72,17 +77,17 @@ class GradebookController extends Controller
             ->get();
 
         // Fetch assessment templates
-        $termTotalType = \App\Models\AssessmentType::where('code', 'TERM_TOTAL')->first();
-        
-        $gradeComponents = \App\Models\AssessmentTemplate::where('academic_year_id', $academicYear->id)
+        $termTotalType = AssessmentType::where('code', 'TERM_TOTAL')->first();
+
+        $gradeComponents = AssessmentTemplate::where('academic_year_id', $academicYear->id)
             ->where('term_id', $term->id)
             ->where('is_active', true)
-            ->when($termTotalType, function($query) use ($termTotalType) {
+            ->when($termTotalType, function ($query) use ($termTotalType) {
                 $query->where('assessment_type_id', '!=', $termTotalType->id);
             })
-            ->whereHas('assignments', function($query) use ($section, $subject) {
+            ->whereHas('assignments', function ($query) use ($section, $subject) {
                 $query->where('grade_level_id', $section->grade_level_id)
-                      ->where('subject_id', $subject->id);
+                    ->where('subject_id', $subject->id);
             })
             ->with('assessmentType')
             ->orderBy('order')
@@ -91,12 +96,12 @@ class GradebookController extends Controller
         // Fetch Term Total template separately (for display if exists)
         $termTotalTemplate = null;
         if ($termTotalType) {
-            $termTotalTemplate = \App\Models\AssessmentTemplate::where('academic_year_id', $academicYear->id)
+            $termTotalTemplate = AssessmentTemplate::where('academic_year_id', $academicYear->id)
                 ->where('term_id', $term->id)
                 ->where('assessment_type_id', $termTotalType->id)
-                ->whereHas('assignments', function($query) use ($section, $subject) {
+                ->whereHas('assignments', function ($query) use ($section, $subject) {
                     $query->where('grade_level_id', $section->grade_level_id)
-                          ->where('subject_id', $subject->id);
+                        ->where('subject_id', $subject->id);
                 })
                 ->first();
         }
@@ -104,9 +109,9 @@ class GradebookController extends Controller
         // Fetch students
         if ($subject->is_elective) {
             $students = $section->students()
-                ->whereHas('electives', function($q) use ($subject, $academicYear) {
+                ->whereHas('electives', function ($q) use ($subject, $academicYear) {
                     $q->where('subject_id', $subject->id)
-                      ->where('student_electives.academic_year_id', $academicYear->id);
+                        ->where('student_electives.academic_year_id', $academicYear->id);
                 })
                 ->wherePivot('status', 'active')
                 ->where('students.is_active', true)
@@ -118,8 +123,7 @@ class GradebookController extends Controller
                 ->wherePivot('status', 'active')
                 ->where('students.is_active', true)
                 ->orderBy('students.first_name')
-                ->get()
-;
+                ->get();
         }
 
         // Fetch existing marks
@@ -138,7 +142,7 @@ class GradebookController extends Controller
             if ($studentMarks && $studentMarks->count() > 0) {
                 // IMPORTANT: Only sum marks that belong to the components currently being viewed
                 $totalScore = $studentMarks->whereIn('assessment_template_id', $componentIds)->sum('score');
-                
+
                 // Fallback to Master Sheet total if components sum to 0
                 if ($totalScore == 0 && $termTotalTemplate) {
                     $termTotalMark = $studentMarks->firstWhere('assessment_template_id', $termTotalTemplate->id);
@@ -146,11 +150,11 @@ class GradebookController extends Controller
                         $totalScore = $termTotalMark->score;
                     }
                 }
-                
+
                 if ($totalScore > 0) {
                     $studentTotals->push([
                         'student' => $student,
-                        'total' => $totalScore
+                        'total' => $totalScore,
                     ]);
                 }
             }
@@ -158,7 +162,7 @@ class GradebookController extends Controller
 
         // 1. Graded Average
         $gradedAverage = $studentTotals->count() > 0 ? $studentTotals->avg('total') : 0;
-        
+
         // 2. Section Average
         $totalScoreSum = $studentTotals->sum('total');
         $totalStudentCount = $students->count();
@@ -178,7 +182,7 @@ class GradebookController extends Controller
      */
     public function export(Request $request, TeacherAssignment $assignment)
     {
-        if ($assignment->teacher_id !== Auth::id() && !Auth::user()->hasRole('Super Admin')) {
+        if ($assignment->teacher_id !== Auth::id() && ! Auth::user()->hasRole('Super Admin')) {
             abort(403, 'Unauthorized access to this class.');
         }
 
@@ -190,16 +194,16 @@ class GradebookController extends Controller
         $section = $assignment->section;
         $subject = $assignment->subject;
         $academicYearId = $assignment->academic_year_id;
-        
+
         // Fetch students
         if ($subject->is_elective) {
             $students = $section->students()
                 ->wherePivot('academic_year_id', $academicYearId)
                 ->wherePivot('status', 'active')
                 ->where('students.is_active', true)
-                ->whereHas('electives', function($q) use ($subject, $academicYearId) {
+                ->whereHas('electives', function ($q) use ($subject, $academicYearId) {
                     $q->where('subject_id', $subject->id)
-                      ->where('student_electives.academic_year_id', $academicYearId);
+                        ->where('student_electives.academic_year_id', $academicYearId);
                 })
                 ->orderBy('students.first_name')
                 ->get();
@@ -211,15 +215,15 @@ class GradebookController extends Controller
                 ->orderBy('students.first_name')
                 ->get();
         }
-        
+
         // Fetch assessment templates (excluding TERM_TOTAL - it's a calculated value)
-        $termTotalType = \App\Models\AssessmentType::where('code', 'TERM_TOTAL')->first();
-        
-        $templates = \App\Models\AssessmentTemplate::forGradeSubject($section->grade_level_id, $subject->id)
+        $termTotalType = AssessmentType::where('code', 'TERM_TOTAL')->first();
+
+        $templates = AssessmentTemplate::forGradeSubject($section->grade_level_id, $subject->id)
             ->where('academic_year_id', $academicYearId)
             ->where('term_id', $term->id)
             ->where('is_active', true)
-            ->when($termTotalType, function($query) use ($termTotalType) {
+            ->when($termTotalType, function ($query) use ($termTotalType) {
                 $query->where('assessment_type_id', '!=', $termTotalType->id);
             })
             ->orderBy('order')
@@ -227,26 +231,26 @@ class GradebookController extends Controller
 
         $filename = "grades_{$section->name}_{$subject->name}.csv";
         $headers = [
-            "Content-type" => "text/csv",
-            "Content-Disposition" => "attachment; filename=$filename",
-            "Pragma" => "no-cache",
-            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
-            "Expires" => "0"
+            'Content-type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=$filename",
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0',
         ];
 
-        $callback = function() use ($students, $templates) {
+        $callback = function () use ($students, $templates) {
             $file = fopen('php://output', 'w');
-            
+
             // Add BOM for Excel compatibility
-            fputs($file, "\xEF\xBB\xBF");
-            
+            fwrite($file, "\xEF\xBB\xBF");
+
             // Add separator hint for Excel
-            fputs($file, "sep=,\n");
-            
+            fwrite($file, "sep=,\n");
+
             // Header row
             $headerRow = ['Student ID', 'Student Name'];
             foreach ($templates as $template) {
-                $headerRow[] = $template->name . " (Max: {$template->max_score})";
+                $headerRow[] = $template->name." (Max: {$template->max_score})";
             }
             fputcsv($file, $headerRow);
 
@@ -270,7 +274,7 @@ class GradebookController extends Controller
      */
     public function marksheet(Request $request, TeacherAssignment $assignment)
     {
-        if ($assignment->teacher_id !== Auth::id() && !Auth::user()->hasRole('Super Admin')) {
+        if ($assignment->teacher_id !== Auth::id() && ! Auth::user()->hasRole('Super Admin')) {
             abort(403, 'Unauthorized access to this class.');
         }
 
@@ -283,15 +287,15 @@ class GradebookController extends Controller
         $subject = $assignment->subject;
         $academicYear = AcademicYear::findOrFail($assignment->academic_year_id);
         $settings = ReportCardSetting::firstOrNew();
-        
+
         // Fetch assessment templates
-        $termTotalType = \App\Models\AssessmentType::where('code', 'TERM_TOTAL')->first();
-        
-        $gradeComponents = \App\Models\AssessmentTemplate::forGradeSubject($section->grade_level_id, $subject->id)
+        $termTotalType = AssessmentType::where('code', 'TERM_TOTAL')->first();
+
+        $gradeComponents = AssessmentTemplate::forGradeSubject($section->grade_level_id, $subject->id)
             ->where('academic_year_id', $academicYear->id)
             ->where('term_id', $term->id)
             ->where('is_active', true)
-            ->when($termTotalType, function($query) use ($termTotalType) {
+            ->when($termTotalType, function ($query) use ($termTotalType) {
                 $query->where('assessment_type_id', '!=', $termTotalType->id);
             })
             ->with('assessmentType')
@@ -301,12 +305,12 @@ class GradebookController extends Controller
         // Fetch Term Total template separately (for display if exists)
         $termTotalTemplate = null;
         if ($termTotalType) {
-            $termTotalTemplate = \App\Models\AssessmentTemplate::where('academic_year_id', $academicYear->id)
+            $termTotalTemplate = AssessmentTemplate::where('academic_year_id', $academicYear->id)
                 ->where('term_id', $term->id)
                 ->where('assessment_type_id', $termTotalType->id)
-                ->whereHas('assignments', function($query) use ($section, $subject) {
+                ->whereHas('assignments', function ($query) use ($section, $subject) {
                     $query->where('grade_level_id', $section->grade_level_id)
-                          ->where('subject_id', $subject->id);
+                        ->where('subject_id', $subject->id);
                 })
                 ->first();
         }
@@ -314,9 +318,9 @@ class GradebookController extends Controller
         // Fetch students
         if ($subject->is_elective) {
             $students = $section->students()
-                ->whereHas('electives', function($q) use ($subject, $academicYear) {
+                ->whereHas('electives', function ($q) use ($subject, $academicYear) {
                     $q->where('subject_id', $subject->id)
-                      ->where('student_electives.academic_year_id', $academicYear->id);
+                        ->where('student_electives.academic_year_id', $academicYear->id);
                 })
                 ->wherePivot('status', 'active')
                 ->where('students.is_active', true)
@@ -328,8 +332,7 @@ class GradebookController extends Controller
                 ->wherePivot('status', 'active')
                 ->where('students.is_active', true)
                 ->orderBy('students.first_name')
-                ->get()
-;
+                ->get();
         }
 
         // Fetch existing marks
@@ -360,8 +363,9 @@ class GradebookController extends Controller
 
         $pdf = Pdf::loadView($viewName, $data);
         $pdf->setPaper('a4', $paperOrientation);
-        
+
         $filename = "{$filenamePrefix}_{$section->name}_{$subject->code}_{$term->name}.pdf";
+
         return $pdf->download($filename);
     }
 
@@ -370,7 +374,7 @@ class GradebookController extends Controller
      */
     public function import(Request $request, TeacherAssignment $assignment)
     {
-        if ($assignment->teacher_id !== Auth::id() && !Auth::user()->hasRole('Super Admin')) {
+        if ($assignment->teacher_id !== Auth::id() && ! Auth::user()->hasRole('Super Admin')) {
             abort(403);
         }
 
@@ -380,8 +384,8 @@ class GradebookController extends Controller
         ]);
 
         $term = Term::findOrFail($request->term_id);
-        if (!$term->is_grading_open) {
-            if (!Auth::user()->hasRole(['Super Admin', 'Principal'])) {
+        if (! $term->is_grading_open) {
+            if (! Auth::user()->hasRole(['Super Admin', 'Principal'])) {
                 return back()->with('error', 'Grading for this term is currently closed.');
             }
         }
@@ -389,28 +393,28 @@ class GradebookController extends Controller
         $section = $assignment->section;
         $subject = $assignment->subject;
         $academicYearId = $assignment->academic_year_id;
-        
+
         // Fetch assessment templates (excluding TERM_TOTAL - it's a calculated value)
-        $termTotalType = \App\Models\AssessmentType::where('code', 'TERM_TOTAL')->first();
-        
-        $templates = \App\Models\AssessmentTemplate::forGradeSubject($section->grade_level_id, $subject->id)
+        $termTotalType = AssessmentType::where('code', 'TERM_TOTAL')->first();
+
+        $templates = AssessmentTemplate::forGradeSubject($section->grade_level_id, $subject->id)
             ->where('academic_year_id', $academicYearId)
             ->where('term_id', $request->term_id)
             ->where('is_active', true)
-            ->when($termTotalType, function($query) use ($termTotalType) {
+            ->when($termTotalType, function ($query) use ($termTotalType) {
                 $query->where('assessment_type_id', '!=', $termTotalType->id);
             })
             ->get();
 
         $path = $request->file('file')->getRealPath();
         $file = fopen($path, 'r');
-        
+
         // Skip BOM if present
         $bom = fread($file, 3);
         if ($bom !== "\xEF\xBB\xBF") {
             rewind($file);
         }
-        
+
         // Read first line to check for sep=,
         $line = fgets($file);
         if (str_starts_with($line, 'sep=')) {
@@ -421,8 +425,9 @@ class GradebookController extends Controller
             $headerLine = $line;
         }
 
-        if (!$headerLine) {
+        if (! $headerLine) {
             fclose($file);
+
             return back()->with('error', 'The uploaded file is empty or invalid.');
         }
 
@@ -437,23 +442,25 @@ class GradebookController extends Controller
                 $delimiter = $d;
             }
         }
-        
+
         // Parse header
         $header = str_getcsv($headerLine, $delimiter);
-        
+
         // Map CSV columns to template IDs
         $columnMap = [];
         foreach ($header as $index => $colName) {
-            if ($index < 2) continue; // Skip ID and Name
-            
+            if ($index < 2) {
+                continue;
+            } // Skip ID and Name
+
             // Extract name from "Name (Max: 10)" format or just use name
             $name = preg_replace('/\s*\(Max:.*\)/', '', $colName);
             $name = trim($name);
-            
-            $template = $templates->first(function($t) use ($name) {
+
+            $template = $templates->first(function ($t) use ($name) {
                 return strtolower($t->name) === strtolower($name);
             });
-            
+
             if ($template) {
                 $columnMap[$index] = $template;
             }
@@ -470,32 +477,39 @@ class GradebookController extends Controller
 
             while (($line = fgets($file)) !== false) {
                 $row = str_getcsv($line, $delimiter);
-                
+
                 // Skip empty rows
-                if (empty($row) || (count($row) === 1 && empty($row[0]))) continue;
-                
+                if (empty($row) || (count($row) === 1 && empty($row[0]))) {
+                    continue;
+                }
+
                 $studentIdStr = trim($row[0]);
-                
+
                 // Fetch from pre-loaded section students to ensure they belong to this section
                 $student = $sectionStudents->get($studentIdStr);
-                
-                if (!$student) {
+
+                if (! $student) {
                     $errors[] = "Student ID $studentIdStr not found in this section";
+
                     continue;
                 }
 
                 foreach ($columnMap as $index => $template) {
                     $score = $row[$index] ?? null;
-                    if ($score === null || $score === '') continue;
+                    if ($score === null || $score === '') {
+                        continue;
+                    }
                     $score = trim($score);
-                    
-                    if (!is_numeric($score)) {
+
+                    if (! is_numeric($score)) {
                         $errors[] = "Invalid score for $studentIdStr in {$template->name}";
+
                         continue;
                     }
 
                     if ($score > $template->max_score) {
                         $errors[] = "Score $score exceeds max {$template->max_score} for $studentIdStr in {$template->name}";
+
                         continue;
                     }
 
@@ -515,7 +529,7 @@ class GradebookController extends Controller
                 $successCount++;
             }
 
-            if (!empty($upsertData)) {
+            if (! empty($upsertData)) {
                 StudentMark::upsert(
                     $upsertData,
                     ['student_id', 'assessment_template_id'],
@@ -523,7 +537,7 @@ class GradebookController extends Controller
                 );
 
                 // Manual Audit Injection
-                \App\Models\AuditLog::create([
+                AuditLog::create([
                     'user_id' => Auth::id(),
                     'event' => 'bulk_grade_import',
                     'auditable_type' => StudentMark::class,
@@ -535,32 +549,35 @@ class GradebookController extends Controller
                     'user_agent' => request()->userAgent(),
                 ]);
             }
-            
+
             DB::commit();
             fclose($file);
-            
+
             // Recalculate Statistics
-            $gradingService = app(\App\Services\GradingService::class);
-            $gradingService->recalculateSectionStatistics($section, $term, \App\Models\AcademicYear::findOrFail($academicYearId));
-            
+            $gradingService = app(GradingService::class);
+            $gradingService->recalculateSectionStatistics($section, $term, AcademicYear::findOrFail($academicYearId));
+
             // Clear roster cache
-            \App\Services\AcademicReportService::clearRosterCache($section->id, $term->id, $academicYearId);
+            AcademicReportService::clearRosterCache($section->id, $term->id, $academicYearId);
 
             if (empty($upsertData)) {
                 return back()->with('warning', 'No grades were imported.');
             }
-            
-            $message = "Imported " . count($upsertData) . " grades for $successCount students.";
-            if (!empty($errors)) {
-                return back()->with('warning', $message . ' Errors: ' . implode('; ', array_slice($errors, 0, 5)));
+
+            $message = 'Imported '.count($upsertData)." grades for $successCount students.";
+            if (! empty($errors)) {
+                return back()->with('warning', $message.' Errors: '.implode('; ', array_slice($errors, 0, 5)));
             }
-            
+
             return back()->with('success', $message);
-            
+
         } catch (\Exception $e) {
             DB::rollBack();
-            if (isset($file)) fclose($file);
-            return back()->with('error', 'Import failed: ' . $e->getMessage());
+            if (isset($file)) {
+                fclose($file);
+            }
+
+            return back()->with('error', 'Import failed: '.$e->getMessage());
         }
     }
 
@@ -575,25 +592,25 @@ class GradebookController extends Controller
             'marks.*' => 'array',
         ]);
 
-        if ($assignment->teacher_id !== Auth::id() && !Auth::user()->hasRole('Super Admin')) {
+        if ($assignment->teacher_id !== Auth::id() && ! Auth::user()->hasRole('Super Admin')) {
             abort(403);
         }
 
         try {
-            $result = \App\Actions\Grades\StoreBulkGrades::run([
+            $result = StoreBulkGrades::run([
                 'academic_year_id' => $assignment->academic_year_id,
                 'term_id' => $request->term_id,
                 'subject_id' => $assignment->subject_id,
                 'section_id' => $assignment->section_id,
                 'marks' => $request->marks,
             ], Auth::id());
-            
+
             // Recalculate Statistics
-            $gradingService = app(\App\Services\GradingService::class);
-            $gradingService->recalculateSectionStatistics($assignment->section, Term::findOrFail($request->term_id), \App\Models\AcademicYear::findOrFail($assignment->academic_year_id));
-            
+            $gradingService = app(GradingService::class);
+            $gradingService->recalculateSectionStatistics($assignment->section, Term::findOrFail($request->term_id), AcademicYear::findOrFail($assignment->academic_year_id));
+
             // Clear roster cache
-            \App\Services\AcademicReportService::clearRosterCache($assignment->section_id, $request->term_id, $assignment->academic_year_id);
+            AcademicReportService::clearRosterCache($assignment->section_id, $request->term_id, $assignment->academic_year_id);
 
             return back()->with('success', $result['message']);
         } catch (\Exception $e) {

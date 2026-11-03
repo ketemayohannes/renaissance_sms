@@ -15,7 +15,7 @@ class RedirectController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user) {
+        if (! $user) {
             return redirect()->route('login');
         }
 
@@ -56,7 +56,7 @@ class RedirectController extends Controller
 
         // 8. Staff / Other Employees (Future)
         if ($user->hasRole(['Senior Finance Officer', 'Junior Finance Officer', 'School Nurse'])) {
-             // return redirect()->route('employee.dashboard');
+            // return redirect()->route('employee.dashboard');
         }
 
         // Default Fallback

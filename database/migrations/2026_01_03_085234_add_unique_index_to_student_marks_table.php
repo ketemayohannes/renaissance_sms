@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -14,13 +14,13 @@ return new class extends Migration
     {
         // 1. Identify and remove duplicates (keep the most recent one)
         // Groups are identified by (student_id, assessment_template_id)
-        
+
         $duplicates = DB::table('student_marks')
             ->select('student_id', 'assessment_template_id', DB::raw('COUNT(*) as count'))
             ->groupBy('student_id', 'assessment_template_id')
             ->having('count', '>', 1)
             ->get();
-            
+
         foreach ($duplicates as $duplicate) {
             // Fetch all marks for this group, ordered by date desc (keep latest)
             $marks = DB::table('student_marks')
@@ -30,12 +30,12 @@ return new class extends Migration
                 ->orderBy('id', 'desc')
                 ->pluck('id')
                 ->toArray();
-                
+
             // Remove the first one (latest) from the delete list
             array_shift($marks);
-            
+
             // Delete the rest
-            if (!empty($marks)) {
+            if (! empty($marks)) {
                 DB::table('student_marks')->whereIn('id', $marks)->delete();
             }
         }
