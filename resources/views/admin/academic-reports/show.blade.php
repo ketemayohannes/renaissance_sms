@@ -349,9 +349,11 @@
             * { overflow: visible !important; scrollbar-width: none !important; -ms-overflow-style: none !important; }
             *::-webkit-scrollbar { display: none !important; }
             
+            /* Zero page margin leaves the browser no room for its own print header/footer
+               (date, page title, URL). The page spacing lives on .roster-page-chunk instead. */
             @page {
                 size: {{ ($isSem || $isYearly) ? 'landscape' : 'portrait' }};
-                margin: 12mm 10mm 8mm 10mm;
+                margin: 0;
             }
             html, body { 
                 background: white !important;
@@ -374,7 +376,10 @@
             .roster-page-chunk {
                 display: block !important;
                 margin: 0 !important;
-                padding-top: 15px !important;
+                padding: calc(12mm + 15px) 10mm 8mm 10mm !important;
+                box-sizing: border-box !important;
+                -webkit-box-decoration-break: clone;
+                box-decoration-break: clone;
                 clear: both !important;
             }
             .header-info-table h1 { font-size: 20pt !important; }
