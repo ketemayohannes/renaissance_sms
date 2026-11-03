@@ -6,6 +6,15 @@ use App\Actions\Students\ProcessStudentWithdrawal;
 use App\Helpers\CachedData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreStudentRequest;
+use App\Http\Requests\Student\BulkStudentIdsRequest;
+use App\Http\Requests\Student\BulkTransferStudentsRequest;
+use App\Http\Requests\Student\ImportStudentsRequest;
+use App\Http\Requests\Student\LinkSiblingRequest;
+use App\Http\Requests\Student\QuickUpdateStudentRequest;
+use App\Http\Requests\Student\StoreStudentDocumentRequest;
+use App\Http\Requests\Student\StoreStudentElectivesRequest;
+use App\Http\Requests\Student\TransferStudentRequest;
+use App\Http\Requests\Student\WithdrawStudentRequest;
 use App\Http\Requests\UpdateStudentRequest;
 use App\Models\AcademicYear;
 use App\Models\AssessmentType;
@@ -405,19 +414,8 @@ class StudentController extends Controller
         ));
     }
 
-    public function linkSibling(Request $request, Student $student)
+    public function linkSibling(LinkSiblingRequest $request, Student $student)
     {
-        $request->validate([
-            'sibling_id' => [
-                'required',
-                'exists:students,id',
-                function ($attribute, $value, $fail) use ($student) {
-                    if ($value == $student->id) {
-                        $fail('A student cannot be their own sibling.');
-                    }
-                },
-            ],
-        ]);
 
         $sibling = Student::findOrFail($request->sibling_id);
         $student->addSibling($sibling);
@@ -496,14 +494,9 @@ class StudentController extends Controller
         }
     }
 
-    public function quickUpdate(Request $request, Student $student)
+    public function quickUpdate(QuickUpdateStudentRequest $request, Student $student)
     {
-        $validated = $request->validate([
-            'first_name' => 'required|string|max:255',
-            'father_name' => 'required|string|max:255',
-            'grandfather_name' => 'required|string|max:255',
-            'gender' => 'required|in:M,F',
-        ]);
+        $validated = $request->validated();
 
         try {
             $student->update($validated);
@@ -741,14 +734,8 @@ class StudentController extends Controller
         return view('admin.students.transfer', compact('student', 'currentEnrollment', 'sections', 'activeYear'));
     }
 
-    public function transfer(Request $request, Student $student)
+    public function transfer(TransferStudentRequest $request, Student $student)
     {
-        $request->validate([
-            'new_section_id' => 'required|exists:sections,id',
-            'transfer_date' => 'required|date',
-            'reason' => 'nullable|string|max:500',
-        ]);
-
         // Guard checks run before the transaction opens: returning early from inside an
         // open transaction would leave it uncommitted, and the session write (with this
         // error flash) would be discarded along with it.
@@ -831,12 +818,8 @@ class StudentController extends Controller
         return view('admin.students.assign-electives', compact('student', 'currentEnrollment', 'availableElectives', 'assignedElectiveIds'));
     }
 
-    public function storeElectives(Request $request, Student $student)
+    public function storeElectives(StoreStudentElectivesRequest $request, Student $student)
     {
-        $request->validate([
-            'electives' => 'array', // Can be empty if removing all
-            'electives.*' => 'exists:subjects,id',
-        ]);
 
         $currentEnrollment = $student->currentActiveEnrollment;
 
@@ -961,9 +944,8 @@ class StudentController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 
-    public function quickUpload(Request $request)
+    public function quickUpload(ImportStudentsRequest $request)
     {
-        $request->validate(['file' => 'required|file|mimes:csv,txt|max:2048']);
 
         $activeYear = AcademicYear::where('is_active', true)->first();
         if (! $activeYear) {
@@ -1085,9 +1067,8 @@ class StudentController extends Controller
         return $redirect;
     }
 
-    public function upload(Request $request)
+    public function upload(ImportStudentsRequest $request)
     {
-        $request->validate(['file' => 'required|file|mimes:csv,txt|max:2048']);
 
         $activeYear = AcademicYear::where('is_active', true)->first();
         if (! $activeYear) {
@@ -1156,12 +1137,8 @@ class StudentController extends Controller
         return $redirect;
     }
 
-    public function bulkDestroy(Request $request)
+    public function bulkDestroy(BulkStudentIdsRequest $request)
     {
-        $request->validate([
-            'ids' => 'required|array',
-            'ids.*' => 'exists:students,id',
-        ]);
 
         try {
             $count = $this->studentService->bulkDeleteStudents($request->ids);
@@ -1172,12 +1149,8 @@ class StudentController extends Controller
         }
     }
 
-    public function bulkDeactivate(Request $request)
+    public function bulkDeactivate(BulkStudentIdsRequest $request)
     {
-        $request->validate([
-            'ids' => 'required|array',
-            'ids.*' => 'exists:students,id',
-        ]);
 
         DB::beginTransaction();
         try {
@@ -1219,15 +1192,8 @@ class StudentController extends Controller
         }
     }
 
-    public function bulkTransfer(Request $request)
+    public function bulkTransfer(BulkTransferStudentsRequest $request)
     {
-        $request->validate([
-            'ids' => 'required|array',
-            'ids.*' => 'exists:students,id',
-            'new_section_id' => 'required|exists:sections,id',
-            'transfer_date' => 'required|date',
-            'reason' => 'nullable|string|max:500',
-        ]);
 
         $newSection = Section::findOrFail($request->new_section_id);
 
@@ -1323,14 +1289,8 @@ class StudentController extends Controller
         return view('admin.students.withdraw', compact('student', 'reasons', 'statuses'));
     }
 
-    public function processWithdrawal(Request $request, Student $student)
+    public function processWithdrawal(WithdrawStudentRequest $request, Student $student)
     {
-        $request->validate([
-            'new_status' => 'required|in:withdrawn,graduated,transferred,dropped_out',
-            'reason' => 'required|string',
-            'notes' => 'nullable|string',
-            'effective_date' => 'required|date',
-        ]);
 
         ProcessStudentWithdrawal::run($student, $request->only(['new_status', 'reason', 'notes', 'effective_date']));
 
@@ -1430,14 +1390,8 @@ class StudentController extends Controller
         return redirect()->back()->with('success', 'Student restored successfully.');
     }
 
-    public function storeDocument(Request $request, Student $student)
+    public function storeDocument(StoreStudentDocumentRequest $request, Student $student)
     {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'document_type' => 'required|string|in:standard,medical,legal,other',
-            'file' => 'required|file|max:10240', // 10MB max
-            'notes' => 'nullable|string',
-        ]);
 
         // Private disk (storage/app/private): student documents contain PII and
         // must be served only through the gated download route, never a public URL.
@@ -1494,12 +1448,8 @@ class StudentController extends Controller
         abort(404);
     }
 
-    public function bulkIdCardsSelected(Request $request)
+    public function bulkIdCardsSelected(BulkStudentIdsRequest $request)
     {
-        $request->validate([
-            'ids' => 'required|array',
-            'ids.*' => 'exists:students,id',
-        ]);
 
         $students = Student::whereIn('id', $request->ids)
             ->with(['currentEnrollment.section.gradeLevel', 'primaryGuardian'])
