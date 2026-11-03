@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Term;
 use App\Services\ReportCardService;
 use App\Services\StudentAcademicHistoryService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -125,7 +126,7 @@ class GradeController extends Controller
 
         $viewName = $params['isYearly'] ? 'admin.report-cards.yearly-pdf' : 'admin.report-cards.pdf';
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView($viewName, $params)->setPaper('a4', 'portrait');
+        $pdf = Pdf::loadView($viewName, $params)->setPaper('a4', 'portrait');
 
         return $pdf->download('ReportCard_'.$student->admission_number.'_'.str_replace(' ', '_', $term->name).'.pdf');
     }
