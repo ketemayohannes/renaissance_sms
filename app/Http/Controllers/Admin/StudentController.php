@@ -749,34 +749,36 @@ class StudentController extends Controller
             'reason' => 'nullable|string|max:500',
         ]);
 
+        // Guard checks run before the transaction opens: returning early from inside an
+        // open transaction would leave it uncommitted, and the session write (with this
+        // error flash) would be discarded along with it.
+        $currentEnrollment = $student->currentActiveEnrollment;
+
+        if (! $currentEnrollment) {
+            return back()->with('error', 'Student has no active enrollment.');
+        }
+
+        if ($currentEnrollment->section_id == $request->new_section_id) {
+            return back()->with('error', 'Student is already in this section.');
+        }
+
+        // Validate that the new section is in the same grade level. A student with no
+        // section yet (e.g. enrolled into a new year before sections were created) has
+        // nothing to compare against, so any section they're assigned is accepted.
+        $newSection = Section::findOrFail($request->new_section_id);
+        if ($currentEnrollment->section && $newSection->grade_level_id != $currentEnrollment->section->grade_level_id) {
+            return back()->with('error', 'Transfers are only allowed within the same grade level.');
+        }
+
         DB::beginTransaction();
         try {
             // End current enrollment
-            $currentEnrollment = $student->currentActiveEnrollment;
-
-            if (! $currentEnrollment) {
-                return back()->with('error', 'Student has no active enrollment.');
-            }
-
-            if ($currentEnrollment->section_id == $request->new_section_id) {
-                return back()->with('error', 'Student is already in this section.');
-            }
-
-            // Validate that the new section is in the same grade level. A student with no
-            // section yet (e.g. enrolled into a new year before sections were created) has
-            // nothing to compare against, so any section they're assigned is accepted.
-            $newSection = Section::findOrFail($request->new_section_id);
-            if ($currentEnrollment->section && $newSection->grade_level_id != $currentEnrollment->section->grade_level_id) {
-                return back()->with('error', 'Transfers are only allowed within the same grade level.');
-            }
-
             $currentEnrollment->update([
                 'end_date' => $request->transfer_date,
                 'status' => 'transferred',
             ]);
 
             // Create new enrollment
-            $newSection = Section::findOrFail($request->new_section_id);
             $student->enrollments()->create([
                 'section_id' => $request->new_section_id,
                 'academic_year_id' => $newSection->academic_year_id,
