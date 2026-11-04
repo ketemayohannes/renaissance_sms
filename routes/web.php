@@ -45,7 +45,14 @@ use App\Http\Controllers\Admin\SectionController;
 use App\Http\Controllers\Admin\SectionGradeController;
 use App\Http\Controllers\Admin\StaffAttendanceController;
 use App\Http\Controllers\Admin\StaffAvailabilityController;
+use App\Http\Controllers\Admin\StudentAccountController;
+use App\Http\Controllers\Admin\StudentBulkActionController;
 use App\Http\Controllers\Admin\StudentController;
+use App\Http\Controllers\Admin\StudentDocumentController;
+use App\Http\Controllers\Admin\StudentEnrollmentController;
+use App\Http\Controllers\Admin\StudentIdCardController;
+use App\Http\Controllers\Admin\StudentImportController;
+use App\Http\Controllers\Admin\StudentSiblingController;
 use App\Http\Controllers\Admin\SubjectAssignmentController;
 use App\Http\Controllers\Admin\SubjectController;
 use App\Http\Controllers\Admin\TeacherAssignmentController;
@@ -267,35 +274,35 @@ Route::middleware(['auth'])->group(function () {
         Route::get('graduates', [GraduatesController::class, 'index'])->name('graduates.index')->middleware('permission:view students');
 
         // Student Management (permission-gated)
-        Route::get('students/enrollments', [StudentController::class, 'enrollmentsIndex'])->name('students.enrollments')->middleware('permission:view students');
+        Route::get('students/enrollments', [StudentEnrollmentController::class, 'enrollmentsIndex'])->name('students.enrollments')->middleware('permission:view students');
         Route::get('students/export', [StudentController::class, 'export'])->name('students.export')->middleware('permission:view students');
 
-        Route::get('students/import', [StudentController::class, 'import'])->name('students.import')->middleware('permission:create students');
-        Route::post('students/import', [StudentController::class, 'upload'])->name('students.upload')->middleware('permission:create students');
-        Route::get('students/download-template', [StudentController::class, 'downloadTemplate'])->name('students.download-template')->middleware('permission:create students');
-        Route::get('students/download-quick-template', [StudentController::class, 'downloadQuickTemplate'])->name('students.download-quick-template')->middleware('permission:create students');
-        Route::post('students/quick-upload', [StudentController::class, 'quickUpload'])->name('students.quick-upload')->middleware('permission:create students');
+        Route::get('students/import', [StudentImportController::class, 'import'])->name('students.import')->middleware('permission:create students');
+        Route::post('students/import', [StudentImportController::class, 'upload'])->name('students.upload')->middleware('permission:create students');
+        Route::get('students/download-template', [StudentImportController::class, 'downloadTemplate'])->name('students.download-template')->middleware('permission:create students');
+        Route::get('students/download-quick-template', [StudentImportController::class, 'downloadQuickTemplate'])->name('students.download-quick-template')->middleware('permission:create students');
+        Route::post('students/quick-upload', [StudentImportController::class, 'quickUpload'])->name('students.quick-upload')->middleware('permission:create students');
         Route::post('students/{student}/toggle-block', [StudentController::class, 'toggleBlock'])->name('students.toggle-block')->middleware('permission:edit students');
-        Route::get('students/{student}/transfer', [StudentController::class, 'transferForm'])->name('students.transfer')->middleware('permission:edit students');
-        Route::post('students/{student}/transfer', [StudentController::class, 'transfer'])->name('students.transfer.store')->middleware('permission:edit students');
-        Route::get('students/{student}/assign-electives', [StudentController::class, 'assignElectivesForm'])->name('students.assign-electives')->middleware('permission:edit students');
-        Route::post('students/{student}/assign-electives', [StudentController::class, 'storeElectives'])->name('students.assign-electives.store')->middleware('permission:edit students');
-        Route::post('students/{student}/siblings', [StudentController::class, 'linkSibling'])->name('students.siblings.link')->middleware('permission:edit students');
-        Route::delete('students/{student}/siblings/{sibling}', [StudentController::class, 'unlinkSibling'])->name('students.siblings.unlink')->middleware('permission:edit students');
-        Route::post('students/bulk-destroy', [StudentController::class, 'bulkDestroy'])->name('students.bulk-destroy')->middleware('permission:delete students');
-        Route::post('students/bulk-deactivate', [StudentController::class, 'bulkDeactivate'])->name('students.bulk-deactivate')->middleware('permission:edit students');
-        Route::post('students/bulk-transfer', [StudentController::class, 'bulkTransfer'])->name('students.bulk-transfer')->middleware('permission:edit students');
-        Route::get('students/{student}/withdraw', [StudentController::class, 'withdrawForm'])->name('students.withdraw')->middleware('permission:edit students');
-        Route::post('students/{student}/withdraw', [StudentController::class, 'processWithdrawal'])->name('students.withdraw.store')->middleware('permission:edit students');
-        Route::get('students/{student}/status-history', [StudentController::class, 'statusHistory'])->name('students.status-history')->middleware('permission:view students');
-        Route::get('id-cards', [StudentController::class, 'idCardsIndex'])->name('id-cards.index')->middleware('permission:view students');
+        Route::get('students/{student}/transfer', [StudentEnrollmentController::class, 'transferForm'])->name('students.transfer')->middleware('permission:edit students');
+        Route::post('students/{student}/transfer', [StudentEnrollmentController::class, 'transfer'])->name('students.transfer.store')->middleware('permission:edit students');
+        Route::get('students/{student}/assign-electives', [StudentEnrollmentController::class, 'assignElectivesForm'])->name('students.assign-electives')->middleware('permission:edit students');
+        Route::post('students/{student}/assign-electives', [StudentEnrollmentController::class, 'storeElectives'])->name('students.assign-electives.store')->middleware('permission:edit students');
+        Route::post('students/{student}/siblings', [StudentSiblingController::class, 'linkSibling'])->name('students.siblings.link')->middleware('permission:edit students');
+        Route::delete('students/{student}/siblings/{sibling}', [StudentSiblingController::class, 'unlinkSibling'])->name('students.siblings.unlink')->middleware('permission:edit students');
+        Route::post('students/bulk-destroy', [StudentBulkActionController::class, 'bulkDestroy'])->name('students.bulk-destroy')->middleware('permission:delete students');
+        Route::post('students/bulk-deactivate', [StudentBulkActionController::class, 'bulkDeactivate'])->name('students.bulk-deactivate')->middleware('permission:edit students');
+        Route::post('students/bulk-transfer', [StudentBulkActionController::class, 'bulkTransfer'])->name('students.bulk-transfer')->middleware('permission:edit students');
+        Route::get('students/{student}/withdraw', [StudentEnrollmentController::class, 'withdrawForm'])->name('students.withdraw')->middleware('permission:edit students');
+        Route::post('students/{student}/withdraw', [StudentEnrollmentController::class, 'processWithdrawal'])->name('students.withdraw.store')->middleware('permission:edit students');
+        Route::get('students/{student}/status-history', [StudentEnrollmentController::class, 'statusHistory'])->name('students.status-history')->middleware('permission:view students');
+        Route::get('id-cards', [StudentIdCardController::class, 'idCardsIndex'])->name('id-cards.index')->middleware('permission:view students');
 
         // Student Document Routes (permission-gated)
-        Route::post('students/{student}/document', [StudentController::class, 'storeDocument'])->name('students.store-document')->middleware('permission:edit students');
-        Route::get('students/{student}/document/{document}/download', [StudentController::class, 'downloadDocument'])->name('students.download-document')->middleware('permission:view students');
-        Route::delete('students/{student}/document/{document}', [StudentController::class, 'deleteDocument'])->name('students.delete-document')->middleware('permission:edit students');
+        Route::post('students/{student}/document', [StudentDocumentController::class, 'storeDocument'])->name('students.store-document')->middleware('permission:edit students');
+        Route::get('students/{student}/document/{document}/download', [StudentDocumentController::class, 'downloadDocument'])->name('students.download-document')->middleware('permission:view students');
+        Route::delete('students/{student}/document/{document}', [StudentDocumentController::class, 'deleteDocument'])->name('students.delete-document')->middleware('permission:edit students');
         Route::post('students/{id}/restore', [StudentController::class, 'restore'])->name('students.restore')->middleware('permission:edit students');
-        Route::post('students/bulk-id-cards', [StudentController::class, 'bulkIdCardsSelected'])->name('students.bulk-id-cards-selected')->middleware('permission:view students');
+        Route::post('students/bulk-id-cards', [StudentIdCardController::class, 'bulkIdCardsSelected'])->name('students.bulk-id-cards-selected')->middleware('permission:view students');
 
         // Electives Bulk Assign (permission-gated)
         Route::get('electives/bulk-assign', [ElectiveController::class, 'bulkAssignForm'])->name('electives.bulk-assign')->middleware('permission:edit students');
@@ -458,11 +465,11 @@ Route::middleware(['auth'])->group(function () {
         Route::post('discipline-settings/rules/{rule}/toggle', [EscalationRuleController::class, 'toggleActive'])->name('discipline-settings.rules.toggle')->middleware('permission:edit students');
 
         // Student ID Cards (permission-gated)
-        Route::get('students/{student}/id-card', [StudentController::class, 'generateIdCard'])->name('students.id-card')->middleware('permission:view students');
-        Route::get('sections/{section}/id-cards', [StudentController::class, 'bulkIdCards'])->name('sections.bulk-id-cards')->middleware('permission:view students');
+        Route::get('students/{student}/id-card', [StudentIdCardController::class, 'generateIdCard'])->name('students.id-card')->middleware('permission:view students');
+        Route::get('sections/{section}/id-cards', [StudentIdCardController::class, 'bulkIdCards'])->name('sections.bulk-id-cards')->middleware('permission:view students');
         Route::post('guardians/{guardian}/create-user', [StudentController::class, 'createGuardianUser'])->name('guardians.create-user')->middleware('permission:edit students');
-        Route::post('students/{student}/create-user', [StudentController::class, 'createStudentUser'])->name('students.create-user')->middleware('permission:edit students');
-        Route::post('students/{student}/reset-password', [StudentController::class, 'resetStudentPassword'])->name('students.reset-password')->middleware('permission:edit students');
+        Route::post('students/{student}/create-user', [StudentAccountController::class, 'createStudentUser'])->name('students.create-user')->middleware('permission:edit students');
+        Route::post('students/{student}/reset-password', [StudentAccountController::class, 'resetStudentPassword'])->name('students.reset-password')->middleware('permission:edit students');
 
         // Human Resources (permission-gated)
         Route::get('employees/import', [EmployeeController::class, 'import'])->name('employees.import')->middleware('permission:manage employees');
