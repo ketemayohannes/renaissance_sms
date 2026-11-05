@@ -40,6 +40,9 @@ php artisan migrate:fresh --seed  # rebuild + seed (see DatabaseSeeder)
 
 **Never point tests at the real database.** `phpunit.xml` uses `:memory:` and every feature test uses `RefreshDatabase` (drops all tables). If that env is ever changed to a file path, running the suite will wipe dev data.
 
+### Deploying to production
+Always deploy with `bin/deploy.sh` (from your machine; needs the `renaissance-server` SSH host). It backs up the production database and verifies the backup on the server and locally *before* touching anything, shows the commits going live, asks to confirm, then pulls `main`, builds while the old container serves, swaps, and waits for the site to answer 200. Any failed step stops the deploy. `--backup-only` takes a verified backup and deploys nothing. Expect ~1 minute of 502s during the swap (the server has ~1 GB RAM), so deploy outside school hours. Backups land in `backups/` (git-ignored) and `~/backups/` on the server (newest 14 kept).
+
 ## Architecture
 
 ### Role-based multi-portal
