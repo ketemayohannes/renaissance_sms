@@ -313,11 +313,6 @@
                 ? \App\Helpers\KindergartenGradeHelper::toGrade($val) 
                 : \App\Helpers\NumberFormatter::format($val);
         };
-        
-        $com = function($q) use ($quarterRecords) {
-             if(!$q) return '';
-             return $quarterRecords[$q->id]->homeroom_teacher_comment ?? '';
-        };
 
         // Handle Logo Base64 for robust rendering
         $logoBase64 = null;
@@ -330,293 +325,31 @@
         }
     @endphp
 
-    <!-- PAGE 1: FRONT -->
-    <div class="page" style="page-break-after: always;">
-        <table class="comments-table">
-            <tr>
-                <td class="comments-col">
-                    <div style="text-align: center; margin-bottom: 5px;">
-                        <div style="font-weight: bold; font-size: 11pt; text-decoration: underline; line-height: 1.2;">RENAISSANCE SCHOOL</div>
-                        <div style="font-weight: bold; font-size: 9pt; text-decoration: underline; line-height: 1.2;">Teacher's Comment and Recommendations</div>
-                    </div>
-                    @foreach(['First' => $q1, 'Second' => $q2, 'Third' => $q3, 'Fourth' => $q4] as $label => $q)
-                    <div class="comment-box">
-                        @php
-                            $month = $q ? $q->start_date->format('F') : '____';
-                            $startYear = $academicYear->start_date->format('Y');
-                            $endYearShort = $academicYear->end_date->format('y');
-                            $acYearDisplay = "{$startYear}/{$endYearShort}";
-                        @endphp
-                        <div class="comment-header">{{ $label }} Quarter/{{ $month }}, {{ $acYearDisplay }}</div>
-                        
-                        @if($label !== 'Fourth')
-                        <div class="checkbox-line">
-                            <span class="checkbox"></span> 
-                            <span>More effort and attention are needed in <span style="border-bottom: 1px solid black; display: inline-block; width: 150px;">&nbsp;</span>,<br><span style="border-bottom: 1px solid black; display: inline-block; width: 150px;">&nbsp;</span> and <span style="border-bottom: 1px solid black; display: inline-block; width: 150px;">&nbsp;</span> Subject.</span>
-                        </div>
-                        <div class="checkbox-line"><span class="checkbox"></span> <span>His/her work is excellent so keep it up.</span></div>
-                        <div class="checkbox-line">
-                            <span class="checkbox"></span> 
-                            <span>We appreciated his/her desirable behaviour, but he/she need advice to<br>improve <span style="border-bottom: 1px solid black; display: inline-block; width: 150px;">&nbsp;</span>, <span style="border-bottom: 1px solid black; display: inline-block; width: 150px;">&nbsp;</span></span>
-                        </div>
-                        <div class="checkbox-line"><span class="checkbox"></span> <span>others <span style="border-bottom: 1px solid black; display: inline-block; width: 250px; text-transform: lowercase;">{{ $com($q) ?: '' }}&nbsp;</span></span></div>
-                        <div class="checkbox-line"><span class="checkbox"></span> <span>Needs to be encouraged to listen and pay attention to his/her lesson.</span></div>
-                        @else
-                            @php
-                                $isRetained = ($promotionStatus ?? null) === 'retained';
-                                $gradeShort = $promotedToGrade ? str_replace('Grade ', '', $promotedToGrade) : null;
-                            @endphp
-                            <div class="checkbox-line">
-                                <span class="checkbox" style="display: inline-block; vertical-align: middle; text-align: center; line-height: 12px; font-family: DejaVu Sans, sans-serif; font-weight: bold;">{{ (!$isRetained && $gradeShort) ? '✓' : '' }}</span> 
-                                <span>Promoted to Grade: <span style="border-bottom: 1px solid black; display: inline-block; min-width: 150px; text-align: center;">{{ (!$isRetained && $gradeShort) ? $gradeShort : '' }}</span></span>
-                            </div>
-                            <div class="checkbox-line">
-                                <span class="checkbox" style="display: inline-block; vertical-align: middle; text-align: center; line-height: 12px; font-family: DejaVu Sans, sans-serif; font-weight: bold;">{{ ($isRetained && $gradeShort) ? '✓' : '' }}</span> 
-                                <span>Detained in Grade: <span style="border-bottom: 1px solid black; display: inline-block; min-width: 150px; text-align: center;">{{ ($isRetained && $gradeShort) ? $gradeShort : '' }}</span></span>
-                            </div>
-                            <div style="margin-top: 5px; font-size: 8pt;">Homeroom Teacher Name: <span style="border-bottom: 1px solid black; display: inline-block; min-width: 150px; text-align: center;">{{ ucwords(mb_strtolower($section->homeroomTeacher->name ?? '')) }}&nbsp;</span> &nbsp; Signature: <span style="border-bottom: 1px solid black; display: inline-block; width: 120px;">&nbsp;</span></div>
-                        @endif
-                    </div>
-                    @endforeach
-                </td>
-                <td class="info-col">
-                    <div class="eval-box">
-                        <div style="text-align: center; font-weight: bold;">
-                            <div style="font-size: 10pt;">RS</div>
-                            <div style="font-size: 9pt;">Evaluation Method</div>
-                        </div>
-                        <div style="white-space: pre-wrap; font-size: 9pt; margin-top: 5px;">{{ $conf('evaluation_method', "100-90 = A .... Excellent\n89-80 = B .... Very Good\n79-70 = C .... Satisfactory\n69-60 = D .... Fair\n<60 .... Poor") }}</div>
-                    </div>
-                    <div class="remark-box" style="border-bottom: 1px solid black; height: auto;">
-                        <div style="text-align: center; font-weight: bold; font-size: 9pt; text-decoration: underline;">Remark</div>
-                        <div style="white-space: pre-wrap; font-size: 8pt; text-align: justify; margin-top: 3px;">{{ $conf('remark', "A student who has a final yearly average mark of 75% or above in every subject is to be considered as a better achiever. Any mark below 75% needs more effort to improve his/her performance. Conduct marks of C or below show that some behavioural problem. Which should be improved by close follow up and counselling of parents.") }}</div>
-                    </div>
+    @php
+        // The single-student params name things differently from the bulk ones; map them
+        // onto the shared partial's variables.
+        $studentSubjects = $subjects;
+        $rankValue = $rank;
+        $qMarks = $quarterMarks;
+        $qRecords = $quarterRecords;
+        $sMarks = $semesterMarks;
+        $qStats = [];
+        foreach (['total' => $quarterTotals, 'avg' => $quarterAverages, 'rank' => $quarterRanks] as $stat => $values) {
+            foreach ($values as $termId => $value) {
+                $qStats[$termId][$stat] = $value;
+            }
+        }
+        $sStats = [];
+        foreach (['total' => $semesterTotals, 'avg' => $semesterAverages, 'rank' => $semesterRanks] as $stat => $values) {
+            foreach ($values as $termId => $value) {
+                $sStats[$termId][$stat] = $value;
+            }
+        }
+        $attendance = $attendance ?? null;
+        $promotedToGrade = $promotedToGrade ?? null;
+        $promotionStatus = $promotionStatus ?? null;
+    @endphp
 
-                </td>
-            </tr>
-        </table>
-        
-        <div class="student-strip">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div style="font-weight: bold;">Student Full Name: <span style="text-decoration: underline; padding: 0 5px;">{{ strtoupper($student->full_name) }}</span></div>
-                <div style="font-weight: bold;">Grade & Section: <span style="text-decoration: underline; padding: 0 5px;">{{ str_replace('Grade ', '', $section->gradeLevel->name) }}{{ $section->name }}</span></div>
-            </div>
-        </div>
-        
-        <table class="grades-table">
-            <thead>
-                <tr>
-                    <th rowspan="2">Subject</th>
-                    <th>First<br>Quarter<br>(100%)</th>
-                    <th>Second<br>Quarter<br>(100%)</th>
-                    <th>First Semester<br>(100%)</th>
-                    <th>Third<br>Quarter<br>(100%)</th>
-                    <th>Fourth<br>Quarter<br>(100%)</th>
-                    <th>Second Semester<br>(100%)</th>
-                    <th>Final Yearly<br>Average</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($subjects as $subject)
-                <tr>
-                    <td>{{ $subject->name }}</td>
-                    <!-- Q1 -->
-                    <td>{{ $q1 && isset($quarterMarks[$subject->id][$q1->id]) ? $fmt($quarterMarks[$subject->id][$q1->id]) : '-' }}</td>
-                    <!-- Q2 -->
-                    <td>{{ $q2 && isset($quarterMarks[$subject->id][$q2->id]) ? $fmt($quarterMarks[$subject->id][$q2->id]) : '-' }}</td>
-                    <!-- Sem1 -->
-                    <td style="background-color: #f9f9f9; font-weight: bold;">{{ $s1 && isset($semesterMarks[$subject->id][$s1->id]) ? $fmt($semesterMarks[$subject->id][$s1->id]) : '-' }}</td>
-                    <!-- Q3 -->
-                    <td>{{ $q3 && isset($quarterMarks[$subject->id][$q3->id]) ? $fmt($quarterMarks[$subject->id][$q3->id]) : '-' }}</td>
-                    <!-- Q4 -->
-                    <td>{{ $q4 && isset($quarterMarks[$subject->id][$q4->id]) ? $fmt($quarterMarks[$subject->id][$q4->id]) : '-' }}</td>
-                    <!-- Sem2 -->
-                    <td style="background-color: #f9f9f9; font-weight: bold;">{{ $s2 && isset($semesterMarks[$subject->id][$s2->id]) ? $fmt($semesterMarks[$subject->id][$s2->id]) : '-' }}</td>
-                    <!-- Yearly Avg -->
-                    <td style="background-color: #eee; font-weight: bold;">{{ isset($marks[$subject->id]) ? $fmt($marks[$subject->id]) : '-' }}</td>
-                </tr>
-                @endforeach
-                
-                <!-- Totals -->
-                @if(!($isKindergarten ?? false))
-                <tr class="footer-row">
-                    <td>Total</td>
-                    <td>{{ $q1 ? $fmt($quarterTotals[$q1->id] ?? 0) : '-' }}</td>
-                    <td>{{ $q2 ? $fmt($quarterTotals[$q2->id] ?? 0) : '-' }}</td>
-                    <td>{{ $s1 ? $fmt($semesterTotals[$s1->id] ?? 0) : '-' }}</td>
-                    <td>{{ $q3 ? $fmt($quarterTotals[$q3->id] ?? 0) : '-' }}</td>
-                    <td>{{ $q4 ? $fmt($quarterTotals[$q4->id] ?? 0) : '-' }}</td>
-                    <td>{{ $s2 ? $fmt($semesterTotals[$s2->id] ?? 0) : '-' }}</td>
-                    <td>{{ $fmt($totalScore) }}</td>
-                </tr>
-                 <tr class="footer-row">
-                    <td>Average</td>
-                    <td>{{ $q1 ? $fmt($quarterAverages[$q1->id] ?? 0) : '-' }}</td>
-                    <td>{{ $q2 ? $fmt($quarterAverages[$q2->id] ?? 0) : '-' }}</td>
-                    <td>{{ $s1 ? $fmt($semesterAverages[$s1->id] ?? 0) : '-' }}</td>
-                    <td>{{ $q3 ? $fmt($quarterAverages[$q3->id] ?? 0) : '-' }}</td>
-                    <td>{{ $q4 ? $fmt($quarterAverages[$q4->id] ?? 0) : '-' }}</td>
-                    <td>{{ $s2 ? $fmt($semesterAverages[$s2->id] ?? 0) : '-' }}</td>
-                    <td>{{ $fmt($average) }}</td>
-                </tr>
-                @endif
-                <tr class="footer-row">
-                    <td>Conduct</td>
-                    <td>{{ $quarterRecords[$q1->id]->conduct_grade ?? 'A' }}</td>
-                    <td>{{ $quarterRecords[$q2->id]->conduct_grade ?? 'A' }}</td>
-                    <td>-</td>
-                    <td>{{ $quarterRecords[$q3->id]->conduct_grade ?? 'A' }}</td>
-                    <td>{{ $quarterRecords[$q4->id]->conduct_grade ?? 'A' }}</td>
-                    <td>-</td>
-                    <td>-</td>
-                </tr>
-                <tr class="footer-row">
-                    <td>Absence</td>
-                    <td>{{ ($subTermAttendance[$q1->id]['absent'] ?? 0) > 0 ? $subTermAttendance[$q1->id]['absent'] : '_' }}</td>
-                    <td>{{ ($subTermAttendance[$q2->id]['absent'] ?? 0) > 0 ? $subTermAttendance[$q2->id]['absent'] : '_' }}</td>
-                    <td>-</td>
-                    <td>{{ ($subTermAttendance[$q3->id]['absent'] ?? 0) > 0 ? $subTermAttendance[$q3->id]['absent'] : '_' }}</td>
-                    <td>{{ ($subTermAttendance[$q4->id]['absent'] ?? 0) > 0 ? $subTermAttendance[$q4->id]['absent'] : '_' }}</td>
-                    <td>-</td>
-                    <td>-</td>
-                </tr>
-                @if(!($isKindergarten ?? false) && ($settings->template_config['show_rank'] ?? true))
-                <tr class="footer-row">
-                    <td>Rank</td>
-                    <td>{{ $q1 ? ($quarterRanks[$q1->id] ?? '-') : '-' }}</td>
-                    <td>{{ $q2 ? ($quarterRanks[$q2->id] ?? '-') : '-' }}</td>
-                    <td>{{ $s1 ? ($semesterRanks[$s1->id] ?? '-') : '-' }}</td>
-                    <td>{{ $q3 ? ($quarterRanks[$q3->id] ?? '-') : '-' }}</td>
-                    <td>{{ $q4 ? ($quarterRanks[$q4->id] ?? '-') : '-' }}</td>
-                    <td>{{ $s2 ? ($semesterRanks[$s2->id] ?? '-') : '-' }}</td>
-                    <td>{{ $rank }} / {{ $totalStudents }}</td>
-                </tr>
-                @endif
-            </tbody>
-        </table>
-        
-        <div style="margin-top: 25px; width: 100%;">
-            <table width="100%">
-                <tr>
-                    <td width="50%" style="text-align: center;">
-                        <div style="margin-bottom: 5px; border-bottom: 1px solid black; width: 220px; margin-left: auto; margin-right: auto; height: 2px;"></div>
-                        <div style="font-size: 9pt; font-weight: bold;">Principal Name</div>
-                    </td>
-                    <td width="50%" style="text-align: center;">
-                        <div style="margin-bottom: 5px; border-bottom: 1px solid black; width: 220px; margin-left: auto; margin-right: auto; height: 2px;"></div>
-                        <div style="font-size: 9pt; font-weight: bold;">Principal Signature</div>
-                    </td>
-                </tr>
-            </table>
-        </div>
-    </div>
-
-    <!-- PAGE 2: BACK -->
-    <div class="page">
-        <div class="back-page-container">
-            <!-- Box 1: School Header -->
-            <div class="school-header-box-new">
-                <div class="school-name-large-new">{{ strtoupper($settings->school_name ?? 'RENAISSANCE SCHOOL') }}</div>
-                <div style="text-align: center; margin: 10px 0;">
-                     @if($logoBase64)
-                        <img src="{{ $logoBase64 }}" class="logo-img-new">
-                    @endif
-                </div>
-                <table class="header-details-table">
-                    <tr>
-                        <td width="50%" style="text-align: left;">
-                            Tel: {{ $settings->telephone }}<br>
-                            Email: {{ $settings->email }}
-                        </td>
-                        <td width="50%" style="text-align: right;">
-                            Po. Box: {{ $settings->po_box }}<br>
-                            Website: {{ $settings->website }}
-                        </td>
-                    </tr>
-                </table>
-            </div>
-
-            <!-- Box 2: Student Details -->
-            <div class="student-details-box-new">
-                <div class="card-title-new">STUDENTS REPORT CARD</div>
-                <table class="details-grid-new">
-                    <tr>
-                        <td colspan="4">Student Full Name: <span class="underlined-val-new" style="min-width: 350px;">{{ strtoupper($student->full_name) }}</span></td>
-                    </tr>
-                    <tr>
-                        <td colspan="4">Gender: <span class="underlined-val-new" style="min-width: 60px;">{{ $student->gender ?? 'M' }}</span></td>
-                    </tr>
-                    <tr>
-                        <td colspan="4">
-                            Region: <span class="underlined-val-new">Addis Ababa</span> &nbsp; &nbsp;
-                            Sub City: <span class="underlined-val-new">Kolfe Keraniyo</span> &nbsp; &nbsp;
-                            Werda: <span class="underlined-val-new">6</span> &nbsp; &nbsp;
-                            H.No: <span style="border-bottom: 1px solid black; display: inline-block; width: 180px;">&nbsp;</span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td colspan="4">Homeroom Teacher Name: <span style="border-bottom: 1px solid black; display: inline-block; width: 400px; text-align: center;">{{ ucwords(mb_strtolower($section->homeroomTeacher->name ?? '')) }}&nbsp;</span></td>
-                    </tr>
-                    <tr>
-                        <td colspan="2">Academic Year: <span class="underlined-val-new">{{ $academicYear->name }}G.C {{ \App\Helpers\EthiopianDateHelper::fromGregorian($academicYear->start_date)->format('Y') }}E.C</span></td>
-                        <td colspan="2" style="text-align: right;">Grade & Section: <span class="underlined-val-new" style="min-width: 80px;">{{ str_replace('Grade ', '', $section->gradeLevel->name) }}{{ $section->name }}</span></td>
-                    </tr>
-                    <tr>
-                        @if(($promotionStatus ?? null) === 'retained')
-                            <td colspan="4">Detained in Grade: <span style="border-bottom: 1px solid black; display: inline-block; min-width: 450px; text-align: center;">{{ $promotedToGrade ?? '' }}</span></td>
-                        @else
-                            <td colspan="4">Promoted to Grade: <span style="border-bottom: 1px solid black; display: inline-block; min-width: 450px; text-align: center;">{{ $promotedToGrade ?? '' }}</span></td>
-                        @endif
-                    </tr>
-                </table>
-            </div>
-
-            <!-- Box 3: Repeated Header -->
-            <div class="school-header-box-new" style="margin-top: 8px;">
-                <div class="school-name-large-new">{{ strtoupper($settings->school_name ?? 'RENAISSANCE SCHOOL') }}</div>
-                <div style="text-align: center; margin: 10px 0;">
-                     @if($logoBase64)
-                        <img src="{{ $logoBase64 }}" class="logo-img-new">
-                    @endif
-                </div>
-                <table class="header-details-table">
-                    <tr>
-                        <td width="50%" style="text-align: left;">
-                            Tel: {{ $settings->telephone }}<br>
-                            Email: {{ $settings->email }}
-                        </td>
-                        <td width="50%" style="text-align: right;">
-                            Po. Box: {{ $settings->po_box }}<br>
-                            Website: {{ $settings->website }}
-                        </td>
-                    </tr>
-                </table>
-            </div>
-
-            <!-- Box 4: Parent Signature -->
-            <div class="signature-box-new" style="margin-top: 8px;">
-                <div class="sig-header-new">Parent's Signature</div>
-                <table class="sig-table-new">
-                    <thead>
-                        <tr>
-                            <th width="20%">Evaluation Period</th>
-                            <th width="25%">Parent's Comment</th>
-                            <th width="25%">Parent's Name</th>
-                            <th width="20%">Parent's Signature</th>
-                            <th width="10%">Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>1st Quarter</td><td>&nbsp;</td><td></td><td></td><td></td></tr>
-                        <tr><td>2nd Quarter</td><td>&nbsp;</td><td></td><td></td><td></td></tr>
-                        <tr><td>3rd Quarter</td><td>&nbsp;</td><td></td><td></td><td></td></tr>
-                    </tbody>
-                </table>
-                <div class="footer-note-new">
-                    {{ $conf('parent_instructions', "Please sign the grade report after the first, second, and third quarters and return it back to school immediately after discussing the report with your child. After the fourth quarter the grade report card will be collected by parents. These and all school records should be kept in a safe place for permanent record.") }}
-                </div>
-            </div>
-        </div>
-    </div>
+    @include('admin.report-cards.partials.yearly-card')
 </body>
 </html>
