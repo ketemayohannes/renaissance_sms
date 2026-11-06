@@ -103,10 +103,15 @@ class StudentExportTest extends TestCase
         $responseAll = $this->actingAs($this->adminUser)
             ->get(route('admin.students.export'));
 
+        // Match on the unique student IDs, not names: random factory data (emails etc.)
+        // can contain "john" or "jane" and made name-based assertions flaky.
+        $john = $studentPrimary->student_id;
+        $jane = $studentSecondary->student_id;
+
         $responseAll->assertStatus(200);
         $contentAll = $responseAll->streamedContent();
-        $this->assertStringContainsStringIgnoringCase('John', $contentAll);
-        $this->assertStringContainsStringIgnoringCase('Jane', $contentAll);
+        $this->assertStringContainsString($john, $contentAll);
+        $this->assertStringContainsString($jane, $contentAll);
 
         // 2. Request export filtered by Primary Division
         $responsePrimary = $this->actingAs($this->adminUser)
@@ -114,8 +119,8 @@ class StudentExportTest extends TestCase
 
         $responsePrimary->assertStatus(200);
         $contentPrimary = $responsePrimary->streamedContent();
-        $this->assertStringContainsStringIgnoringCase('John', $contentPrimary);
-        $this->assertStringNotContainsStringIgnoringCase('Jane', $contentPrimary);
+        $this->assertStringContainsString($john, $contentPrimary);
+        $this->assertStringNotContainsString($jane, $contentPrimary);
 
         // 3. Request export filtered by Secondary Division
         $responseSecondary = $this->actingAs($this->adminUser)
@@ -123,7 +128,7 @@ class StudentExportTest extends TestCase
 
         $responseSecondary->assertStatus(200);
         $contentSecondary = $responseSecondary->streamedContent();
-        $this->assertStringNotContainsStringIgnoringCase('John', $contentSecondary);
-        $this->assertStringContainsStringIgnoringCase('Jane', $contentSecondary);
+        $this->assertStringNotContainsString($john, $contentSecondary);
+        $this->assertStringContainsString($jane, $contentSecondary);
     }
 }

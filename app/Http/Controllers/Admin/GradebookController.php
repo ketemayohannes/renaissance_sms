@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Grades\ImportGradesFromCsv;
 use App\Actions\Grades\StoreBulkGrades;
 use App\Helpers\CachedData;
 use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
 use App\Models\AssessmentTemplate;
 use App\Models\AssessmentType;
-use App\Models\AuditLog;
 use App\Models\ReportCardSetting;
 use App\Models\Section;
 use App\Models\Student;
@@ -16,14 +16,12 @@ use App\Models\StudentMark;
 use App\Models\Subject;
 use App\Models\TeacherAssignment;
 use App\Models\Term;
-use App\Services\GradingService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class GradebookController extends Controller implements HasMiddleware
 {
@@ -337,226 +335,19 @@ class GradebookController extends Controller implements HasMiddleware
             'academic_year_id' => 'required|exists:academic_years,id',
             'term_id' => 'required|exists:terms,id',
             'section_id' => 'required|exists:sections,id',
-            'section_id' => 'required|exists:sections,id',
             'subject_id' => 'required|exists:subjects,id',
         ]);
 
-        $term = Term::findOrFail($request->term_id);
-        if (! $term->is_grading_open) {
-            if (! auth()->user()->hasRole(['Super Admin', 'Principal'])) {
-                return back()->with('error', 'Grading for this term is currently closed.');
-            }
-        }
+        $result = ImportGradesFromCsv::run(
+            $request->file('file')->getRealPath(),
+            Section::findOrFail($request->section_id),
+            Subject::findOrFail($request->subject_id),
+            Term::findOrFail($request->term_id),
+            (int) $request->academic_year_id,
+            auth()->id(),
+        );
 
-        $subject = Subject::findOrFail($request->subject_id);
-
-        // VALIDATION: Check for Elective/Regular vs Term Type conflicts
-        if ($subject->is_elective && $term->type === 'quarter') {
-        }
-
-        if (! $subject->is_elective && $term->type === 'semester') {
-        }
-
-        $section = Section::findOrFail($request->section_id);
-        $subject = Subject::findOrFail($request->subject_id);
-
-        // Fetch assessment templates (excluding TERM_TOTAL - it's a calculated value)
-        $termTotalType = AssessmentType::where('code', 'TERM_TOTAL')->first();
-
-        $templates = AssessmentTemplate::forGradeSubject($section->grade_level_id, $subject->id)
-            ->where('academic_year_id', $request->academic_year_id)
-            ->where('term_id', $request->term_id)
-            ->where('is_active', true)
-            ->when($termTotalType, function ($query) use ($termTotalType) {
-                $query->where('assessment_type_id', '!=', $termTotalType->id);
-            })
-            ->get();
-
-        $path = $request->file('file')->getRealPath();
-        $file = fopen($path, 'r');
-
-        // Skip BOM if present
-        $bom = fread($file, 3);
-        if ($bom !== "\xEF\xBB\xBF") {
-            rewind($file);
-        }
-
-        // Read first line to check for sep=,
-        $line = fgets($file);
-        if (str_starts_with($line, 'sep=')) {
-            // It's the separator hint, ignore it and read next line as header
-            $headerLine = fgets($file);
-        } else {
-            // It's the header
-            $headerLine = $line;
-        }
-
-        // Auto-detect delimiter
-        $delimiters = [',', ';', "\t"];
-        $delimiter = ',';
-        $maxCount = 0;
-        foreach ($delimiters as $d) {
-            $count = substr_count($headerLine, $d);
-            if ($count > $maxCount) {
-                $maxCount = $count;
-                $delimiter = $d;
-            }
-        }
-
-        // Parse header
-        $header = str_getcsv($headerLine, $delimiter);
-
-        // Map CSV columns to template IDs
-        $columnMap = [];
-        foreach ($header as $index => $colName) {
-            if ($index < 2) {
-                continue;
-            } // Skip ID and Name
-
-            // Extract name from "Name (Max: 10)" format or just use name
-            $name = preg_replace('/\s*\(Max:.*\)/', '', $colName);
-            $name = trim($name);
-
-            $template = $templates->first(function ($t) use ($name) {
-                return strtolower($t->name) === strtolower($name);
-            });
-
-            if ($template) {
-                $columnMap[$index] = $template;
-            }
-        }
-
-        DB::beginTransaction();
-        try {
-            $successCount = 0;
-            $errors = [];
-
-            $upsertData = [];
-            $now = now();
-
-            while (($line = fgets($file)) !== false) {
-                $row = str_getcsv($line, $delimiter);
-
-                // Skip empty rows
-                if (empty($row) || (count($row) === 1 && empty($row[0]))) {
-                    continue;
-                }
-
-                $studentIdStr = trim($row[0]);
-                $csvName = isset($row[1]) ? trim($row[1]) : '';
-                $student = Student::where('student_id', $studentIdStr)->first();
-
-                if (! $student) {
-                    $errors[] = "Student ID $studentIdStr not found";
-
-                    continue;
-                }
-
-                // Strict Name Validation to catch Excel sorting errors
-                $dbName = $student->full_name;
-                $similarity = 0;
-                similar_text(strtolower($csvName), strtolower($dbName), $similarity);
-                if ($similarity < 70 && ! str_contains(strtolower($dbName), strtolower(explode(' ', $csvName)[0]))) {
-                    $errors[] = "CRITICAL MISMATCH: ID $studentIdStr belongs to '$dbName', but CSV has '$csvName'. The spreadsheet may have been sorted incorrectly.";
-
-                    continue;
-                }
-
-                foreach ($columnMap as $index => $template) {
-                    $score = $row[$index] ?? null;
-                    if ($score === null) {
-                        continue;
-                    }
-                    $score = trim($score);
-
-                    if ($score === '') {
-                        continue;
-                    }
-
-                    if (! is_numeric($score)) {
-                        $errors[] = "Invalid score for $studentIdStr in {$template->name}";
-
-                        continue;
-                    }
-
-                    if ($score > $template->max_score) {
-                        $errors[] = "Score $score exceeds max {$template->max_score} for $studentIdStr in {$template->name}";
-
-                        continue;
-                    }
-
-                    $upsertData[] = [
-                        'student_id' => $student->id,
-                        'academic_year_id' => $request->academic_year_id,
-                        'term_id' => $request->term_id,
-                        'subject_id' => $request->subject_id,
-                        'assessment_template_id' => $template->id,
-                        'section_id' => $request->section_id,
-                        'teacher_id' => auth()->id(),
-                        'score' => $score,
-                        'created_at' => $now,
-                        'updated_at' => $now,
-                    ];
-                }
-                $successCount++;
-            }
-
-            if (! empty($upsertData)) {
-                StudentMark::upsert(
-                    $upsertData,
-                    ['student_id', 'assessment_template_id'],
-                    ['score', 'teacher_id', 'section_id', 'updated_at']
-                );
-
-                // Manual Audit Injection
-                AuditLog::create([
-                    'user_id' => auth()->id(),
-                    'event' => 'bulk_grade_import',
-                    'auditable_type' => StudentMark::class,
-                    'auditable_id' => $request->subject_id,
-                    'section_id' => $request->section_id,
-                    'new_values' => ['subject_id' => $request->subject_id, 'term_id' => $request->term_id, 'section_id' => $request->section_id, 'count' => count($upsertData)],
-                    'url' => request()->fullUrl(),
-                    'ip_address' => request()->ip(),
-                    'user_agent' => request()->userAgent(),
-                ]);
-            }
-
-            DB::commit();
-            fclose($file);
-
-            // Recalculate Section Statistics
-            try {
-                $academicYear = AcademicYear::find($request->academic_year_id);
-                $gradingService = app(GradingService::class);
-                $gradingService->recalculateSectionStatistics($section, $term, $academicYear);
-            } catch (\Exception $e) {
-                Log::error('Recalculation failed after Gradebook import: '.$e->getMessage());
-            }
-
-            // Check if any grades were actually imported
-            if (empty($upsertData)) {
-                $message = 'No grades were imported.';
-                if ($successCount == 0) {
-                    return back()->with('warning', $message.' The file appears to be empty or contains no valid data.');
-                } else {
-                    return back()->with('warning', $message.' All score fields were empty for '.$successCount.' students.');
-                }
-            }
-
-            $message = 'Imported '.count($upsertData)." grades for $successCount students.";
-            if (! empty($errors)) {
-                return back()->with('warning', $message.' Errors: '.implode('; ', array_slice($errors, 0, 5)).(count($errors) > 5 ? '...' : ''));
-            }
-
-            return back()->with('success', $message);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            fclose($file);
-
-            return back()->with('error', 'Import failed: '.$e->getMessage());
-        }
+        return back()->with($result['type'], $result['message']);
     }
 
     public function marksheet(Request $request)

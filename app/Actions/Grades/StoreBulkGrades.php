@@ -12,6 +12,7 @@ use App\Models\StudentMark;
 use App\Models\Subject;
 use App\Models\Term;
 use App\Models\User;
+use App\Services\AcademicReportService;
 use App\Services\GradingService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -35,15 +36,6 @@ class StoreBulkGrades
             if (! $user || ! $user->hasRole(['Super Admin', 'Principal'])) {
                 throw new \Exception('Grading for this term is currently closed.');
             }
-        }
-
-        $subject = Subject::findOrFail($data['subject_id']);
-
-        // VALIDATION: Check for Elective/Regular vs Term Type conflicts
-        if ($subject->is_elective && $term->type === 'quarter') {
-        }
-
-        if (! $subject->is_elective && $term->type === 'semester') {
         }
 
         DB::beginTransaction();
@@ -233,6 +225,11 @@ class StoreBulkGrades
                 }
             } catch (\Exception $e) {
                 Log::error('Background recalculation failed in StoreBulkGrades: '.$e->getMessage());
+            }
+
+            // upsert() skips the StudentMark model events that normally bust the roster cache.
+            if (! empty($data['section_id'])) {
+                AcademicReportService::clearRosterCache((int) $data['section_id'], $term->id, (int) $data['academic_year_id']);
             }
 
             return ['success' => true, 'message' => 'Marks saved successfully.'];
