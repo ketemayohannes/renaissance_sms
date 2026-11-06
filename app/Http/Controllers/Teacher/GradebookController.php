@@ -2,23 +2,20 @@
 
 namespace App\Http\Controllers\Teacher;
 
+use App\Actions\Grades\ImportGradesFromCsv;
 use App\Actions\Grades\StoreBulkGrades;
 use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
 use App\Models\AssessmentTemplate;
 use App\Models\AssessmentType;
-use App\Models\AuditLog;
 use App\Models\ReportCardSetting;
 use App\Models\Section;
 use App\Models\StudentMark;
 use App\Models\TeacherAssignment;
 use App\Models\Term;
-use App\Services\AcademicReportService;
-use App\Services\GradingService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 class GradebookController extends Controller
 {
@@ -369,9 +366,6 @@ class GradebookController extends Controller
         return $pdf->download($filename);
     }
 
-    /**
-     * Import grades from a CSV file.
-     */
     public function import(Request $request, TeacherAssignment $assignment)
     {
         if ($assignment->teacher_id !== Auth::id() && ! Auth::user()->hasRole('Super Admin')) {
@@ -383,202 +377,16 @@ class GradebookController extends Controller
             'term_id' => 'required|exists:terms,id',
         ]);
 
-        $term = Term::findOrFail($request->term_id);
-        if (! $term->is_grading_open) {
-            if (! Auth::user()->hasRole(['Super Admin', 'Principal'])) {
-                return back()->with('error', 'Grading for this term is currently closed.');
-            }
-        }
+        $result = ImportGradesFromCsv::run(
+            $request->file('file')->getRealPath(),
+            $assignment->section,
+            $assignment->subject,
+            Term::findOrFail($request->term_id),
+            $assignment->academic_year_id,
+            Auth::id(),
+        );
 
-        $section = $assignment->section;
-        $subject = $assignment->subject;
-        $academicYearId = $assignment->academic_year_id;
-
-        // Fetch assessment templates (excluding TERM_TOTAL - it's a calculated value)
-        $termTotalType = AssessmentType::where('code', 'TERM_TOTAL')->first();
-
-        $templates = AssessmentTemplate::forGradeSubject($section->grade_level_id, $subject->id)
-            ->where('academic_year_id', $academicYearId)
-            ->where('term_id', $request->term_id)
-            ->where('is_active', true)
-            ->when($termTotalType, function ($query) use ($termTotalType) {
-                $query->where('assessment_type_id', '!=', $termTotalType->id);
-            })
-            ->get();
-
-        $path = $request->file('file')->getRealPath();
-        $file = fopen($path, 'r');
-
-        // Skip BOM if present
-        $bom = fread($file, 3);
-        if ($bom !== "\xEF\xBB\xBF") {
-            rewind($file);
-        }
-
-        // Read first line to check for sep=,
-        $line = fgets($file);
-        if (str_starts_with($line, 'sep=')) {
-            // It's the separator hint, ignore it and read next line as header
-            $headerLine = fgets($file);
-        } else {
-            // It's the header
-            $headerLine = $line;
-        }
-
-        if (! $headerLine) {
-            fclose($file);
-
-            return back()->with('error', 'The uploaded file is empty or invalid.');
-        }
-
-        // Auto-detect delimiter
-        $delimiters = [',', ';', "\t"];
-        $delimiter = ',';
-        $maxCount = 0;
-        foreach ($delimiters as $d) {
-            $count = substr_count($headerLine, $d);
-            if ($count > $maxCount) {
-                $maxCount = $count;
-                $delimiter = $d;
-            }
-        }
-
-        // Parse header
-        $header = str_getcsv($headerLine, $delimiter);
-
-        // Map CSV columns to template IDs
-        $columnMap = [];
-        foreach ($header as $index => $colName) {
-            if ($index < 2) {
-                continue;
-            } // Skip ID and Name
-
-            // Extract name from "Name (Max: 10)" format or just use name
-            $name = preg_replace('/\s*\(Max:.*\)/', '', $colName);
-            $name = trim($name);
-
-            $template = $templates->first(function ($t) use ($name) {
-                return strtolower($t->name) === strtolower($name);
-            });
-
-            if ($template) {
-                $columnMap[$index] = $template;
-            }
-        }
-
-        $sectionStudents = $assignment->section->students()->get()->keyBy('student_id');
-
-        DB::beginTransaction();
-        try {
-            $successCount = 0;
-            $errors = [];
-            $upsertData = [];
-            $now = now();
-
-            while (($line = fgets($file)) !== false) {
-                $row = str_getcsv($line, $delimiter);
-
-                // Skip empty rows
-                if (empty($row) || (count($row) === 1 && empty($row[0]))) {
-                    continue;
-                }
-
-                $studentIdStr = trim($row[0]);
-
-                // Fetch from pre-loaded section students to ensure they belong to this section
-                $student = $sectionStudents->get($studentIdStr);
-
-                if (! $student) {
-                    $errors[] = "Student ID $studentIdStr not found in this section";
-
-                    continue;
-                }
-
-                foreach ($columnMap as $index => $template) {
-                    $score = $row[$index] ?? null;
-                    if ($score === null || $score === '') {
-                        continue;
-                    }
-                    $score = trim($score);
-
-                    if (! is_numeric($score)) {
-                        $errors[] = "Invalid score for $studentIdStr in {$template->name}";
-
-                        continue;
-                    }
-
-                    if ($score > $template->max_score) {
-                        $errors[] = "Score $score exceeds max {$template->max_score} for $studentIdStr in {$template->name}";
-
-                        continue;
-                    }
-
-                    $upsertData[] = [
-                        'student_id' => $student->id,
-                        'academic_year_id' => $academicYearId,
-                        'term_id' => $request->term_id,
-                        'subject_id' => $assignment->subject_id,
-                        'assessment_template_id' => $template->id,
-                        'section_id' => $assignment->section_id,
-                        'teacher_id' => Auth::id(),
-                        'score' => $score,
-                        'created_at' => $now,
-                        'updated_at' => $now,
-                    ];
-                }
-                $successCount++;
-            }
-
-            if (! empty($upsertData)) {
-                StudentMark::upsert(
-                    $upsertData,
-                    ['student_id', 'assessment_template_id'],
-                    ['score', 'teacher_id', 'section_id', 'updated_at']
-                );
-
-                // Manual Audit Injection
-                AuditLog::create([
-                    'user_id' => Auth::id(),
-                    'event' => 'bulk_grade_import',
-                    'auditable_type' => StudentMark::class,
-                    'auditable_id' => $assignment->subject_id,
-                    'section_id' => $assignment->section_id,
-                    'new_values' => ['subject_id' => $assignment->subject_id, 'term_id' => $request->term_id, 'section_id' => $assignment->section_id, 'count' => count($upsertData)],
-                    'url' => request()->fullUrl(),
-                    'ip_address' => request()->ip(),
-                    'user_agent' => request()->userAgent(),
-                ]);
-            }
-
-            DB::commit();
-            fclose($file);
-
-            // Recalculate Statistics
-            $gradingService = app(GradingService::class);
-            $gradingService->recalculateSectionStatistics($section, $term, AcademicYear::findOrFail($academicYearId));
-
-            // Clear roster cache
-            AcademicReportService::clearRosterCache($section->id, $term->id, $academicYearId);
-
-            if (empty($upsertData)) {
-                return back()->with('warning', 'No grades were imported.');
-            }
-
-            $message = 'Imported '.count($upsertData)." grades for $successCount students.";
-            if (! empty($errors)) {
-                return back()->with('warning', $message.' Errors: '.implode('; ', array_slice($errors, 0, 5)));
-            }
-
-            return back()->with('success', $message);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            if (isset($file)) {
-                fclose($file);
-            }
-
-            return back()->with('error', 'Import failed: '.$e->getMessage());
-        }
+        return back()->with($result['type'], $result['message']);
     }
 
     /**
@@ -604,13 +412,6 @@ class GradebookController extends Controller
                 'section_id' => $assignment->section_id,
                 'marks' => $request->marks,
             ], Auth::id());
-
-            // Recalculate Statistics
-            $gradingService = app(GradingService::class);
-            $gradingService->recalculateSectionStatistics($assignment->section, Term::findOrFail($request->term_id), AcademicYear::findOrFail($assignment->academic_year_id));
-
-            // Clear roster cache
-            AcademicReportService::clearRosterCache($assignment->section_id, $request->term_id, $assignment->academic_year_id);
 
             return back()->with('success', $result['message']);
         } catch (\Exception $e) {
