@@ -80,7 +80,7 @@ remote_retry() {
 step "Connecting to $HOST and taking the deploy lock"
 remote 'mkdir ~/.deploy.lock 2>/dev/null' \
   || die "Another deploy holds the lock (~/.deploy.lock on the server). If no deploy is running, remove it with: ssh $HOST rmdir ~/.deploy.lock"
-release_lock() { remote 'rmdir ~/.deploy.lock 2>/dev/null || true' || true; }
+release_lock() { remote_retry 'rmdir ~/.deploy.lock 2>/dev/null || true' || echo "!!! Could not release the lock; remove it with: ssh $HOST rmdir ~/.deploy.lock" >&2; }
 trap release_lock EXIT
 
 # --- 0. What would be deployed ------------------------------------------------------
@@ -107,19 +107,47 @@ fi
 stamp=$(date +%Y%m%d_%H%M%S)
 name="renaissance_sms_predeploy_${stamp}.sql.gz"
 step "Backing up the production database on the server"
-size=$(remote '
-  set -euo pipefail
-  mkdir -p ~/backups
-  tmp=~/backups/.$2.partial
-  trap '\''rm -f "$tmp"'\'' EXIT   # a failed or partial dump never survives this script
-  docker exec "$1" sh -c '"'"'mariadb-dump -u root -p"$MYSQL_ROOT_PASSWORD" --single-transaction --quick --routines --triggers --events --databases "$MYSQL_DATABASE"'"'"' | gzip > "$tmp"
-  gzip -t "$tmp"
-  zcat "$tmp" | tail -n 1 | grep -q "Dump completed"
-  mv "$tmp" ~/backups/"$2"
+# The dump runs detached on the server (like the build), so a dropped SSH connection
+# cannot cut it short. It prints "OK <bytes>" or "FAIL" into a status file we poll.
+backup_script=$(cat <<'BACKUP'
+set -uo pipefail
+container=$1 name=$2 keep=$3
+tmp=~/backups/.$name.partial
+trap 'rm -f "$tmp"' EXIT   # a failed or partial dump never survives this script
+if docker exec "$container" sh -c 'mariadb-dump -u root -p"$MYSQL_ROOT_PASSWORD" --single-transaction --quick --routines --triggers --events --databases "$MYSQL_DATABASE"' | gzip > "$tmp" \
+   && gzip -t "$tmp" && zcat "$tmp" | tail -n 1 | grep -q "Dump completed"; then
+  mv "$tmp" ~/backups/"$name"
   # Keep only the newest N backups on the server.
-  ls -1t ~/backups/renaissance_sms_*.sql.gz | tail -n +"$(( $3 + 1 ))" | xargs -r rm -f
-  stat -c %s ~/backups/"$2"
-' "$DB_CONTAINER" "$name" "$KEEP_SERVER_BACKUPS") || die "Backup failed or was incomplete. The partial file was not kept."
+  ls -1t ~/backups/renaissance_sms_*.sql.gz | tail -n +"$(( keep + 1 ))" | xargs -r rm -f
+  echo "OK $(stat -c %s ~/backups/"$name")"
+else
+  echo "FAIL"
+fi
+BACKUP
+)
+status_file="backups/.$name.status"
+uploaded=false
+for i in 1 2 3 4 5; do
+  if ssh "${SSH_OPTS[@]}" "$HOST" 'mkdir -p ~/backups && cat > ~/backups/.run-backup.sh' <<<"$backup_script"; then
+    uploaded=true; break
+  fi
+  sleep $((i * 5))
+done
+$uploaded || die "Could not upload the backup script."
+# Idempotent start: the status file is created first, so a retried call never starts a second dump.
+remote_retry '[ -e ~/"$1" ] || { : > ~/"$1"; nohup bash ~/backups/.run-backup.sh "$2" "$3" "$4" > ~/"$1" 2>&1 < /dev/null & }' \
+  "$status_file" "$DB_CONTAINER" "$name" "$KEEP_SERVER_BACKUPS" || die "Could not start the backup."
+backup_status=""
+for _ in $(seq 1 120); do
+  sleep 5
+  backup_status=$(remote_retry 'tail -n 1 ~/"$1" 2>/dev/null || true' "$status_file" || true)
+  case "$backup_status" in OK*|FAIL*) break ;; esac
+done
+remote_retry 'rm -f ~/"$1"' "$status_file" || true
+case "$backup_status" in
+  OK*) size=${backup_status#OK } ;;
+  *) die "Backup failed or was incomplete (${backup_status:-no result after 10 minutes}). The partial file was not kept." ;;
+esac
 echo "    ~/backups/$name on the server ($size bytes), verified"
 
 # --- 2. Copy it here ----------------------------------------------------------------
@@ -127,7 +155,12 @@ step "Copying the backup to ./backups/"
 mkdir -p backups
 partial="backups/$name.partial"
 copy_failed() { rm -f "$partial"; die "$1 (the verified copy is still on the server: ~/backups/$name)"; }
-scp "${SSH_OPTS[@]}" -q "$HOST:backups/$name" "$partial" || copy_failed "Could not copy the backup down."
+copied=false
+for i in 1 2 3 4 5; do
+  if scp "${SSH_OPTS[@]}" -q "$HOST:backups/$name" "$partial"; then copied=true; break; fi
+  sleep $((i * 5))
+done
+$copied || copy_failed "Could not copy the backup down."
 local_size=$(wc -c < "$partial" | tr -d ' ')
 [ "$local_size" = "$size" ] || copy_failed "Copied backup is $local_size bytes, expected $size."
 gzip -t "$partial" || copy_failed "Copied backup failed its integrity check."
@@ -149,7 +182,8 @@ fi
 
 # --- 4. Pull ------------------------------------------------------------------------
 step "Pulling origin/$BRANCH on the server"
-remote 'set -e; cd "$1"; git pull -q --ff-only origin "$2"; git log --oneline -1' "$APP_DIR" "$BRANCH" \
+# Retried: a fast-forward pull is safe to repeat if the connection drops mid-way.
+remote_retry 'set -e; cd "$1"; git pull -q --ff-only origin "$2"; git log --oneline -1' "$APP_DIR" "$BRANCH" \
   || die "git pull --ff-only failed (has the server checkout diverged?). The running site was not touched."
 
 # --- 5. Build and swap (detached on the server) -------------------------------------
