@@ -96,14 +96,12 @@ RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cac
 # Copy Supervisor config (manages Apache + queue workers)
 COPY docker/supervisord.conf /etc/supervisor/conf.d/renaissance.conf
 
-# Startup: fix permissions, cache config/routes/views, run migrations, then start Supervisor
-CMD bash -c "\
-    chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
-    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache \
-    && php artisan config:cache \
-    && php artisan route:cache \
-    && php artisan view:cache \
-    && php artisan migrate --force \
-    && php artisan storage:link --force \
-    && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
-    && supervisord -n -c /etc/supervisor/supervisord.conf"
+# Startup: fix permissions, cache config/routes/views, run migrations, then exec Supervisor
+# as PID 1 so `docker stop` shuts everything down gracefully (see docker/start.sh).
+COPY docker/start.sh /usr/local/bin/start.sh
+RUN chmod +x /usr/local/bin/start.sh
+# php:apache sets STOPSIGNAL SIGWINCH (Apache's graceful stop), which supervisord ignores,
+# so `docker stop` just waited for the timeout and killed everything. Supervisord handles
+# SIGTERM and passes Apache its graceful WINCH itself (docker/supervisord.conf).
+STOPSIGNAL SIGTERM
+CMD ["/usr/local/bin/start.sh"]
