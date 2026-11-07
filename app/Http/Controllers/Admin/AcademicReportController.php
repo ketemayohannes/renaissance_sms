@@ -425,7 +425,7 @@ class AcademicReportController extends Controller
                         'sections.name',
                         'grade_levels.name'
                     )
-                    ->orderByDesc('average_score')
+                    ->tap(fn ($q) => $this->orderByScoreThenName($q, 'average_score'))
                     ->take(10)
                     ->get();
             } else {
@@ -450,7 +450,7 @@ class AcademicReportController extends Controller
                         'sections.name as section_name',
                         'grade_levels.name as grade_level_name'
                     )
-                    ->orderByDesc('student_term_records.average_score')
+                    ->tap(fn ($q) => $this->orderByScoreThenName($q, 'student_term_records.average_score'))
                     ->take(10)
                     ->get();
             }
@@ -539,7 +539,7 @@ class AcademicReportController extends Controller
                 );
         }
 
-        $records = $query->orderByDesc('average_score')->get();
+        $records = $this->orderByScoreThenName($query, 'average_score')->get();
 
         if ($termId === 'yearly') {
             $term = new Term(['type' => 'yearly', 'name' => 'Yearly', 'academic_year_id' => $academicYear->id]);
@@ -552,5 +552,20 @@ class AcademicReportController extends Controller
         $selectedGrade = $request->grade_level_id ? GradeLevel::find($request->grade_level_id) : null;
 
         return view('admin.academic-reports.academic-excellence', compact('academicYear', 'term', 'records', 'selectedSection', 'selectedGrade'));
+    }
+
+    /**
+     * Highest score first; students with the same score are listed alphabetically by
+     * full name (then by id), so ties always come out in the same order and a top-10
+     * cut-off always picks the same student. Without this the database returned tied
+     * students in any order, and the list could change between page loads.
+     */
+    private function orderByScoreThenName($query, string $scoreColumn)
+    {
+        return $query->orderByDesc($scoreColumn)
+            ->orderBy('students.first_name')
+            ->orderBy('students.father_name')
+            ->orderBy('students.grandfather_name')
+            ->orderBy('student_term_records.student_id');
     }
 }
