@@ -8,6 +8,7 @@ use App\Models\Employee;
 use App\Models\SystemCounter;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -43,6 +44,7 @@ class EmployeeService
 
             // 3. Assign Role
             $roleName = $data['role'] ?? $this->determineRole($data);
+            $this->ensureCanAssignRole($roleName);
             $user->assignRole($roleName);
 
             // 4. Generate Employee ID if not provided
@@ -102,6 +104,10 @@ class EmployeeService
      */
     public function updateEmployee(Employee $employee, array $data): bool
     {
+        // Editing a privileged account (even just its email, which would allow a password
+        // reset takeover) needs a privileged actor.
+        $this->ensureCanManageUser($employee->user);
+
         return DB::transaction(function () use ($employee, $data) {
             // Update User record
             if (isset($data['first_name']) || isset($data['last_name']) || isset($data['email'])) {
@@ -116,7 +122,8 @@ class EmployeeService
             }
 
             // Handle role update
-            if (isset($data['role']) && $data['role'] !== $employee->user->roles->first()->name) {
+            if (isset($data['role']) && $data['role'] !== $employee->user->roles->first()?->name) {
+                $this->ensureCanAssignRole($data['role']);
                 $employee->user->syncRoles([$data['role']]);
             }
 
@@ -232,10 +239,39 @@ class EmployeeService
 
     public function getRolesByCategory(): array
     {
+        // Hide the privileged roles from staff who are not allowed to assign them.
+        $hidden = auth()->user()?->hasPrivilegedRole() === false ? User::PRIVILEGED_ROLES : [];
+
         return [
-            'academic' => Role::where('category', 'academic')->orderBy('name')->pluck('name'),
-            'administrative' => Role::where('category', 'administrative')->orderBy('name')->pluck('name'),
+            'academic' => Role::where('category', 'academic')->whereNotIn('name', $hidden)->orderBy('name')->pluck('name'),
+            'administrative' => Role::where('category', 'administrative')->whereNotIn('name', $hidden)->orderBy('name')->pluck('name'),
         ];
+    }
+
+    /**
+     * Refuse to hand out Super Admin / IT / System Admin unless the acting user already
+     * holds one of those roles. No acting user (console, seeders, queued jobs) is allowed.
+     */
+    public function ensureCanAssignRole(string $roleName): void
+    {
+        $actor = auth()->user();
+
+        if ($actor && in_array($roleName, User::PRIVILEGED_ROLES, true) && ! $actor->hasPrivilegedRole()) {
+            throw new AuthorizationException("Only a Super Admin or IT / System Admin can assign the {$roleName} role.");
+        }
+    }
+
+    /**
+     * Refuse to change or delete a Super Admin / IT / System Admin account unless the
+     * acting user holds one of those roles too.
+     */
+    public function ensureCanManageUser(?User $target): void
+    {
+        $actor = auth()->user();
+
+        if ($actor && $target?->hasPrivilegedRole() && ! $actor->hasPrivilegedRole()) {
+            throw new AuthorizationException('Only a Super Admin or IT / System Admin can change or delete this account.');
+        }
     }
 
     /**

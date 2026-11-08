@@ -74,7 +74,7 @@
             <span x-show="!sidebarCollapsed" x-transition>Dashboard</span>
         </a>
         
-        @canany(['view students', 'view parents', 'view disciplinary', 'view promotions', 'view id cards'])
+        @canany(['view students', 'promote students'])
         <div class="sidebar-category-header flex items-center cursor-pointer group" 
              :class="sidebarCollapsed ? 'text-center px-0 justify-center w-full' : 'justify-between sticky top-0 z-10 bg-white/95 backdrop-blur-md'"
              @click="toggleCategory('students')">
@@ -120,7 +120,7 @@
             @endcan
 
 
-            @can('view parents')
+            @can('view students')
             <a href="{{ route('admin.guardians.index') }}" class="sidebar-link {{ request()->routeIs('admin.guardians.*') ? 'sidebar-link-active' : '' }}" title="Parents">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
@@ -129,7 +129,7 @@
             </a>
             @endcan
 
-            @can('view disciplinary')
+            @can('view students')
             <a href="{{ route('admin.disciplinary.index') }}" class="sidebar-link {{ request()->routeIs('admin.disciplinary.*') && !request()->routeIs('admin.discipline-settings.*') ? 'sidebar-link-active' : '' }}" title="Disciplinary">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
@@ -137,6 +137,7 @@
                 <span x-show="!sidebarCollapsed" x-transition>Disciplinary</span>
             </a>
 
+            @can('edit students')
             <a href="{{ route('admin.discipline-settings.index') }}" class="sidebar-link {{ request()->routeIs('admin.discipline-settings.*') ? 'sidebar-link-active' : '' }}" title="Discipline Settings">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
@@ -145,8 +146,9 @@
                 <span x-show="!sidebarCollapsed" x-transition>Discipline Settings</span>
             </a>
             @endcan
+            @endcan
 
-            @can('view promotions')
+            @can('promote students')
             <a href="{{ route('admin.promotions.index') }}" class="sidebar-link {{ request()->routeIs('admin.promotions.*') ? 'sidebar-link-active' : '' }}" title="Promotions">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
@@ -155,7 +157,7 @@
             </a>
             @endcan
 
-            @can('view id cards')
+            @can('view students')
             <a href="{{ route('admin.id-cards.index') }}" class="sidebar-link {{ request()->routeIs('admin.id-cards.*') ? 'sidebar-link-active' : '' }}" title="ID Cards">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.333 0 4 .667 4 2v1H5v-1c0-1.333 2.667-2 4-2z"></path>
@@ -166,7 +168,7 @@
         </div>
         @endcanany
 
-        @canany(['view attendance', 'view timetable', 'view master gradebook', 'view subject gradebook', 'view assessment types', 'view assessment assignments', 'view subject assignments', 'view activities'])
+        @canany(['manage attendance', 'manage sections', 'view master gradebook', 'view subject gradebook', 'configure assessments', 'manage subjects', 'enter marks', 'view marks'])
         <div class="sidebar-category-header flex items-center cursor-pointer group relative" 
              :class="sidebarCollapsed ? 'text-center px-0 justify-center w-full' : 'justify-between sticky top-0 z-10 bg-white/95 backdrop-blur-md'"
              @click="toggleCategory('academics')">
@@ -199,7 +201,7 @@
         </div>
         
         <div x-show="openCategories['academics'] || sidebarCollapsed" x-collapse>
-            @can('view attendance')
+            @can('manage attendance')
             <a href="{{ route('admin.attendance.index') }}" class="sidebar-link {{ request()->routeIs('admin.attendance.*') ? 'sidebar-link-active' : '' }}" title="Attendance">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
@@ -208,7 +210,7 @@
             </a>
             @endcan
 
-            @can('view timetable')
+            @can('manage sections')
             <a href="{{ route('admin.timetable.index') }}" class="sidebar-link {{ request()->routeIs('admin.timetable.*') ? 'sidebar-link-active' : '' }}" title="Timetable">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
@@ -235,7 +237,7 @@
             </a>
             @endcan
 
-            @can('view assessment types')
+            @can('configure assessments')
             <a href="{{ route('admin.assessment-types.index') }}" class="sidebar-link {{ request()->routeIs('admin.assessment-types.*') ? 'sidebar-link-active' : '' }}" title="Assessment Types">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
@@ -244,7 +246,7 @@
             </a>
             @endcan
 
-            @can('view assessment assignments')
+            @can('configure assessments')
             <a href="{{ route('admin.assessment-templates.index') }}" class="sidebar-link {{ request()->routeIs('admin.assessment-templates.*') ? 'sidebar-link-active' : '' }}" title="Assessment Assignment">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -253,7 +255,7 @@
             </a>
             @endcan
 
-            @can('view subject assignments')
+            @can('manage subjects')
             <a href="{{ route('admin.subject-assignments.index') }}" class="sidebar-link {{ request()->routeIs('admin.subject-assignments.*') ? 'sidebar-link-active' : '' }}" title="Assignments">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
@@ -262,7 +264,7 @@
             </a>
             @endcan
 
-            @can('view activities')
+            @can('enter marks')
             <a href="{{ route('admin.activities.index') }}" class="sidebar-link {{ request()->routeIs('admin.activities.*') ? 'sidebar-link-active' : '' }}" title="Activities & Exams">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -271,6 +273,7 @@
             </a>
             @endcan
 
+            @can('view marks')
             <a href="{{ route('admin.exams.index') }}" class="sidebar-link {{ request()->routeIs('admin.exams.*') ? 'sidebar-link-active' : '' }} flex items-center justify-between" title="Exam Paper Reviews">
                 <div class="flex items-center gap-3">
                     <div class="relative">
@@ -292,10 +295,11 @@
                     </span>
                 @endif
             </a>
+            @endcan
         </div>
         @endcanany
 
-        @canany(['view academic reports', 'view report cards'])
+        @canany(['view marks', 'generate report cards'])
         <div class="sidebar-category-header flex items-center cursor-pointer group" 
              :class="sidebarCollapsed ? 'text-center px-0 justify-center w-full' : 'justify-between sticky top-0 z-10 bg-white/95 backdrop-blur-md'"
              @click="toggleCategory('reports')">
@@ -310,7 +314,7 @@
         </div>
         
         <div x-show="openCategories['reports'] || sidebarCollapsed" x-collapse>
-            @can('view academic reports')
+            @can('view marks')
             <a href="{{ route('admin.academic-reports.index') }}" class="sidebar-link {{ request()->routeIs('admin.academic-reports.*') ? 'sidebar-link-active' : '' }}" title="Academic Reports">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
@@ -326,7 +330,7 @@
             </a>
             @endcan
             
-            @can('view report cards')
+            @can('generate report cards')
             <a href="{{ route('admin.report-cards.exports') }}" class="sidebar-link {{ request()->routeIs('admin.report-cards.*') ? 'sidebar-link-active' : '' }}" title="Report Cards">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -335,7 +339,7 @@
             </a>
             @endcan
 
-            @can('view academic reports')
+            @can('view marks')
             <a href="{{ route('admin.reports.index') }}" class="sidebar-link {{ request()->routeIs('admin.reports.*') ? 'sidebar-link-active' : '' }}" title="General Reports">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -361,12 +365,14 @@
         </div>
         
         <div x-show="openCategories['communications'] || sidebarCollapsed" x-collapse>
+            @can('manage notice board')
             <a href="{{ route('admin.notices.index') }}" class="sidebar-link {{ request()->routeIs('admin.notices.*') ? 'sidebar-link-active' : '' }}" title="Notice Board">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path>
                 </svg>
                 <span x-show="!sidebarCollapsed" x-transition>Notice Board</span>
             </a>
+            @endcan
 
             <a href="{{ route('admin.messages.index') }}" class="sidebar-link {{ request()->routeIs('admin.messages.*') ? 'sidebar-link-active' : '' }}" title="Messages">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -386,7 +392,7 @@
             @endrole
         </div>
 
-        @canany(['view employees', 'view section assignments', 'view staff availability', 'manage staff attendance', 'manage leave requests'])
+        @canany(['view employees', 'manage employees', 'view staff availability', 'manage staff attendance', 'manage leave requests'])
         <div class="sidebar-category-header flex items-center cursor-pointer group"
              :class="sidebarCollapsed ? 'text-center px-0 justify-center w-full' : 'justify-between sticky top-0 z-10 bg-white/95 backdrop-blur-md'"
              @click="toggleCategory('hr')">
@@ -410,7 +416,7 @@
             </a>
             @endcan
 
-            @can('view section assignments')
+            @can('manage employees')
             <a href="{{ route('admin.teacher-assignments.index') }}" class="sidebar-link {{ request()->routeIs('admin.teacher-assignments.*') ? 'sidebar-link-active' : '' }}" title="Section Assignments">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
@@ -521,7 +527,7 @@
         </div>
         @endcanany
 
-        @canany(['view finance', 'view payroll'])
+        @canany(['view fees', 'view payroll'])
         <div class="sidebar-category-header flex items-center cursor-pointer group"
              :class="sidebarCollapsed ? 'text-center px-0 justify-center w-full' : 'justify-between sticky top-0 z-10 bg-white/95 backdrop-blur-md'"
              @click="toggleCategory('finance')">
@@ -535,7 +541,7 @@
             <span x-show="sidebarCollapsed">•••</span>
         </div>
         <div x-show="openCategories['finance'] || sidebarCollapsed" x-collapse>
-            @can('view finance')
+            @can('view fees')
             <a href="{{ route('admin.finance.fees') }}" class="sidebar-link {{ request()->routeIs('admin.finance.fees') ? 'sidebar-link-active' : '' }}" title="Fee Management">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -596,7 +602,7 @@
         </div>
         @endcanany
 
-        @can('view school setup')
+        @canany(['manage grade levels', 'manage divisions', 'manage sections', 'manage subjects'])
         <div class="sidebar-category-header flex items-center cursor-pointer group" 
              :class="sidebarCollapsed ? 'text-center px-0 justify-center w-full' : 'justify-between sticky top-0 z-10 bg-white/95 backdrop-blur-md'"
              @click="toggleCategory('setup')">
@@ -611,37 +617,45 @@
         </div>
         
         <div x-show="openCategories['setup'] || sidebarCollapsed" x-collapse>
+            @can('manage grade levels')
             <a href="{{ route('admin.academic-years.index') }}" class="sidebar-link {{ request()->routeIs('admin.academic-years.*') || request()->routeIs('admin.terms.*') ? 'sidebar-link-active' : '' }}" title="Years & Terms">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                 </svg>
                 <span x-show="!sidebarCollapsed" x-transition>Years & Terms</span>
             </a>
+            @endcan
 
+            @can('manage divisions')
             <a href="{{ route('admin.divisions.index') }}" class="sidebar-link {{ request()->routeIs('admin.divisions.*') ? 'sidebar-link-active' : '' }}" title="Divisions">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                 </svg>
                 <span x-show="!sidebarCollapsed" x-transition>Divisions</span>
             </a>
+            @endcan
 
+            @can('manage sections')
             <a href="{{ route('admin.sections.index') }}" class="sidebar-link {{ request()->routeIs('admin.sections.*') || request()->routeIs('admin.grade-levels.*') ? 'sidebar-link-active' : '' }}" title="School Structure">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                 </svg>
                 <span x-show="!sidebarCollapsed" x-transition>School Structure (Sections)</span>
             </a>
+            @endcan
             
+            @can('manage subjects')
             <a href="{{ route('admin.subjects.index') }}" class="sidebar-link {{ request()->routeIs('admin.subjects.*') ? 'sidebar-link-active' : '' }}" title="Curriculum">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                 </svg>
                 <span x-show="!sidebarCollapsed" x-transition>Curriculum</span>
             </a>
+            @endcan
         </div>
-        @endcan
+        @endcanany
 
-        @canany(['view security', 'view maintenance'])
+        @can('manage roles')
         <div class="sidebar-category-header flex items-center cursor-pointer group" 
              :class="sidebarCollapsed ? 'text-center px-0 justify-center w-full' : 'justify-between sticky top-0 z-10 bg-white/95 backdrop-blur-md'"
              @click="toggleCategory('system')">
@@ -656,7 +670,7 @@
         </div>
         
         <div x-show="openCategories['system'] || sidebarCollapsed" x-collapse>
-            @can('view security')
+            @can('manage roles')
             <a href="{{ route('admin.roles.index') }}" class="sidebar-link {{ request()->routeIs('admin.roles.*') ? 'sidebar-link-active' : '' }}" title="Security">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
@@ -665,7 +679,7 @@
             </a>
             @endcan
             
-            @can('view maintenance')
+            @can('manage roles')
             <a href="{{ route('admin.audit-logs.index') }}" class="sidebar-link {{ request()->routeIs('admin.audit-logs.*') ? 'sidebar-link-active' : '' }}" title="Maintenance">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
@@ -674,7 +688,7 @@
             </a>
             @endcan
         </div>
-        @endcanany
+        @endcan
     </nav>
     
     <!-- User Section -->

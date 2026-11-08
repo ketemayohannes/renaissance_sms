@@ -10,6 +10,14 @@ use Illuminate\Support\Facades\DB;
 class AcademicActivityService
 {
     /**
+     * File types accepted for activity attachments and student submissions. Anything that
+     * could run as code or render as a web page (php, html, svg, js…) is excluded.
+     */
+    public const ALLOWED_UPLOAD_EXTENSIONS = [
+        'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'jpg', 'jpeg', 'png',
+    ];
+
+    /**
      * Create a new academic activity.
      */
     public function createActivity(array $data)
@@ -20,7 +28,8 @@ class AcademicActivityService
             // If there are attachments (e.g., homework files)
             if (isset($data['attachments'])) {
                 foreach ($data['attachments'] as $file) {
-                    $path = $file->store('activities/'.$activity->id, 'public');
+                    // Private disk: never reachable by URL, only through the app.
+                    $path = $file->store('activities/'.$activity->id, 'local');
                     $activity->attachments()->create([
                         'file_path' => $path,
                         'file_name' => $file->getClientOriginalName(),
@@ -64,7 +73,8 @@ class AcademicActivityService
             // Handle Attachments (Digital Dossier Pattern)
             if (isset($data['attachments'])) {
                 foreach ($data['attachments'] as $file) {
-                    $path = $file->store('submissions/'.$submission->id, 'public');
+                    // Private disk: never reachable by URL, only through the app.
+                    $path = $file->store('submissions/'.$submission->id, 'local');
                     $submission->attachments()->create([
                         'file_path' => $path,
                         'file_name' => $file->getClientOriginalName(),
@@ -105,7 +115,7 @@ class AcademicActivityService
     /**
      * Sync the submission score to the official StudentMark table.
      */
-    protected function syncMarkToGradebook(ActivitySubmission $submission)
+    public function syncMarkToGradebook(ActivitySubmission $submission)
     {
         $activity = $submission->activity;
         $assignment = $activity->teacherAssignment;

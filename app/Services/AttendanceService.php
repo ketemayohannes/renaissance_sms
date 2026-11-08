@@ -87,6 +87,15 @@ class AttendanceService
             $section = Section::findOrFail($sectionId);
             $academicYearId = $section->academic_year_id;
 
+            // Only students enrolled in this section can be marked; any other student id in
+            // the request is ignored (it would otherwise write their attendance and send
+            // their parents an absence alert).
+            $enrolledIds = StudentEnrollment::where('section_id', $sectionId)
+                ->pluck('student_id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+            $attendanceData = array_intersect_key($attendanceData, array_flip($enrolledIds));
+
             foreach ($attendanceData as $studentId => $status) {
                 // Fetch existing status before update to avoid spamming alerts on updates/edits
                 $existingRecord = StudentAttendance::where('student_id', $studentId)

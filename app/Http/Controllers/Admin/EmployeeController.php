@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateEmployeeRequest;
 use App\Models\AcademicYear;
 use App\Models\Division;
 use App\Models\Employee;
+use App\Models\EmployeeDocument;
 use App\Models\Section;
 use App\Models\Subject;
 use App\Models\TeacherAssignment;
@@ -201,6 +202,8 @@ class EmployeeController extends Controller
     public function destroy(Employee $employee)
     {
         try {
+            $this->employeeService->ensureCanManageUser($employee->user);
+
             DB::transaction(function () use ($employee) {
                 if ($employee->user) {
                     $employee->user->delete();
@@ -512,6 +515,8 @@ class EmployeeController extends Controller
             return back()->with('error', 'Staff member does not have a portal account.');
         }
 
+        $this->employeeService->ensureCanManageUser($employee->user);
+
         $password = Str::random(10);
         $employee->user->update([
             'password' => Hash::make($password),
@@ -523,6 +528,8 @@ class EmployeeController extends Controller
 
     public function toggleStatus(Employee $employee)
     {
+        $this->employeeService->ensureCanManageUser($employee->user);
+
         $newStatus = $employee->status === 'active' ? 'resigned' : 'active';
         $employee->update(['status' => $newStatus]);
 

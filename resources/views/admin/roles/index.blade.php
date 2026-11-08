@@ -21,7 +21,8 @@
                     <div class="p-8">
                         <div class="flex items-start justify-between mb-6">
                             <div class="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center group-hover:bg-indigo-50 transition-colors">
-                                @if($role->name === 'Super Admin')
+                                @php($isPrivileged = in_array($role->name, \App\Models\User::PRIVILEGED_ROLES, true))
+                                @if($isPrivileged)
                                     <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
                                 @else
                                     <svg class="w-8 h-8 text-slate-400 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
@@ -36,7 +37,7 @@
 
                         <h3 class="text-xl font-bold text-slate-900 mb-2 group-hover:text-indigo-600 transition-colors">{{ $role->name }}</h3>
                         <p class="text-sm text-slate-500 font-medium leading-relaxed mb-6">
-                            {{ $role->name === 'Super Admin' ? 'Full system access with no restrictions.' : 'Custom defined access levels for specific staff responsibilities.' }}
+                            {{ $isPrivileged ? 'Full system access: always has every permission, whatever is ticked.' : 'Has exactly the permissions ticked for it.' }}
                         </p>
 
                         <div class="flex items-center gap-3">
@@ -45,7 +46,7 @@
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                 Manage Role
                             </a>
-                            @if($role->name !== 'Super Admin')
+                            @if(! $isPrivileged)
                                 <form action="{{ route('admin.roles.destroy', $role->id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure? This will affect all users with this role.')">
                                     @csrf
                                     @method('DELETE')

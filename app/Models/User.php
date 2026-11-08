@@ -17,6 +17,18 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, \Spatie\Permission\Traits\HasRoles;
 
+    /**
+     * Roles that carry every permission. Only a user who already holds one of them may
+     * assign them, or change/delete an account that has them — otherwise anyone who can
+     * manage staff could promote themselves to Super Admin.
+     */
+    public const PRIVILEGED_ROLES = ['Super Admin', 'IT / System Admin'];
+
+    public function hasPrivilegedRole(): bool
+    {
+        return $this->hasAnyRole(self::PRIVILEGED_ROLES);
+    }
+
     protected static function booted()
     {
         static::saved(function () {
