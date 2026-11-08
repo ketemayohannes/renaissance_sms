@@ -481,9 +481,13 @@ Route::middleware(['auth'])->group(function () {
 
         // Document Management
         Route::get('employees/documents/{document}/download', [EmployeeController::class, 'downloadDocument'])->name('employees.documents.download')->middleware('permission:view employees');
-        Route::get('employees/documents/{document}/delete', [EmployeeController::class, 'deleteDocument'])->name('employees.documents.delete')->middleware('permission:manage employees');
+        Route::delete('employees/documents/{document}', [EmployeeController::class, 'deleteDocument'])->name('employees.documents.delete')->middleware('permission:manage employees');
 
-        Route::resource('employees', EmployeeController::class)->middleware('permission:view employees');
+        // Resource routes are split so each action carries the permission it needs: reading
+        // takes the "view" permission, every change takes the matching write permission.
+        // The write group is registered first so "…/create" is not captured by "…/{id}".
+        Route::resource('employees', EmployeeController::class)->only(['create', 'store', 'edit', 'update', 'destroy'])->middleware('permission:manage employees');
+        Route::resource('employees', EmployeeController::class)->only(['index', 'show'])->middleware('permission:view employees');
 
         Route::resource('teacher-assignments', TeacherAssignmentController::class)->middleware('permission:manage employees');
 
@@ -491,10 +495,14 @@ Route::middleware(['auth'])->group(function () {
         Route::get('guardians/search', [GuardianController::class, 'search'])->name('guardians.search')->middleware('permission:view students');
         Route::post('guardians/{guardian}/create-account', [GuardianController::class, 'createUser'])->name('guardians.create-account')->middleware('permission:edit students');
         Route::post('guardians/{guardian}/reset-password', [GuardianController::class, 'resetPassword'])->name('guardians.reset-password')->middleware('permission:edit students');
-        Route::resource('guardians', GuardianController::class)->middleware('permission:view students');
+        Route::resource('guardians', GuardianController::class)->only(['create', 'store', 'edit', 'update', 'destroy'])->middleware('permission:edit students');
+        Route::resource('guardians', GuardianController::class)->only(['index', 'show'])->middleware('permission:view students');
 
         Route::patch('students/{student}/quick-update', [StudentController::class, 'quickUpdate'])->name('students.quick-update')->middleware('permission:edit students');
-        Route::resource('students', StudentController::class)->middleware('permission:view students');
+        Route::resource('students', StudentController::class)->only(['create', 'store'])->middleware('permission:create students');
+        Route::resource('students', StudentController::class)->only(['edit', 'update'])->middleware('permission:edit students');
+        Route::resource('students', StudentController::class)->only(['destroy'])->middleware('permission:delete students');
+        Route::resource('students', StudentController::class)->only(['index', 'show'])->middleware('permission:view students');
 
         // Finance & Operations Portals (permission-gated)
         Route::prefix('finance')->name('finance.')->group(function () {
@@ -511,8 +519,8 @@ Route::middleware(['auth'])->group(function () {
 
         // Specialized Portals
         Route::prefix('portals')->name('portals.')->group(function () {
-            Route::get('health', [PortalController::class, 'health'])->name('health');
-            Route::get('inventory', [PortalController::class, 'inventory'])->name('inventory');
+            Route::get('health', [PortalController::class, 'health'])->name('health')->middleware('permission:view health');
+            Route::get('inventory', [PortalController::class, 'inventory'])->name('inventory')->middleware('permission:view inventory');
         });
     });
 

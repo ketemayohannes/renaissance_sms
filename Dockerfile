@@ -52,8 +52,12 @@ ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
     && sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
 
-# Enable Apache Rewrite Module
-RUN a2enmod rewrite
+# Enable Apache Rewrite + Headers modules
+RUN a2enmod rewrite headers
+
+# Uploaded files under /storage are data only: no PHP execution, no private paths by URL
+COPY docker/apache-storage.conf /etc/apache2/conf-available/storage-hardening.conf
+RUN a2enconf storage-hardening
 
 # Enable Apache SSL, generate self-signed cert, and configure default-ssl
 RUN a2enmod ssl socache_shmcb \

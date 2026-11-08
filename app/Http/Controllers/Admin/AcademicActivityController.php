@@ -74,7 +74,7 @@ class AcademicActivityController extends Controller
             'max_score' => 'required|numeric|min:0',
             'is_published' => 'boolean',
             'config' => 'nullable|array',
-            'attachments.*' => 'nullable|file|max:10240',
+            'attachments.*' => 'nullable|file|max:10240|mimes:'.implode(',', AcademicActivityService::ALLOWED_UPLOAD_EXTENSIONS),
         ]);
 
         $assignment = TeacherAssignment::findOrFail($data['teacher_assignment_id']);

@@ -103,6 +103,12 @@ class HomeroomController extends Controller
      */
     public function storeAttendance(SaveAttendanceRequest $request)
     {
+        // A homeroom teacher may only take attendance for their own homeroom section.
+        $section = $this->teacherService->getHomeroomSection(Auth::user());
+        if (! $section || (int) $request->section_id !== $section->id) {
+            abort(403, 'You can only take attendance for your own homeroom class.');
+        }
+
         $this->attendanceService->saveAttendance(
             $request->section_id,
             $request->attendance_date,

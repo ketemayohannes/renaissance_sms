@@ -52,8 +52,20 @@ class ActivityController extends Controller
         $this->authorizeActivity($activity);
         $student = Auth::user()->student;
 
+        if ($activity->type === 'exam') {
+            return redirect()->route('student.activities.show', $activity)
+                ->with('error', 'This activity is an online exam. Complete it from the exam page.');
+        }
+
+        if ($activity->recordFor($student->id)?->status === 'graded') {
+            return redirect()->route('student.activities.show', $activity)
+                ->with('error', 'This work has already been graded and can no longer be changed.');
+        }
+
+        // Allow-list of document/image types only: anything executable or renderable as a
+        // web page (php, html, svg, js…) is refused.
         $data = $request->validate([
-            'attachments.*' => 'required|file|max:10240',
+            'attachments.*' => 'required|file|max:10240|mimes:'.implode(',', AcademicActivityService::ALLOWED_UPLOAD_EXTENSIONS),
         ]);
 
         $this->service->submitWork($activity, $student->id, $data);
@@ -65,6 +77,11 @@ class ActivityController extends Controller
     {
         $this->authorizeActivity($activity);
         $student = Auth::user()->student;
+
+        if ($redirect = $this->refuseExamAttempt($activity, $student->id)) {
+            return $redirect;
+        }
+
         $activity->load('questions');
 
         // Stamp the server-side start time once (on first open) so the time
@@ -81,6 +98,13 @@ class ActivityController extends Controller
     {
         $this->authorizeActivity($activity);
         $student = Auth::user()->student;
+
+        // One attempt only: a second submission would overwrite the recorded score and
+        // wipe any manual grading the teacher has done.
+        if ($redirect = $this->refuseExamAttempt($activity, $student->id)) {
+            return $redirect;
+        }
+
         $answers = $request->input('answers', []);
 
         $totalScore = 0;
@@ -152,5 +176,33 @@ class ActivityController extends Controller
         if (! $activity->teacherAssignment || $activity->teacherAssignment->section_id !== $enrollment->section_id) {
             abort(403, 'Unauthorized action.');
         }
+
+        // Drafts are invisible to students until the teacher publishes them.
+        if (! $activity->is_published) {
+            abort(404);
+        }
+    }
+
+    /**
+     * Returns a redirect when the student may not open or submit this exam: it is not an
+     * exam, it has not started yet, or the student has already submitted it.
+     */
+    private function refuseExamAttempt(AcademicActivity $activity, int $studentId)
+    {
+        if ($activity->type !== 'exam') {
+            abort(404);
+        }
+
+        if ($activity->start_date && now()->lessThan($activity->start_date)) {
+            return redirect()->route('student.activities.show', $activity)
+                ->with('error', 'This exam has not opened yet.');
+        }
+
+        if ($activity->recordFor($studentId)?->submitted_at) {
+            return redirect()->route('student.activities.show', $activity)
+                ->with('error', 'You have already submitted this exam.');
+        }
+
+        return null;
     }
 }

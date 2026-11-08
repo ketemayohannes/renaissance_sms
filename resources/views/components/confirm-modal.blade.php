@@ -139,6 +139,24 @@ window.confirmModal = function() {
     }
 }
 
+// Send a CSRF-protected DELETE to `url` (for confirm callbacks that live inside another
+// form, where a nested <form> is not allowed).
+window.submitDelete = function(url) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = url;
+    const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    for (const [name, value] of [['_token', token], ['_method', 'DELETE']]) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
+    }
+    document.body.appendChild(form);
+    form.submit();
+};
+
 window.confirmUI = function(options) {
     if (typeof options === 'string') {
         options = { message: options };

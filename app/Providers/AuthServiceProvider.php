@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Student;
+use App\Models\User;
 use App\Policies\ReportPolicy;
 use App\Policies\StudentPolicy;
 use Illuminate\Support\Facades\Gate;
@@ -37,11 +38,12 @@ class AuthServiceProvider extends ServiceProvider
         Gate::define('bulk-print-reports', [ReportPolicy::class, 'bulkPrint']);
 
         /**
-         * Refactored: Global bypass for administrative roles.
-         * Now isolated in AuthServiceProvider for better visibility.
+         * Only the privileged roles pass every check. Every other role — Registrar and
+         * General Manager included — gets exactly the permissions ticked for it on the
+         * Roles page (Admin › Security), so access is controlled from role management.
          */
         Gate::before(function ($user, $capability) {
-            return $user->hasRole(['Super Admin', 'IT / System Admin', 'Registrar', 'General Manager']) ? true : null;
+            return $user->hasRole(User::PRIVILEGED_ROLES) ? true : null;
         });
     }
 }

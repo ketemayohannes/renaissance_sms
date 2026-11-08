@@ -4,14 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 
+/**
+ * Access is gated on the routes (permission:view health / permission:view inventory).
+ */
 class PortalController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('permission:view health')->only('health');
-        $this->middleware('permission:view inventory')->only('inventory');
-    }
-
     /**
      * Health Records Portal (Placeholder)
      */

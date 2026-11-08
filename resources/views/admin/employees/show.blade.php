@@ -528,7 +528,7 @@
                             <p class="text-slate-500 font-semibold">Verified academic and professional attachments.</p>
                         </div>
                     </div>
-                    @can('update', $employee)
+                    @can('manage employees')
                     <a href="{{ route('admin.employees.edit', $employee) }}" class="px-8 py-3 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 flex items-center gap-2 group">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                         Update Dossier
@@ -562,13 +562,13 @@
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                                             View File
                                         </a>
-                                        <button @click.prevent="window.confirmUI({message: 'Request deletion of this certified document?', callback: () => window.location.href='{{ route('admin.employees.documents.delete', $doc) }}'})" class="p-2.5 bg-white border border-rose-100 text-rose-400 rounded-xl hover:bg-rose-50 hover:text-rose-600 transition-all flex items-center justify-center shadow-sm">
+                                        <button @click.prevent="window.confirmUI({message: 'Request deletion of this certified document?', callback: () => window.submitDelete('{{ route('admin.employees.documents.delete', $doc) }}')})" class="p-2.5 bg-white border border-rose-100 text-rose-400 rounded-xl hover:bg-rose-50 hover:text-rose-600 transition-all flex items-center justify-center shadow-sm">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                         </button>
                                     </div>
                                 @else
                                     <p class="text-[9px] font-bold text-slate-300 uppercase tracking-widest italic mb-6">Asset Not Uploaded</p>
-                                    @can('update', $employee)
+                                    @can('manage employees')
                                     <a href="{{ route('admin.employees.edit', $employee) }}" class="mt-auto w-full py-2.5 bg-white border border-slate-200 text-slate-400 text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 transition-all shadow-sm flex items-center justify-center gap-2">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                                         Upload Now

@@ -19,7 +19,7 @@
                 </div>
                 <h1 class="text-3xl font-bold text-slate-900 font-heading">{{ $activity->title }}</h1>
             </div>
-            @if($activity->type === 'exam' && !$submission)
+            @if($activity->type === 'exam' && (!$submission || !$submission->submitted_at))
             <a href="{{ route('student.activities.exam', $activity) }}" 
                class="px-8 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-bold transition-all shadow-lg shadow-rose-100 flex items-center gap-2 animate-pulse">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

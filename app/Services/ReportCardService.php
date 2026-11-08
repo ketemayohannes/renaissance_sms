@@ -10,6 +10,7 @@ use App\Models\ReportCardSetting;
 use App\Models\Section;
 use App\Models\Student;
 use App\Models\StudentAttendance;
+use App\Models\StudentEnrollment;
 use App\Models\StudentPromotion;
 use App\Models\StudentTermRecord;
 use App\Models\Term;
@@ -86,6 +87,17 @@ class ReportCardService
      */
     public function storeDataEntry(int $termId, int $academicYearId, array $records, ?Section $section = null): void
     {
+        // Only students enrolled in the section being edited can be written; any other
+        // student id in the request is ignored so one class cannot edit another's
+        // conduct grades, days absent or comments.
+        if ($section) {
+            $enrolledIds = StudentEnrollment::where('section_id', $section->id)
+                ->pluck('student_id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+            $records = array_intersect_key($records, array_flip($enrolledIds));
+        }
+
         DB::transaction(function () use ($termId, $academicYearId, $records) {
             foreach ($records as $studentId => $data) {
                 StudentTermRecord::updateOrCreate(

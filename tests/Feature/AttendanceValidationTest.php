@@ -41,6 +41,13 @@ class AttendanceValidationTest extends TestCase
             'academic_year_id' => $year->id,
         ]);
         $this->student = Student::factory()->create();
+        // Attendance is only saved for students enrolled in the section (any other id in
+        // the request is ignored), matching what the register screen lists.
+        $this->student->sections()->attach($this->section->id, [
+            'academic_year_id' => $year->id,
+            'enrollment_date' => now(),
+            'status' => 'active',
+        ]);
     }
 
     /** @test */

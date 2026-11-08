@@ -106,9 +106,9 @@
                                                         </div>
                                                         <div class="flex flex-col">
                                                             <span class="text-sm font-bold text-slate-800 group-hover:text-indigo-600 transition-colors capitalize">
-                                                                {{ str_replace($group, '', $permission->name) }}
+                                                                {{ $permission->name }}
                                                             </span>
-                                                            <span class="text-[10px] font-medium text-slate-400 uppercase tracking-tighter">Permission ID: {{ $permission->id }}</span>
+                                                            <span class="text-xs font-medium text-slate-500 leading-snug normal-case">{{ $descriptions[$permission->name] ?? 'Not used by any page yet — ticking it has no effect.' }}</span>
                                                         </div>
                                                     </div>
                                                 </label>

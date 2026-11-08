@@ -36,7 +36,7 @@
                                 <label for="name" class="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2 ml-1">Role Name</label>
                                 <input type="text" name="name" id="name" value="{{ old('name', $role->name) }}" 
                                        class="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-bold focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-slate-400"
-                                       required {{ $role->name === 'Super Admin' ? 'readonly' : '' }}>
+                                       required {{ in_array($role->name, \App\Models\User::PRIVILEGED_ROLES, true) ? 'readonly' : '' }}>
                                 @error('name') <p class="mt-2 text-xs font-bold text-rose-500 ml-1">{{ $message }}</p> @enderror
                             </div>
 
@@ -106,9 +106,9 @@
                                                         </div>
                                                         <div class="flex flex-col">
                                                             <span class="text-sm font-bold text-slate-800 group-hover:text-indigo-600 transition-colors capitalize">
-                                                                {{ str_replace($group, '', $permission->name) }}
+                                                                {{ $permission->name }}
                                                             </span>
-                                                            <span class="text-[10px] font-medium text-slate-400 uppercase tracking-tighter">Permission ID: {{ $permission->id }}</span>
+                                                            <span class="text-xs font-medium text-slate-500 leading-snug normal-case">{{ $descriptions[$permission->name] ?? 'Not used by any page yet — ticking it has no effect.' }}</span>
                                                         </div>
                                                     </div>
                                                 </label>

@@ -149,7 +149,7 @@
                         <span class="text-[10px] font-bold text-white tracking-wide">Batch Grading</span>
                         <svg class="w-3 h-3 text-emerald-400 group-hover/item:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                     </a>
-                    @can('create employees')
+                    @can('manage employees')
                     <a href="{{ route('admin.employees.create') }}" class="flex items-center justify-between p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 transition-all group/item">
                         <span class="text-[10px] font-bold text-white tracking-wide">Onboard Staff</span>
                         <svg class="w-3 h-3 text-amber-400 group-hover/item:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>

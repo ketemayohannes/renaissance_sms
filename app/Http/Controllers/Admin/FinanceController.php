@@ -4,14 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 
+/**
+ * Access is gated on the routes (permission:view fees / permission:view payroll).
+ */
 class FinanceController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('permission:view fees')->only('fees');
-        $this->middleware('permission:view payroll')->only('payroll');
-    }
-
     /**
      * Fee Management Dashboard (Placeholder)
      */
