@@ -173,7 +173,7 @@ class StaffHrModuleTest extends TestCase
         $division = Division::factory()->create();
         $year = AcademicYear::factory()->active()->create();
         $gradeLevel = GradeLevel::factory()->create(['division_id' => $division->id]);
-        $section = Section::factory()->create(['grade_level_id' => $gradeLevel->id, 'academic_year_id' => $year->id]);
+        $section = Section::factory()->create(['grade_level_id' => $gradeLevel->id]);
         $subject = Subject::factory()->create();
 
         $p1 = ClassPeriod::create(['name' => 'Period 1', 'start_time' => '08:30', 'end_time' => '09:15', 'is_break' => false, 'sort_order' => 1]);

@@ -311,9 +311,8 @@ class DashboardController extends Controller
         });
 
         // Sections without attendance marked today (Cached short-term)
-        $sectionsMissingAttendance = Cache::remember("admin_dashboard_missing_attendance{$cacheSuffix}", 300, function () use ($academicYear, $divisionId) {
-            $sectionQuery = Section::where('is_active', true)
-                ->when($academicYear, fn ($q) => $q->where('academic_year_id', $academicYear->id));
+        $sectionsMissingAttendance = Cache::remember("admin_dashboard_missing_attendance{$cacheSuffix}", 300, function () use ($divisionId) {
+            $sectionQuery = Section::where('is_active', true);
 
             $attendanceQuery = StudentAttendance::whereDate('attendance_date', Carbon::today());
 

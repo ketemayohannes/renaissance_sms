@@ -270,7 +270,7 @@ class AuthorizationSecurityTest extends TestCase
         $gradeLevel = GradeLevel::factory()->create();
 
         // Setup Section A and Student A
-        $sectionA = Section::factory()->create(['grade_level_id' => $gradeLevel->id, 'academic_year_id' => $academicYear->id]);
+        $sectionA = Section::factory()->create(['grade_level_id' => $gradeLevel->id]);
         $studentAUser = $this->createUserWithRole('Student');
         $studentA = Student::factory()->create(['user_id' => $studentAUser->id]);
         $studentA->sections()->attach($sectionA->id, [
@@ -280,7 +280,7 @@ class AuthorizationSecurityTest extends TestCase
         ]);
 
         // Setup Section B and Teacher Assignment B and Activity B
-        $sectionB = Section::factory()->create(['grade_level_id' => $gradeLevel->id, 'academic_year_id' => $academicYear->id]);
+        $sectionB = Section::factory()->create(['grade_level_id' => $gradeLevel->id]);
         $teacherUser = $this->createUserWithRole('Teacher');
         $teacherAssignmentB = TeacherAssignment::create([
             'teacher_id' => $teacherUser->id,

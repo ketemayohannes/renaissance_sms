@@ -212,7 +212,7 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             @foreach([
                 ['label' => 'Active Students', 'val' => \App\Models\Student::where('is_active', true)->count(), 'unit' => 'Students', 'color' => 'indigo', 'icon' => 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z'],
-                ['label' => 'Active Sections', 'val' => \App\Models\Section::whereHas('academicYear', fn($q) => $q->where('is_active', true))->count(), 'unit' => 'Sections', 'color' => 'emerald', 'icon' => 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'],
+                ['label' => 'Active Sections', 'val' => \App\Models\Section::where('is_active', true)->count(), 'unit' => 'Sections', 'color' => 'emerald', 'icon' => 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'],
                 ['label' => 'Active Terms', 'val' => \App\Models\Term::whereHas('academicYear', fn($q) => $q->where('is_active', true))->count(), 'unit' => 'Terms', 'color' => 'purple', 'icon' => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z']
             ] as $stat)
             <div class="bg-white/60 backdrop-blur-md p-6 rounded-3xl border border-white shadow-sm flex items-center gap-5 group hover:shadow-xl hover:-translate-y-1 transition-all duration-300">

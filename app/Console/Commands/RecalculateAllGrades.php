@@ -58,7 +58,10 @@ class RecalculateAllGrades extends Command
 
     private function processAcademicYear(AcademicYear $academicYear, GradingService $gradingService, bool $dryRun): void
     {
-        $sections = Section::where('academic_year_id', $academicYear->id)->orderBy('name')->get();
+        // Sections are shared across years; recalculate those that had students this year.
+        $sections = Section::whereHas('enrollments', fn ($q) => $q->where('academic_year_id', $academicYear->id))
+            ->orderBy('name')
+            ->get();
 
         if ($sections->isEmpty()) {
             return;

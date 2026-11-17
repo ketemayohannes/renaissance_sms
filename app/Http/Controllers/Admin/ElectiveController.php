@@ -48,7 +48,6 @@ class ElectiveController extends Controller
         ]);
 
         $sections = Section::where('grade_level_id', $request->grade_level_id)
-            ->where('academic_year_id', $request->academic_year_id)
             ->where('is_active', true)
             ->select('id', 'name')
             ->get();

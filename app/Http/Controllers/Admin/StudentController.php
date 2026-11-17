@@ -157,13 +157,12 @@ class StudentController extends Controller
     {
         $activeYear = AcademicYear::where('is_active', true)->first();
         $sections = Section::with('gradeLevel.division')
-            ->withCount(['students as enrolled_count' => function ($q) {
-                $q->whereNull('student_enrollments.end_date');
+            ->withCount(['students as enrolled_count' => function ($q) use ($activeYear) {
+                // Sections are shared across years, so count only this year's students.
+                $q->whereNull('student_enrollments.end_date')
+                    ->when($activeYear, fn ($sq) => $sq->where('student_enrollments.academic_year_id', $activeYear->id));
             }])
             ->where('is_active', true)
-            ->when($activeYear, function ($q) use ($activeYear) {
-                return $q->where('academic_year_id', $activeYear->id);
-            })
             ->get();
 
         return view('admin.students.create', compact('sections', 'activeYear'));
@@ -403,9 +402,6 @@ class StudentController extends Controller
         $activeYear = AcademicYear::where('is_active', true)->first();
         $sections = Section::with('gradeLevel.division')
             ->where('is_active', true)
-            ->when($activeYear, function ($q) use ($activeYear) {
-                return $q->where('academic_year_id', $activeYear->id);
-            })
             ->get();
 
         return view('admin.students.edit', compact('student', 'sections', 'activeYear'));

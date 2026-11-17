@@ -186,8 +186,8 @@ class PromotionController extends Controller
 
         $divisions = Division::with(['gradeLevels' => function ($q) {
             $q->orderBy('sort_order');
-        }, 'gradeLevels.sections' => function ($q) use ($academicYear) {
-            $q->where('academic_year_id', $academicYear->id)->where('is_active', true);
+        }, 'gradeLevels.sections' => function ($q) {
+            $q->where('is_active', true);
         }])->orderBy('sort_order')->get();
 
         return view('admin.promotions.process', compact('academicYear', 'nextAcademicYear', 'divisions'));

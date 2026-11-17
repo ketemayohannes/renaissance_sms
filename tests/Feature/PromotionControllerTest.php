@@ -83,7 +83,6 @@ class PromotionControllerTest extends TestCase
 
         $this->section = Section::factory()->create([
             'grade_level_id' => $this->gradeLevel->id,
-            'academic_year_id' => $this->academicYear->id,
             'name' => 'A',
         ]);
 
@@ -129,7 +128,7 @@ class PromotionControllerTest extends TestCase
             $this->subjectAmharic->id,
             $this->subjectMath->id,
             $this->subjectGeography->id,
-        ], ['academic_year_id' => $this->academicYear->id]);
+        ], []);
 
         // Create student and enroll
         $this->student = Student::factory()->create();
@@ -421,7 +420,6 @@ class PromotionControllerTest extends TestCase
         // Setup a next grade level section (so promoted students can be enrolled)
         $nextSection = Section::factory()->create([
             'grade_level_id' => $this->nextGradeLevel->id,
-            'academic_year_id' => $this->nextAcademicYear->id,
             'name' => 'A', // Matches our current section name
         ]);
 
@@ -591,7 +589,6 @@ class PromotionControllerTest extends TestCase
     {
         $nextSection = Section::factory()->create([
             'grade_level_id' => $this->nextGradeLevel->id,
-            'academic_year_id' => $this->nextAcademicYear->id,
             'name' => 'A',
         ]);
 
@@ -657,7 +654,6 @@ class PromotionControllerTest extends TestCase
     {
         $nextSection = Section::factory()->create([
             'grade_level_id' => $this->nextGradeLevel->id,
-            'academic_year_id' => $this->nextAcademicYear->id,
             'name' => 'A',
         ]);
 

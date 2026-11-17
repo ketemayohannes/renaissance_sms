@@ -18,7 +18,6 @@ class StudentIdCardController extends Controller
     {
         $academicYear = CachedData::activeAcademicYear();
         $sections = Section::with('gradeLevel')
-            ->where('academic_year_id', $academicYear->id)
             ->withCount('students')
             ->get();
 

@@ -34,7 +34,7 @@ class Subject extends Model
     public function gradeLevels()
     {
         return $this->belongsToMany(GradeLevel::class, 'grade_level_subjects')
-            ->withPivot('academic_year_id', 'sort_order')
+            ->withPivot('sort_order')
             ->withTimestamps();
     }
 }

@@ -183,8 +183,7 @@ class GradebookController extends Controller implements HasMiddleware
             'grade_level_id' => 'required|exists:grade_levels,id',
         ]);
 
-        $sections = Section::where('academic_year_id', $request->academic_year_id)
-            ->where('grade_level_id', $request->grade_level_id)
+        $sections = Section::where('grade_level_id', $request->grade_level_id)
             ->where('is_active', true)
             ->get(['id', 'name']);
 
@@ -198,10 +197,9 @@ class GradebookController extends Controller implements HasMiddleware
             'grade_level_id' => 'required|exists:grade_levels,id',
         ]);
 
-        // Fetch subjects linked to this grade level for the given academic year
+        // Subject assignments are the same in every academic year.
         $subjects = DB::table('grade_level_subjects')
             ->join('subjects', 'grade_level_subjects.subject_id', '=', 'subjects.id')
-            ->where('grade_level_subjects.academic_year_id', $request->academic_year_id)
             ->where('grade_level_subjects.grade_level_id', $request->grade_level_id)
             ->select('subjects.id', 'subjects.name', 'subjects.code')
             ->orderBy('subjects.name')

@@ -48,7 +48,6 @@ class StudentControllerValidationTest extends TestCase
         $grade = GradeLevel::factory()->create(['division_id' => $division->id]);
         $this->section = Section::factory()->create([
             'grade_level_id' => $grade->id,
-            'academic_year_id' => $year->id,
         ]);
 
         $this->student = Student::factory()->create();
@@ -144,6 +143,47 @@ class StudentControllerValidationTest extends TestCase
         ], $this->student)->assertSessionHas('error', 'Student has no active enrollment.');
 
         $this->assertSame($level, DB::transactionLevel(), 'transfer() left a database transaction open.');
+    }
+
+    /** @test */
+    public function transfer_moves_student_to_new_section_in_the_same_academic_year(): void
+    {
+        $year = AcademicYear::where('is_active', true)->firstOrFail();
+        $target = Section::factory()->create(['grade_level_id' => $this->section->grade_level_id, 'name' => 'Z']);
+        $old = $this->student->enrollments()->create([
+            'section_id' => $this->section->id, 'academic_year_id' => $year->id,
+            'enrollment_date' => '2026-09-14', 'status' => 'active',
+        ]);
+
+        $this->post_('admin.students.transfer.store', [
+            'new_section_id' => $target->id, 'transfer_date' => '2026-11-17',
+        ], $this->student)->assertSessionHasNoErrors()->assertSessionMissing('error');
+
+        $this->assertSame('transferred', $old->fresh()->status);
+        $this->assertDatabaseHas('student_enrollments', [
+            'student_id' => $this->student->id, 'section_id' => $target->id,
+            'academic_year_id' => $year->id, 'status' => 'active', 'end_date' => null,
+        ]);
+    }
+
+    /** @test */
+    public function bulk_transfer_keeps_each_students_academic_year(): void
+    {
+        $year = AcademicYear::where('is_active', true)->firstOrFail();
+        $target = Section::factory()->create(['grade_level_id' => $this->section->grade_level_id, 'name' => 'Z']);
+        $this->student->enrollments()->create([
+            'section_id' => $this->section->id, 'academic_year_id' => $year->id,
+            'enrollment_date' => '2026-09-14', 'status' => 'active',
+        ]);
+
+        $this->post_('admin.students.bulk-transfer', [
+            'ids' => [$this->student->id], 'new_section_id' => $target->id, 'transfer_date' => '2026-11-17',
+        ])->assertSessionHasNoErrors()->assertSessionMissing('error');
+
+        $this->assertDatabaseHas('student_enrollments', [
+            'student_id' => $this->student->id, 'section_id' => $target->id,
+            'academic_year_id' => $year->id, 'status' => 'active',
+        ]);
     }
 
     /** @test */

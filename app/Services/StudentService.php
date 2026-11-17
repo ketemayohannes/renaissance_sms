@@ -127,7 +127,7 @@ class StudentService
             StudentEnrollment::create([
                 'student_id' => $student->id,
                 'section_id' => $section->id,
-                'academic_year_id' => $section->academic_year_id,
+                'academic_year_id' => AcademicYear::where('is_active', true)->value('id'),
                 'enrollment_date' => $data['admission_date'],
                 'status' => 'active',
             ]);
@@ -337,7 +337,7 @@ class StudentService
                 DB::beginTransaction();
 
                 // 1. Validate Section
-                $section = $this->findSection($row['grade_level'], $row['section_name'], $activeYear->id);
+                $section = $this->findSection($row['grade_level'], $row['section_name']);
                 if (! $section) {
                     $gradeLabel = str_contains(strtolower($row['grade_level']), 'grade') ? $row['grade_level'] : "Grade {$row['grade_level']}";
                     throw new \Exception("Section '{$row['section_name']}' ($gradeLabel) not found in active year.");
@@ -442,11 +442,10 @@ class StudentService
         return (int) end($parts) + 1;
     }
 
-    private function findSection(string $gradeName, string $sectionName, int $yearId): ?Section
+    private function findSection(string $gradeName, string $sectionName): ?Section
     {
         return Section::where('name', $sectionName)
             ->whereHas('gradeLevel', fn ($q) => $q->where('name', $gradeName))
-            ->where('academic_year_id', $yearId)
             ->first();
     }
 

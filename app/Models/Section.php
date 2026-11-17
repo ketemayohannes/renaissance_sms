@@ -10,16 +10,11 @@ class Section extends Model
 {
     use HasDivisionRestriction, HasFactory;
 
-    protected $fillable = ['grade_level_id', 'academic_year_id', 'name', 'capacity', 'homeroom_teacher_id', 'is_active'];
+    protected $fillable = ['grade_level_id', 'name', 'capacity', 'homeroom_teacher_id', 'is_active'];
 
     public function gradeLevel()
     {
         return $this->belongsTo(GradeLevel::class);
-    }
-
-    public function academicYear()
-    {
-        return $this->belongsTo(AcademicYear::class);
     }
 
     public function homeroomTeacher()

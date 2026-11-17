@@ -374,14 +374,9 @@ class AcademicReportService
         $studentIds = $students->pluck('id')->toArray();
         $termIds = $terms->pluck('id')->filter(fn ($id) => is_numeric($id))->toArray();
 
-        // PERFORMANCE FIX: Pre-fetch section IDs instead of using whereHas
-        // whereHas creates a slow subquery per row; this uses a simple IN clause
-        $validSectionIds = Section::where('academic_year_id', $academicYear->id)
-            ->pluck('id')
-            ->toArray();
-
+        // Sections are shared across years, so attendance is scoped by its own year.
         $allAttendance = StudentAttendance::whereIn('student_id', $studentIds)
-            ->whereIn('section_id', $validSectionIds)
+            ->where('academic_year_id', $academicYear->id)
             ->get(['student_id', 'attendance_date', 'status']);
 
         $results = [];

@@ -20,11 +20,9 @@ class TeacherService
      */
     public function getHomeroomSection(User $user, $academicYearId = null)
     {
-        $academicYearId = $academicYearId ?? AcademicYear::active()->first()?->id;
-
+        // Sections (and their homeroom teacher) are shared across academic years.
         return Section::with('gradeLevel')
             ->where('homeroom_teacher_id', $user->id)
-            ->where('academic_year_id', $academicYearId)
             ->first();
     }
 

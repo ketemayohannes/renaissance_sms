@@ -64,7 +64,6 @@ class ReportsController extends Controller
 
         foreach ($gradeLevels as $gradeLevel) {
             $sections = Section::where('grade_level_id', $gradeLevel->id)
-                ->where('academic_year_id', $academicYear->id)
                 ->orderBy('name')
                 ->get();
 
@@ -186,7 +185,6 @@ class ReportsController extends Controller
 
         foreach ($gradeLevels as $gradeLevel) {
             $sections = Section::where('grade_level_id', $gradeLevel->id)
-                ->where('academic_year_id', $academicYear->id)
                 ->orderBy('name')
                 ->get();
 
@@ -286,7 +284,6 @@ class ReportsController extends Controller
 
         foreach ($gradeLevels as $gradeLevel) {
             $sections = Section::where('grade_level_id', $gradeLevel->id)
-                ->where('academic_year_id', $academicYear->id)
                 ->orderBy('name')
                 ->get();
 

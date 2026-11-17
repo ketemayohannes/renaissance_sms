@@ -53,7 +53,6 @@ class GradeEntryTest extends TestCase
         ]);
         $this->section = Section::factory()->create([
             'grade_level_id' => $this->gradeLevel->id,
-            'academic_year_id' => $this->academicYear->id,
             'name' => 'A',
         ]);
         $this->term = Term::factory()->quarter(1)->masterGradingOpen()->create([
@@ -76,7 +75,6 @@ class GradeEntryTest extends TestCase
     {
         // Assign subject to grade level
         $this->gradeLevel->subjects()->attach($this->subject->id, [
-            'academic_year_id' => $this->academicYear->id,
             'is_required' => true,
         ]);
 
@@ -121,7 +119,6 @@ class GradeEntryTest extends TestCase
 
         // Assign subject to grade level
         $this->gradeLevel->subjects()->attach($this->subject->id, [
-            'academic_year_id' => $this->academicYear->id,
             'is_required' => true,
         ]);
 

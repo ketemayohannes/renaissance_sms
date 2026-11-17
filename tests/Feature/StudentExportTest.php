@@ -56,7 +56,6 @@ class StudentExportTest extends TestCase
         ]);
         $this->section5A = Section::factory()->create([
             'grade_level_id' => $this->gradeLevel5->id,
-            'academic_year_id' => $this->academicYear->id,
             'name' => 'A',
         ]);
 
@@ -68,7 +67,6 @@ class StudentExportTest extends TestCase
         ]);
         $this->section10A = Section::factory()->create([
             'grade_level_id' => $this->gradeLevel10->id,
-            'academic_year_id' => $this->academicYear->id,
             'name' => 'A',
         ]);
     }

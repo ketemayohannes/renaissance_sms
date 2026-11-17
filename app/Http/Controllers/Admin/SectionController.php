@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\AcademicYear;
 use App\Models\GradeLevel;
 use App\Models\Section;
 use App\Models\User;
@@ -14,8 +13,9 @@ class SectionController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Section::with(['gradeLevel.division', 'academicYear', 'homeroomTeacher'])
-            ->orderBy('academic_year_id', 'desc');
+        $query = Section::with(['gradeLevel.division', 'homeroomTeacher'])
+            ->orderBy('grade_level_id')
+            ->orderBy('name');
 
         if ($request->filled('search')) {
             $search = $request->get('search');
@@ -34,18 +34,16 @@ class SectionController extends Controller
     public function create()
     {
         $gradeLevels = GradeLevel::with('division')->where('is_active', true)->orderBy('sort_order')->get();
-        $academicYears = AcademicYear::orderBy('start_date', 'desc')->get();
         $teachers = User::role('Teacher')->get();
 
-        return view('admin.sections.create', compact('gradeLevels', 'academicYears', 'teachers'));
+        return view('admin.sections.create', compact('gradeLevels', 'teachers'));
     }
 
     public function bulkCreate()
     {
         $gradeLevels = GradeLevel::with('division')->where('is_active', true)->orderBy('sort_order')->get();
-        $academicYears = AcademicYear::orderBy('start_date', 'desc')->get();
 
-        return view('admin.sections.bulk_create', compact('gradeLevels', 'academicYears'));
+        return view('admin.sections.bulk_create', compact('gradeLevels'));
     }
 
     public function bulkStore(Request $request)
@@ -53,14 +51,12 @@ class SectionController extends Controller
         $request->validate([
             'grade_level_ids' => 'required|array',
             'grade_level_ids.*' => 'exists:grade_levels,id',
-            'academic_year_id' => 'required|exists:academic_years,id',
             'section_names' => 'required|string', // A, B, C
             'capacity' => 'required|integer|min:1',
         ]);
 
         $sectionNames = array_map('trim', explode(',', $request->section_names));
         $gradeLevelIds = $request->grade_level_ids;
-        $academicYearId = $request->academic_year_id;
         $capacity = $request->capacity;
 
         $count = 0;
@@ -76,7 +72,6 @@ class SectionController extends Controller
 
                     // Check for duplicate
                     $exists = Section::where('grade_level_id', $gradeLevelId)
-                        ->where('academic_year_id', $academicYearId)
                         ->where('name', $name)
                         ->exists();
 
@@ -88,7 +83,6 @@ class SectionController extends Controller
 
                     Section::create([
                         'grade_level_id' => $gradeLevelId,
-                        'academic_year_id' => $academicYearId,
                         'name' => $name,
                         'capacity' => $capacity,
                         'is_active' => true,
@@ -112,7 +106,6 @@ class SectionController extends Controller
     {
         $request->validate([
             'grade_level_id' => 'required|exists:grade_levels,id',
-            'academic_year_id' => 'required|exists:academic_years,id',
             'name' => 'required|string|max:255',
             'capacity' => 'required|integer|min:1',
             'homeroom_teacher_id' => 'nullable|exists:users,id',
@@ -127,17 +120,15 @@ class SectionController extends Controller
     public function edit(Section $section)
     {
         $gradeLevels = GradeLevel::with('division')->where('is_active', true)->orderBy('sort_order')->get();
-        $academicYears = AcademicYear::orderBy('start_date', 'desc')->get();
         $teachers = User::role('Teacher')->get();
 
-        return view('admin.sections.edit', compact('section', 'gradeLevels', 'academicYears', 'teachers'));
+        return view('admin.sections.edit', compact('section', 'gradeLevels', 'teachers'));
     }
 
     public function update(Request $request, Section $section)
     {
         $request->validate([
             'grade_level_id' => 'required|exists:grade_levels,id',
-            'academic_year_id' => 'required|exists:academic_years,id',
             'name' => 'required|string|max:255',
             'capacity' => 'required|integer|min:1',
             'homeroom_teacher_id' => 'nullable|exists:users,id',
@@ -250,12 +241,6 @@ class SectionController extends Controller
             }
         }
 
-        // Get active academic year
-        $activeYear = AcademicYear::where('is_active', true)->first();
-        if (! $activeYear) {
-            return back()->with('error', 'No active academic year found. Please activate one first.');
-        }
-
         DB::beginTransaction();
         try {
             $count = 0;
@@ -286,7 +271,6 @@ class SectionController extends Controller
                 // Check if section exists
                 $exists = Section::where('name', $sectionName)
                     ->where('grade_level_id', $gradeLevel->id)
-                    ->where('academic_year_id', $activeYear->id)
                     ->exists();
 
                 if ($exists) {
@@ -296,7 +280,6 @@ class SectionController extends Controller
                 Section::create([
                     'name' => $sectionName,
                     'grade_level_id' => $gradeLevel->id,
-                    'academic_year_id' => $activeYear->id,
                     'capacity' => $capacity,
                     'is_active' => true,
                 ]);
