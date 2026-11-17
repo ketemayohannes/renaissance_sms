@@ -8,6 +8,7 @@ use App\Models\AssessmentType;
 use App\Models\AuditLog;
 use App\Models\Section;
 use App\Models\Student;
+use App\Models\StudentEnrollment;
 use App\Models\StudentMark;
 use App\Models\StudentTermRecord;
 use App\Models\Subject;
@@ -19,6 +20,16 @@ use Illuminate\Support\Facades\DB;
 class GradingService
 {
     private $yearlyStatsCache = [];
+
+    /**
+     * Data loaded once for a whole section while getSectionReportData() runs, so the
+     * per-student calculations read it from memory instead of re-querying it for every
+     * student (that was ~4,000 queries for one student profile page). Null outside a
+     * section calculation, where every helper falls back to its original query.
+     */
+    private ?array $bulk = null;
+
+    private ?int $termTotalTypeId = null;
 
     /**
      * Recalculate and save statistics for all students in a section for a term.
@@ -435,35 +446,45 @@ class GradingService
      */
     public function calculateStudentTotals(Student $student, Term $term, AcademicYear $academicYear, $subjects = null)
     {
+        // Within a section calculation the same student/term totals are requested several
+        // times (yearly, per-semester and semester-stats paths) with the same inputs, so
+        // compute each once.
+        if ($subjects !== null && $this->inBulk($student->id, (int) $academicYear->id) && $subjects === $this->bulk['subjects']) {
+            return $this->memo(
+                "totals_{$student->id}_{$term->type}_{$term->id}",
+                fn () => $this->computeStudentTotals($student, $term, $academicYear, $subjects)
+            );
+        }
+
+        return $this->computeStudentTotals($student, $term, $academicYear, $subjects);
+    }
+
+    private function computeStudentTotals(Student $student, Term $term, AcademicYear $academicYear, $subjects = null)
+    {
         if (! $subjects) {
             $enrollment = $student->enrollments()->where('academic_year_id', $academicYear->id)->first();
             $subjects = $enrollment->section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
         }
 
         $isGrade11Or12 = false;
-        $enrollmentForGrade = $student->enrollments()->where('academic_year_id', $academicYear->id)->first();
-        if ($enrollmentForGrade && $enrollmentForGrade->section && $enrollmentForGrade->section->gradeLevel) {
-            if (preg_match('/\b(11|12)\b/', $enrollmentForGrade->section->gradeLevel->name)) {
-                $isGrade11Or12 = true;
-            }
+        $gradeName = $this->enrollmentGradeName($student, (int) $academicYear->id);
+        if ($gradeName !== null && preg_match('/\b(11|12)\b/', $gradeName)) {
+            $isGrade11Or12 = true;
         }
 
         // Determine actual denominator (Regular + Enrolled Electives)
         $regularSubjectsCount = $subjects->where('is_elective', false)->count();
-        $enrolledElectivesCount = DB::table('student_electives')
-            ->where('student_id', $student->id)
-            ->where('academic_year_id', $academicYear->id)
-            ->count();
+        $enrolledElectivesCount = count($this->enrolledElectiveIds($student->id, (int) $academicYear->id));
         $denominator = $regularSubjectsCount + $enrolledElectivesCount;
 
         if ($term->isSemester()) {
-            $quarterIds = $term->quarters()->pluck('id');
+            $quarterIds = $this->quarterIds($term);
             $targetTermIds = $quarterIds->concat([$term->id]);
             $termTotalTypeId = $this->getTermTotalTypeId();
-            $marks = StudentMark::where('student_id', $student->id)
+            $marks = ($this->bulkMarks($student->id, $targetTermIds) ?? StudentMark::where('student_id', $student->id)
                 ->whereIn('term_id', $targetTermIds)
                 ->with('assessmentTemplate')
-                ->get()
+                ->get())
                 ->groupBy('subject_id');
 
             $total = 0;
@@ -520,11 +541,7 @@ class GradingService
             }
 
             // Determine effective elective count for denominator
-            $enrolledElectiveIds = DB::table('student_electives')
-                ->where('student_id', $student->id)
-                ->where('academic_year_id', $academicYear->id)
-                ->pluck('subject_id')
-                ->toArray();
+            $enrolledElectiveIds = $this->enrolledElectiveIds($student->id, (int) $academicYear->id);
 
             $electiveIdsWithScores = collect($subjectScores)->keys()->filter(function ($id) use ($subjects) {
                 $s = $subjects->firstWhere('id', $id);
@@ -545,17 +562,17 @@ class GradingService
 
         } else {
             if ($term->type === 'yearly' || $term->id === 'yearly') {
-                $semesters = Term::where('academic_year_id', $academicYear->id)
+                $semesters = $this->memo("semesters_with_quarters_{$academicYear->id}", fn () => Term::where('academic_year_id', $academicYear->id)
                     ->where('type', 'semester')
                     ->with('quarters')
-                    ->get();
+                    ->get());
 
                 $allChildTermIds = $semesters->pluck('id')->concat($semesters->flatMap->quarters->pluck('id'))->unique();
                 $termTotalTypeId = $this->getTermTotalTypeId();
-                $rawMarks = StudentMark::where('student_id', $student->id)
+                $rawMarks = ($this->bulkMarks($student->id, $allChildTermIds) ?? StudentMark::where('student_id', $student->id)
                     ->whereIn('term_id', $allChildTermIds)
                     ->with('assessmentTemplate')
-                    ->get()
+                    ->get())
                     ->groupBy('subject_id');
 
                 $total = 0;
@@ -605,10 +622,10 @@ class GradingService
                 }
             } else {
                 $termTotalTypeId = $this->getTermTotalTypeId();
-                $marks = StudentMark::where('student_id', $student->id)
+                $marks = ($this->bulkMarks($student->id, collect([$term->id])) ?? StudentMark::where('student_id', $student->id)
                     ->where('term_id', $term->id)
                     ->with('assessmentTemplate')
-                    ->get()
+                    ->get())
                     ->groupBy('subject_id');
 
                 $total = 0;
@@ -633,11 +650,7 @@ class GradingService
             }
 
             // Determine effective elective count
-            $enrolledElectiveIds = DB::table('student_electives')
-                ->where('student_id', $student->id)
-                ->where('academic_year_id', $academicYear->id)
-                ->pluck('subject_id')
-                ->toArray();
+            $enrolledElectiveIds = $this->enrolledElectiveIds($student->id, (int) $academicYear->id);
 
             $electiveIdsWithScores = collect($subjectScores)->keys()->filter(function ($id) use ($subjects) {
                 $s = $subjects->firstWhere('id', $id);
@@ -720,13 +733,45 @@ class GradingService
             ->get()
             ->groupBy('student_id');
 
+        // Load once for the whole section what the per-student calculations below would
+        // otherwise query separately for every student (electives, the enrollment's grade,
+        // marks, term lists). The results are computed exactly as before.
+        $previousBulk = $this->bulk;
+        $this->bulk = [
+            'year' => (int) $academicYear->id,
+            'subjects' => $subjects,
+            'students' => array_flip($studentIds->map(fn ($id) => (int) $id)->all()),
+            'termIds' => array_flip(array_map('intval', $targetTermsIds)),
+            'marks' => $allMarks,
+            'electives' => DB::table('student_electives')
+                ->whereIn('student_id', $studentIds)
+                ->where('academic_year_id', $academicYear->id)
+                ->get(['student_id', 'subject_id'])
+                ->groupBy('student_id')
+                ->map(fn ($rows) => $rows->pluck('subject_id')->all())
+                ->all(),
+            'gradeNames' => StudentEnrollment::with('section.gradeLevel')
+                ->whereIn('student_id', $studentIds)
+                ->where('academic_year_id', $academicYear->id)
+                ->orderBy('id')
+                ->get()
+                ->groupBy('student_id')
+                ->map(fn ($enrollments) => $enrollments->first()->section?->gradeLevel?->name)
+                ->all(),
+            'memo' => $previousBulk['memo'] ?? [],
+        ];
+
         $reports = [];
-        foreach ($students as $student) {
-            $reports[$student->id] = $this->prepareReportData(
-                $student, $section, $term, $academicYear, $subjects,
-                $allRecords->get($student->id, collect()),
-                $allMarks->get($student->id, collect())
-            );
+        try {
+            foreach ($students as $student) {
+                $reports[$student->id] = $this->prepareReportData(
+                    $student, $section, $term, $academicYear, $subjects,
+                    $allRecords->get($student->id, collect()),
+                    $allMarks->get($student->id, collect())
+                );
+            }
+        } finally {
+            $this->bulk = $previousBulk;
         }
 
         // On-the-fly ranking if records are missing ranks in the database
@@ -816,12 +861,15 @@ class GradingService
         $recordsByQuarter = [];
 
         if ($isSemester || $isYearly) {
-            $targetSemesters = $isSemester ? collect([$term]) : Term::where('academic_year_id', $academicYear->id)->where('type', 'semester')->orderBy('start_date')->get();
+            $targetSemesters = $isSemester ? collect([$term]) : $this->memo(
+                "semesters_by_start_{$academicYear->id}",
+                fn () => Term::where('academic_year_id', $academicYear->id)->where('type', 'semester')->orderBy('start_date')->get()
+            );
             $allQuarterMarks = [];
             $termTotalTypeId = $this->getTermTotalTypeId();
 
             foreach ($targetSemesters as $sem) {
-                $quarters = $sem->quarters()->orderBy('term_number')->get();
+                $quarters = $this->memo("quarters_ordered_{$sem->id}", fn () => $sem->quarters()->orderBy('term_number')->get());
                 foreach ($quarters as $q) {
                     $qRecord = $preFetchedRecords ? $preFetchedRecords->firstWhere('term_id', $q->id) : StudentTermRecord::where('student_id', $student->id)->where('term_id', $q->id)->first();
 
@@ -864,11 +912,7 @@ class GradingService
                     if ($isGrade11Or12) {
                         $effectiveElectiveCount = count($electiveIdsWithScores);
                     } else {
-                        $enrolledElectiveIds = DB::table('student_electives')
-                            ->where('student_id', $student->id)
-                            ->where('academic_year_id', $academicYear->id)
-                            ->pluck('subject_id')
-                            ->toArray();
+                        $enrolledElectiveIds = $this->enrolledElectiveIds($student->id, (int) $academicYear->id);
                         $effectiveElectiveCount = count(array_unique(array_merge($enrolledElectiveIds, $electiveIdsWithScores)));
                     }
 
@@ -982,11 +1026,7 @@ class GradingService
             if ($isGrade11Or12) {
                 $effectiveElectiveCount = count($electiveIdsWithScores);
             } else {
-                $enrolledElectiveIds = DB::table('student_electives')
-                    ->where('student_id', $student->id)
-                    ->where('academic_year_id', $academicYear->id)
-                    ->pluck('subject_id')
-                    ->toArray();
+                $enrolledElectiveIds = $this->enrolledElectiveIds($student->id, (int) $academicYear->id);
                 $effectiveElectiveCount = count(array_unique(array_merge($enrolledElectiveIds, $electiveIdsWithScores)));
             }
 
@@ -1045,9 +1085,9 @@ class GradingService
         }
 
         $semesterStats = [];
-        $semesters = Term::where('academic_year_id', $academicYear->id)
+        $semesters = $this->memo("semesters_{$academicYear->id}", fn () => Term::where('academic_year_id', $academicYear->id)
             ->where('type', 'semester')
-            ->get();
+            ->get());
 
         foreach ($semesters as $semester) {
             $sRecord = $preFetchedRecords ? $preFetchedRecords->firstWhere('term_id', $semester->id) : StudentTermRecord::where('student_id', $student->id)
@@ -1268,9 +1308,84 @@ class GradingService
 
     private function getTermTotalTypeId()
     {
-        return AssessmentType::firstOrCreate(
+        return $this->termTotalTypeId ??= AssessmentType::firstOrCreate(
             ['code' => 'TERM_TOTAL'],
             ['name' => 'Term Total', 'weight' => 100, 'max_score' => 100, 'is_active' => true]
         )->id;
+    }
+
+    /**
+     * Inside a section calculation, compute $callback once per key and reuse it; outside
+     * one, just run it (so nothing is cached across requests or queue jobs).
+     */
+    private function memo(string $key, callable $callback)
+    {
+        if ($this->bulk === null) {
+            return $callback();
+        }
+
+        if (! array_key_exists($key, $this->bulk['memo'])) {
+            $this->bulk['memo'][$key] = $callback();
+        }
+
+        return $this->bulk['memo'][$key];
+    }
+
+    private function inBulk(int $studentId, int $academicYearId): bool
+    {
+        return $this->bulk !== null
+            && $this->bulk['year'] === $academicYearId
+            && isset($this->bulk['students'][$studentId]);
+    }
+
+    /** Subject ids of the electives a student is enrolled in for a year. */
+    private function enrolledElectiveIds(int $studentId, int $academicYearId): array
+    {
+        if ($this->inBulk($studentId, $academicYearId)) {
+            return $this->bulk['electives'][$studentId] ?? [];
+        }
+
+        return DB::table('student_electives')
+            ->where('student_id', $studentId)
+            ->where('academic_year_id', $academicYearId)
+            ->pluck('subject_id')
+            ->toArray();
+    }
+
+    /** Grade level name of the student's (first) enrollment in a year, or null. */
+    private function enrollmentGradeName(Student $student, int $academicYearId): ?string
+    {
+        if ($this->inBulk($student->id, $academicYearId)) {
+            return $this->bulk['gradeNames'][$student->id] ?? null;
+        }
+
+        $enrollment = $student->enrollments()->where('academic_year_id', $academicYearId)->first();
+
+        return $enrollment?->section?->gradeLevel?->name;
+    }
+
+    /** Ids of a term's quarters. */
+    private function quarterIds(Term $term): Collection
+    {
+        return $this->memo("quarter_ids_{$term->id}", fn () => $term->quarters()->pluck('id'));
+    }
+
+    /**
+     * A student's marks (with assessmentTemplate) for these terms from the section's
+     * pre-loaded marks, or null when they weren't pre-loaded and must be queried.
+     */
+    private function bulkMarks(int $studentId, $termIds): ?Collection
+    {
+        if ($this->bulk === null || ! isset($this->bulk['students'][$studentId])) {
+            return null;
+        }
+
+        foreach ($termIds as $termId) {
+            if (! isset($this->bulk['termIds'][(int) $termId])) {
+                return null;
+            }
+        }
+
+        return $this->bulk['marks']->get($studentId, collect())->whereIn('term_id', $termIds)->values();
     }
 }
