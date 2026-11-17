@@ -55,7 +55,6 @@
                                     @php
                                         $count = DB::table('grade_level_subjects')
                                             ->where('grade_level_id', $grade->id)
-                                            ->where('academic_year_id', \App\Models\AcademicYear::where('is_active', true)->value('id'))
                                             ->count();
                                     @endphp
                                     <span class="px-3 py-1 bg-indigo-500/10 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-indigo-500/20">

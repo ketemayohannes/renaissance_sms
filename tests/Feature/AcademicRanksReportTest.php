@@ -55,7 +55,6 @@ class AcademicRanksReportTest extends TestCase
 
         $this->section = Section::factory()->create([
             'grade_level_id' => $this->gradeLevel->id,
-            'academic_year_id' => $this->academicYear->id,
         ]);
 
         $this->student1 = Student::factory()->create(['first_name' => 'ALEX']);

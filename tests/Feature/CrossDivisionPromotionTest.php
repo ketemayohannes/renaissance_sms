@@ -84,7 +84,6 @@ class CrossDivisionPromotionTest extends TestCase
     {
         $section = Section::factory()->create([
             'grade_level_id' => $fromGrade->id,
-            'academic_year_id' => $this->year->id,
             'name' => 'A',
         ]);
 

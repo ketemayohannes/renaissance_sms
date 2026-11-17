@@ -128,9 +128,6 @@ class StudentEnrollmentController extends Controller
 
         $sections = Section::with('gradeLevel.division')
             ->where('is_active', true)
-            ->when($activeYear, function ($q) use ($activeYear) {
-                return $q->where('academic_year_id', $activeYear->id);
-            })
             ->when($currentGradeLevelId, function ($q) use ($currentGradeLevelId) {
                 // Restrict to same grade level
                 return $q->where('grade_level_id', $currentGradeLevelId);
@@ -171,10 +168,11 @@ class StudentEnrollmentController extends Controller
                 'status' => 'transferred',
             ]);
 
-            // Create new enrollment
+            // Create new enrollment. A transfer happens within the year of the enrollment it
+            // replaces (sections themselves are shared across academic years).
             $student->enrollments()->create([
                 'section_id' => $request->new_section_id,
-                'academic_year_id' => $newSection->academic_year_id,
+                'academic_year_id' => $currentEnrollment->academic_year_id,
                 'enrollment_date' => $request->transfer_date,
                 'status' => 'active',
             ]);

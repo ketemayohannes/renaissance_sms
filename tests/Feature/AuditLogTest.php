@@ -60,7 +60,6 @@ class AuditLogTest extends TestCase
         ]);
         $this->section = Section::factory()->create([
             'grade_level_id' => $this->gradeLevel->id,
-            'academic_year_id' => $this->academicYear->id,
             'name' => 'Section-A',
         ]);
         $this->term = Term::factory()->quarter(1)->masterGradingOpen()->create([

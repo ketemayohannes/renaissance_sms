@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Student\BulkStudentIdsRequest;
 use App\Http\Requests\Student\BulkTransferStudentsRequest;
+use App\Models\AcademicYear;
 use App\Models\Section;
 use App\Models\Student;
 use App\Models\StudentStatusHistory;
@@ -71,6 +72,7 @@ class StudentBulkActionController extends Controller
     public function bulkTransfer(BulkTransferStudentsRequest $request)
     {
         $newSection = Section::findOrFail($request->new_section_id);
+        $activeYearId = AcademicYear::where('is_active', true)->value('id');
 
         DB::beginTransaction();
         try {
@@ -92,10 +94,11 @@ class StudentBulkActionController extends Controller
                     ]);
                 }
 
-                // Create new enrollment in the target section
+                // Create new enrollment in the target section, in the same year as the
+                // enrollment it replaces (sections are shared across academic years).
                 $student->enrollments()->create([
                     'section_id' => $request->new_section_id,
-                    'academic_year_id' => $newSection->academic_year_id,
+                    'academic_year_id' => $currentEnrollment?->academic_year_id ?? $activeYearId,
                     'enrollment_date' => $request->transfer_date,
                     'status' => 'active',
                 ]);

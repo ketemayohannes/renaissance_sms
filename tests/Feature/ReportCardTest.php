@@ -61,7 +61,6 @@ class ReportCardTest extends TestCase
         ]);
         $this->section = Section::factory()->create([
             'grade_level_id' => $this->gradeLevel->id,
-            'academic_year_id' => $this->academicYear->id,
             'name' => 'A',
         ]);
         $this->term = Term::factory()->quarter(1)->create([
@@ -219,7 +218,6 @@ class ReportCardTest extends TestCase
         // Create an elective subject
         $electiveSubject = Subject::factory()->create(['is_elective' => true, 'name' => 'Art Elective']);
         $this->gradeLevel->subjects()->attach($electiveSubject->id, [
-            'academic_year_id' => $this->academicYear->id,
             'is_required' => false,
             'sort_order' => 10,
         ]);

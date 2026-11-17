@@ -67,7 +67,6 @@ class GradebookImportTest extends TestCase
         $grade = GradeLevel::factory()->create(['division_id' => $division->id]);
         $this->section = Section::factory()->create([
             'grade_level_id' => $grade->id,
-            'academic_year_id' => $this->year->id,
         ]);
         $this->term = Term::factory()->quarter(1)->create(['academic_year_id' => $this->year->id]);
         $this->subject = Subject::factory()->create();
@@ -157,7 +156,6 @@ class GradebookImportTest extends TestCase
     {
         $otherSection = Section::factory()->create([
             'grade_level_id' => $this->section->grade_level_id,
-            'academic_year_id' => $this->year->id,
         ]);
         $outsider = $this->enrolledStudent($otherSection);
 

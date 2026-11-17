@@ -36,8 +36,8 @@ class DivisionRestrictionTest extends TestCase
         $grade8 = GradeLevel::factory()->create(['division_id' => $elementary->id, 'name' => 'Grade 8', 'sort_order' => 7]);
         $grade9 = GradeLevel::factory()->create(['division_id' => $highSchool->id, 'name' => 'Grade 9', 'sort_order' => 0]);
 
-        $oldSection = Section::factory()->create(['grade_level_id' => $grade8->id, 'academic_year_id' => $lastYear->id, 'name' => 'A']);
-        $newSection = Section::factory()->create(['grade_level_id' => $grade9->id, 'academic_year_id' => $activeYear->id, 'name' => 'A']);
+        $oldSection = Section::factory()->create(['grade_level_id' => $grade8->id, 'name' => 'A']);
+        $newSection = Section::factory()->create(['grade_level_id' => $grade9->id, 'name' => 'A']);
 
         $student = Student::factory()->create();
 

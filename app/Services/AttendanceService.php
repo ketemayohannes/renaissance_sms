@@ -26,7 +26,6 @@ class AttendanceService
         // 1. Get sections with gradeLevel - simple query first
         $sections = Section::with('gradeLevel')
             ->where('is_active', true)
-            ->when($academicYearId, fn ($q) => $q->where('academic_year_id', $academicYearId))
             ->get();
 
         if ($sections->isEmpty()) {
@@ -84,8 +83,8 @@ class AttendanceService
     public function saveAttendance(int $sectionId, string $date, array $attendanceData, array $remarks = []): void
     {
         DB::transaction(function () use ($sectionId, $date, $attendanceData, $remarks) {
-            $section = Section::findOrFail($sectionId);
-            $academicYearId = $section->academic_year_id;
+            Section::findOrFail($sectionId);
+            $academicYearId = AcademicYear::where('is_active', true)->value('id');
 
             foreach ($attendanceData as $studentId => $status) {
                 // Fetch existing status before update to avoid spamming alerts on updates/edits

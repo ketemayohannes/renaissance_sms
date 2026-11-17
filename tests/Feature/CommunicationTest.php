@@ -83,7 +83,6 @@ class CommunicationTest extends TestCase
         // Create Section and assign the teacher as Homeroom Teacher
         $this->section = Section::factory()->create([
             'grade_level_id' => $this->gradeLevel->id,
-            'academic_year_id' => $this->academicYear->id,
             'homeroom_teacher_id' => $this->teacherUser->id,
             'name' => 'A',
         ]);

@@ -40,7 +40,7 @@ class TestScenarioSeeder extends Seeder
         // 2. Create Section "Grade 12 (Natural) - A"
         $section = Section::firstOrCreate(
             ['name' => 'A', 'grade_level_id' => $grade12->id],
-            ['academic_year_id' => $year->id, 'capacity' => 40]
+            ['capacity' => 40]
         );
 
         // 3. Create Students
@@ -103,7 +103,6 @@ class TestScenarioSeeder extends Seeder
         DB::table('grade_level_subjects')->updateOrInsert([
             'grade_level_id' => $grade12->id,
             'subject_id' => $biology->id,
-            'academic_year_id' => $year->id,
         ], ['is_required' => true]);
 
         // 5. Create Assessment Templates

@@ -63,7 +63,6 @@ class GradeTermTotalConsistencyTest extends TestCase
         ]);
         $this->section = Section::factory()->create([
             'grade_level_id' => $this->gradeLevel->id,
-            'academic_year_id' => $this->academicYear->id,
             'name' => 'A',
             'is_active' => true,
         ]);
@@ -182,7 +181,6 @@ class GradeTermTotalConsistencyTest extends TestCase
         $this->enroll($student);
         $subject = Subject::factory()->create(['is_elective' => false]);
         $this->gradeLevel->subjects()->attach($subject->id, [
-            'academic_year_id' => $this->academicYear->id,
             'is_required' => true,
             'sort_order' => 1,
         ]);
@@ -230,7 +228,6 @@ class GradeTermTotalConsistencyTest extends TestCase
 
         $subject = Subject::factory()->create();
         $this->gradeLevel->subjects()->attach($subject->id, [
-            'academic_year_id' => $this->academicYear->id,
             'is_required' => true,
             'sort_order' => 1,
         ]);

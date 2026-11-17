@@ -48,8 +48,8 @@ class EnrollmentManagementTest extends TestCase
 
         $fromGrade = GradeLevel::factory()->create(['division_id' => $division->id, 'name' => 'Grade 5', 'sort_order' => 5]);
         $toGrade = GradeLevel::factory()->create(['division_id' => $division->id, 'name' => 'Grade 6', 'sort_order' => 6]);
-        $fromSection = Section::factory()->create(['grade_level_id' => $fromGrade->id, 'academic_year_id' => $this->currentYear->id, 'name' => 'A']);
-        $this->nextSection = Section::factory()->create(['grade_level_id' => $toGrade->id, 'academic_year_id' => $this->nextYear->id, 'name' => 'A']);
+        $fromSection = Section::factory()->create(['grade_level_id' => $fromGrade->id, 'name' => 'A']);
+        $this->nextSection = Section::factory()->create(['grade_level_id' => $toGrade->id, 'name' => 'A']);
         $this->student = Student::factory()->create();
 
         // Current-year active enrollment (the "from" state).

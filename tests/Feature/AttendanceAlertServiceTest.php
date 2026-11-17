@@ -25,7 +25,6 @@ class AttendanceAlertServiceTest extends TestCase
         $gradeLevel = GradeLevel::factory()->create(['division_id' => $division->id]);
         $section = Section::factory()->create([
             'grade_level_id' => $gradeLevel->id,
-            'academic_year_id' => $year->id,
         ]);
 
         $marker = User::factory()->create();

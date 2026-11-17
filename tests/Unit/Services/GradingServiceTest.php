@@ -47,7 +47,6 @@ class GradingServiceTest extends TestCase
         ]);
         $this->section = Section::factory()->create([
             'grade_level_id' => $this->gradeLevel->id,
-            'academic_year_id' => $this->academicYear->id,
             'name' => 'A',
         ]);
         $this->term = Term::factory()->quarter(1)->create([
@@ -319,7 +318,6 @@ class GradingServiceTest extends TestCase
 
         $subject = Subject::factory()->create();
         $this->gradeLevel->subjects()->attach($subject->id, [
-            'academic_year_id' => $this->academicYear->id,
             'is_required' => true,
             'sort_order' => 1,
         ]);
@@ -406,7 +404,6 @@ class GradingServiceTest extends TestCase
 
         $subject = Subject::factory()->create();
         $this->gradeLevel->subjects()->attach($subject->id, [
-            'academic_year_id' => $this->academicYear->id,
             'is_required' => true,
             'sort_order' => 1,
         ]);
@@ -467,7 +464,6 @@ class GradingServiceTest extends TestCase
 
         $subject = Subject::factory()->create();
         $this->gradeLevel->subjects()->attach($subject->id, [
-            'academic_year_id' => $this->academicYear->id,
             'is_required' => true,
             'sort_order' => 1,
         ]);

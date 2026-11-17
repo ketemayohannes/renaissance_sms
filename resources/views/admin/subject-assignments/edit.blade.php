@@ -11,8 +11,8 @@
             <div class="p-6 text-gray-900">
                     <div class="mb-6 flex justify-between items-center">
                         <div>
-                            <h3 class="text-lg font-medium text-gray-900">Academic Year: {{ $activeYear->name }}</h3>
-                            <p class="text-sm text-gray-500">Select the subjects taught in {{ $gradeLevel->name }} for this year.</p>
+                            <h3 class="text-lg font-medium text-gray-900">{{ $gradeLevel->name }} Subjects</h3>
+                            <p class="text-sm text-gray-500">Select the subjects taught in {{ $gradeLevel->name }}. This applies to every academic year.</p>
                         </div>
                         <a href="{{ route('admin.subject-assignments.index') }}" class="text-gray-600 hover:text-gray-900">Back to List</a>
                     </div>

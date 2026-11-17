@@ -59,7 +59,7 @@ class GradebookEntryTest extends TestCase
 
         $this->year = AcademicYear::factory()->active()->create();
         $grade = GradeLevel::factory()->create(['division_id' => Division::factory()->create()->id]);
-        $this->section = Section::factory()->create(['grade_level_id' => $grade->id, 'academic_year_id' => $this->year->id]);
+        $this->section = Section::factory()->create(['grade_level_id' => $grade->id]);
         $this->term = Term::factory()->quarter(1)->create(['academic_year_id' => $this->year->id]);
         $this->subject = Subject::factory()->create();
 

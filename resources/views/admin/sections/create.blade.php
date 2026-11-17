@@ -11,18 +11,6 @@
             <div class="p-6">
                     <form action="{{ route('admin.sections.store') }}" method="POST">
                         @csrf
-                        <div class="mb-4">
-                            <label for="academic_year_id" class="block text-sm font-medium text-gray-700">Academic Year *</label>
-                            <select name="academic_year_id" id="academic_year_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
-                                <option value="">Select Academic Year</option>
-                                @foreach($academicYears as $year)
-                                    <option value="{{ $year->id }}" {{ (old('academic_year_id') == $year->id || (!old('academic_year_id') && $year->is_active)) ? 'selected' : '' }}>
-                                        {{ $year->name }} {{ $year->is_active ? '(Active)' : '' }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('academic_year_id')<span class="text-red-600 text-sm">{{ $message }}</span>@enderror
-                        </div>
 
                         <div class="mb-4">
                             <label for="grade_level_id" class="block text-sm font-medium text-gray-700">Grade Level *</label>

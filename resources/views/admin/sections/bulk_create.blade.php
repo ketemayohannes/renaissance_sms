@@ -13,17 +13,6 @@
                     <form method="POST" action="{{ route('admin.sections.bulk-store') }}">
                         @csrf
 
-                        <!-- Academic Year -->
-                        <div class="mb-4">
-                            <x-input-label for="academic_year_id" :value="__('Academic Year')" />
-                            <select id="academic_year_id" name="academic_year_id" class="block mt-1 w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" required>
-                                @foreach($academicYears as $year)
-                                    <option value="{{ $year->id }}" {{ $year->is_active ? 'selected' : '' }}>{{ $year->name }}</option>
-                                @endforeach
-                            </select>
-                            <x-input-error :messages="$errors->get('academic_year_id')" class="mt-2" />
-                        </div>
-
                         <!-- Target Grade Levels -->
                         <div class="mb-4">
                             <x-input-label :value="__('Target Grade Levels')" />

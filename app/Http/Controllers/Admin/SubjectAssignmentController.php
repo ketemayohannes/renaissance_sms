@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\AcademicYear;
 use App\Models\GradeLevel;
 use App\Models\Subject;
 use Illuminate\Http\Request;
@@ -20,17 +19,15 @@ class SubjectAssignmentController extends Controller
 
     public function edit(GradeLevel $gradeLevel)
     {
-        $activeYear = AcademicYear::where('is_active', true)->firstOrFail();
         $subjects = Subject::where('is_active', true)->orderBy('name')->get();
 
-        // Get currently assigned subjects for this grade and year
+        // Subject assignments apply to every academic year.
         $assignedSubjectIds = DB::table('grade_level_subjects')
             ->where('grade_level_id', $gradeLevel->id)
-            ->where('academic_year_id', $activeYear->id)
             ->pluck('subject_id')
             ->toArray();
 
-        return view('admin.subject-assignments.edit', compact('gradeLevel', 'subjects', 'assignedSubjectIds', 'activeYear'));
+        return view('admin.subject-assignments.edit', compact('gradeLevel', 'subjects', 'assignedSubjectIds'));
     }
 
     public function update(Request $request, GradeLevel $gradeLevel)
@@ -40,33 +37,10 @@ class SubjectAssignmentController extends Controller
             'subjects.*' => 'exists:subjects,id',
         ]);
 
-        $activeYear = AcademicYear::where('is_active', true)->firstOrFail();
         $subjectIds = $request->input('subjects', []);
 
-        // Sync logic: Delete existing for this year/grade, then insert new
-        DB::transaction(function () use ($gradeLevel, $activeYear, $subjectIds) {
-            // Remove old assignments
-            DB::table('grade_level_subjects')
-                ->where('grade_level_id', $gradeLevel->id)
-                ->where('academic_year_id', $activeYear->id)
-                ->delete();
-
-            // Insert new assignments
-            $data = [];
-            foreach ($subjectIds as $subjectId) {
-                $data[] = [
-                    'grade_level_id' => $gradeLevel->id,
-                    'subject_id' => $subjectId,
-                    'academic_year_id' => $activeYear->id,
-                    'is_required' => true, // Defaulting to true for now
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-            }
-
-            if (! empty($data)) {
-                DB::table('grade_level_subjects')->insert($data);
-            }
+        DB::transaction(function () use ($gradeLevel, $subjectIds) {
+            $this->syncGradeSubjects($gradeLevel->id, $subjectIds);
         });
 
         return redirect()->route('admin.subject-assignments.index')
@@ -90,38 +64,51 @@ class SubjectAssignmentController extends Controller
             'subjects.*' => 'exists:subjects,id',
         ]);
 
-        $activeYear = AcademicYear::where('is_active', true)->firstOrFail();
         $gradeLevelIds = $request->input('grade_levels');
         $subjectIds = $request->input('subjects', []);
 
-        DB::transaction(function () use ($gradeLevelIds, $subjectIds, $activeYear) {
+        DB::transaction(function () use ($gradeLevelIds, $subjectIds) {
             foreach ($gradeLevelIds as $gradeLevelId) {
-                // 1. Remove existing assignments for this year
-                DB::table('grade_level_subjects')
-                    ->where('grade_level_id', $gradeLevelId)
-                    ->where('academic_year_id', $activeYear->id)
-                    ->delete();
-
-                // 2. Insert new
-                $data = [];
-                foreach ($subjectIds as $subjectId) {
-                    $data[] = [
-                        'grade_level_id' => $gradeLevelId,
-                        'subject_id' => $subjectId,
-                        'academic_year_id' => $activeYear->id,
-                        'is_required' => true,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
-                }
-
-                if (! empty($data)) {
-                    DB::table('grade_level_subjects')->insert($data);
-                }
+                $this->syncGradeSubjects((int) $gradeLevelId, $subjectIds);
             }
         });
 
         return redirect()->route('admin.subject-assignments.index')
             ->with('success', 'Subjects assigned successfully to '.count($gradeLevelIds).' grade levels.');
+    }
+
+    /**
+     * Make a grade's subject list exactly $subjectIds. Subjects that stay keep their row
+     * (and sort order); removed subjects are deleted and new ones are added.
+     */
+    private function syncGradeSubjects(int $gradeLevelId, array $subjectIds): void
+    {
+        $subjectIds = array_map('intval', $subjectIds);
+
+        DB::table('grade_level_subjects')
+            ->where('grade_level_id', $gradeLevelId)
+            ->whereNotIn('subject_id', $subjectIds)
+            ->delete();
+
+        $existing = DB::table('grade_level_subjects')
+            ->where('grade_level_id', $gradeLevelId)
+            ->pluck('subject_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $data = [];
+        foreach (array_diff($subjectIds, $existing) as $subjectId) {
+            $data[] = [
+                'grade_level_id' => $gradeLevelId,
+                'subject_id' => $subjectId,
+                'is_required' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        if (! empty($data)) {
+            DB::table('grade_level_subjects')->insert($data);
+        }
     }
 }

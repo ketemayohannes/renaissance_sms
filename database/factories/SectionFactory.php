@@ -2,7 +2,6 @@
 
 namespace Database\Factories;
 
-use App\Models\AcademicYear;
 use App\Models\GradeLevel;
 use App\Models\Section;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -15,7 +14,6 @@ class SectionFactory extends Factory
     {
         return [
             'grade_level_id' => GradeLevel::factory(),
-            'academic_year_id' => AcademicYear::factory(),
             'name' => $this->faker->randomElement(['A', 'B', 'C', 'D']),
             'capacity' => $this->faker->numberBetween(25, 40),
             'homeroom_teacher_id' => null,
