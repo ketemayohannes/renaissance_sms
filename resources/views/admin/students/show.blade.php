@@ -675,8 +675,21 @@
                                         <div class="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100/50">
                                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                                         </div>
+                                        @php
+                                            // The grade/section the student was in for this year (prefer the active enrollment, else the latest).
+                                            $yearEnrollments = $enrollments->filter(fn ($e) => $e->academicYear?->name === $year);
+                                            $yearEnrollment = $yearEnrollments->firstWhere('status', 'active') ?? $yearEnrollments->first();
+                                        @endphp
                                         <div>
-                                            <h3 class="text-xl font-bold text-slate-900">{{ $year }} Academic Year</h3>
+                                            <div class="flex flex-wrap items-center gap-2">
+                                                <h3 class="text-xl font-bold text-slate-900">{{ $year }} Academic Year</h3>
+                                                @if($yearEnrollment?->section)
+                                                    @if($yearEnrollment->section->gradeLevel)
+                                                        <span class="px-2.5 py-1 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-lg text-xs font-bold">{{ $yearEnrollment->section->gradeLevel->name }}</span>
+                                                    @endif
+                                                    <span class="px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold">Section {{ $yearEnrollment->section->name }}</span>
+                                                @endif
+                                            </div>
                                             <p class="text-slate-500 text-sm font-medium">Historical performance and term results.</p>
                                         </div>
                                     </div>
