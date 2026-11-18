@@ -194,6 +194,9 @@ class StudentController extends Controller
             'medicalInfo',
             'transportation',
             'siblings.enrollments.section.gradeLevel',
+            'enrollments.section.gradeLevel',
+            'enrollments.academicYear',
+            'currentEnrollment.section.gradeLevel',
             'documents',
             'latestStatusHistory',
         ]);

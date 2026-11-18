@@ -221,7 +221,7 @@ class GradingService
         $isGrade11Or12 = false;
         $firstStudent = $students->first();
         if ($firstStudent) {
-            $enrollment = $firstStudent->enrollments()->where('academic_year_id', $academicYear->id)->first();
+            $enrollment = $this->yearEnrollment($firstStudent, (int) $academicYear->id);
             if ($enrollment && $enrollment->section && $enrollment->section->gradeLevel) {
                 if (preg_match('/\b(11|12)\b/', $enrollment->section->gradeLevel->name)) {
                     $isGrade11Or12 = true;
@@ -462,7 +462,7 @@ class GradingService
     private function computeStudentTotals(Student $student, Term $term, AcademicYear $academicYear, $subjects = null)
     {
         if (! $subjects) {
-            $enrollment = $student->enrollments()->where('academic_year_id', $academicYear->id)->first();
+            $enrollment = $this->yearEnrollment($student, (int) $academicYear->id);
             $subjects = $enrollment->section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
         }
 
@@ -676,7 +676,7 @@ class GradingService
      */
     public function getStudentReportData(Student $student, Term $term, AcademicYear $academicYear)
     {
-        $enrollment = $student->enrollments()->where('academic_year_id', $academicYear->id)->first();
+        $enrollment = $this->yearEnrollment($student, (int) $academicYear->id);
         if (! $enrollment) {
             return [];
         }
@@ -692,7 +692,15 @@ class GradingService
 
         $allReports = $this->getSectionReportData($students, $section, $term, $academicYear);
 
-        return $allReports[(string) $student->id] ?? $allReports[(int) $student->id] ?? $this->prepareReportData($student, $section, $term, $academicYear, null);
+        // A student outside the section's active roster (withdrawn, or moved out) still
+        // gets a report, computed alone against the section's subjects.
+        return $allReports[(string) $student->id] ?? $allReports[(int) $student->id] ?? $this->prepareReportData(
+            $student, $section, $term, $academicYear,
+            app(GradeCacheService::class)->getSubjects(
+                (int) $section->grade_level_id,
+                fn () => $section->gradeLevel->subjects()->orderByPivot('sort_order')->get()
+            )
+        );
     }
 
     /**
@@ -753,7 +761,8 @@ class GradingService
             'gradeNames' => StudentEnrollment::with('section.gradeLevel')
                 ->whereIn('student_id', $studentIds)
                 ->where('academic_year_id', $academicYear->id)
-                ->orderBy('id')
+                ->orderByRaw('end_date IS NULL DESC')
+                ->orderByDesc('id')
                 ->get()
                 ->groupBy('student_id')
                 ->map(fn ($enrollments) => $enrollments->first()->section?->gradeLevel?->name)
@@ -1359,9 +1368,22 @@ class GradingService
             return $this->bulk['gradeNames'][$student->id] ?? null;
         }
 
-        $enrollment = $student->enrollments()->where('academic_year_id', $academicYearId)->first();
+        $enrollment = $this->yearEnrollment($student, (int) $academicYearId);
 
         return $enrollment?->section?->gradeLevel?->name;
+    }
+
+    /**
+     * The student's enrollment for a year. A transfer within the year leaves the old
+     * (closed) row in place, so prefer the open row, then the most recent one.
+     */
+    private function yearEnrollment(Student $student, int $academicYearId): ?StudentEnrollment
+    {
+        return $student->enrollments()
+            ->where('academic_year_id', $academicYearId)
+            ->orderByRaw('end_date IS NULL DESC')
+            ->orderByDesc('id')
+            ->first();
     }
 
     /** Ids of a term's quarters. */
