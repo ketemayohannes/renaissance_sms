@@ -53,7 +53,9 @@ class DashboardController extends Controller
             $selectedGradeLevelId = $gradeLevels->first()?->id;
         }
 
-        $cacheSuffix = ($divisionId ? "_div_{$divisionId}" : '_all')
+        $activeYearId = $academicYear?->id;
+        $cacheSuffix = "_y{$activeYearId}"
+            .($divisionId ? "_div_{$divisionId}" : '_all')
             .($selectedTermId ? "_term_{$selectedTermId}" : '')
             .($selectedGradeLevelId ? "_gl_{$selectedGradeLevelId}" : '');
 
@@ -241,13 +243,14 @@ class DashboardController extends Controller
         }
 
         // Key Metrics (Cached)
-        $stats = Cache::remember("admin_dashboard_stats{$cacheSuffix}", $cacheTtl, function () use ($divisionId) {
+        $stats = Cache::remember("admin_dashboard_stats{$cacheSuffix}", $cacheTtl, function () use ($divisionId, $activeYearId) {
             $studentQuery = Student::where('is_active', true);
             $staffQuery = User::role(['Super Admin', 'Principal', 'Teacher', 'Accountant', 'HR Manager', 'Librarian', 'Staff', 'IT / System Admin', 'Registrar', 'General Manager']);
 
             if ($divisionId) {
-                $studentQuery->whereHas('enrollments', function ($q) use ($divisionId) {
+                $studentQuery->whereHas('enrollments', function ($q) use ($divisionId, $activeYearId) {
                     $q->whereNull('end_date')
+                        ->where('academic_year_id', $activeYearId)
                         ->whereHas('section.gradeLevel', fn ($sq) => $sq->where('division_id', $divisionId));
                 });
                 $staffQuery->whereHas('employee', fn ($q) => $q->where('division_id', $divisionId));
@@ -294,8 +297,11 @@ class DashboardController extends Controller
             ->get();
 
         // Student breakdown by Grade Level (Cached)
-        $studentsByGrade = Cache::remember("admin_dashboard_students_by_grade{$cacheSuffix}", $cacheTtl, function () use ($divisionId) {
+        // Count only the active year's open enrollments: last year's enrollments are kept
+        // open on purpose after promotion, so without the year filter students count twice.
+        $studentsByGrade = Cache::remember("admin_dashboard_students_by_grade{$cacheSuffix}", $cacheTtl, function () use ($divisionId, $activeYearId) {
             $query = StudentEnrollment::whereNull('end_date')
+                ->where('student_enrollments.academic_year_id', $activeYearId)
                 ->whereHas('student', fn ($q) => $q->where('is_active', true))
                 ->join('sections', 'student_enrollments.section_id', '=', 'sections.id')
                 ->join('grade_levels', 'sections.grade_level_id', '=', 'grade_levels.id');
@@ -328,12 +334,13 @@ class DashboardController extends Controller
         });
 
         // Gender breakdown (Cached)
-        $genderBreakdown = Cache::remember("admin_dashboard_gender_breakdown{$cacheSuffix}", $cacheTtl, function () use ($divisionId) {
+        $genderBreakdown = Cache::remember("admin_dashboard_gender_breakdown{$cacheSuffix}", $cacheTtl, function () use ($divisionId, $activeYearId) {
             $query = Student::where('is_active', true);
 
             if ($divisionId) {
-                $query->whereHas('enrollments', function ($q) use ($divisionId) {
+                $query->whereHas('enrollments', function ($q) use ($divisionId, $activeYearId) {
                     $q->whereNull('end_date')
+                        ->where('academic_year_id', $activeYearId)
                         ->whereHas('section.gradeLevel', fn ($sq) => $sq->where('division_id', $divisionId));
                 });
             }
