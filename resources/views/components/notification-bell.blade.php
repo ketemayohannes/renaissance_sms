@@ -3,8 +3,9 @@
         open: false, 
         count: {{ auth()->user() ? auth()->user()->unreadNotificationsCount() : 0 }}, 
         prevCount: {{ auth()->user() ? auth()->user()->unreadNotificationsCount() : 0 }},
-        notifications: [], 
+        notifications: [],
         loading: false,
+        pollTimer: null,
         requestBrowserPermission() {
             if ('Notification' in window && Notification.permission === 'default') {
                 Notification.requestPermission();
@@ -26,9 +27,17 @@
             }
         },
         fetchCount() {
-            fetch('{{ route('notifications.count') }}')
-                .then(res => res.json())
+            fetch('{{ route('notifications.count') }}', { headers: { 'Accept': 'application/json' } })
+                .then(res => {
+                    if (res.status === 401 || res.status === 419) {
+                        // Session expired: stop polling; the next page navigation goes to login
+                        clearInterval(this.pollTimer);
+                        return null;
+                    }
+                    return res.json();
+                })
                 .then(data => {
+                    if (!data) return;
                     const newCount = data.count;
                     if (newCount > this.prevCount) {
                         // New notification arrived — fetch latest to get title/body
@@ -105,7 +114,7 @@
             }
         }
      }"
-     x-init="requestBrowserPermission(); fetchCount(); setInterval(() => fetchCount(), 15000);"
+     x-init="requestBrowserPermission(); fetchCount(); pollTimer = setInterval(() => fetchCount(), 15000);"
      @click.outside="open = false">
 
      

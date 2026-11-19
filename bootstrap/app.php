@@ -4,6 +4,7 @@ use App\Http\Middleware\ForcePasswordChange;
 use App\Http\Middleware\NoCache;
 use App\Http\Middleware\SessionTimeout;
 use App\Http\Middleware\VerifyParentAccessToStudent;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -34,6 +35,19 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Background fetch()/XHR calls (notification bell, chat polling, search
+        // boxes...) that hit an expired session must get a 401, not a redirect.
+        // A redirect would make Laravel remember that API URL as the "intended"
+        // page, so after logging in the user lands on raw JSON instead of the
+        // page they were on. Only real page navigations are sent to login.
+        $exceptions->renderable(function (AuthenticationException $e, Request $request) {
+            $fetchMode = $request->headers->get('Sec-Fetch-Mode');
+
+            if ($request->expectsJson() || ($fetchMode !== null && $fetchMode !== 'navigate')) {
+                return response()->json(['message' => 'Unauthenticated.'], 401);
+            }
+        });
+
         $exceptions->renderable(function (HttpException $e, Request $request) {
             if ($e->getStatusCode() === 419) {
                 if ($request->expectsJson() || $request->ajax()) {
