@@ -71,6 +71,7 @@ class AcademicYear extends Model
                 'subject_id' => $r->subject_id,
                 'academic_year_id' => $this->id,
                 'is_required' => $r->is_required,
+                'is_elective' => $r->is_elective,
                 'sort_order' => $r->sort_order,
                 'created_at' => $now,
                 'updated_at' => $now,

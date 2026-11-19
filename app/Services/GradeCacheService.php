@@ -44,7 +44,7 @@ class GradeCacheService
 
     public static function subjectsKey(int $gradeLevelId, int $academicYearId): string
     {
-        return "section_subjects_{$gradeLevelId}_{$academicYearId}";
+        return "section_subjects_v2_{$gradeLevelId}_{$academicYearId}";
     }
 
     // ──────────────────────────────────────────────────────────────────────────

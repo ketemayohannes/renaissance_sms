@@ -64,8 +64,9 @@ class ResultAnalysisController extends Controller
 
         $term = Term::findOrFail($termId);
         $academicYear = AcademicYear::findOrFail($assignment->academic_year_id);
-        $subject = $assignment->subject;
         $gradeLevelId = $assignment->section->grade_level_id;
+        // Elective vs regular can differ by grade and year.
+        $subject = $assignment->subject->forGrade($gradeLevelId, $academicYear->id);
         $teacherId = $assignment->teacher_id;
 
         // Resolve the TERM_TOTAL type ID so we can exclude it when summing components.
