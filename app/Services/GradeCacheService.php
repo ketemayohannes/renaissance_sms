@@ -42,9 +42,9 @@ class GradeCacheService
         return "roster_data_{$sectionId}_{$termId}_{$academicYearId}";
     }
 
-    public static function subjectsKey(int $gradeLevelId): string
+    public static function subjectsKey(int $gradeLevelId, int $academicYearId): string
     {
-        return "section_subjects_{$gradeLevelId}";
+        return "section_subjects_{$gradeLevelId}_{$academicYearId}";
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -54,10 +54,10 @@ class GradeCacheService
     /**
      * Cache or compute the grade-level subject list.
      */
-    public function getSubjects(int $gradeLevelId, callable $callback)
+    public function getSubjects(int $gradeLevelId, int $academicYearId, callable $callback)
     {
         return Cache::remember(
-            self::subjectsKey($gradeLevelId),
+            self::subjectsKey($gradeLevelId, $academicYearId),
             self::SUBJECTS_TTL,
             $callback
         );
@@ -108,7 +108,7 @@ class GradeCacheService
                 ->value('grade_level_id');
 
             if ($gradeLevelId) {
-                Cache::forget(self::subjectsKey($gradeLevelId));
+                Cache::forget(self::subjectsKey($gradeLevelId, $academicYearId));
             }
         } catch (\Throwable $e) {
             // Cache failures must never break the write path

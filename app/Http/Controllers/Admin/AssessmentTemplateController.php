@@ -168,6 +168,7 @@ class AssessmentTemplateController extends Controller
                         $isAssigned = DB::table('grade_level_subjects')
                             ->where('grade_level_id', $gradeLevelId)
                             ->where('subject_id', $subjectId)
+                            ->where('academic_year_id', $request->academic_year_id)
                             ->exists();
 
                         if (! $isAssigned) {
@@ -294,7 +295,7 @@ class AssessmentTemplateController extends Controller
                 $count = 0;
                 foreach ($gradeIds as $gradeLevelId) {
                     foreach ($subjectIds as $subjectId) {
-                        $isAssigned = DB::table('grade_level_subjects')->where('grade_level_id', $gradeLevelId)->where('subject_id', $subjectId)->exists();
+                        $isAssigned = DB::table('grade_level_subjects')->where('grade_level_id', $gradeLevelId)->where('subject_id', $subjectId)->where('academic_year_id', $yearId)->exists();
                         if (! $isAssigned) {
                             continue;
                         }

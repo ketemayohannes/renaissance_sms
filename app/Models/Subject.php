@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Helpers\CachedData;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -30,11 +31,13 @@ class Subject extends Model
         'is_elective' => 'boolean',
     ];
 
-    // Relationship: Grade levels that teach this subject
+    // Grade levels that teach this subject in the active academic year
+    // (assignments are kept per year).
     public function gradeLevels()
     {
         return $this->belongsToMany(GradeLevel::class, 'grade_level_subjects')
-            ->withPivot('sort_order')
+            ->withPivot('sort_order', 'academic_year_id')
+            ->withPivotValue('academic_year_id', CachedData::activeAcademicYear()?->id)
             ->withTimestamps();
     }
 }

@@ -79,6 +79,7 @@ class GradeComponentController extends Controller
             $isAssigned = \DB::table('grade_level_subjects')
                 ->where('grade_level_id', $first->grade_level_id)
                 ->where('subject_id', $first->subject_id)
+                ->where('academic_year_id', $first->academic_year_id)
                 ->exists();
 
             // Only return if the subject is assigned to the grade level

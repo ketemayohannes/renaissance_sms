@@ -103,6 +103,7 @@ class TestScenarioSeeder extends Seeder
         DB::table('grade_level_subjects')->updateOrInsert([
             'grade_level_id' => $grade12->id,
             'subject_id' => $biology->id,
+            'academic_year_id' => $year->id,
         ], ['is_required' => true]);
 
         // 5. Create Assessment Templates

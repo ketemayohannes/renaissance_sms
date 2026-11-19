@@ -52,7 +52,7 @@ class GradingService
                 ->wherePivot('academic_year_id', $academicYear->id)
                 ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated'])
                 ->get();
-            $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
+            $subjects = $section->gradeLevel->subjectsForYear((int) $academicYear->id)->orderByPivot('sort_order')->get();
 
             $batchResults = $this->calculateSectionTotals($students, $term, $academicYear, $subjects);
             $studentTotals = [];
@@ -135,7 +135,7 @@ class GradingService
             ->whereIn('student_enrollments.status', ['active', 'completed', 'graduated'])
             ->get();
 
-        $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
+        $subjects = $section->gradeLevel->subjectsForYear((int) $academicYear->id)->orderByPivot('sort_order')->get();
         $isSemester = $term->isSemester();
 
         // If this is a semester, also recalculate each quarter's stats first
@@ -463,7 +463,7 @@ class GradingService
     {
         if (! $subjects) {
             $enrollment = $this->yearEnrollment($student, (int) $academicYear->id);
-            $subjects = $enrollment->section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
+            $subjects = $enrollment->section->gradeLevel->subjectsForYear((int) $academicYear->id)->orderByPivot('sort_order')->get();
         }
 
         $isGrade11Or12 = false;
@@ -698,7 +698,8 @@ class GradingService
             $student, $section, $term, $academicYear,
             app(GradeCacheService::class)->getSubjects(
                 (int) $section->grade_level_id,
-                fn () => $section->gradeLevel->subjects()->orderByPivot('sort_order')->get()
+                (int) $academicYear->id,
+                fn () => $section->gradeLevel->subjectsForYear((int) $academicYear->id)->orderByPivot('sort_order')->get()
             )
         );
     }
@@ -710,7 +711,8 @@ class GradingService
     {
         $subjects = app(GradeCacheService::class)->getSubjects(
             (int) $section->grade_level_id,
-            fn () => $section->gradeLevel->subjects()->orderByPivot('sort_order')->get()
+            (int) $academicYear->id,
+            fn () => $section->gradeLevel->subjectsForYear((int) $academicYear->id)->orderByPivot('sort_order')->get()
         );
         $isYearly = $term->id === 'yearly' || $term->type === 'yearly';
         $isSemester = $term->isSemester();
@@ -1141,7 +1143,7 @@ class GradingService
 
         $sourceTermIds = $sourceTerms->pluck('id');
         $gradeLevel = $section->gradeLevel;
-        $subjects = $gradeLevel->subjects()->get();
+        $subjects = $gradeLevel->subjectsForYear((int) $academicYear->id)->get();
 
         if ($subjects->isEmpty()) {
             return 0;

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Helpers\CachedData;
 use App\Http\Controllers\Controller;
 use App\Models\GradeLevel;
 use App\Models\Subject;
@@ -97,11 +98,14 @@ class SubjectController extends Controller
         ]);
 
         $gradeLevelId = $request->grade_level_id;
+        // The order shown and edited here is the active year's subject list.
+        $yearId = CachedData::activeAcademicYear()?->id;
 
         foreach ($request->orders as $subjectId => $order) {
             DB::table('grade_level_subjects')
                 ->where('grade_level_id', $gradeLevelId)
                 ->where('subject_id', $subjectId)
+                ->where('academic_year_id', $yearId)
                 ->update(['sort_order' => $order]);
         }
 
