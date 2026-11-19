@@ -74,7 +74,7 @@ class ResultAnalysisController extends Controller
 
         $term = Term::findOrFail($termId);
         $academicYear = AcademicYear::findOrFail($assignment->academic_year_id);
-        $subject = $assignment->subject;
+        $subject = $assignment->subject->forGrade($assignment->section?->grade_level_id, $assignment->academic_year_id); // elective vs regular can differ by grade and year
         $gradeLevelId = $assignment->section->grade_level_id;
 
         $relevantAssignments = TeacherAssignment::where('teacher_id', Auth::id())
@@ -205,7 +205,7 @@ class ResultAnalysisController extends Controller
         $term = Term::findOrFail($termId);
         $semester = Term::find($term->parent_term_id); // Fetch parent semester if exists
         $academicYear = AcademicYear::findOrFail($assignment->academic_year_id);
-        $subject = $assignment->subject;
+        $subject = $assignment->subject->forGrade($assignment->section?->grade_level_id, $assignment->academic_year_id); // elective vs regular can differ by grade and year
         $gradeLevelId = $assignment->section->grade_level_id;
 
         $relevantAssignments = TeacherAssignment::where('teacher_id', Auth::id())

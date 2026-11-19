@@ -59,8 +59,9 @@ class GradebookController extends Controller implements HasMiddleware
         ]);
 
         $section = Section::with(['gradeLevel', 'students'])->findOrFail($request->section_id);
-        $subject = Subject::findOrFail($request->subject_id);
         $academicYear = AcademicYear::findOrFail($request->academic_year_id);
+        // Elective vs regular can differ by grade and year.
+        $subject = Subject::findOrFail($request->subject_id)->forGrade($section->grade_level_id, $academicYear->id);
         $term = Term::findOrFail($request->term_id);
 
         // Fetch assessment templates for this context
@@ -367,8 +368,9 @@ class GradebookController extends Controller implements HasMiddleware
         ]);
 
         $section = Section::with(['gradeLevel', 'students'])->findOrFail($request->section_id);
-        $subject = Subject::findOrFail($request->subject_id);
         $academicYear = AcademicYear::findOrFail($request->academic_year_id);
+        // Elective vs regular can differ by grade and year.
+        $subject = Subject::findOrFail($request->subject_id)->forGrade($section->grade_level_id, $academicYear->id);
         $term = Term::findOrFail($request->term_id);
         $settings = ReportCardSetting::firstOrNew();
 

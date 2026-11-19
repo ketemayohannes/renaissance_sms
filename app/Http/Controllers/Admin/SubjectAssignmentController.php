@@ -40,13 +40,18 @@ class SubjectAssignmentController extends Controller
 
         $subjects = Subject::where('is_active', true)->orderBy('name')->get();
 
-        $assignedSubjectIds = DB::table('grade_level_subjects')
+        $assigned = DB::table('grade_level_subjects')
             ->where('grade_level_id', $gradeLevel->id)
             ->where('academic_year_id', $academicYear->id)
-            ->pluck('subject_id')
-            ->toArray();
+            ->pluck('is_elective', 'subject_id');
+        $assignedSubjectIds = $assigned->keys()->map(fn ($id) => (int) $id)->all();
 
-        return view('admin.subject-assignments.edit', compact('gradeLevel', 'subjects', 'assignedSubjectIds', 'academicYear'));
+        // Elective in this grade and year: the assignment's own setting, else the subject's.
+        $electiveSubjectIds = $subjects
+            ->filter(fn ($s) => $assigned->has($s->id) && $assigned[$s->id] !== null ? (bool) $assigned[$s->id] : $s->defaultIsElective())
+            ->pluck('id')->all();
+
+        return view('admin.subject-assignments.edit', compact('gradeLevel', 'subjects', 'assignedSubjectIds', 'electiveSubjectIds', 'academicYear'));
     }
 
     public function update(Request $request, GradeLevel $gradeLevel)
@@ -55,13 +60,17 @@ class SubjectAssignmentController extends Controller
             'academic_year_id' => 'required|exists:academic_years,id',
             'subjects' => 'array',
             'subjects.*' => 'exists:subjects,id',
+            'electives' => 'array',
+            'electives.*' => 'exists:subjects,id',
         ]);
 
         $yearId = (int) $request->academic_year_id;
         $subjectIds = $request->input('subjects', []);
+        $electiveIds = array_map('intval', $request->input('electives', []));
 
-        DB::transaction(function () use ($gradeLevel, $subjectIds, $yearId) {
+        DB::transaction(function () use ($gradeLevel, $subjectIds, $yearId, $electiveIds) {
             $this->syncGradeSubjects($gradeLevel->id, $yearId, $subjectIds);
+            $this->saveElectiveSettings($gradeLevel->id, $yearId, $electiveIds);
         });
 
         $year = AcademicYear::find($yearId);
@@ -102,6 +111,28 @@ class SubjectAssignmentController extends Controller
 
         return redirect()->route('admin.subject-assignments.index', ['academic_year_id' => $yearId])
             ->with('success', 'Subjects assigned successfully to '.count($gradeLevelIds).' grade levels.');
+    }
+
+    /**
+     * Record which assigned subjects are electives in this grade and year. Only a value
+     * that differs from the subject's own setting is stored; otherwise it is left NULL so
+     * the subject's setting applies.
+     */
+    private function saveElectiveSettings(int $gradeLevelId, int $yearId, array $electiveIds): void
+    {
+        $rows = DB::table('grade_level_subjects')
+            ->join('subjects', 'subjects.id', '=', 'grade_level_subjects.subject_id')
+            ->where('grade_level_subjects.grade_level_id', $gradeLevelId)
+            ->where('grade_level_subjects.academic_year_id', $yearId)
+            ->get(['grade_level_subjects.id', 'grade_level_subjects.subject_id', 'subjects.is_elective as default_elective']);
+
+        foreach ($rows as $row) {
+            $elective = in_array((int) $row->subject_id, $electiveIds, true);
+            DB::table('grade_level_subjects')->where('id', $row->id)
+                ->update(['is_elective' => $elective === (bool) $row->default_elective ? null : $elective]);
+        }
+
+        Cache::forget(GradeCacheService::subjectsKey($gradeLevelId, $yearId));
     }
 
     /** The year picked in the request, else the active year, else the latest one. */

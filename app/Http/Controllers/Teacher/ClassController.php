@@ -39,7 +39,7 @@ class ClassController extends Controller
             ->first() : null;
 
         foreach ($assignments as $assignment) {
-            $isElective = $assignment->subject->is_elective ?? false;
+            $isElective = $assignment->subject?->forGrade($assignment->section?->grade_level_id, $assignment->academic_year_id)->is_elective ?? false;
             $activeTerm = $isElective ? $openSemester : $openQuarter;
             $assignment->grading_status = $activeTerm ? 'Grading Active: '.$activeTerm->name : 'Grading Closed';
         }

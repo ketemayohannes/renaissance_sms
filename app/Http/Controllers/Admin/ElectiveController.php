@@ -34,7 +34,8 @@ class ElectiveController extends Controller
             ->join('subjects', 'grade_level_subjects.subject_id', '=', 'subjects.id')
             ->where('grade_level_subjects.grade_level_id', $request->grade_level_id)
             ->where('grade_level_subjects.academic_year_id', $yearId)
-            ->where('subjects.is_elective', true)
+            // A grade/year setting overrides the subject's own elective flag.
+            ->whereRaw('COALESCE(grade_level_subjects.is_elective, subjects.is_elective) = 1')
             ->select('subjects.id', 'subjects.name', 'subjects.code')
             ->orderBy('subjects.name')
             ->get();
@@ -97,7 +98,14 @@ class ElectiveController extends Controller
         ]);
 
         $subject = Subject::findOrFail($request->subject_id);
-        if (! $subject->is_elective) {
+        // Elective in at least one grade in this year (grade/year setting, else the subject's own).
+        $isElectiveThisYear = DB::table('grade_level_subjects')
+            ->join('subjects', 'subjects.id', '=', 'grade_level_subjects.subject_id')
+            ->where('grade_level_subjects.subject_id', $subject->id)
+            ->where('grade_level_subjects.academic_year_id', $request->academic_year_id)
+            ->whereRaw('COALESCE(grade_level_subjects.is_elective, subjects.is_elective) = 1')
+            ->exists();
+        if (! $isElectiveThisYear) {
             return back()->with('error', 'Selected subject is not an elective.');
         }
 

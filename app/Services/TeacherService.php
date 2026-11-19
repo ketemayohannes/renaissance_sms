@@ -126,7 +126,7 @@ class TeacherService
 
         $term = Term::findOrFail($termId);
         $academicYear = AcademicYear::active()->first();
-        $subject = $assignment->subject;
+        $subject = $assignment->subject->forGrade($assignment->section?->grade_level_id, $assignment->academic_year_id); // elective vs regular can differ by grade and year
         $section = $assignment->section;
 
         if ($subject->is_elective) {
@@ -193,7 +193,7 @@ class TeacherService
 
         foreach ($assignments as $assignment) {
             $section = $assignment->section;
-            $subject = $assignment->subject;
+            $subject = $assignment->subject->forGrade($assignment->section?->grade_level_id, $assignment->academic_year_id); // elective vs regular can differ by grade and year
 
             if ($subject->is_elective) {
                 $students = $section->students()

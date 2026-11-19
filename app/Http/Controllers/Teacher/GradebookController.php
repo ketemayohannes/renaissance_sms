@@ -55,7 +55,7 @@ class GradebookController extends Controller
 
         $term = Term::findOrFail($termId);
         $section = $assignment->section;
-        $subject = $assignment->subject;
+        $subject = $assignment->subject->forGrade($assignment->section?->grade_level_id, $assignment->academic_year_id); // elective vs regular can differ by grade and year
 
         // Fetch all terms for this year for the dropdown
         $terms = Term::where('academic_year_id', $academicYearId)
@@ -179,7 +179,7 @@ class GradebookController extends Controller
 
         $term = Term::findOrFail($request->term_id);
         $section = $assignment->section;
-        $subject = $assignment->subject;
+        $subject = $assignment->subject->forGrade($assignment->section?->grade_level_id, $assignment->academic_year_id); // elective vs regular can differ by grade and year
         $academicYearId = $assignment->academic_year_id;
 
         // Fetch students
@@ -271,7 +271,7 @@ class GradebookController extends Controller
 
         $term = Term::findOrFail($request->term_id);
         $section = $assignment->section;
-        $subject = $assignment->subject;
+        $subject = $assignment->subject->forGrade($assignment->section?->grade_level_id, $assignment->academic_year_id); // elective vs regular can differ by grade and year
         $academicYear = AcademicYear::findOrFail($assignment->academic_year_id);
         $settings = ReportCardSetting::firstOrNew();
 

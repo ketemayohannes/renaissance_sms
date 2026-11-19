@@ -38,7 +38,7 @@ class GradeLevel extends Model
     public function subjectsForYear(?int $academicYearId)
     {
         return $this->belongsToMany(Subject::class, 'grade_level_subjects')
-            ->withPivot('is_required', 'sort_order', 'academic_year_id')
+            ->withPivot('is_required', 'sort_order', 'academic_year_id', 'is_elective')
             ->withPivotValue('academic_year_id', $academicYearId)
             ->withTimestamps();
     }
