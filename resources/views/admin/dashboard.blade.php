@@ -1,14 +1,14 @@
 <x-admin-layout>
     <x-slot name="header">
         <div class="flex items-center justify-between w-full">
-            <span class="text-xl font-bold text-slate-800">Command Center</span>
-            <div class="flex items-center gap-3">
+            <span class="hidden lg:inline text-[17px] font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap">Command Center</span>
+            <div class="flex items-center gap-2">
                 <!-- Division Selector -->
                 <div class="relative" x-data="{ open: false }">
-                    <button @click="open = !open" class="bg-white border border-slate-200 rounded-xl px-4 py-2 flex items-center gap-3 hover:border-indigo-500 transition-all shadow-sm group">
+                    <button @click="open = !open" class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 flex items-center gap-2.5 hover:border-indigo-500 transition-all shadow-sm group">
                         <div class="flex flex-col items-start">
-                            <span class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none mb-1">Division</span>
-                            <span class="text-xs font-black text-slate-800 uppercase tracking-wider leading-none">{{ $selectedDivision?->name ?? 'All Divisions' }}</span>
+                            <span class="hidden md:block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none mb-1">Division</span>
+                            <span class="text-[11px] font-black whitespace-nowrap text-slate-800 uppercase tracking-wider leading-none">{{ $selectedDivision?->name ?? 'All Divisions' }}</span>
                         </div>
                         <svg class="w-4 h-4 text-slate-400 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                     </button>
@@ -42,226 +42,214 @@
                     </div>
                 </div>
 
-                <div class="h-8 w-[1px] bg-slate-200 mx-1"></div>
+                <div class="hidden 2xl:block h-6 w-[1px] bg-slate-200 mx-1"></div>
 
-                <div class="bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-2 flex items-center gap-2">
+                <div class="hidden 2xl:flex bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-1.5 items-center gap-2 whitespace-nowrap">
                     <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
-                    <span class="text-xs font-black text-indigo-700 uppercase tracking-wider">{{ $academicYear?->name ?? 'N/A' }}</span>
+                    <span class="text-[11px] font-black text-indigo-700 uppercase tracking-wider">{{ $academicYear?->name ?? 'N/A' }}</span>
                 </div>
             </div>
         </div>
     </x-slot>
     
-    <div class="space-y-8">
-        <!-- Floating Alert Banner -->
-        @if($sectionsMissingAttendance > 0)
-        <div class="glass-panel p-6 border-l-8 border-amber-500 flex flex-col md:flex-row items-center justify-between gap-6 hover:shadow-2xl transition-all">
-            <div class="flex items-center gap-6">
-                <div class="w-16 h-16 rounded-2xl bg-amber-500/10 flex items-center justify-center flex-shrink-0 animate-bounce">
-                    <svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                    </svg>
-                </div>
-                <div>
-                    <h3 class="text-xl font-black text-slate-900 uppercase tracking-tight">Attendance Pending</h3>
-                    <p class="text-slate-500 font-medium">{{ $sectionsMissingAttendance }} section(s) require attention today.</p>
-                </div>
-            </div>
-            <a href="{{ route('admin.attendance.index') }}" class="vibrant-btn-amber">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                Mark Attendance Now
-            </a>
-        </div>
-        @endif
-        
+    <div class="dashboard-compact">
         <!-- Premium KPI Row -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <!-- Student Enrollment -->
-            <div class="glass-panel p-4 group hover:-translate-y-1 transition-all duration-500">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center group-hover:bg-indigo-500 transition-all duration-500">
-                        <svg class="w-5 h-5 text-indigo-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                        </svg>
+        @php
+            $attendanceStatus = match(true) {
+                $stats['today_attendance'] >= 90 => ['Excellent', 'emerald'],
+                $stats['today_attendance'] >= 75 => ['Stable', 'amber'],
+                default => ['Critical', 'rose']
+            };
+            $kpis = [
+                ['label' => 'Students', 'value' => number_format($stats['total_students']), 'note' => $selectedDivision ? $selectedDivision->name : 'Total Enrolled',
+                 'badge' => ['Active', 'bg-emerald-500/10 text-emerald-600'], 'icon' => ['bg-indigo-500/10 group-hover:bg-indigo-500', 'text-indigo-600'],
+                 'path' => 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z'],
+                ['label' => 'Faculty', 'value' => $stats['total_staff'], 'note' => $selectedDivision ? $selectedDivision->name : 'Academic & Support',
+                 'badge' => ['Active', 'bg-indigo-500/10 text-indigo-600'], 'icon' => ['bg-emerald-500/10 group-hover:bg-emerald-500', 'text-emerald-600'],
+                 'path' => 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z'],
+                ['label' => 'Presence', 'value' => $stats['today_attendance'].'%', 'note' => 'Daily Rate',
+                 'badge' => [$attendanceStatus[0], 'bg-'.$attendanceStatus[1].'-500/10 text-'.$attendanceStatus[1].'-600'], 'icon' => ['bg-rose-500/10 group-hover:bg-rose-500', 'text-rose-600'],
+                 'path' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4'],
+            ];
+        @endphp
+        {{-- Badge colours used above, listed in full so Tailwind keeps them: bg-emerald-500/10 text-emerald-600 bg-amber-500/10 text-amber-600 bg-rose-500/10 text-rose-600 --}}
+        {{-- Five cards side by side when attendance is pending (it leads the row), otherwise four. --}}
+        <div class="grid grid-cols-1 sm:grid-cols-2 dash-grid {{ $sectionsMissingAttendance > 0 ? 'lg:grid-cols-3 xl:grid-cols-5' : 'lg:grid-cols-4' }}">
+            @if($sectionsMissingAttendance > 0)
+            <!-- Attendance pending (school days only) -->
+            <div class="glass-panel dash-card-sm !border-amber-300 dark:!border-amber-500/40 ring-1 ring-amber-200/60 dark:ring-amber-500/20 group hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <div class="w-8 h-8 rounded-lg bg-amber-500/10 group-hover:bg-amber-500 flex items-center justify-center shrink-0 transition-all duration-300">
+                            <svg class="w-4 h-4 text-amber-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <h4 class="dash-label !text-amber-600">Attendance Pending</h4>
+                            <p class="dash-kpi-value">{{ $sectionsMissingAttendance }} <span class="text-[11px] font-bold text-slate-500 tracking-normal">section(s)</span></p>
+                        </div>
                     </div>
-                    <span class="px-2 py-0.5 bg-emerald-500/10 text-emerald-600 rounded-md text-[9px] font-black uppercase tracking-widest">Active</span>
+                    <span class="px-1.5 py-0.5 bg-amber-500/10 text-amber-600 rounded text-[9px] font-black uppercase tracking-widest shrink-0">Today</span>
                 </div>
-                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Students</h4>
-                <p class="text-2xl font-black text-slate-900 tracking-tight">{{ number_format($stats['total_students']) }}</p>
-                <div class="mt-2 pt-2 border-t border-slate-50">
-                    <span class="text-[10px] font-bold text-slate-400 italic">{{ $selectedDivision ? $selectedDivision->name : 'Total Enrolled' }}</span>
-                </div>
+                <a href="{{ route('admin.attendance.index') }}" class="mt-1.5 pt-1.5 border-t border-amber-100 dark:border-amber-500/20 flex items-center justify-between gap-1 text-[11px] font-black text-amber-600 hover:text-orange-600 dark:text-amber-400">
+                    <span class="truncate">Mark Attendance Now</span>
+                    <svg class="w-3.5 h-3.5 shrink-0 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </a>
             </div>
-            
-            <!-- Faculty & Staff -->
-            <div class="glass-panel p-4 group hover:-translate-y-1 transition-all duration-500">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center group-hover:bg-emerald-500 transition-all duration-500">
-                        <svg class="w-5 h-5 text-emerald-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                        </svg>
+            @endif
+
+            @foreach($kpis as $kpi)
+            <div class="glass-panel dash-card-sm group hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <div class="w-8 h-8 rounded-lg {{ $kpi['icon'][0] }} flex items-center justify-center shrink-0 transition-all duration-300">
+                            <svg class="w-4 h-4 {{ $kpi['icon'][1] }} group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $kpi['path'] }}"></path>
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <h4 class="dash-label">{{ $kpi['label'] }}</h4>
+                            <p class="dash-kpi-value">{{ $kpi['value'] }}</p>
+                        </div>
                     </div>
-                    <span class="px-2 py-0.5 bg-indigo-500/10 text-indigo-600 rounded-md text-[9px] font-black uppercase tracking-widest">Active</span>
+                    <span class="px-1.5 py-0.5 {{ $kpi['badge'][1] }} rounded text-[9px] font-black uppercase tracking-widest shrink-0">{{ $kpi['badge'][0] }}</span>
                 </div>
-                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Faculty</h4>
-                <p class="text-2xl font-black text-slate-900 tracking-tight">{{ $stats['total_staff'] }}</p>
-                <div class="mt-2 pt-2 border-t border-slate-50">
-                    <span class="text-[10px] font-bold text-slate-400 italic">{{ $selectedDivision ? $selectedDivision->name : 'Academic & Support' }}</span>
-                </div>
+                <p class="mt-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-800 text-[10px] font-bold text-slate-400 italic truncate">{{ $kpi['note'] }}</p>
             </div>
-            
-            <!-- Attendance Rate -->
-            <div class="glass-panel p-4 group hover:-translate-y-1 transition-all duration-500">
-                <div class="flex items-center justify-between mb-3">
-                    @php
-                        $attendanceStatus = match(true) {
-                            $stats['today_attendance'] >= 90 => ['Excellent', 'emerald'],
-                            $stats['today_attendance'] >= 75 => ['Stable', 'amber'],
-                            default => ['Critical', 'rose']
-                        };
-                    @endphp
-                    <div class="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center group-hover:bg-rose-500 transition-all duration-500">
-                        <svg class="w-5 h-5 text-rose-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
-                        </svg>
-                    </div>
-                    <span class="px-2 py-0.5 bg-{{ $attendanceStatus[1] }}-500/10 text-{{ $attendanceStatus[1] }}-600 rounded-md text-[9px] font-black uppercase tracking-widest">{{ $attendanceStatus[0] }}</span>
-                </div>
-                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Presence</h4>
-                <p class="text-2xl font-black text-slate-900 tracking-tight">{{ $stats['today_attendance'] }}%</p>
-                <div class="mt-2 pt-2 border-t border-slate-50">
-                    <span class="text-[10px] font-bold text-slate-400 italic">Daily Rate</span>
-                </div>
-            </div>
+            @endforeach
 
             <!-- Quick Access Menu -->
-            <div class="glass-panel p-4 bg-slate-900 overflow-hidden relative group">
+            <div class="glass-panel dash-card-sm bg-slate-900 overflow-hidden relative group">
                 <div class="absolute inset-0 bg-gradient-to-br from-indigo-600/20 to-purple-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-                <h4 class="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2 relative z-10">Power Actions</h4>
-                <div class="space-y-2 relative z-10">
+                <h4 class="dash-label !text-indigo-400 mb-1.5 relative z-10">Power Actions</h4>
+                <div class="flex flex-wrap gap-1 relative z-10">
                     @can('create students')
-                    <a href="{{ route('admin.students.create') }}" class="flex items-center justify-between p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 transition-all group/item">
-                        <span class="text-[10px] font-bold text-white tracking-wide">Register Student</span>
-                        <svg class="w-3 h-3 text-indigo-400 group-hover/item:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    <a href="{{ route('admin.students.create') }}" class="flex-auto flex items-center justify-between gap-1 px-1.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 transition-all group/item">
+                        <span class="text-[11px] font-bold text-white leading-4 tracking-tight whitespace-nowrap">Register Student</span>
+                        <svg class="w-2.5 h-2.5 shrink-0 text-indigo-400 group-hover/item:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                     </a>
                     @endcan
-                    <a href="{{ route('admin.section-grades.index') }}" class="flex items-center justify-between p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 transition-all group/item">
-                        <span class="text-[10px] font-bold text-white tracking-wide">Batch Grading</span>
-                        <svg class="w-3 h-3 text-emerald-400 group-hover/item:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    <a href="{{ route('admin.section-grades.index') }}" class="flex-auto flex items-center justify-between gap-1 px-1.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 transition-all group/item">
+                        <span class="text-[11px] font-bold text-white leading-4 tracking-tight whitespace-nowrap">Batch Grading</span>
+                        <svg class="w-2.5 h-2.5 shrink-0 text-emerald-400 group-hover/item:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                     </a>
                     @can('create employees')
-                    <a href="{{ route('admin.employees.create') }}" class="flex items-center justify-between p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 transition-all group/item">
-                        <span class="text-[10px] font-bold text-white tracking-wide">Onboard Staff</span>
-                        <svg class="w-3 h-3 text-amber-400 group-hover/item:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    <a href="{{ route('admin.employees.create') }}" class="flex-auto flex items-center justify-between gap-1 px-1.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 transition-all group/item">
+                        <span class="text-[11px] font-bold text-white leading-4 tracking-tight whitespace-nowrap">Onboard Staff</span>
+                        <svg class="w-2.5 h-2.5 shrink-0 text-amber-400 group-hover/item:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                     </a>
                     @endcan
                 </div>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- Academic Calendar (school-wide schedule) -->
+        <x-academic-calendar />
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 dash-grid">
             <!-- Enrollment Analytics -->
-            <div class="glass-panel p-4 lg:col-span-2">
-                <div class="flex items-center justify-between mb-2">
+            <div class="glass-panel dash-card lg:col-span-2">
+                <div class="dash-card-head">
                     <div>
-                        <h3 class="text-base font-black text-slate-900 uppercase tracking-tight">Enrollment Matrix</h3>
-                        <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Student Distribution</p>
+                        <h3 class="dash-title">Enrollment Matrix</h3>
+                        <p class="dash-subtitle">Student Distribution</p>
                     </div>
                 </div>
-                <div class="h-[180px]">
+                <div class="h-[150px]">
                     <canvas id="enrollmentChart"></canvas>
                 </div>
             </div>
 
             <!-- Demographic Breakdown -->
-            <div class="glass-panel p-4">
-                <h3 class="text-base font-black text-slate-900 uppercase tracking-tight mb-2">Demographics</h3>
-                <div class="h-[120px] relative">
-                    <canvas id="genderChart"></canvas>
+            <div class="glass-panel dash-card">
+                <div class="dash-card-head">
+                    <h3 class="dash-title">Demographics</h3>
                 </div>
-                <div class="mt-3 space-y-1.5">
-                    <div class="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-100">
-                        <div class="flex items-center gap-2">
-                            <div class="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
-                            <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Male</span>
-                        </div>
-                        <span class="text-[10px] font-black text-slate-900">{{ $genderBreakdown['M'] ?? 0 }}</span>
+                <div class="flex items-center gap-4">
+                    <div class="h-[140px] w-[140px] shrink-0 relative">
+                        <canvas id="genderChart"></canvas>
                     </div>
-                    <div class="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-100">
-                        <div class="flex items-center gap-2">
-                            <div class="w-1.5 h-1.5 rounded-full bg-rose-400"></div>
-                            <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Female</span>
+                    <div class="flex-1 min-w-0 space-y-1.5">
+                        <div class="flex items-center justify-between px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-100 dark:border-slate-700">
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
+                                <span class="dash-label !text-slate-500">Male</span>
+                            </div>
+                            <span class="text-xs font-black text-slate-900 dark:text-slate-100">{{ $genderBreakdown['M'] ?? 0 }}</span>
                         </div>
-                        <span class="text-[10px] font-black text-slate-900">{{ $genderBreakdown['F'] ?? 0 }}</span>
+                        <div class="flex items-center justify-between px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-100 dark:border-slate-700">
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 rounded-full bg-rose-400"></div>
+                                <span class="dash-label !text-slate-500">Female</span>
+                            </div>
+                            <span class="text-xs font-black text-slate-900 dark:text-slate-100">{{ $genderBreakdown['F'] ?? 0 }}</span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Academic Performance Analytics (Full Width) -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div class="glass-panel p-6">
-                <div class="flex items-center justify-between mb-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 dash-grid">
+            <div class="glass-panel dash-card min-w-0">
+                <div class="dash-card-head">
                     <div>
-                        <h3 class="text-lg font-black text-slate-900 uppercase tracking-tight">Academic Excellence</h3>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Subject Average Performance</p>
+                        <h3 class="dash-title">Academic Excellence</h3>
+                        <p class="dash-subtitle">Subject Average Performance</p>
                     </div>
-                    
+
                     <!-- Selectors -->
-                    <div class="flex items-center gap-2">
-                        <form id="academicExcellenceForm" class="flex gap-1">
-                            @if(request('division_id'))
-                                <input type="hidden" name="division_id" value="{{ request('division_id') }}">
-                            @endif
-                            <select name="grade_level_id" onchange="fetchAcademicExcellenceData()" 
-                                    class="bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 text-[9px] font-black uppercase tracking-widest focus:ring-indigo-600 focus:border-indigo-600 transition-all shadow-sm">
-                                @foreach($gradeLevels as $grade)
-                                    <option value="{{ $grade->id }}" {{ $selectedGradeLevelId == $grade->id ? 'selected' : '' }}>{{ $grade->name }}</option>
-                                @endforeach
-                            </select>
-                            <select name="term_id" onchange="fetchAcademicExcellenceData()" 
-                                    class="bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 text-[9px] font-black uppercase tracking-widest focus:ring-indigo-600 focus:border-indigo-600 transition-all shadow-sm">
-                                <option value="yearly" {{ $selectedTermId === 'yearly' ? 'selected' : '' }}>Yearly</option>
-                                @foreach($terms as $term)
-                                    <option value="{{ $term->id }}" {{ $selectedTermId == $term->id ? 'selected' : '' }}>{{ $term->name }}</option>
-                                @endforeach
-                            </select>
-                        </form>
-                    </div>
+                    <form id="academicExcellenceForm" class="flex flex-wrap gap-1.5">
+                        @if(request('division_id'))
+                            <input type="hidden" name="division_id" value="{{ request('division_id') }}">
+                        @endif
+                        <select name="grade_level_id" onchange="fetchAcademicExcellenceData()" class="dash-select" aria-label="Grade level">
+                            @foreach($gradeLevels as $grade)
+                                <option value="{{ $grade->id }}" {{ $selectedGradeLevelId == $grade->id ? 'selected' : '' }}>{{ $grade->name }}</option>
+                            @endforeach
+                        </select>
+                        <select name="term_id" onchange="fetchAcademicExcellenceData()" class="dash-select" aria-label="Term">
+                            <option value="yearly" {{ $selectedTermId === 'yearly' ? 'selected' : '' }}>Yearly</option>
+                            @foreach($terms as $term)
+                                <option value="{{ $term->id }}" {{ $selectedTermId == $term->id ? 'selected' : '' }}>{{ $term->name }}</option>
+                            @endforeach
+                        </select>
+                    </form>
                 </div>
-                
+
                 <!-- Chart -->
-                <div class="h-[200px] mb-6">
+                <div class="h-[160px] mb-2">
                     <canvas id="gradeAveragesChart"></canvas>
                 </div>
-                
+
                 <!-- Table -->
                 <div class="overflow-x-auto custom-scrollbar relative" id="academicExcellenceTableContainer">
                     <div id="academicExcellenceLoading" class="absolute inset-0 bg-white/80 backdrop-blur-sm z-20 flex items-center justify-center hidden rounded-xl">
-                        <svg class="animate-spin h-8 w-8 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <svg class="animate-spin h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
                     </div>
-                    
+
                     <table class="w-full text-center">
                         <thead id="academicExcellenceThead">
                             <tr>
                                 @foreach($subjectAverages as $avg)
-                                <th class="text-[10px] font-black text-slate-400 uppercase tracking-widest pb-3 px-3 whitespace-nowrap">{{ $avg->subject_name }}</th>
+                                <th class="text-[10px] font-black text-slate-400 uppercase tracking-widest pb-1 px-2 whitespace-nowrap">{{ $avg->subject_name }}</th>
                                 @endforeach
                             </tr>
                         </thead>
                         <tbody id="academicExcellenceTbody">
                             <tr>
                                 @forelse($subjectAverages as $avg)
-                                <td class="py-2 px-2">
-                                    <span class="px-2.5 py-1 rounded-lg text-[11px] font-black {{ $avg->average >= 75 ? 'bg-emerald-50 text-emerald-600' : ($avg->average >= 50 ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600') }}">
+                                <td class="py-1 px-1.5">
+                                    <span class="px-2 py-0.5 rounded-md text-[11px] font-black {{ $avg->average >= 75 ? 'bg-emerald-50 text-emerald-600' : ($avg->average >= 50 ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600') }}">
                                         {{ $avg->average }}%
                                     </span>
                                 </td>
                                 @empty
-                                <td class="py-8 text-center text-xs font-bold text-slate-400 italic">No data</td>
+                                <td class="py-3 text-center text-xs font-bold text-slate-400 italic">No data</td>
                                 @endforelse
                             </tr>
                         </tbody>
@@ -270,39 +258,36 @@
             </div>
 
             <!-- Performance Distribution -->
-            <div class="glass-panel p-6">
-                <div class="flex items-center justify-between mb-6">
+            <div class="glass-panel dash-card min-w-0">
+                <div class="dash-card-head">
                     <div>
-                        <h3 class="text-lg font-black text-slate-900 uppercase tracking-tight">Performance Analysis</h3>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Score Distribution Per Subject</p>
+                        <h3 class="dash-title">Performance Analysis</h3>
+                        <p class="dash-subtitle">Score Distribution Per Subject</p>
                     </div>
-                    
+
                     <!-- Selectors -->
-                    <div class="flex items-center gap-2">
-                        <select id="dist_grade_level_id" onchange="onGradeChange()" 
-                                class="bg-slate-50 border border-slate-100 rounded-xl px-2 py-1 text-[8px] font-black uppercase tracking-widest focus:ring-indigo-600 focus:border-indigo-600 transition-all shadow-sm">
+                    <div class="flex flex-wrap items-center gap-1.5">
+                        <select id="dist_grade_level_id" onchange="onGradeChange()" class="dash-select" aria-label="Grade level">
                             @foreach($gradeLevels as $grade)
                                 <option value="{{ $grade->id }}" {{ $selectedGradeLevelId == $grade->id ? 'selected' : '' }}>{{ $grade->name }}</option>
                             @endforeach
                         </select>
-                        <select id="dist_subject_id" onchange="fetchPerformanceDistribution()" 
-                                class="bg-slate-50 border border-slate-100 rounded-xl px-2 py-1 text-[8px] font-black uppercase tracking-widest focus:ring-indigo-600 focus:border-indigo-600 transition-all shadow-sm min-w-[100px]">
+                        <select id="dist_subject_id" onchange="fetchPerformanceDistribution()" class="dash-select min-w-[100px]" aria-label="Subject">
                             @foreach($subjects as $subject)
                                 <option value="{{ $subject->id }}">
                                     {{ strlen($subject->name) > 12 ? ($subject->code ?: $subject->name) : $subject->name }}
                                 </option>
                             @endforeach
                         </select>
-                        <select id="dist_term_id" onchange="fetchPerformanceDistribution()" 
-                                class="bg-slate-50 border border-slate-100 rounded-xl px-2 py-1 text-[8px] font-black uppercase tracking-widest focus:ring-indigo-600 focus:border-indigo-600 transition-all shadow-sm">
+                        <select id="dist_term_id" onchange="fetchPerformanceDistribution()" class="dash-select" aria-label="Term">
                             @foreach($terms as $term)
                                 <option value="{{ $term->id }}" {{ ($terms->where('is_grading_open', true)->first()?->id ?? $terms->last()?->id) == $term->id ? 'selected' : '' }}>{{ $term->name }}</option>
                             @endforeach
                         </select>
                     </div>
                 </div>
-                
-                <div class="h-[180px] relative">
+
+                <div class="h-[160px] relative">
                     <div id="distributionLoading" class="absolute inset-0 bg-white/80 backdrop-blur-sm z-20 flex items-center justify-center hidden rounded-xl">
                         <svg class="animate-spin h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -312,117 +297,110 @@
                     <canvas id="performanceDistributionChart"></canvas>
                 </div>
 
-                <div id="distributionSummary" class="mt-6 flex justify-around text-center border-t border-slate-50 pt-4">
+                <div id="distributionSummary" class="mt-2 pt-2 flex justify-around text-center border-t border-slate-100 dark:border-slate-800">
                     <div>
-                        <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">0-49</span>
-                        <span id="range_0_49" class="text-lg font-black text-rose-600">0</span>
+                        <span class="block dash-label">0-49</span>
+                        <span id="range_0_49" class="text-base font-black text-rose-600 leading-6">0</span>
                     </div>
                     <div>
-                        <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">50-74</span>
-                        <span id="range_50_74" class="text-lg font-black text-amber-500">0</span>
+                        <span class="block dash-label">50-74</span>
+                        <span id="range_50_74" class="text-base font-black text-amber-500 leading-6">0</span>
                     </div>
                     <div>
-                        <span class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">75-100</span>
-                        <span id="range_75_100" class="text-lg font-black text-emerald-500">0</span>
+                        <span class="block dash-label">75-100</span>
+                        <span id="range_75_100" class="text-base font-black text-emerald-500 leading-6">0</span>
                     </div>
                 </div>
             </div>
         </div>
 
         @role('Super Admin')
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {{-- items-start: health and the audit feed have different amounts of content, so neither is stretched. --}}
+        <div class="grid grid-cols-1 lg:grid-cols-3 dash-grid lg:items-start">
             <!-- System Status -->
-            <div class="glass-panel p-8">
-                <h3 class="text-xl font-black text-slate-900 uppercase tracking-tight mb-8">System Health</h3>
-                <div class="space-y-4">
-                    @php
-                        $statusColors = [
-                            'Online' => 'bg-emerald-500',
-                            'Idle' => 'bg-emerald-500',
-                            'Warm' => 'bg-emerald-500',
-                            'Offline' => 'bg-rose-500',
-                        ];
-                    @endphp
-                    <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                        <div class="flex items-center gap-3">
-                            <div class="w-2 h-2 rounded-full {{ $statusColors[$systemHealth['database']] ?? 'bg-slate-400' }}"></div>
-                            <span class="text-xs font-black text-slate-500 uppercase tracking-widest">Database</span>
+            <div class="glass-panel dash-card">
+                <div class="dash-card-head">
+                    <h3 class="dash-title">System Health</h3>
+                </div>
+                @php
+                    $statusColors = [
+                        'Online' => 'bg-emerald-500',
+                        'Idle' => 'bg-emerald-500',
+                        'Warm' => 'bg-emerald-500',
+                        'Offline' => 'bg-rose-500',
+                    ];
+                @endphp
+                <div class="space-y-1.5">
+                    @foreach(['database' => 'Database', 'queue' => 'Queue', 'cache' => 'Cache'] as $key => $label)
+                    <div class="flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-100 dark:border-slate-700">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-2 h-2 rounded-full {{ $statusColors[$systemHealth[$key]] ?? 'bg-slate-400' }}"></div>
+                            <span class="text-[11px] font-black text-slate-500 uppercase tracking-widest">{{ $label }}</span>
                         </div>
-                        <span class="text-sm font-black text-slate-900">{{ $systemHealth['database'] }}</span>
+                        <span class="text-xs font-black text-slate-900 dark:text-slate-100">{{ $systemHealth[$key] }}</span>
                     </div>
-                    <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                        <div class="flex items-center gap-3">
-                            <div class="w-2 h-2 rounded-full {{ $statusColors[$systemHealth['queue']] ?? 'bg-slate-400' }}"></div>
-                            <span class="text-xs font-black text-slate-500 uppercase tracking-widest">Queue</span>
-                        </div>
-                        <span class="text-sm font-black text-slate-900">{{ $systemHealth['queue'] }}</span>
-                    </div>
-                    <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                        <div class="flex items-center gap-3">
-                            <div class="w-2 h-2 rounded-full {{ $statusColors[$systemHealth['cache']] ?? 'bg-slate-400' }}"></div>
-                            <span class="text-xs font-black text-slate-500 uppercase tracking-widest">Cache</span>
-                        </div>
-                        <span class="text-sm font-black text-slate-900">{{ $systemHealth['cache'] }}</span>
-                    </div>
+                    @endforeach
                 </div>
             </div>
 
             <!-- Timeline of Activity -->
-            <div class="glass-panel p-8 lg:col-span-2">
-                <div class="flex items-center justify-between mb-8">
+            <div class="glass-panel dash-card lg:col-span-2 min-w-0">
+                <div class="dash-card-head">
                     <div>
-                        <h3 class="text-xl font-black text-slate-900 uppercase tracking-tight">System Pulse</h3>
-                        <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Live Audit Feed</p>
+                        <h3 class="dash-title">System Pulse</h3>
+                        <p class="dash-subtitle">Live Audit Feed</p>
                     </div>
-                    <a href="{{ route('admin.audit-logs.index') }}" class="px-4 py-2 bg-slate-100 hover:bg-indigo-600 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all">Full Log</a>
+                    <a href="{{ route('admin.audit-logs.index') }}" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-indigo-600 hover:text-white rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all">Full Log</a>
                 </div>
-                
-                <div class="relative space-y-6 before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100">
-                    @forelse($recentActivity->take(5) as $log)
-                        @php
-                            $eventConfig = match(true) {
-                                str_contains($log->event, 'created') => ['Created', 'bg-emerald-500', 'text-emerald-500'],
-                                str_contains($log->event, 'updated') => ['Updated', 'bg-indigo-500', 'text-indigo-500'],
-                                str_contains($log->event, 'deleted') => ['Deleted', 'bg-rose-500', 'text-rose-500'],
-                                default => ['Action', 'bg-slate-400', 'text-slate-500']
-                            };
-                            $modelName = str_replace('_', ' ', class_basename($log->auditable_type));
-                        @endphp
-                        <div class="relative pl-12 group">
-                            <div class="absolute left-0 top-1 w-9 h-9 rounded-xl bg-white border-2 border-slate-100 group-hover:border-{{ $eventConfig[2] }} flex items-center justify-center transition-all z-10 shadow-sm">
-                                <div class="w-2 h-2 rounded-full {{ $eventConfig[1] }}"></div>
-                            </div>
-                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
-                                <div>
-                                    <p class="text-sm font-black text-slate-900">
-                                        <span class="text-indigo-600">{{ $log->user?->name ?? 'System' }}</span> 
-                                        {{ strtolower($eventConfig[0]) }} a {{ strtolower($modelName) }}
-                                    </p>
-                                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{{ $log->created_at->diffForHumans() }}</p>
+
+                <div class="relative max-h-[15rem] overflow-y-auto custom-scrollbar pr-1">
+                    <ul class="relative space-y-1 before:absolute before:left-[13px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100 dark:before:bg-slate-800">
+                        @forelse($recentActivity as $log)
+                            @php
+                                $eventConfig = match(true) {
+                                    str_contains($log->event, 'created') => ['Created', 'bg-emerald-500', 'text-emerald-500'],
+                                    str_contains($log->event, 'updated') => ['Updated', 'bg-indigo-500', 'text-indigo-500'],
+                                    str_contains($log->event, 'deleted') => ['Deleted', 'bg-rose-500', 'text-rose-500'],
+                                    default => ['Action', 'bg-slate-400', 'text-slate-500']
+                                };
+                                $modelName = str_replace('_', ' ', class_basename($log->auditable_type));
+                            @endphp
+                            <li class="relative pl-9 py-1 group">
+                                <div class="absolute left-0 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-700 flex items-center justify-center transition-all z-10">
+                                    <div class="w-1.5 h-1.5 rounded-full {{ $eventConfig[1] }}"></div>
                                 </div>
-                                <span class="px-3 py-1 bg-slate-50 text-slate-400 border border-slate-100 rounded-lg text-xs font-black uppercase tracking-widest">#{{ $log->auditable_id }}</span>
-                            </div>
-                        </div>
-                    @empty
-                        <div class="text-center py-12">
-                            <p class="text-sm font-black text-slate-400 uppercase tracking-widest italic">All Quiet on the Front</p>
-                        </div>
-                    @endforelse
+                                <div class="flex items-center justify-between gap-2 min-w-0">
+                                    <p class="text-xs font-bold text-slate-900 dark:text-slate-100 truncate min-w-0">
+                                        <span class="text-indigo-600 dark:text-indigo-400">{{ $log->user?->name ?? 'System' }}</span>
+                                        {{ strtolower($eventConfig[0]) }} a {{ strtolower($modelName) }}
+                                        <span class="ml-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">· {{ $log->created_at->diffForHumans() }}</span>
+                                    </p>
+                                    <span class="shrink-0 px-2 py-0.5 bg-slate-50 dark:bg-slate-800 text-slate-400 border border-slate-100 dark:border-slate-700 rounded-md text-[10px] font-black uppercase tracking-widest">#{{ $log->auditable_id }}</span>
+                                </div>
+                            </li>
+                        @empty
+                            <li class="text-center py-6">
+                                <p class="text-xs font-black text-slate-400 uppercase tracking-widest italic">All Quiet on the Front</p>
+                            </li>
+                        @endforelse
+                    </ul>
+                </div>
             </div>
         </div>
-    </div>
-    @endrole
+        @endrole
 
         <!-- Grade Enrollment List -->
-        <div class="glass-panel p-8">
-            <h3 class="text-xl font-black text-slate-900 uppercase tracking-tight mb-8">Capacity Report</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div class="glass-panel dash-card">
+            <div class="dash-card-head">
+                <h3 class="dash-title">Capacity Report</h3>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2">
                 @foreach($studentsByGrade as $grade)
-                <div class="group flex items-center justify-between p-4 bg-slate-50 hover:bg-indigo-600 hover:shadow-xl hover:shadow-indigo-200 rounded-2xl transition-all duration-300 border border-slate-100 hover:border-indigo-600">
-                    <span class="text-xs font-black text-slate-700 uppercase tracking-widest group-hover:text-white transition-colors">{{ $grade->grade_name }}</span>
-                    <div class="flex items-center gap-3">
-                        <span class="text-lg font-black text-slate-900 group-hover:text-white transition-colors">{{ number_format($grade->count) }}</span>
-                        <div class="w-2 h-8 bg-slate-200 group-hover:bg-white/20 rounded-full overflow-hidden">
+                <div class="group flex items-center justify-between gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800/60 hover:bg-indigo-600 hover:shadow-lg hover:shadow-indigo-200 rounded-xl transition-all duration-300 border border-slate-100 dark:border-slate-700 hover:border-indigo-600 min-w-0">
+                    <span class="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-wider group-hover:text-white transition-colors truncate">{{ $grade->grade_name }}</span>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <span class="text-base font-black text-slate-900 dark:text-slate-100 group-hover:text-white transition-colors">{{ number_format($grade->count) }}</span>
+                        <div class="w-1.5 h-6 bg-slate-200 group-hover:bg-white/20 rounded-full overflow-hidden">
                             <div class="bg-indigo-500 w-full h-1/2 rounded-full"></div>
                         </div>
                     </div>
@@ -431,7 +409,7 @@
             </div>
         </div>
     </div>
-    
+
     @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"
             integrity="sha384-9nhczxUqK87bcKHh20fSQcTGD4qq5GhayNYSYWqwBkINBhOfQLg/P5HG5lF1urn4"
@@ -476,12 +454,12 @@
                             y: { 
                                 beginAtZero: true, 
                                 grid: { color: '#f8fafc', drawBorder: false },
-                                ticks: { font: { size: 11, weight: '700' }, color: '#94a3b8' }
+                                ticks: { font: { size: 10, weight: '700' }, color: '#94a3b8' }
                             },
                             x: { 
                                 grid: { display: false },
                                 ticks: { 
-                                    font: { size: 8, weight: '700' }, 
+                                    font: { size: 10, weight: '700' }, 
                                     color: '#94a3b8',
                                     maxRotation: 0,
                                     minRotation: 0,
@@ -575,7 +553,7 @@
                                 beginAtZero: true, 
                                 grid: { color: '#f8fafc', drawBorder: false },
                                 ticks: { 
-                                    font: { size: 11, weight: '700' }, 
+                                    font: { size: 10, weight: '700' }, 
                                     color: '#94a3b8',
                                     callback: function(v) { return v + '%'; }
                                 }
@@ -583,7 +561,7 @@
                             x: { 
                                 grid: { display: false },
                                 ticks: { 
-                                    font: { size: 9, weight: '700' }, 
+                                    font: { size: 10, weight: '700' }, 
                                     color: '#94a3b8',
                                     maxRotation: 0,
                                     minRotation: 0
@@ -648,19 +626,19 @@
                 let tbodyHtml = '<tr>';
                 
                 if (averages.length === 0) {
-                    theadHtml += '<th class="py-3 px-3 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Subject</th>';
-                    tbodyHtml += '<td class="py-8 text-center text-xs font-bold text-slate-400 italic">No data</td>';
+                    theadHtml += '<th class="pb-1 px-2 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Subject</th>';
+                    tbodyHtml += '<td class="py-3 text-center text-xs font-bold text-slate-400 italic">No data</td>';
                 } else {
                     averages.forEach(avg => {
-                        theadHtml += `<th class="text-[10px] font-black text-slate-400 uppercase tracking-widest pb-3 px-3 whitespace-nowrap">${avg.subject_name}</th>`;
+                        theadHtml += `<th class="text-[10px] font-black text-slate-400 uppercase tracking-widest pb-1 px-2 whitespace-nowrap">${avg.subject_name}</th>`;
                         
                         let colorClass = 'bg-rose-50 text-rose-600';
                         if (avg.average >= 75) colorClass = 'bg-emerald-50 text-emerald-600';
                         else if (avg.average >= 50) colorClass = 'bg-amber-50 text-amber-600';
                         
                         tbodyHtml += `
-                            <td class="py-3 px-3">
-                                <span class="px-3 py-1.5 rounded-lg text-xs font-black ${colorClass}">
+                            <td class="py-1 px-1.5">
+                                <span class="px-2 py-0.5 rounded-md text-[11px] font-black ${colorClass}">
                                     ${avg.average}%
                                 </span>
                             </td>
@@ -718,11 +696,11 @@
                             y: { 
                                 beginAtZero: true, 
                                 grid: { color: '#f8fafc', drawBorder: false },
-                                ticks: { font: { size: 11, weight: '700', family: 'Inter' }, color: '#94a3b8' }
+                                ticks: { font: { size: 10, weight: '700', family: 'Inter' }, color: '#94a3b8' }
                             },
                             x: { 
                                 grid: { display: false },
-                                ticks: { font: { size: 11, weight: '700', family: 'Inter' }, color: '#94a3b8' }
+                                ticks: { font: { size: 10, weight: '700', family: 'Inter' }, color: '#94a3b8' }
                             }
                         }
                     }

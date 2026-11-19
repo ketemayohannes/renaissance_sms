@@ -15,6 +15,13 @@
                         </div>
 
                         <div class="mb-4">
+                            <label for="ethiopian_year" class="block text-sm font-medium text-gray-700">Ethiopian Year (E.C.)</label>
+                            <input type="number" name="ethiopian_year" id="ethiopian_year" min="1900" max="2200" value="{{ old('ethiopian_year', $academicYear->ethiopian_year) }}" placeholder="e.g. 2019" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <p class="text-xs text-gray-500 mt-1">Used by the academic calendar to show both date systems (e.g. 2019 E.C. / 2026–2027 G.C.).</p>
+                            @error('ethiopian_year')<span class="text-red-600 text-sm">{{ $message }}</span>@enderror
+                        </div>
+
+                        <div class="mb-4">
                             <label for="start_date" class="block text-sm font-medium text-gray-700">Start Date *</label>
                             <input type="date" name="start_date" id="start_date" value="{{ old('start_date', $academicYear->start_date->format('Y-m-d')) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
                             @error('start_date')<span class="text-red-600 text-sm">{{ $message }}</span>@enderror

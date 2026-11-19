@@ -72,6 +72,9 @@ class RolePermissionSeeder extends Seeder
             // Gradebook (fine-grained)
             'view master gradebook', 'edit master gradebook',
             'view subject gradebook', 'edit subject gradebook',
+
+            // Academic calendar (school-wide schedule administration)
+            'manage academic calendar',
         ];
 
         foreach ($permissions as $permission) {
@@ -96,6 +99,7 @@ class RolePermissionSeeder extends Seeder
             'view master gradebook', 'edit master gradebook',
             'view subject gradebook', 'edit subject gradebook',
             'view academic reports', 'view report cards',
+            'manage academic calendar',
         ]);
 
         // Vice Principal

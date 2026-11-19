@@ -11,6 +11,7 @@ use App\Models\AssessmentType;
 use App\Models\GradeLevel;
 use App\Models\Subject;
 use App\Models\Term;
+use App\Services\AcademicCalendarService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -502,10 +503,7 @@ class AssessmentTemplateController extends Controller
         $academicYearId = $request->get('academic_year_id', $activeYear?->id);
 
         $terms = CachedData::terms()->where('academic_year_id', $academicYearId);
-        $activeTerm = Term::where('academic_year_id', $academicYearId)
-            ->where('start_date', '<=', now())
-            ->where('end_date', '>=', now())
-            ->first();
+        $activeTerm = $academicYearId ? app(AcademicCalendarService::class)->getCurrentQuarter(null, (int) $academicYearId) : null;
 
         $termId = $request->get('term_id', $activeTerm?->id);
         $gradeLevelId = $request->get('grade_level_id');

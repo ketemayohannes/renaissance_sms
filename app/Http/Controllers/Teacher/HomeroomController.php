@@ -7,6 +7,7 @@ use App\Http\Requests\SaveAttendanceRequest;
 use App\Models\AcademicYear;
 use App\Models\StudentTermRecord;
 use App\Models\Term;
+use App\Services\AcademicCalendarService;
 use App\Services\AttendanceAlertService;
 use App\Services\AttendanceService;
 use App\Services\ReportCardService;
@@ -95,7 +96,10 @@ class HomeroomController extends Controller
             $query->whereDate('attendance_date', $date)->where('section_id', $section->id);
         }])->where('status', 'active')->get();
 
-        return view('teacher.homeroom.attendance', compact('section', 'students', 'date'));
+        // Week/quarter of the date and whether the calendar lists it as a school day.
+        $academicContext = app(AcademicCalendarService::class)->getAcademicContext($date);
+
+        return view('teacher.homeroom.attendance', compact('section', 'students', 'date', 'academicContext'));
     }
 
     /**
@@ -127,15 +131,12 @@ class HomeroomController extends Controller
 
         $academicYear = AcademicYear::active()->first();
 
-        // Find current term based on date, or fallback to first quarter of the year
-        $defaultTermId = Term::where('academic_year_id', $academicYear->id)
-            ->where('type', 'quarter')
-            ->whereDate('start_date', '<=', now())
-            ->whereDate('end_date', '>=', now())
-            ->value('id') ?? Term::where('academic_year_id', $academicYear->id)
-            ->where('type', 'quarter')
-            ->orderBy('start_date')
-            ->first()?->id;
+        // Current quarter from the academic calendar, or fall back to the first quarter of the year
+        $defaultTermId = app(AcademicCalendarService::class)->getCurrentQuarter(null, $academicYear->id)?->id
+            ?? Term::where('academic_year_id', $academicYear->id)
+                ->where('type', 'quarter')
+                ->orderBy('start_date')
+                ->first()?->id;
 
         $termId = $request->get('term_id', $defaultTermId);
 

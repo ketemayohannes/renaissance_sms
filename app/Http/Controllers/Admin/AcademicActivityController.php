@@ -10,6 +10,7 @@ use App\Models\GradeLevel;
 use App\Models\Subject;
 use App\Models\TeacherAssignment;
 use App\Services\AcademicActivityService;
+use App\Services\AcademicCalendarService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -83,9 +84,14 @@ class AcademicActivityController extends Controller
         $data['division_id'] = $assignment->section->gradeLevel->division_id ?? 1; // Fallback
         $data['academic_year_id'] = $assignment->academic_year_id;
 
-        $activity = $this->service->createActivity($data);
+        $this->service->createActivity($data);
 
-        return redirect()->route('admin.activities.index')->with('success', 'Activity created successfully.');
+        // Check the date against the academic calendar (warn, never block).
+        $warnings = app(AcademicCalendarService::class)
+            ->schedulingWarnings($data['start_date'] ?? $data['due_date'], $data['type'] === 'exam');
+        $message = 'Activity created successfully.'.($warnings ? ' Note: '.implode(' ', $warnings) : '');
+
+        return redirect()->route('admin.activities.index')->with('success', $message);
     }
 
     public function show(AcademicActivity $activity)

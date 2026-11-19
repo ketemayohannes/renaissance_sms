@@ -105,6 +105,9 @@
             </div>
         </div>
 
+        <!-- Academic Calendar: current week, exams, revision and breaks -->
+        <x-academic-calendar />
+
         <!-- Charts Section -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <!-- Performance Overview Chart -->

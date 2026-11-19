@@ -105,6 +105,8 @@
         </div>
 
         <!-- Main Entry Table -->
+        @include('partials.academic-day-banner')
+
         <form id="attendance-form" action="{{ route('admin.attendance.store') }}" method="POST" @submit="hasChanges = false">
             @csrf
             <input type="hidden" name="section_id" value="{{ $section->id }}">

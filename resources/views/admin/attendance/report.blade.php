@@ -35,10 +35,9 @@
             $totalLate = 0;
             $totalExcused = 0;
             
-            for ($d = 1; $d <= $daysInMonth; $d++) {
-                $dayOfWeek = date('N', strtotime("$year-$month-$d"));
-                if ($dayOfWeek < 6) $schoolDays++;
-            }
+            // Scheduled school days come from the academic calendar (holidays, breaks and
+            // closures excluded), not from a Monday–Friday assumption.
+            $schoolDays = count($schoolDaySet);
             
             foreach ($students as $student) {
                 $studentAttendance = $attendanceData->get($student->id, collect());
@@ -79,7 +78,7 @@
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                 </div>
                 <div>
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Term Days</p>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">School Days</p>
                     <p class="text-xl font-bold text-slate-900">{{ $schoolDays }}</p>
                 </div>
             </div>
@@ -127,11 +126,10 @@
                             @foreach(range(1, $daysInMonth) as $day)
                                 @php
                                     $dateString = sprintf('%04d-%02d-%02d', $year, $month, $day);
-                                    $dayOfWeek = date('N', strtotime($dateString));
-                                    $isWeekend = ($dayOfWeek == 6 || $dayOfWeek == 7);
+                                    $isWeekend = ! isset($schoolDaySet[$dateString]);
                                     $dayName = date('D', strtotime($dateString));
                                 @endphp
-                                <th class="p-1 py-4 text-center border-l border-slate-100 {{ $isWeekend ? 'bg-slate-100/50' : '' }}">
+                                <th class="p-1 py-4 text-center border-l border-slate-100 {{ $isWeekend ? 'bg-slate-100/50' : '' }}" @if($isWeekend) title="No school: {{ $nonSchoolReasons[$dateString] ?? '' }}" @endif>
                                     <div class="text-[10px] font-black text-slate-500 leading-none">{{ $day }}</div>
                                     <div class="text-[8px] text-slate-400 font-bold uppercase mt-1">{{ substr($dayName, 0, 1) }}</div>
                                 </th>
@@ -183,11 +181,11 @@
                                                 case 'excused': $char = 'E'; $color = 'text-blue-500'; $bg = 'bg-blue-50/20'; break;
                                             }
                                         }
-                                        $dayOfWeek = date('N', strtotime($dateString));
-                                        $isWeekend = ($dayOfWeek == 6 || $dayOfWeek == 7);
+                                        $isWeekend = ! isset($schoolDaySet[$dateString]);
                                     @endphp
-                                    <td class="text-center text-[10px] {{ $weight }} border-l border-slate-50 {{ $isWeekend ? 'bg-slate-50' : $bg }} {{ $color }} p-2">
-                                        {{ $isWeekend ? '•' : $char }}
+                                    {{-- Recorded attendance is always shown, even on a day the calendar now marks as closed. --}}
+                                    <td class="text-center text-[10px] {{ $weight }} border-l border-slate-50 {{ $isWeekend && ! $record ? 'bg-slate-50' : $bg }} {{ $color }} p-2">
+                                        {{ $isWeekend && ! $record ? '•' : $char }}
                                     </td>
                                 @endforeach
                                 <td class="text-center text-xs font-bold bg-emerald-50/20 text-emerald-700 border-l border-slate-100">{{ $present }}</td>
