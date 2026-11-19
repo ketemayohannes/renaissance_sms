@@ -31,6 +31,8 @@
         </div>
 
         <!-- Attendance Form -->
+        @include('partials.academic-day-banner')
+
         <form action="{{ route('teacher.homeroom.attendance.store') }}" method="POST" x-data="{ 
             allPresent() {
                 const radios = document.querySelectorAll('input[value=\'present\']');

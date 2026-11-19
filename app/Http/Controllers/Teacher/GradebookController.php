@@ -13,6 +13,7 @@ use App\Models\Section;
 use App\Models\StudentMark;
 use App\Models\TeacherAssignment;
 use App\Models\Term;
+use App\Services\AcademicCalendarService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -35,19 +36,8 @@ class GradebookController extends Controller
 
         // Determine active term or fallback
         // 1. Prioritize the quarter that is currently open for grading
-        $activeTerm = Term::where('academic_year_id', $academicYearId)
-            ->where('type', 'quarter')
-            ->where('is_grading_open', true)
-            ->first();
-
-        // 2. Fallback to calendar date if no grading quarter is explicitly open
-        if (! $activeTerm) {
-            $activeTerm = Term::where('academic_year_id', $academicYearId)
-                ->where('type', 'quarter')
-                ->where('start_date', '<=', now())
-                ->where('end_date', '>=', now())
-                ->first();
-        }
+        // Quarter open for grading, else the current quarter from the academic calendar.
+        $activeTerm = app(AcademicCalendarService::class)->getDefaultGradingQuarter($academicYearId);
 
         $termId = $request->input('term_id', $activeTerm ? $activeTerm->id : null);
 

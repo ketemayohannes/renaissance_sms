@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
 use App\Models\Term;
+use App\Services\AcademicCalendarService;
 use App\Services\ReportCardService;
 use App\Services\StudentAcademicHistoryService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -56,18 +57,8 @@ class GradeController extends Controller
             $termRecords = collect($history['termRecords']->first() ?? collect());
 
             // Determine active term (for highlighting).
-            $activeTerm = Term::where('academic_year_id', $academicYearId)
-                ->where('type', 'quarter')
-                ->where('is_grading_open', true)
-                ->first();
-
-            if (! $activeTerm) {
-                $activeTerm = Term::where('academic_year_id', $academicYearId)
-                    ->where('type', 'quarter')
-                    ->where('start_date', '<=', now())
-                    ->where('end_date', '>=', now())
-                    ->first();
-            }
+            // Quarter open for grading, else the current quarter from the academic calendar.
+            $activeTerm = app(AcademicCalendarService::class)->getDefaultGradingQuarter($academicYearId);
 
             // Apply period filter over the resolved terms.
             if (str_starts_with($selectedPeriod, 'term_')) {

@@ -15,6 +15,7 @@ use App\Models\StudentEnrollment;
 use App\Models\StudentMark;
 use App\Models\Term;
 use App\Models\User;
+use App\Services\AcademicCalendarService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -316,8 +317,10 @@ class DashboardController extends Controller
                 ->get();
         });
 
-        // Sections without attendance marked today (Cached short-term)
-        $sectionsMissingAttendance = Cache::remember("admin_dashboard_missing_attendance{$cacheSuffix}", 300, function () use ($divisionId) {
+        // Sections without attendance marked today (Cached short-term).
+        // Only on school days per the academic calendar: no alert on holidays, breaks or weekends.
+        $isSchoolDay = app(AcademicCalendarService::class)->isSchoolDay();
+        $sectionsMissingAttendance = ! $isSchoolDay ? 0 : Cache::remember("admin_dashboard_missing_attendance{$cacheSuffix}", 300, function () use ($divisionId) {
             $sectionQuery = Section::where('is_active', true);
 
             $attendanceQuery = StudentAttendance::whereDate('attendance_date', Carbon::today());

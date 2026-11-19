@@ -10,6 +10,7 @@ use App\Models\StudentAttendance;
 use App\Models\StudentMark;
 use App\Models\Term;
 use App\Models\Timetable;
+use App\Services\AcademicCalendarService;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
@@ -87,18 +88,8 @@ class DashboardController extends Controller
                 ->groupBy('day_of_week');
 
             // Determine active term (moved before recent grades so we can filter by it)
-            $activeTerm = Term::where('academic_year_id', $academicYearId)
-                ->where('type', 'quarter')
-                ->where('is_grading_open', true)
-                ->first();
-
-            if (! $activeTerm) {
-                $activeTerm = Term::where('academic_year_id', $academicYearId)
-                    ->where('type', 'quarter')
-                    ->where('start_date', '<=', now())
-                    ->where('end_date', '>=', now())
-                    ->first();
-            }
+            // Quarter open for grading, else the current quarter from the academic calendar.
+            $activeTerm = app(AcademicCalendarService::class)->getDefaultGradingQuarter($academicYearId);
 
             // 3. Fetch recent grades (StudentMark) — filtered to active term only
             $recentMarksQuery = StudentMark::with(['subject', 'term', 'assessmentTemplate'])

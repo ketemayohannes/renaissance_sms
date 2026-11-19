@@ -20,9 +20,90 @@
         @apply bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200;
     }
 
+    /*
+     | Compact dashboard density. Scoped to `.dashboard-compact` (dashboards and their
+     | widgets) so forms, tables and other pages keep their normal sizing. Tune density
+     | here through the custom properties rather than per-card overrides. Small screens
+     | get slightly roomier padding and the tokens tighten from `lg` up.
+     */
+    .dashboard-compact {
+        --dash-card-pad: 0.875rem;      /* 14px standard card padding */
+        --dash-card-pad-sm: 0.75rem;    /* 12px compact cards (KPIs, summary strip) */
+        --dash-section-gap: 0.875rem;   /* 14px between dashboard sections */
+        --dash-grid-gap: 0.75rem;       /* 12px between cards in a row */
+        --dash-head-gap: 0.5rem;        /* 8px card heading → content */
+        --dash-radius: 1.25rem;         /* 20px (glass-panel default is 40px) */
+        --dash-title-size: 0.8125rem;   /* 13px card headings */
+        --dash-body-size: 0.75rem;      /* 12px body text */
+        --dash-label-size: 0.625rem;    /* 10px labels / metadata */
+        --dash-kpi-size: 1.375rem;      /* 22px KPI numbers */
+        --dash-control-size: 0.6875rem; /* 11px buttons, filters */
+        display: flex;
+        flex-direction: column;
+        gap: var(--dash-section-gap);
+    }
+
+    @media (max-width: 639px) {
+        .dashboard-compact {
+            --dash-card-pad: 1rem;
+            --dash-card-pad-sm: 0.875rem;
+        }
+    }
+
+    .dashboard-compact .glass-panel {
+        border-radius: var(--dash-radius);
+        @apply shadow-lg shadow-slate-200/40;
+    }
+
+    .dash-grid {
+        gap: var(--dash-grid-gap);
+    }
+
+    .dash-card {
+        padding: var(--dash-card-pad);
+    }
+
+    .dash-card-sm {
+        padding: var(--dash-card-pad-sm);
+    }
+
+    .dash-card-head {
+        @apply flex flex-wrap items-center justify-between gap-2;
+        margin-bottom: var(--dash-head-gap);
+    }
+
+    .dash-title {
+        font-size: var(--dash-title-size);
+        @apply font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight leading-5;
+    }
+
+    .dash-subtitle {
+        font-size: var(--dash-label-size);
+        @apply font-bold text-slate-400 uppercase tracking-widest leading-4;
+    }
+
+    .dash-label {
+        font-size: var(--dash-label-size);
+        @apply font-black text-slate-400 uppercase tracking-widest leading-4;
+    }
+
+    .dash-kpi-value {
+        font-size: var(--dash-kpi-size);
+        @apply font-black text-slate-900 dark:text-slate-100 tracking-tight leading-7;
+    }
+
+    .dash-select {
+        font-size: var(--dash-control-size);
+        @apply bg-slate-50 border border-slate-200 rounded-lg py-1 pl-2 pr-7 font-bold text-slate-700 focus:ring-indigo-600 focus:border-indigo-600 transition-all;
+    }
+
+    .dark .dash-select {
+        @apply bg-slate-800 border-slate-700 text-slate-200;
+    }
+
     /* Sidebar Navigation - Updated */
     .sidebar-link {
-        @apply flex items-center gap-3 px-3 py-2.5 mx-3 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-all duration-300 relative overflow-hidden hover:translate-x-1 hover:shadow-sm;
+        @apply flex items-center gap-3 px-3 py-2 mx-3 rounded-lg text-[13px] font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-all duration-300 relative overflow-hidden hover:translate-x-1 hover:shadow-sm;
     }
 
     .sidebar-link-active {

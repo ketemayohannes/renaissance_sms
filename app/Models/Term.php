@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\AcademicCalendarService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -16,7 +17,6 @@ class Term extends Model
         'type',
         'term_number',
         'start_date',
-        'start_date',
         'end_date',
         'is_grading_open',
         'is_master_grading_open',
@@ -28,6 +28,13 @@ class Term extends Model
         'is_grading_open' => 'boolean',
         'is_master_grading_open' => 'boolean',
     ];
+
+    protected static function booted(): void
+    {
+        // Quarter/semester dates feed the academic calendar; keep its cache in step.
+        static::saved(fn () => AcademicCalendarService::flushCache());
+        static::deleted(fn () => AcademicCalendarService::flushCache());
+    }
 
     public function academicYear()
     {

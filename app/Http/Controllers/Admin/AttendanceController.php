@@ -9,15 +9,17 @@ use App\Models\GradeLevel;
 use App\Models\Section;
 use App\Models\Student;
 use App\Models\StudentAttendance;
+use App\Services\AcademicCalendarService;
 use App\Services\AttendanceService;
 use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
 
 class AttendanceController extends Controller
 {
     protected $attendanceService;
 
-    public function __construct(AttendanceService $attendanceService)
+    public function __construct(AttendanceService $attendanceService, protected AcademicCalendarService $calendar)
     {
         $this->attendanceService = $attendanceService;
     }
@@ -60,7 +62,10 @@ class AttendanceController extends Controller
             ->get()
             ->keyBy('student_id');
 
-        return view('admin.attendance.register', compact('section', 'date', 'students', 'existingAttendance'));
+        // Which week/quarter this date belongs to, and whether school is in session.
+        $academicContext = $this->calendar->getAcademicContext($date);
+
+        return view('admin.attendance.register', compact('section', 'date', 'students', 'existingAttendance', 'academicContext'));
     }
 
     public function store(SaveAttendanceRequest $request)
@@ -101,6 +106,18 @@ class AttendanceController extends Controller
             ->get()
             ->groupBy('student_id');
 
-        return view('admin.attendance.report', compact('section', 'month', 'year', 'students', 'attendanceData'));
+        // Scheduled school days for the month come from the academic calendar.
+        $monthStart = Carbon::createFromDate((int) $year, (int) $month, 1)->startOfDay();
+        $monthEnd = $monthStart->copy()->endOfMonth()->startOfDay();
+        $schoolDaySet = $this->calendar->getSchoolDays($monthStart, $monthEnd)->flip()->all();
+        $nonSchoolReasons = [];
+        foreach (CarbonPeriod::create($monthStart, $monthEnd) as $day) {
+            if (! isset($schoolDaySet[$day->toDateString()])) {
+                $status = $this->calendar->getDayStatus($day);
+                $nonSchoolReasons[$day->toDateString()] = $status['reason'] ?? $status['day_type'];
+            }
+        }
+
+        return view('admin.attendance.report', compact('section', 'month', 'year', 'students', 'attendanceData', 'schoolDaySet', 'nonSchoolReasons'));
     }
 }

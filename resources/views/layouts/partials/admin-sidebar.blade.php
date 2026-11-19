@@ -73,6 +73,7 @@
             </svg>
             <span x-show="!sidebarCollapsed" x-transition>Dashboard</span>
         </a>
+
         
         @canany(['view students', 'view parents', 'view disciplinary', 'view promotions', 'view id cards'])
         <div class="sidebar-category-header flex items-center cursor-pointer group" 
@@ -596,7 +597,8 @@
         </div>
         @endcanany
 
-        @can('view school setup')
+        {{-- Calendar managers (Principal, Vice Principal, Registrar, IT) see this section for the calendar link only. --}}
+        @canany(['view school setup', 'manage academic calendar'])
         <div class="sidebar-category-header flex items-center cursor-pointer group" 
              :class="sidebarCollapsed ? 'text-center px-0 justify-center w-full' : 'justify-between sticky top-0 z-10 bg-white/95 backdrop-blur-md'"
              @click="toggleCategory('setup')">
@@ -611,12 +613,24 @@
         </div>
         
         <div x-show="openCategories['setup'] || sidebarCollapsed" x-collapse>
+            @can('manage academic calendar')
+            {{-- Academic years and terms are tabs on the calendar page. --}}
+            <a href="{{ route('admin.academic-calendar.index') }}" class="sidebar-link {{ request()->routeIs('admin.academic-calendar.*') || request()->routeIs('admin.academic-years.*') || request()->routeIs('admin.terms.*') ? 'sidebar-link-active' : '' }}" title="Academic Calendar">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2zm4-6h2v2H9v-2z"></path>
+                </svg>
+                <span x-show="!sidebarCollapsed" x-transition>Academic Calendar</span>
+            </a>
+            @else
             <a href="{{ route('admin.academic-years.index') }}" class="sidebar-link {{ request()->routeIs('admin.academic-years.*') || request()->routeIs('admin.terms.*') ? 'sidebar-link-active' : '' }}" title="Years & Terms">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                 </svg>
                 <span x-show="!sidebarCollapsed" x-transition>Years & Terms</span>
             </a>
+            @endcan
+
+            @can('view school setup')
 
             <a href="{{ route('admin.divisions.index') }}" class="sidebar-link {{ request()->routeIs('admin.divisions.*') ? 'sidebar-link-active' : '' }}" title="Divisions">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -638,8 +652,9 @@
                 </svg>
                 <span x-show="!sidebarCollapsed" x-transition>Curriculum</span>
             </a>
+            @endcan
         </div>
-        @endcan
+        @endcanany
 
         @canany(['view security', 'view maintenance'])
         <div class="sidebar-category-header flex items-center cursor-pointer group" 

@@ -6,6 +6,7 @@ use App\Models\AppSetting;
 use App\Models\CommunicationSetting;
 use App\Models\Conversation;
 use App\Policies\ConversationPolicy;
+use App\Services\AcademicCalendarService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -17,7 +18,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // One instance per request/process so calendar snapshots are computed once.
+        $this->app->singleton(AcademicCalendarService::class);
     }
 
     /**

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AcademicCalendarController;
 use App\Http\Controllers\Admin\AcademicActivityController;
 use App\Http\Controllers\Admin\AcademicReportController;
 use App\Http\Controllers\Admin\AcademicYearController;
@@ -267,6 +268,29 @@ Route::middleware(['auth'])->group(function () {
         Route::put('subject-assignments/{grade_level}', [SubjectAssignmentController::class, 'update'])->name('subject-assignments.update')->middleware('permission:manage subjects');
 
         Route::resource('academic-years', AcademicYearController::class)->except(['show'])->middleware('permission:manage grade levels');
+
+        // Academic Calendar administration (official school calendar, single source of truth)
+        Route::middleware('permission:manage academic calendar')->prefix('academic-calendar')->name('academic-calendar.')->controller(App\Http\Controllers\Admin\AcademicCalendarController::class)->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('history', 'history')->name('history');
+            Route::post('import', 'import')->name('import');
+            Route::post('align-terms', 'alignTerms')->name('align-terms');
+            Route::get('events/create', 'createEvent')->name('events.create');
+            Route::post('events', 'storeEvent')->name('events.store');
+            Route::get('events/{event}/edit', 'editEvent')->name('events.edit');
+            Route::put('events/{event}', 'updateEvent')->name('events.update');
+            Route::post('events/{event}/cancel', 'cancelEvent')->name('events.cancel');
+            Route::post('events/{event}/restore', 'restoreEvent')->name('events.restore');
+            Route::post('events/{event}/review', 'reviewEvent')->name('events.review');
+            Route::delete('events/{event}', 'destroyEvent')->name('events.destroy');
+            Route::post('weeks', 'storeWeek')->name('weeks.store');
+            Route::post('weeks/generate', 'generateWeeks')->name('weeks.generate');
+            Route::get('weeks/{week}/edit', 'editWeek')->name('weeks.edit');
+            Route::put('weeks/{week}', 'updateWeek')->name('weeks.update');
+            Route::delete('weeks/{week}', 'destroyWeek')->name('weeks.destroy');
+            Route::post('overrides', 'storeOverride')->name('overrides.store');
+            Route::delete('overrides/{override}', 'destroyOverride')->name('overrides.destroy');
+        });
         Route::resource('terms', TermController::class)->except(['show'])->middleware('permission:manage grade levels');
         Route::get('terms/quarters/{academicYear}', [TermController::class, 'getQuarters'])->name('terms.get-quarters');
 
@@ -654,6 +678,18 @@ Route::middleware(['auth'])->group(function () {
 });
 
 require __DIR__.'/auth.php';
+
+// ─── Shared: Academic Calendar API (all authenticated users, school-wide data) ──
+Route::middleware('auth')->prefix('academic-calendar')->name('academic-calendar.')->controller(AcademicCalendarController::class)->group(function () {
+    Route::get('/context', 'context')->name('context');
+    Route::get('/summary', 'summary')->name('summary');
+    Route::get('/month', 'month')->name('month');
+    Route::get('/day', 'day')->name('day');
+    Route::get('/events', 'events')->name('events');
+    Route::get('/upcoming', 'upcoming')->name('upcoming');
+    Route::get('/working-days', 'workingDays')->name('working-days');
+    Route::get('/exam-periods', 'examPeriods')->name('exam-periods');
+});
 
 // ─── Shared: Notification API (all authenticated users) ─────────────────────
 Route::middleware('auth')->prefix('notifications')->name('notifications.')->group(function () {
