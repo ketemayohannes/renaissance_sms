@@ -254,10 +254,24 @@ class AcademicCalendarService
         $d = EthiopianCalendar::date($date);
         $ds = $d->toDateString();
 
+        // A week whose own dates contain the day always wins. Only then is a week stretched
+        // to the following Sunday, so weekends belong to the week before them. (A week can
+        // end on a Monday, e.g. an exam week running into Monday, while the next week
+        // starts on Tuesday; its stretch must not swallow the next week's days.)
         foreach ($snap['weeks'] as $w) {
-            $end = $includeWeekend ? Carbon::parse($w['end'])->endOfWeek(Carbon::SUNDAY)->toDateString() : $w['end'];
-            if ($w['start'] <= $ds && $end >= $ds) {
+            if ($w['start'] <= $ds && $w['end'] >= $ds) {
                 return $this->decorateWeek($w, $snap);
+            }
+        }
+
+        if ($includeWeekend) {
+            // Of the weeks stretched over this day, the most recently started one.
+            $match = collect($snap['weeks'])
+                ->filter(fn ($w) => $w['start'] <= $ds && Carbon::parse($w['end'])->endOfWeek(Carbon::SUNDAY)->toDateString() >= $ds)
+                ->sortByDesc('start')
+                ->first();
+            if ($match) {
+                return $this->decorateWeek($match, $snap);
             }
         }
 

@@ -291,6 +291,21 @@ class AcademicCalendarServiceTest extends TestCase
     }
 
     /** @test */
+    public function a_week_ending_on_monday_does_not_swallow_the_next_weeks_days(): void
+    {
+        // Quarter 1 final exam runs into Monday 23 Nov; Quarter 2 starts Tuesday 24 Nov.
+        AcademicWeek::whereDate('start_date', '2026-11-23')->firstOrFail()->update(['start_date' => '2026-11-24', 'working_days' => 4]);
+        AcademicWeek::whereDate('start_date', '2026-11-16')->firstOrFail()->update(['end_date' => '2026-11-23', 'working_days' => 6]);
+        AcademicCalendarService::flushCache();
+
+        $this->assertSame([1, 10], [$this->calendar->getAcademicWeek('2026-11-23')['quarter'], $this->calendar->getAcademicWeek('2026-11-23')['week_number']]);
+        $this->assertSame([2, 1], [$this->calendar->getAcademicWeek('2026-11-24')['quarter'], $this->calendar->getAcademicWeek('2026-11-24')['week_number']]);
+        // Weekends still belong to the week before them.
+        $this->assertSame(1, $this->calendar->getAcademicWeek('2026-11-28')['week_number']);
+        $this->assertSame(9, $this->calendar->getAcademicWeek('2026-11-15')['week_number']);
+    }
+
+    /** @test */
     public function scheduling_warnings_flag_exams_outside_the_exam_window(): void
     {
         $this->assertSame([], $this->calendar->schedulingWarnings('2026-10-28', true));
