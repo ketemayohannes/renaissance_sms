@@ -242,7 +242,7 @@ class PromotionController extends Controller
 
         // Use GradingService to get accurate yearly scores and counts
         $gradingService = app(GradingService::class);
-        $subjects = $section->gradeLevel->subjects;
+        $subjects = $section->gradeLevel->subjectsForYear((int) $academicYear->id)->get();
         $batchResults = $gradingService->calculateSectionTotals($students, $yearlyTerm, $academicYear, $subjects);
 
         $passMark = 50;

@@ -25,13 +25,15 @@ class ElectiveController extends Controller
     {
         $request->validate([
             'grade_level_id' => 'required|exists:grade_levels,id',
+            'academic_year_id' => 'nullable|exists:academic_years,id',
         ]);
 
-        // Get only ELECTIVE subjects for this grade level
-        // Assuming subjects are linked to grade level via pivot or direct relation
+        // Elective subjects assigned to this grade in the chosen (default: active) year.
+        $yearId = $request->academic_year_id ?? CachedData::activeAcademicYear()?->id;
         $subjects = DB::table('grade_level_subjects')
             ->join('subjects', 'grade_level_subjects.subject_id', '=', 'subjects.id')
             ->where('grade_level_subjects.grade_level_id', $request->grade_level_id)
+            ->where('grade_level_subjects.academic_year_id', $yearId)
             ->where('subjects.is_elective', true)
             ->select('subjects.id', 'subjects.name', 'subjects.code')
             ->orderBy('subjects.name')

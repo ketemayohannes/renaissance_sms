@@ -11,11 +11,20 @@
         <div class="card overflow-hidden">
             <div class="p-6">
                     <div class="mb-6">
-                        <p class="text-sm text-gray-600">Select multiple grade levels and the subjects you want to assign to them. This will overwrite any existing assignments for the selected grades.</p>
+                        <p class="text-sm text-gray-600">Select multiple grade levels and the subjects you want to assign to them. This replaces the selected grades' subjects for the chosen academic year only; other years are not affected.</p>
                     </div>
 
                     <form id="bulk-assign-form" action="{{ route('admin.subject-assignments.bulk-assign.store') }}" method="POST">
                         @csrf
+
+                        <div class="mb-6 max-w-xs">
+                            <label for="academic_year_id" class="block text-sm font-medium text-gray-700 mb-1">Academic Year</label>
+                            <select id="academic_year_id" name="academic_year_id" required class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                @foreach($academicYears as $year)
+                                    <option value="{{ $year->id }}" @selected($academicYear && $academicYear->id === $year->id)>{{ $year->name }}{{ $year->is_active ? ' (active)' : '' }}</option>
+                                @endforeach
+                            </select>
+                        </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <!-- Column 1: Grade Levels -->

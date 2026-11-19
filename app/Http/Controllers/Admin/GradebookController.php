@@ -197,10 +197,11 @@ class GradebookController extends Controller implements HasMiddleware
             'grade_level_id' => 'required|exists:grade_levels,id',
         ]);
 
-        // Subject assignments are the same in every academic year.
+        // Subject assignments are kept per academic year.
         $subjects = DB::table('grade_level_subjects')
             ->join('subjects', 'grade_level_subjects.subject_id', '=', 'subjects.id')
             ->where('grade_level_subjects.grade_level_id', $request->grade_level_id)
+            ->where('grade_level_subjects.academic_year_id', $request->academic_year_id)
             ->select('subjects.id', 'subjects.name', 'subjects.code')
             ->orderBy('subjects.name')
             ->get();

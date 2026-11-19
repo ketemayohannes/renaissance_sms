@@ -134,7 +134,7 @@
             studentsContainer.innerHTML = '<p class="text-gray-500 text-sm italic col-span-full">Loading students...</p>';
 
             // Fetch Subjects
-            fetch(`{{ route('admin.electives.get-subjects') }}?grade_level_id=${gradeLevelId}`)
+            fetch(`{{ route('admin.electives.get-subjects') }}?grade_level_id=${gradeLevelId}&academic_year_id=${academicYearId}`)
                 .then(response => {
                     if (!response.ok) throw new Error('Failed to load subjects');
                     return response.json();

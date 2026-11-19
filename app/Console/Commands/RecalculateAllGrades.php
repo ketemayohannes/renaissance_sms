@@ -147,7 +147,7 @@ class RecalculateAllGrades extends Command
             return;
         }
 
-        $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
+        $subjects = $section->gradeLevel->subjectsForYear((int) $academicYear->id)->orderByPivot('sort_order')->get();
         $results = $gradingService->calculateSectionTotals($students, $term, $academicYear, $subjects);
 
         // Same ranking logic as GradingService::recalculateTermStats().

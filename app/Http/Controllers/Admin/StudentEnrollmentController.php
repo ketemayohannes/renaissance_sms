@@ -211,7 +211,7 @@ class StudentEnrollmentController extends Controller
 
         // Assuming GradeLevel has 'subjects' relationship, we filter for electives
         // If relationship returns all subjects (pivot), we check is_elective column on Subject
-        $availableElectives = $gradeLevel->subjects()->where('is_elective', true)->get();
+        $availableElectives = $gradeLevel->subjectsForYear((int) $academicYearId)->where('is_elective', true)->get();
 
         // Get currently assigned electives for this academic year
         $assignedElectiveIds = $student->electives()

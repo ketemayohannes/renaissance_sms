@@ -61,7 +61,7 @@ class SectionGradeController extends Controller implements HasMiddleware
         $section = Section::findOrFail($request->section_id);
 
         // Fetch subjects for this grade level - ordered by the pivot sort_order
-        $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
+        $subjects = $section->gradeLevel->subjectsForYear((int) $academicYear->id)->orderByPivot('sort_order')->get();
 
         // Fetch students
         $students = $section->students()
@@ -285,7 +285,7 @@ class SectionGradeController extends Controller implements HasMiddleware
         $term = Term::findOrFail($request->term_id);
         $academicYear = AcademicYear::findOrFail($request->academic_year_id);
 
-        $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
+        $subjects = $section->gradeLevel->subjectsForYear((int) $academicYear->id)->orderByPivot('sort_order')->get();
         $students = $section->students()
             ->wherePivot('academic_year_id', $academicYear->id)
             ->wherePivotIn('status', ['active', 'completed'])
@@ -341,7 +341,7 @@ class SectionGradeController extends Controller implements HasMiddleware
         $term = Term::findOrFail($request->term_id);
         $academicYear = AcademicYear::findOrFail($request->academic_year_id);
 
-        $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
+        $subjects = $section->gradeLevel->subjectsForYear((int) $academicYear->id)->orderByPivot('sort_order')->get();
         $students = $section->students()
             ->wherePivot('academic_year_id', $academicYear->id)
             ->wherePivotIn('status', ['active', 'completed'])
@@ -664,7 +664,7 @@ class SectionGradeController extends Controller implements HasMiddleware
         $term = Term::findOrFail($request->term_id);
         $academicYear = AcademicYear::findOrFail($request->academic_year_id);
 
-        $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
+        $subjects = $section->gradeLevel->subjectsForYear((int) $academicYear->id)->orderByPivot('sort_order')->get();
         $students = $section->students()
             ->wherePivot('academic_year_id', $academicYear->id)
             ->wherePivotIn('status', ['active', 'completed'])
@@ -721,7 +721,7 @@ class SectionGradeController extends Controller implements HasMiddleware
         $term = Term::findOrFail($request->term_id);
         $academicYear = AcademicYear::findOrFail($request->academic_year_id);
 
-        $subjects = $section->gradeLevel->subjects()->orderByPivot('sort_order')->get();
+        $subjects = $section->gradeLevel->subjectsForYear((int) $academicYear->id)->orderByPivot('sort_order')->get();
         $students = $section->students()
             ->wherePivot('academic_year_id', $academicYear->id)
             ->wherePivotIn('status', ['active', 'completed'])

@@ -80,7 +80,7 @@ class AcademicReportService
             (int) $academicYear->id,
             function () use ($section, $term, $academicYear) {
                 $gradeLevel = $section->gradeLevel;
-                $subjects = $gradeLevel->subjects()->orderByPivot('sort_order')->get();
+                $subjects = $gradeLevel->subjectsForYear((int) $academicYear->id)->orderByPivot('sort_order')->get();
                 $settings = AcademicReportSetting::first();
 
                 // Enforce Subject Ordering: Prioritize UI Settings, Fallback to Fixed List
@@ -561,7 +561,11 @@ class AcademicReportService
     {
         $termsToProcess = collect([$term]);
 
-        // Only include subjects that are actually assigned to these grade levels
+        // Only include subjects that are actually assigned to these grade levels in this
+        // year (assignments are kept per year); ->subjects below reads this list.
+        foreach ($gradeLevels as $gradeLevel) {
+            $gradeLevel->setRelation('subjects', $gradeLevel->subjectsForYear((int) $academicYear->id)->orderByPivot('sort_order')->get());
+        }
         $allSubjects = $gradeLevels->flatMap->subjects->unique('id');
 
         // Use custom Matrix order if available, otherwise fallback

@@ -96,6 +96,7 @@ class GradeLevelSubjectSeeder extends Seeder
                     DB::table('grade_level_subjects')->updateOrInsert([
                         'grade_level_id' => $grade->id,
                         'subject_id' => $subject->id,
+                        'academic_year_id' => $activeYear->id,
                     ], [
                         'is_required' => true,
                         'created_at' => now(),

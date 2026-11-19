@@ -6,6 +6,8 @@ use App\Services\AcademicCalendarService;
 use App\Support\EthiopianCalendar;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class AcademicYear extends Model
 {
@@ -30,8 +32,55 @@ class AcademicYear extends Model
 
     protected static function booted(): void
     {
-        static::saved(fn () => AcademicCalendarService::flushCache());
-        static::deleted(fn () => AcademicCalendarService::flushCache());
+        static::saved(function () {
+            AcademicCalendarService::flushCache();
+            Cache::forget('cached_active_academic_year');
+        });
+        static::deleted(function () {
+            AcademicCalendarService::flushCache();
+            Cache::forget('cached_active_academic_year');
+        });
+
+        // A new year starts with the previous year's subject assignments, which can then
+        // be changed for the new year alone.
+        static::created(fn (AcademicYear $year) => $year->copySubjectAssignmentsFromPreviousYear());
+    }
+
+    /**
+     * Copy grade ↔ subject assignments from the closest earlier year (or, failing that,
+     * the most recent other year). Does nothing if this year already has assignments.
+     */
+    public function copySubjectAssignmentsFromPreviousYear(): int
+    {
+        if (DB::table('grade_level_subjects')->where('academic_year_id', $this->id)->exists()) {
+            return 0;
+        }
+
+        $others = static::where('id', '!=', $this->id)->orderByDesc('start_date')->orderByDesc('id');
+        $source = ($this->start_date ? (clone $others)->where('start_date', '<', $this->start_date)->value('id') : null)
+            ?? $others->value('id');
+
+        if (! $source) {
+            return 0;
+        }
+
+        $now = now();
+        $rows = DB::table('grade_level_subjects')->where('academic_year_id', $source)->get()
+            ->map(fn ($r) => [
+                'grade_level_id' => $r->grade_level_id,
+                'subject_id' => $r->subject_id,
+                'academic_year_id' => $this->id,
+                'is_required' => $r->is_required,
+                'sort_order' => $r->sort_order,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ])->all();
+
+        foreach (array_chunk($rows, 500) as $chunk) {
+            DB::table('grade_level_subjects')->insert($chunk);
+        }
+
+        return count($rows);
     }
 
     /**

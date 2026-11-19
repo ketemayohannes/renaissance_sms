@@ -1,9 +1,9 @@
 <x-admin-layout>
-    <x-slot name="header">Assign Subjects to {{ $gradeLevel->name }}</x-slot>
+    <x-slot name="header">Assign Subjects to {{ $gradeLevel->name }} ({{ $academicYear->name }})</x-slot>
 
     <div class="space-y-6">
         <x-breadcrumb :items="[
-            ['label' => 'Subject Assignments', 'url' => route('admin.subject-assignments.index')],
+            ['label' => 'Subject Assignments', 'url' => route('admin.subject-assignments.index', ['academic_year_id' => $academicYear->id])],
             ['label' => 'Manage Subjects', 'url' => '#']
         ]" />
 
@@ -11,15 +11,16 @@
             <div class="p-6 text-gray-900">
                     <div class="mb-6 flex justify-between items-center">
                         <div>
-                            <h3 class="text-lg font-medium text-gray-900">{{ $gradeLevel->name }} Subjects</h3>
-                            <p class="text-sm text-gray-500">Select the subjects taught in {{ $gradeLevel->name }}. This applies to every academic year.</p>
+                            <h3 class="text-lg font-medium text-gray-900">{{ $gradeLevel->name }} Subjects &mdash; {{ $academicYear->name }}</h3>
+                            <p class="text-sm text-gray-500">Select the subjects taught in {{ $gradeLevel->name }} in {{ $academicYear->name }}. Other academic years are not affected.</p>
                         </div>
-                        <a href="{{ route('admin.subject-assignments.index') }}" class="text-gray-600 hover:text-gray-900">Back to List</a>
+                        <a href="{{ route('admin.subject-assignments.index', ['academic_year_id' => $academicYear->id]) }}" class="text-gray-600 hover:text-gray-900">Back to List</a>
                     </div>
 
                     <form action="{{ route('admin.subject-assignments.update', $gradeLevel) }}" method="POST">
                         @csrf
                         @method('PUT')
+                        <input type="hidden" name="academic_year_id" value="{{ $academicYear->id }}">
 
                         <div class="mb-4">
                             <div class="flex items-center mb-4">

@@ -364,7 +364,7 @@ class ReportCardService
             'section' => $section,
             'term' => $term,
             'academicYear' => $academicYear,
-            'subjects' => $section->gradeLevel->subjects()->orderByPivot('sort_order')->get(),
+            'subjects' => $section->gradeLevel->subjectsForYear((int) $academicYear->id)->orderByPivot('sort_order')->get(),
             'reportCards' => $reportCards,
             'settings' => $settings,
             'isKindergarten' => KindergartenGradeHelper::isKindergarten($section),
