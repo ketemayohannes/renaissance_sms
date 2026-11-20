@@ -13,15 +13,16 @@
         <table class="w-full text-left border-separate border-spacing-0">
             <thead>
                 <tr class="bg-slate-50 border-b border-slate-200">
-                    <th class="px-2 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center w-12 pb-2">No</th>
-                    <th class="px-3 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider sticky left-0 z-30 bg-slate-50 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.05)] pb-2 min-w-[250px]">Student Full Name</th>
-                    <th class="px-2 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center w-16">Gender</th>
-                    
+                    <th class="px-1 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center w-8 pb-2">No</th>
+                    <th class="px-2 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider sticky left-0 z-30 bg-slate-50 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.05)] pb-2 min-w-[200px]">Student Full Name</th>
+                    <th class="px-1 py-3 text-[10px] font-semibold text-slate-500 uppercase tracking-normal text-center w-12">Gender</th>
+
+                    {{-- Mark columns are kept narrow so most of a term's assessments fit on screen. --}}
                     @foreach($gradeComponents as $component)
-                        <th class="px-4 py-3 border-b border-slate-200 min-w-[8rem] text-center group cursor-default relative hover:bg-slate-100 transition-colors">
-                            <div class="flex flex-col items-center justify-center w-full h-full mx-auto px-1 py-1">
-                                <span class="text-[10px] font-bold text-slate-600 uppercase tracking-wider whitespace-normal leading-3">{{ $component->name }}</span>
-                                <span class="text-[9px] font-semibold text-indigo-500 tracking-tighter mt-1">Max: {{ $component->max_score }}</span>
+                        <th class="px-1 py-2 border-b border-slate-200 w-[4.75rem] min-w-[4.75rem] max-w-[6rem] text-center group cursor-default relative hover:bg-slate-100 transition-colors" title="{{ $component->name }} (max {{ $component->max_score }})">
+                            <div class="flex flex-col items-center justify-center w-full h-full mx-auto py-0.5">
+                                <span class="text-[9px] font-bold text-slate-600 uppercase tracking-normal whitespace-normal leading-[11px] break-words">{{ $component->name }}</span>
+                                <span class="text-[9px] font-semibold text-indigo-500 tracking-tighter mt-0.5">Max {{ rtrim(rtrim(number_format((float) $component->max_score, 2), '0'), '.') }}</span>
                             </div>
                         </th>
                     @endforeach
@@ -29,10 +30,10 @@
                     @php
                         $totalCaCapacity = $gradeComponents->filter(fn($c) => $c->assessmentType?->code !== 'FINAL')->sum('max_score');
                     @endphp
-                    <th class="px-4 py-3 border-b border-slate-200 text-center font-bold text-indigo-600 text-[11px] bg-indigo-50/30 uppercase tracking-wider min-w-[6rem]">
+                    <th class="px-1 py-3 border-b border-slate-200 text-center font-bold text-indigo-600 text-[10px] bg-indigo-50/30 uppercase tracking-wide min-w-[4rem]">
                         CA ({{ (int)$totalCaCapacity }}%)
                     </th>
-                    <th class="px-4 py-3 border-b border-slate-200 text-center font-bold text-slate-700 text-[11px] uppercase tracking-wider min-w-[6rem]">
+                    <th class="px-1 py-3 border-b border-slate-200 text-center font-bold text-slate-700 text-[10px] uppercase tracking-wide min-w-[4rem]">
                         Total
                     </th>
                 </tr>
@@ -40,8 +41,8 @@
             <tbody class="divide-y divide-slate-100 bg-white">
                 @forelse($students as $index => $student)
                     <tr class="group hover:bg-slate-50 transition-colors student-row" data-student-id="{{ $student->id }}">
-                        <td class="px-2 py-2 text-xs font-medium text-slate-500 text-center">{{ $index + 1 }}</td>
-                        <td class="px-3 py-2 whitespace-nowrap sticky left-0 bg-white z-20 group-hover:bg-slate-50 transition-colors shadow-[4px_0_12px_-4px_rgba(0,0,0,0.05)]">
+                        <td class="px-1 py-2 text-xs font-medium text-slate-500 text-center">{{ $index + 1 }}</td>
+                        <td class="px-2 py-2 whitespace-nowrap sticky left-0 bg-white z-20 group-hover:bg-slate-50 transition-colors shadow-[4px_0_12px_-4px_rgba(0,0,0,0.05)]">
                             <div class="flex items-center gap-2">
                                 <div class="w-6 h-6 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-[10px] ring-1 ring-white shadow-sm flex-shrink-0">
                                     {{ substr($student->first_name ?? $student->full_name, 0, 1) }}{{ substr($student->last_name ?? '', 0, 1) }}
