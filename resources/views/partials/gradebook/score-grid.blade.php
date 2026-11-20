@@ -10,17 +10,24 @@
 <!-- Grade Entry Table -->
 <div class="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-2xl shadow-slate-200/50 overflow-hidden relative">
     <div class="overflow-x-auto custom-scrollbar">
+        @php
+            // Name column width (rem): sized to the longest name on the page (~0.53rem per
+            // capital letter at this font size + room for the avatar), kept between 14 and 22.
+            // Anything longer wraps onto a second line rather than being cut off.
+            $longestName = collect($students)->max(fn ($s) => mb_strlen((string) $s->full_name)) ?? 0;
+            $nameRem = min(22, max(14, round($longestName * 0.53 + 3.5, 1)));
+        @endphp
         {{--
             Fixed layout: No / Name / Gender / CA / Total have set widths and every mark column
             gets an equal share of whatever width is left, so the grid fills any screen. The
             min-width (rem) is the point below which it scrolls sideways instead of squeezing
-            the mark boxes: 2 (No) + 14 (Name) + 3 (Gender) + 8 (CA + Total) + 4 per mark column.
+            the mark boxes: 2 (No) + name + 3 (Gender) + 8 (CA + Total) + 4 per mark column.
         --}}
-        <table class="w-full table-fixed text-left border-separate border-spacing-0" style="min-width: {{ 27 + $gradeComponents->count() * 4 }}rem">
+        <table class="w-full table-fixed text-left border-separate border-spacing-0" style="min-width: {{ 13 + $nameRem + $gradeComponents->count() * 4 }}rem">
             <thead>
                 <tr class="bg-slate-50 border-b border-slate-200">
                     <th class="px-1 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center w-8 pb-2">No</th>
-                    <th class="px-2 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider sticky left-0 z-30 bg-slate-50 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.05)] pb-2 w-56 whitespace-nowrap">Student Full Name</th>
+                    <th class="px-2 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider sticky left-0 z-30 bg-slate-50 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.05)] pb-2 whitespace-nowrap" style="width: {{ $nameRem }}rem">Student Full Name</th>
                     <th class="px-1 py-3 text-[10px] font-semibold text-slate-500 uppercase tracking-normal text-center w-12">Gender</th>
 
                     @foreach($gradeComponents as $component)
@@ -47,13 +54,13 @@
                 @forelse($students as $index => $student)
                     <tr class="group hover:bg-slate-50 transition-colors student-row" data-student-id="{{ $student->id }}">
                         <td class="px-1 py-2 text-xs font-medium text-slate-500 text-center">{{ $index + 1 }}</td>
-                        <td class="px-2 py-2 whitespace-nowrap sticky left-0 bg-white z-20 group-hover:bg-slate-50 transition-colors shadow-[4px_0_12px_-4px_rgba(0,0,0,0.05)]">
+                        <td class="px-2 py-2 sticky left-0 bg-white z-20 group-hover:bg-slate-50 transition-colors shadow-[4px_0_12px_-4px_rgba(0,0,0,0.05)]">
                             <div class="flex items-center gap-2">
                                 <div class="w-6 h-6 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-[10px] ring-1 ring-white shadow-sm flex-shrink-0">
                                     {{ substr($student->first_name ?? $student->full_name, 0, 1) }}{{ substr($student->last_name ?? '', 0, 1) }}
                                 </div>
                                 <div class="min-w-0">
-                                    <div class="font-semibold text-slate-900 text-xs truncate" title="{{ $student->full_name }}">{{ $student->full_name }}</div>
+                                    <div class="font-semibold text-slate-900 text-xs leading-tight break-words" title="{{ $student->full_name }}">{{ $student->full_name }}</div>
                                 </div>
                             </div>
                         </td>
