@@ -14,7 +14,8 @@
             <thead>
                 <tr class="bg-slate-50 border-b border-slate-200">
                     <th class="px-1 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center w-8 pb-2">No</th>
-                    <th class="px-2 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider sticky left-0 z-30 bg-slate-50 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.05)] pb-2 min-w-[200px]">Student Full Name</th>
+                    {{-- w-px + nowrap: the name column shrinks to the longest name instead of absorbing the table's spare width. --}}
+                    <th class="px-2 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider sticky left-0 z-30 bg-slate-50 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.05)] pb-2 w-px whitespace-nowrap">Student Full Name</th>
                     <th class="px-1 py-3 text-[10px] font-semibold text-slate-500 uppercase tracking-normal text-center w-12">Gender</th>
 
                     {{-- Mark columns are kept narrow so most of a term's assessments fit on screen. --}}
