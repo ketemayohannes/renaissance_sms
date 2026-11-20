@@ -10,17 +10,21 @@
 <!-- Grade Entry Table -->
 <div class="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white shadow-2xl shadow-slate-200/50 overflow-hidden relative">
     <div class="overflow-x-auto custom-scrollbar">
-        <table class="w-full text-left border-separate border-spacing-0">
+        {{--
+            Fixed layout: No / Name / Gender / CA / Total have set widths and every mark column
+            gets an equal share of whatever width is left, so the grid fills any screen. The
+            min-width (rem) is the point below which it scrolls sideways instead of squeezing
+            the mark boxes: 2 (No) + 14 (Name) + 3 (Gender) + 8 (CA + Total) + 4 per mark column.
+        --}}
+        <table class="w-full table-fixed text-left border-separate border-spacing-0" style="min-width: {{ 27 + $gradeComponents->count() * 4 }}rem">
             <thead>
                 <tr class="bg-slate-50 border-b border-slate-200">
                     <th class="px-1 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center w-8 pb-2">No</th>
-                    {{-- w-px + nowrap: the name column shrinks to the longest name instead of absorbing the table's spare width. --}}
-                    <th class="px-2 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider sticky left-0 z-30 bg-slate-50 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.05)] pb-2 w-px whitespace-nowrap">Student Full Name</th>
+                    <th class="px-2 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider sticky left-0 z-30 bg-slate-50 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.05)] pb-2 w-56 whitespace-nowrap">Student Full Name</th>
                     <th class="px-1 py-3 text-[10px] font-semibold text-slate-500 uppercase tracking-normal text-center w-12">Gender</th>
 
-                    {{-- Mark columns are kept narrow so most of a term's assessments fit on screen. --}}
                     @foreach($gradeComponents as $component)
-                        <th class="px-1 py-2 border-b border-slate-200 w-[4.75rem] min-w-[4.75rem] max-w-[6rem] text-center group cursor-default relative hover:bg-slate-100 transition-colors" title="{{ $component->name }} (max {{ $component->max_score }})">
+                        <th class="px-1 py-2 border-b border-slate-200 text-center group cursor-default relative hover:bg-slate-100 transition-colors" title="{{ $component->name }} (max {{ $component->max_score }})">
                             <div class="flex flex-col items-center justify-center w-full h-full mx-auto py-0.5">
                                 <span class="text-[9px] font-bold text-slate-600 uppercase tracking-normal whitespace-normal leading-[11px] break-words">{{ $component->name }}</span>
                                 <span class="text-[9px] font-semibold text-indigo-500 tracking-tighter mt-0.5">Max {{ rtrim(rtrim(number_format((float) $component->max_score, 2), '0'), '.') }}</span>
@@ -31,10 +35,10 @@
                     @php
                         $totalCaCapacity = $gradeComponents->filter(fn($c) => $c->assessmentType?->code !== 'FINAL')->sum('max_score');
                     @endphp
-                    <th class="px-1 py-3 border-b border-slate-200 text-center font-bold text-indigo-600 text-[10px] bg-indigo-50/30 uppercase tracking-wide min-w-[4rem]">
+                    <th class="px-1 py-3 border-b border-slate-200 text-center font-bold text-indigo-600 text-[10px] bg-indigo-50/30 uppercase tracking-wide w-16">
                         CA ({{ (int)$totalCaCapacity }}%)
                     </th>
-                    <th class="px-1 py-3 border-b border-slate-200 text-center font-bold text-slate-700 text-[10px] uppercase tracking-wide min-w-[4rem]">
+                    <th class="px-1 py-3 border-b border-slate-200 text-center font-bold text-slate-700 text-[10px] uppercase tracking-wide w-16">
                         Total
                     </th>
                 </tr>
@@ -49,7 +53,7 @@
                                     {{ substr($student->first_name ?? $student->full_name, 0, 1) }}{{ substr($student->last_name ?? '', 0, 1) }}
                                 </div>
                                 <div class="min-w-0">
-                                    <div class="font-semibold text-slate-900 text-xs" title="{{ $student->full_name }}">{{ $student->full_name }}</div>
+                                    <div class="font-semibold text-slate-900 text-xs truncate" title="{{ $student->full_name }}">{{ $student->full_name }}</div>
                                 </div>
                             </div>
                         </td>
@@ -76,7 +80,7 @@
                                     $caScore += $score;
                                 }
                             @endphp
-                            <td class="p-0.5 text-center relative group/cell min-w-[3rem]">
+                            <td class="p-0.5 text-center relative group/cell">
                                 <input type="text" inputmode="decimal"
                                        name="marks[{{ $student->id }}][{{ $component->id }}][score]" 
                                        value="{{ $val }}" 
