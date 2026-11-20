@@ -26,7 +26,7 @@
                 <div class="mb-8 p-6 bg-slate-50/50 rounded-3xl border border-slate-100">
                     <form action="{{ route('admin.teacher-assignments.index') }}" method="GET">
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div class="md:col-span-3">
+                            <div class="md:col-span-2">
                                 <label for="search" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Search Teacher</label>
                                 <div class="relative">
                                     <input type="text" name="search" id="search" value="{{ request('search') }}" 
@@ -37,12 +37,21 @@
                                     </svg>
                                 </div>
                             </div>
+                            <div>
+                                <label for="academic_year_id" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Academic Year</label>
+                                <select name="academic_year_id" id="academic_year_id" onchange="this.form.submit()"
+                                        class="w-full py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all">
+                                    @foreach($years as $year)
+                                        <option value="{{ $year->id }}" @selected($year->id === $selectedYear->id)>{{ $year->name }}{{ $year->id === $activeYear->id ? ' (active)' : '' }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                             <div class="flex items-end">
                                 <button type="submit" class="w-full py-2.5 bg-slate-900 text-white font-bold text-sm rounded-xl hover:bg-slate-800 transition-all active:scale-95">
                                     Apply Filter
                                 </button>
-                                @if(request('search'))
-                                    <a href="{{ route('admin.teacher-assignments.index') }}" class="ml-2 p-2.5 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-100 transition-all">
+                                @if(request('search') || ! $isActiveYear)
+                                    <a href="{{ route('admin.teacher-assignments.index') }}" class="ml-2 p-2.5 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-100 transition-all" title="Clear filters">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                                     </a>
                                 @endif
@@ -50,6 +59,12 @@
                         </div>
                     </form>
                 </div>
+
+                @unless($isActiveYear)
+                    <div class="mb-6 px-5 py-3 rounded-2xl bg-amber-50 border border-amber-100 text-amber-800 text-sm">
+                        Showing assignments for <strong>{{ $selectedYear->name }}</strong>. This is read-only; assignments can only be changed for the active year ({{ $activeYear->name }}).
+                    </div>
+                @endunless
 
                 <!-- Registry Table -->
                 <div class="overflow-x-auto">
@@ -90,6 +105,7 @@
                                                             <span class="text-[9px] font-black text-slate-800 uppercase tracking-tight leading-none">{{ $assignment->subject->name }}</span>
                                                             <span class="text-[8px] font-bold text-indigo-500 uppercase mt-0.5">{{ $assignment->section->gradeLevel->name }} - {{ $assignment->section->name }}</span>
                                                         </div>
+                                                        @if($isActiveYear)
                                                         <form action="{{ route('admin.teacher-assignments.destroy', $assignment) }}" method="POST" class="delete-form" data-confirm-message="Remove this assignment?">
                                                             @csrf
                                                             @method('DELETE')
@@ -97,20 +113,23 @@
                                                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>
                                                             </button>
                                                         </form>
+                                                        @endif
                                                     </div>
                                                 @endforeach
                                             @else
-                                                <span class="text-[9px] font-bold text-slate-300 uppercase italic tracking-widest">No active assignments</span>
+                                                <span class="text-[9px] font-bold text-slate-300 uppercase italic tracking-widest">{{ $isActiveYear ? 'No active assignments' : 'No assignments' }}</span>
                                             @endif
                                         </div>
                                     </td>
                                     <td class="px-6 py-6 text-right border-b border-slate-50/50">
                                         <div class="flex justify-end gap-2">
+                                            @if($isActiveYear)
                                             <a href="{{ route('admin.teacher-assignments.create', ['teacher_user_id' => $teacher->user_id]) }}" 
                                                class="p-2.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all shadow-sm"
                                                title="Edit Assignments">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                             </a>
+                                            @endif
                                             <a href="{{ route('admin.employees.edit', $teacher) }}" 
                                                class="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all shadow-sm"
                                                title="View Staff Profile">
