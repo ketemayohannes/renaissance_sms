@@ -19,7 +19,22 @@ class TeacherAssignmentController extends Controller
     {
         $activeYear = AcademicYear::where('is_active', true)->firstOrFail();
 
-        $query = Employee::teachers()->active()->with('user');
+        // Assignments are kept per academic year; the filter defaults to the active year.
+        $years = AcademicYear::orderByDesc('start_date')->get();
+        $selectedYear = $request->filled('academic_year_id')
+            ? ($years->firstWhere('id', (int) $request->academic_year_id) ?? $activeYear)
+            : $activeYear;
+        $isActiveYear = $selectedYear->id === $activeYear->id;
+
+        $query = Employee::teachers()->with('user');
+
+        if ($isActiveYear) {
+            $query->active();
+        } else {
+            // A past (or future) year lists whoever was assigned then, including teachers
+            // who have since resigned.
+            $query->whereIn('user_id', TeacherAssignment::where('academic_year_id', $selectedYear->id)->select('teacher_id'));
+        }
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -35,11 +50,11 @@ class TeacherAssignmentController extends Controller
         $teachers = $query->orderBy('first_name')->paginate(20)->withQueryString();
 
         $assignments = TeacherAssignment::with(['teacher.employee', 'section.gradeLevel', 'subject'])
-            ->where('academic_year_id', $activeYear->id)
+            ->where('academic_year_id', $selectedYear->id)
             ->get()
             ->groupBy('teacher_id');
 
-        return view('admin.teacher-assignments.index', compact('assignments', 'teachers', 'activeYear'));
+        return view('admin.teacher-assignments.index', compact('assignments', 'teachers', 'activeYear', 'years', 'selectedYear', 'isActiveYear'));
     }
 
     public function create()
